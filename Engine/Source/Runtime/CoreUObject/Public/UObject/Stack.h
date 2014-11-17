@@ -102,7 +102,14 @@ public:
 	FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFrame* InPreviousFrame = NULL, UField* InPropertyChainForCompiledIn = NULL );
 
 	virtual ~FFrame()
-	{}
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (GScriptStack.Num())
+		{
+			GScriptStack.Pop();
+		}
+#endif
+	}
 
 	// Functions.
 	COREUOBJECT_API void Step( UObject* Context, RESULT_DECL );
@@ -118,7 +125,7 @@ public:
 	template<class TProperty, typename TNativeType>
 	FORCEINLINE_DEBUGGABLE TNativeType& StepCompiledInRef(void*const TemporaryBuffer);
 
-	COREUOBJECT_API virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	COREUOBJECT_API virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 	
 	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity);
 
@@ -168,7 +175,12 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, PreviousFrame(InPreviousFrame)
 	, OutParms(NULL)
 	, PropertyChainForCompiledIn(InPropertyChainForCompiledIn)
-{}
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());
+ 	GScriptStack.Push(StackNode);
+#endif
+}
 
 inline int32 FFrame::ReadInt()
 {

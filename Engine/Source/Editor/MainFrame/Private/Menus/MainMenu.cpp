@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainMenu.cpp: Implements the FMainMenu class.
-=============================================================================*/
-
 #include "MainFramePrivatePCH.h"
 
 #include "../../WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -12,9 +8,11 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "SourceCodeNavigation.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "TranslationEditorMenu.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFileMenu"
+
 
 void FMainMenu::FillFileMenu( FMenuBuilder& MenuBuilder, const TSharedRef<FExtender> Extender )
 {
@@ -121,12 +119,14 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 		}
 		else
 		{
+#if !PLATFORM_MAC // Handled by app's menu in menu bar
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("EditorPreferencesMenuLabel", "Editor Preferences..."),
 				LOCTEXT("EditorPreferencesMenuToolTip", "Configure the behavior and features of this Editor"),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Editor"), FName("General"), FName("Appearance")))
 			);
+#endif
 
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
@@ -221,9 +221,13 @@ void FMainMenu::FillHelpMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 
 		MenuBuilder.AddMenuSeparator("EpicGamesHelp");
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().VisitEpicGamesDotCom, "VisitEpicGamesDotCom");
+
+		MenuBuilder.AddMenuSeparator("Credits");
+		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().CreditsUnrealEd);
 	}
 	MenuBuilder.EndSection();
 
+#if !PLATFORM_MAC // Handled by app's menu in menu bar
 	MenuBuilder.BeginSection("HelpApplication", NSLOCTEXT("MainHelpMenu", "Application", "Application"));
 	{
 		const FText AboutWindowTitle = NSLOCTEXT("MainHelpMenu", "AboutUnrealEditor", "About Unreal Editor...");
@@ -231,6 +235,7 @@ void FMainMenu::FillHelpMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().AboutUnrealEd, "AboutUnrealEd", AboutWindowTitle);
 	}
 	MenuBuilder.EndSection();
+#endif
 }
 
 
@@ -313,6 +318,14 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 					FNewMenuDelegate::CreateStatic( &FPackageProjectMenu::MakeMenu ), false, FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.PackageProject")
 				);
 
+				/*
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("CookProjectSubMenuLabel", "Cook Project"),
+					LOCTEXT("CookProjectSubMenuToolTip", "Cook your project content for debugging"),
+					FNewMenuDelegate::CreateStatic( &FCookContentMenu::MakeMenu ), false, FSlateIcon()
+				);
+				*/
+
 				if (FPaths::FileExists(FModuleManager::Get().GetSolutionFilepath()))
 				{
 					MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().RefreshCodeProject,
@@ -333,11 +346,11 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 
 				if (RunningTargetPlatform != nullptr)
 				{
-					FString CookedPlatformName = RunningTargetPlatform->PlatformName() + TEXT("NoEditor");
-					FText CookedPlatformText = FText::FromString(RunningTargetPlatform->PlatformName());
+					const FName CookedPlatformName = *(RunningTargetPlatform->PlatformName() + TEXT("NoEditor"));
+					const FText CookedPlatformText = FText::FromString(RunningTargetPlatform->PlatformName());
 
 					FUIAction Action(
-						FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CookContent, CookedPlatformName, CookedPlatformText),
+						FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CookContent, CookedPlatformName),
 						FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CookContentCanExecute, CookedPlatformName)
 					);
 
@@ -366,9 +379,10 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 				}
 			}
 			MenuBuilder.EndSection();
-
+#if !PLATFORM_MAC // Handled by app's menu in menu bar
 			MenuBuilder.AddMenuSeparator();
 			MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().Exit, "Exit" );
+#endif
 		}
 	};
 

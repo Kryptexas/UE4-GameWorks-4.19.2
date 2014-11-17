@@ -17,11 +17,11 @@ static float GGlobalStateObject = 0.0f;
 class FSynthBenchmark : public ISynthBenchmark
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	
 	/** ISynthBenchmark implementation */
-	virtual void Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uint32 WorkScale, bool bDebugOut) const OVERRIDE;
+	virtual void Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uint32 WorkScale, bool bDebugOut) const override;
 };
 
 IMPLEMENT_MODULE( FSynthBenchmark, SynthBenchmark )

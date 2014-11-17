@@ -1,12 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
-#include "AI/BehaviorTreeDelegates.h"
-#include "SBehaviorTreeDebuggerView.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BTNode.h"
+#include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/BTAuxiliaryNode.h"
+#include "BehaviorTreeDelegates.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggingComponent.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 {
-	EditorOwner = NULL;
 	TreeAsset = NULL;
 	bIsPIEActive = false;
 	bIsCurrentSubtree = false;
@@ -15,6 +19,8 @@ FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 	StepBackIntoIdx = INDEX_NONE;
 	StepBackOverIdx = INDEX_NONE;
 	StepOutIdx = INDEX_NONE;
+	SavedTimestamp = 0.0f;
+	CurrentTimestamp = 0.0f;
 
 	FEditorDelegates::BeginPIE.AddRaw(this, &FBehaviorTreeDebugger::OnBeginPIE);
 	FEditorDelegates::EndPIE.AddRaw(this, &FBehaviorTreeDebugger::OnEndPIE);
@@ -30,40 +36,58 @@ FBehaviorTreeDebugger::~FBehaviorTreeDebugger()
 	FBehaviorTreeDelegates::OnDebugSelected.RemoveAll(this);
 }
 
-void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView)
+void FBehaviorTreeDebugger::CacheRootNode()
 {
-	DebuggerDetails = DebuggerView;
-	EditorOwner = (class FBehaviorTreeEditor*)InEditorOwner;
+	if(RootNode.IsValid() || TreeAsset == nullptr || TreeAsset->BTGraph == nullptr)
+	{
+		return;
+	}
+
+	for (const auto& Node : TreeAsset->BTGraph->Nodes)
+	{
+		RootNode = Cast<UBehaviorTreeGraphNode_Root>(Node);
+		if (RootNode.IsValid())
+		{
+			break;
+		}
+	}
+}
+
+void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, TSharedRef<FBehaviorTreeEditor> InEditorOwner)
+{
+	EditorOwner = InEditorOwner;
 	TreeAsset = InTreeAsset;
 	DebuggerInstanceIndex = INDEX_NONE;
 	ActiveStepIndex = 0;
 	ActiveBreakpoints.Reset();
 	KnownInstances.Reset();
 
-	if (TreeAsset)
-	{
-		for (int32 i = 0; i < TreeAsset->BTGraph->Nodes.Num(); i++)
-		{
-			RootNode = Cast<UBehaviorTreeGraphNode_Root>(TreeAsset->BTGraph->Nodes[i]);
-			if (RootNode.IsValid())
-			{
-				break;
-			}
-		}
-	}
+	CacheRootNode();
 
 #if USE_BEHAVIORTREE_DEBUGGER
-	// check if PIE is already running
 	if (IsPIESimulating())
 	{
 		OnBeginPIE(GEditor->bIsSimulatingInEditor);
 
+		Refresh();
+	}
+#endif
+}
+
+void FBehaviorTreeDebugger::Refresh()
+{
+	CacheRootNode();
+
+	if (IsPIESimulating() && IsDebuggerReady())
+	{
 		// make sure is grabs data if currently paused
 		if (IsPlaySessionPaused() && TreeInstance.IsValid())
 		{
 			FindLockedDebugActor(GEditor->PlayWorld);
 			
 			UpdateDebuggerInstance();
+			UpdateAvailableActions();
+
 			if (DebuggerInstanceIndex != INDEX_NONE)
 			{
 				UpdateDebuggerViewOnStepChange();
@@ -78,7 +102,6 @@ void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class 
 			}
 		}
 	}
-#endif
 }
 
 void FBehaviorTreeDebugger::Tick(float DeltaTime)
@@ -159,13 +182,22 @@ bool FBehaviorTreeDebugger::IsTickable() const
 void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = true;
-	EditorOwner->RegenerateMenusAndToolbars();
-	EditorOwner->DebuggerUpdateGraph();
+	if(EditorOwner.IsValid())
+	{
+		TSharedPtr<FBehaviorTreeEditor> EditorOwnerPtr = EditorOwner.Pin();
+		EditorOwnerPtr->RegenerateMenusAndToolbars();
+		EditorOwnerPtr->DebuggerUpdateGraph();
+	}
 
 	ActiveBreakpoints.Reset();
 	CollectBreakpointsFromAsset(RootNode.Get());
 
 	FindMatchingTreeInstance();
+
+	// remove these delegates first as we can get multiple calls to OnBeginPIE()
+	USelection::SelectObjectEvent.RemoveAll(this);
+	FBehaviorTreeDelegates::OnTreeStarted.RemoveAll(this);
+	FBehaviorTreeDelegates::OnDebugSelected.RemoveAll(this);
 
 	USelection::SelectObjectEvent.AddRaw(this, &FBehaviorTreeDebugger::OnObjectSelected);
 	FBehaviorTreeDelegates::OnTreeStarted.AddRaw(this, &FBehaviorTreeDebugger::OnTreeStarted);
@@ -175,7 +207,10 @@ void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 void FBehaviorTreeDebugger::OnEndPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = false;
-	EditorOwner->RegenerateMenusAndToolbars();
+	if(EditorOwner.IsValid())
+	{
+		EditorOwner.Pin()->RegenerateMenusAndToolbars();
+	}
 
 	USelection::SelectObjectEvent.RemoveAll(this);
 	FBehaviorTreeDelegates::OnTreeStarted.RemoveAll(this);
@@ -295,7 +330,10 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	Node->bDebuggerMarkBreakpointTrigger = NodeInstance->GetExecutionIndex() == StoppedOnBreakpointExecutionIndex;
 	if (Node->bDebuggerMarkBreakpointTrigger)
 	{
-		EditorOwner->JumpToNode(Node);
+		if(EditorOwner.IsValid())
+		{
+			EditorOwner.Pin()->JumpToNode(Node);
+		}
 	}
 
 	int32 SearchPathIdx = INDEX_NONE;
@@ -620,8 +658,19 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	APlayerController* LocalPC = GEngine->GetFirstLocalPlayerController(World);
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
-		UGameplayDebuggingControllerComponent* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		const APawn* LockedPawn = DebuggingController != NULL ? DebuggingController->GetCurrentDebugTarget() : NULL;
+		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* A = *It;
+			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+			{
+				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+				break;
+			}
+		}
+
+		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
+		const APawn* LockedPawn = DebuggingComponent != NULL ? Cast<APawn>(DebuggingComponent->GetSelectedActor()) : NULL;
 		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
 		if (TestInstance)
 		{
@@ -663,7 +712,7 @@ void FBehaviorTreeDebugger::FindMatchingTreeInstance()
 		}
 	}
 
-	if (MatchingComp)
+	if (MatchingComp != TreeInstance)
 	{
 		TreeInstance = MatchingComp;
 		UpdateDebuggerViewOnInstanceChange();
@@ -782,7 +831,10 @@ void FBehaviorTreeDebugger::UpdateCurrentStep(int32 PrevStepIdx, int32 NewStepId
 			if (CurInstaceIdx != NewInstanceIdx || 
 				CurStepInfo.InstanceStack[CurInstaceIdx].TreeAsset != NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset)
 			{
-				EditorOwner->DebuggerSwitchAsset(NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset);
+				if(EditorOwner.IsValid())
+				{
+					EditorOwner.Pin()->DebuggerSwitchAsset(NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset);
+				}
 				UpdateCurrentSubtree();
 			}
 		}
@@ -885,7 +937,7 @@ void FBehaviorTreeDebugger::PausePlaySession()
 {
 	if (GUnrealEd->PlayWorld)
 	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = !GUnrealEd->PlayWorld->bDebugPauseExecution;
+		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
 	}
 }
 
@@ -893,7 +945,7 @@ void FBehaviorTreeDebugger::ResumePlaySession()
 {
 	if (GUnrealEd->PlayWorld)
 	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = !GUnrealEd->PlayWorld->bDebugPauseExecution;
+		GUnrealEd->PlayWorld->bDebugPauseExecution = false;
 	}
 }
 
@@ -944,22 +996,21 @@ void FBehaviorTreeDebugger::OnBreakpointRemoved(class UBehaviorTreeGraphNode* No
 void FBehaviorTreeDebugger::UpdateDebuggerViewOnInstanceChange()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
-	if (DebuggerDetails.IsValid())
+	UBlackboardData* BBAsset = EditorOwner.IsValid() ? EditorOwner.Pin()->GetBlackboardData() : nullptr;
+	if (TreeInstance.IsValid() &&
+		TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex) &&
+		TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack.IsValidIndex(DebuggerInstanceIndex))
 	{
-		UBlackboardData* BBAsset = NULL;
-		if (TreeInstance.IsValid() &&
-			TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex) &&
-			TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack.IsValidIndex(DebuggerInstanceIndex))
+		const FBehaviorTreeDebuggerInstance& ShowInstance = TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack[DebuggerInstanceIndex];
+		if (ShowInstance.TreeAsset)
 		{
-			const FBehaviorTreeDebuggerInstance& ShowInstance = TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack[DebuggerInstanceIndex];
-			if (ShowInstance.TreeAsset)
-			{
-				BBAsset = ShowInstance.TreeAsset->BlackboardAsset;
-			}
+			BBAsset = ShowInstance.TreeAsset->BlackboardAsset;
 		}
-
-		DebuggerDetails->UpdateBlackboard(BBAsset);
 	}
+
+	OnDebuggedBlackboardChangedEvent.Broadcast(BBAsset);
+
+	Refresh();
 #endif
 }
 
@@ -967,14 +1018,13 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnStepChange()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (IsDebuggerRunning() &&
-		DebuggerDetails.IsValid() && TreeInstance.IsValid() &&
+		TreeInstance.IsValid() &&
 		TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex))
 	{
 		const FBehaviorTreeExecutionStep& ShowStep = TreeInstance->DebuggerSteps[ActiveStepIndex];
 
-		DebuggerDetails->SavedTimestamp = ShowStep.TimeStamp;
-		DebuggerDetails->SavedValues = ShowStep.BlackboardValues;
-		DebuggerDetails->bCanShowCurrentState = IsShowingCurrentState();
+		SavedTimestamp = ShowStep.TimeStamp;
+		SavedValues = ShowStep.BlackboardValues;
 	}
 #endif
 }
@@ -982,16 +1032,49 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnStepChange()
 void FBehaviorTreeDebugger::UpdateDebuggerViewOnTick()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
-	if (IsDebuggerRunning() && 
-		DebuggerDetails.IsValid() && TreeInstance.IsValid() &&
-		DebuggerDetails->IsShowingCurrentState())
+	if (IsDebuggerRunning() && TreeInstance.IsValid())
 	{
 		const float GameTime = GEditor && GEditor->PlayWorld ? GEditor->PlayWorld->GetTimeSeconds() : 0.0f;
-		DebuggerDetails->CurrentTimestamp = GameTime;
+		CurrentTimestamp = GameTime;
 
-		TreeInstance->StoreDebuggerBlackboard(DebuggerDetails->CurrentValues);
+		TreeInstance->StoreDebuggerBlackboard(CurrentValues);
 	}
 #endif
+}
+
+FText FBehaviorTreeDebugger::FindValueForKey(const FName& InKeyName, bool bUseCurrentState) const
+{
+#if USE_BEHAVIORTREE_DEBUGGER
+	if (IsDebuggerRunning() &&
+		TreeInstance.IsValid())
+	{
+		FBehaviorTreeExecutionStep* ShowStep = nullptr;
+		if(bUseCurrentState && TreeInstance->DebuggerSteps.Num() > 0)
+		{
+			ShowStep = &TreeInstance->DebuggerSteps[TreeInstance->DebuggerSteps.Num() - 1];
+		}
+		else if(TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex))
+		{
+			ShowStep = &TreeInstance->DebuggerSteps[ActiveStepIndex];
+		}
+
+		if(ShowStep != nullptr)
+		{
+			const FString* FindValue = ShowStep->BlackboardValues.Find(InKeyName);
+			if(FindValue != nullptr)
+			{
+				return FText::FromString(*FindValue);
+			}	
+		}
+	}
+
+	return FText();
+#endif
+}
+
+float FBehaviorTreeDebugger::GetTimeStamp(bool bUseCurrentState) const
+{
+	return bUseCurrentState ? CurrentTimestamp : SavedTimestamp;
 }
 
 FString FBehaviorTreeDebugger::GetDebuggedInstanceDesc() const
@@ -1007,9 +1090,9 @@ FString FBehaviorTreeDebugger::DescribeInstance(class UBehaviorTreeComponent* In
 	if (InstanceToDescribe && InstanceToDescribe->GetOwner())
 	{
 		AController* TestController = Cast<AController>(InstanceToDescribe->GetOwner());
-		ActorDesc = (TestController && TestController->GetPawn()) ?
-			TestController->GetPawn()->GetName() :
-			InstanceToDescribe->GetOwner()->GetName();
+		ActorDesc = TestController ?
+			TestController->GetName() :
+			InstanceToDescribe->GetOwner()->GetActorLabel();
 	}
 
 	return ActorDesc;
@@ -1020,7 +1103,29 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 	if (SelectedInstance)
 	{
 		ClearDebuggerState();
+
+		AController* OldController = TreeInstance.IsValid() ? Cast<AController>(TreeInstance->GetOwner()) : NULL;
+		APawn* OldPawn = OldController != NULL ? OldController->GetPawn() : NULL;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		if (SelectedActors && OldPawn)
+		{
+			SelectedActors->Deselect(OldPawn);
+		}
+
 		TreeInstance = SelectedInstance;
+
+		if (SelectedActors && GEditor && SelectedInstance && SelectedInstance->GetOwner())
+		{
+			AController* TestController = Cast<AController>(SelectedInstance->GetOwner());
+			APawn* Pawn = TestController != NULL ? TestController->GetPawn() : NULL;
+			if (Pawn)
+			{
+				SelectedActors = GEditor->GetSelectedActors();
+				SelectedActors->Select(Pawn);
+			}
+		}
+
+		Refresh();
 	}
 }
 

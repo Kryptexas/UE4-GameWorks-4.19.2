@@ -6,6 +6,7 @@
 
 #include "LevelEditor.h"
 #include "LightingTools.h"
+#include "EditorSupportDelegates.h"
 
 /**
  *	LightingTools settings

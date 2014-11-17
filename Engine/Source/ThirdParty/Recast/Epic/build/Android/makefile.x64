@@ -1,0 +1,55 @@
+#needs updating with correct NDK
+
+TOOLCHAIN=/cygdrive/c/android/android-ndk-r9c/toolchains
+CC=$(TOOLCHAIN)/llvm-3.4/prebuilt/windows-x86_64/bin/clang.exe
+AR_RC=$(TOOLCHAIN)/x86_64-4.8/prebuilt/windows-x86_64/bin/x86_64-linux-android-ar.exe rc
+RANLIB=$(TOOLCHAIN)/x86_64-4.8/prebuilt/windows-x86_64/bin/x86_64-linux-android-ranlib.exe
+RM_F=rm -f
+CPP=$(TOOLCHAIN)/llvm-3.4/prebuilt/windows-x86_64/bin/clang.exe
+CXX=$(TOOLCHAIN)/llvm-3.4/prebuilt/windows-x86_64/bin/clang.exe
+
+STDLIBDIR="C:\\android\\android-ndk-r9c\\platforms\\android-20\\arch-x86_64\\usr\\include"
+STLLIBDIR="C:\\android\\android-ndk-r9c\\sources\\cxx-stl\\gabi++\\include"
+
+CXXFLAGS= -target x86_64-none-linux-android -g -O3 -I$(STDLIBDIR) -I$(STLLIBDIR) -ffunction-sections -funwind-tables -fstack-protector -fno-strict-aliasing -fno-exceptions -fno-rtti -fno-short-enums -fpic -march=atom  -x c++ -std=c++11
+CPPFLAGS= -IDetour/Include -IDetourCrowd/Include -IDetourTileCache/Include -IRecastDemo/Include -IRecast/Include
+
+OBJS = Detour/Source/DetourAlloc.o \
+	Detour/Source/DetourCommon.o \
+	Detour/Source/DetourNavMesh.o \
+	Detour/Source/DetourNavMeshBuilder.o \
+	Detour/Source/DetourNavMeshQuery.o \
+	Detour/Source/DetourNode.o \
+	DetourCrowd/Source/DetourCrowd.o \
+	DetourCrowd/Source/DetourLocalBoundary.o \
+	DetourCrowd/Source/DetourObstacleAvoidance.o \
+	DetourCrowd/Source/DetourPathCorridor.o \
+	DetourCrowd/Source/DetourPathQueue.o \
+	DetourCrowd/Source/DetourProximityGrid.o \
+	DetourTileCache/Source/DetourTileCache.o \
+	DetourTileCache/Source/DetourTileCacheBuilder.o \
+	DetourTileCache/Source/DetourTileCacheDetail.o \
+	DetourTileCache/Source/DetourTileCacheRegion.o \
+	RecastDemo/Source/ChunkyTriMesh.o \
+	Recast/Source/Recast.o \
+	Recast/Source/RecastAlloc.o \
+	Recast/Source/RecastArea.o \
+	Recast/Source/RecastContour.o \
+	Recast/Source/RecastFilter.o \
+	Recast/Source/RecastLayers.o \
+	Recast/Source/RecastMesh.o \
+	Recast/Source/RecastMeshDetail.o \
+	Recast/Source/RecastRasterization.o \
+	Recast/Source/RecastRegion.o
+
+
+all: librecast_x64.a
+
+librecast_x64.a: $(OBJS)
+	$(AR_RC) $@  $(OBJS)
+	$(RANLIB) $@
+	cp librecast_x64.a ./Epic/lib/Android/x64/librecast.a
+	$(RM_F) *.o */*.o */Source/*.o librecast_x64.a
+
+clean:
+	$(RM_F) *.o */*.o */Source/*.o librecast_x64.a

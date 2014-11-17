@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IUdpMessageTunnelConnection.h: Declares the IUdpMessageTunnelConnection interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IUdpMessageTunnelConnection.
- */
+/** Type definition for shared pointers to instances of IUdpMessageTunnelConnection. */
 typedef TSharedPtr<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionPtr;
 
-/**
- * Type definition for shared references to instances of IUdpMessageTunnelConnection.
- */
+/** Type definition for shared references to instances of IUdpMessageTunnelConnection. */
 typedef TSharedRef<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionRef;
 
 

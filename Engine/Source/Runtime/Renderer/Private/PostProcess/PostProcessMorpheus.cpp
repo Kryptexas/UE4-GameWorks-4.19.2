@@ -55,7 +55,7 @@ public:
 	FDeferredPixelShaderParameters DeferredParameters;
 	
 #if NEW_MORPHEUS_DISTORTION
-	// Distortion parameter values	
+	// Distortion parameter values
 	FShaderParameter TextureScale;
 	FShaderParameter TextureOffset;
 	FShaderParameter TextureUVOffset;
@@ -68,7 +68,7 @@ public:
 	const FTexture*		DistortionTexture;
 #endif
 
-	FShaderResourceParameter DistortionTextureParam; 	
+	FShaderResourceParameter DistortionTextureParam; 
 	FShaderResourceParameter DistortionTextureSampler; 
 
 	/** Initialization constructor. */
@@ -99,7 +99,7 @@ public:
 		Scale.Bind(Initializer.ParameterMap, TEXT("Scale"));
 		HMDWarpParam.Bind(Initializer.ParameterMap, TEXT("HMDWarpParam"));
 		CAWarpParam.Bind(Initializer.ParameterMap, TEXT("CAWarpParam"));
-
+	
 		DistortionTextureParam.Bind(Initializer.ParameterMap, TEXT("DistortionTexture"));
 		check(DistortionTextureParam.IsBound());
 
@@ -115,10 +115,10 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
 			check(GEngine->HMDDevice.IsValid());
@@ -130,29 +130,29 @@ public:
 			if (StereoPass == eSSP_LEFT_EYE)
 			{
 				FTexture* TextureLeft = HMDDevice->GetDistortionTextureLeft();
-				SetTextureParameter(ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
-				SetShaderValue(ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
-				SetShaderValue(ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
-				SetShaderValue(ShaderRHI, TextureUVOffset, 0.0f);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, 0.0f);
 			}
 			else
 			{
 				FTexture* TextureRight = HMDDevice->GetDistortionTextureRight();
-				SetTextureParameter(ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
-				SetShaderValue(ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
-				SetShaderValue(ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
-				SetShaderValue(ShaderRHI, TextureUVOffset, -0.5f);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
 			}				
 			      
             QuadTexTransform = FMatrix::Identity;            
 #else
-			const FIntPoint SrcSize = SrcRect.Size();
-			const float BufferRatioX = float(SrcSize.X)/float(SrcBufferSize.X);
-			const float BufferRatioY = float(SrcSize.Y)/float(SrcBufferSize.Y);
-			const float w = float(SrcSize.X)/float(SrcBufferSize.X);
-			const float h = float(SrcSize.Y)/float(SrcBufferSize.Y);
-			const float x = float(SrcRect.Min.X)/float(SrcBufferSize.X);
-			const float y = float(SrcRect.Min.Y)/float(SrcBufferSize.Y);
+            const FIntPoint SrcSize = SrcRect.Size();
+            const float BufferRatioX = float(SrcSize.X)/float(SrcBufferSize.X);
+            const float BufferRatioY = float(SrcSize.Y)/float(SrcBufferSize.Y);
+            const float w = float(SrcSize.X)/float(SrcBufferSize.X);
+            const float h = float(SrcSize.Y)/float(SrcBufferSize.Y);
+            const float x = float(SrcRect.Min.X)/float(SrcBufferSize.X);
+            const float y = float(SrcRect.Min.Y)/float(SrcBufferSize.Y);
 
 			float DistortionCenterOffsetX = 0, DistortionCenterOffsetY = 0;
 			GEngine->HMDDevice->GetDistortionCenterOffset(DistortionCenterOffsetX, DistortionCenterOffsetY);
@@ -169,45 +169,45 @@ public:
 				DistortionTexture = GEngine->HMDDevice->GetDistortionTexture();
 				check(DistortionTexture != NULL);
 			}
-			SetTextureParameter(ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), DistortionTexture->TextureRHI);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), DistortionTexture->TextureRHI);
 
 			// Shifts texture coordinates to the center of the distortion function around the center of the lens
 			FVector2D ViewLensCenter;
 			ViewLensCenter.X = x + (0.5f + XCenterOffset) * w;
 			ViewLensCenter.Y = y + (0.5f + YCenterOffset) * h;
-			SetShaderValue(ShaderRHI, LensCenter, ViewLensCenter);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, LensCenter, ViewLensCenter);
 
 			// Texture coordinate for the center of the half scene texture, used to clamp sampling
 			FVector2D ViewScreenCenter;
 			ViewScreenCenter.X = x + w * 0.5f;
 			ViewScreenCenter.Y = y + h * 0.5f;
-			SetShaderValue(ShaderRHI, ScreenCenter, ViewScreenCenter);
-
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ScreenCenter, ViewScreenCenter);
+			
 			// Rescale output (sample) coordinates back to texture range and increase scale to support rendering outside the the screen
 			FVector2D ViewScale;
 			ViewScale.X = (w/2) * ScaleFactor;
 			ViewScale.Y = (h/2) * ScaleFactor * AspectRatio;
-			SetShaderValue(ShaderRHI, Scale, ViewScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, Scale, ViewScale);
 
-			// Distortion coefficients
-			FVector4 DistortionValues;
-			GEngine->HMDDevice->GetDistortionWarpValues(DistortionValues);
-			SetShaderValue(ShaderRHI, HMDWarpParam, DistortionValues);
+            // Distortion coefficients
+            FVector4 DistortionValues;
+            GEngine->HMDDevice->GetDistortionWarpValues(DistortionValues);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, HMDWarpParam, DistortionValues);
 
 			// CNN - Morpheus changes
 			// CA correction values
 			FVector4 CAValues;
 			GEngine->HMDDevice->GetChromaAbCorrectionValues(CAValues);
-			SetShaderValue(ShaderRHI, CAWarpParam, CAValues);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, CAWarpParam, CAValues);
 
 			// Rescale the texture coordinates to [-1,1] unit range and corrects aspect ratio
 			FVector2D ViewScaleIn;
-			ViewScaleIn.X = (2/w);
-			ViewScaleIn.Y = (2/h) / AspectRatio;
-
-			QuadTexTransform = FMatrix::Identity;
-			QuadTexTransform *= FTranslationMatrix(FVector(-ViewLensCenter.X * SrcBufferSize.X, -ViewLensCenter.Y * SrcBufferSize.Y, 0));
-			QuadTexTransform *= FMatrix(FPlane(ViewScaleIn.X,0,0,0), FPlane(0,ViewScaleIn.Y,0,0), FPlane(0,0,0,0), FPlane(0,0,0,1));
+            ViewScaleIn.X = (2/w);
+            ViewScaleIn.Y = (2/h) / AspectRatio;
+            
+            QuadTexTransform = FMatrix::Identity;
+            QuadTexTransform *= FTranslationMatrix(FVector(-ViewLensCenter.X * SrcBufferSize.X, -ViewLensCenter.Y * SrcBufferSize.Y, 0));
+            QuadTexTransform *= FMatrix(FPlane(ViewScaleIn.X,0,0,0), FPlane(0,ViewScaleIn.Y,0,0), FPlane(0,0,0,0), FPlane(0,0,0,1));
 #endif
 		}
 	}
@@ -256,12 +256,12 @@ class FPostProcessMorpheusVS : public FGlobalShader
 	/** to have a similar interface as all other shaders */
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, GetVertexShader(), Context.View);
 	}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 	}
 
 public:
@@ -285,7 +285,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	{
 		// input is not hooked up correctly
 		return;
-	}	
+	}
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -297,21 +297,22 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
     const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
     FMatrix QuadTexTransform;
     FMatrix QuadPosTransform = FMatrix::Identity;
@@ -320,6 +321,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 
 	// Draw a quad mapping scene color to the view's render target
     DrawTransformedRectangle(
+		Context.RHICmdList,
         0, 0,
         DestRect.Width(), DestRect.Height(),
         QuadPosTransform,
@@ -330,7 +332,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
         SrcSize
         );
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessMorpheus::ComputeOutputDesc(EPassOutputId InPassOutputId) const

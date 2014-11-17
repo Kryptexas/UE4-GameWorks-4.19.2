@@ -26,27 +26,27 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		return FileHandle->Tell();
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		return FileHandle->Seek(NewPosition);
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
 		return FileHandle->SeekFromEnd(NewPositionRelativeToEnd);
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		return FileHandle->Read(Destination, BytesToRead);
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		return FileHandle->Write(Source, BytesToWrite);
 	}
-	virtual int64		Size() OVERRIDE
+	virtual int64		Size() override
 	{
 		return FileHandle->Size();
 	}
@@ -168,7 +168,7 @@ public:
 	 *
 	 *	@param	bInEnabled		true to enable the sandbox, false to disable it
 	 */
-	virtual void SetSandboxEnabled(bool bInEnabled) OVERRIDE
+	virtual void SetSandboxEnabled(bool bInEnabled) override
 	{
 		bSandboxEnabled = bInEnabled;
 	}
@@ -178,20 +178,20 @@ public:
 	 *
 	 *	@return	bool			true if enabled, false if not
 	 */
-	virtual bool IsSandboxEnabled() const OVERRIDE
+	virtual bool IsSandboxEnabled() const override
 	{
 		return bSandboxEnabled;
 	}
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FSandboxPlatformFile::GetTypeName();
 	}
@@ -237,7 +237,7 @@ public:
 
 	// IPlatformFile Interface
 
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		// First look for the file in the user dir.
 		bool Result = LowerLevel->FileExists( *ConvertToSandboxPath( Filename ) );
@@ -248,7 +248,7 @@ public:
 		return Result;
 	}
 
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		// First look for the file in the user dir.
 		int64 Result = LowerLevel->FileSize( *ConvertToSandboxPath( Filename ) );
@@ -259,7 +259,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override
 	{
 		// Delete only sandbox files. If the sendbox version doesn't exists
 		// assume the delete was successful because we only care if the sandbox version is gone.
@@ -272,7 +272,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		// If the file exists in the sandbox folder and is read-only return true
 		// Otherwise it can always be 'overwritten' in the sandbox
@@ -291,7 +291,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// Only files within the sandbox dir can be moved
 		bool Result = false;
@@ -303,7 +303,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		bool Result = false;
 		FString UserFilename( *ConvertToSandboxPath( Filename ) );
@@ -314,7 +314,7 @@ public:
 		return Result;
 	}
 
-	virtual FDateTime		GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime		GetTimeStamp(const TCHAR* Filename) override
 	{
 		FDateTime Result = FDateTime::MinValue();
 		FString UserFilename( *ConvertToSandboxPath( Filename ) );
@@ -329,7 +329,7 @@ public:
 		return Result;
 	}
 
-	virtual void 			SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void 			SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		FString UserFilename( *ConvertToSandboxPath( Filename ) );
 		if( LowerLevel->FileExists( *UserFilename ) )
@@ -342,7 +342,7 @@ public:
 		}
 	}
 
-	virtual FDateTime		GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime		GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		FDateTime Result = FDateTime::MinValue();
 		FString UserFilename( *ConvertToSandboxPath( Filename ) );
@@ -357,7 +357,7 @@ public:
 		return Result;
 	}
 
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		IFileHandle* Result = LowerLevel->OpenRead( *ConvertToSandboxPath( Filename ) );
 		if( !Result  && OkForInnerAccess(Filename) )
@@ -367,13 +367,13 @@ public:
 		return Result;
 	}
 
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		// Only files from the sandbox directory can be opened for wiriting
 		return LowerLevel->OpenWrite( *ConvertToSandboxPath( Filename ), bAppend, bAllowRead );
 	}
 
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool		DirectoryExists(const TCHAR* Directory) override
 	{
 		bool Result = LowerLevel->DirectoryExists( *ConvertToSandboxPath( Directory ) );
 		if( Result == false && OkForInnerAccess(Directory, true) )
@@ -383,13 +383,13 @@ public:
 		return Result;
 	}
 
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectory(const TCHAR* Directory) override
 	{
 		// Directories can be created only under the sandbox path
 		return LowerLevel->CreateDirectory( *ConvertToSandboxPath( Directory ) );
 	}
 
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override
 	{
 		// Directories can be deleted only under the sandbox path
 		return LowerLevel->DeleteDirectory( *ConvertToSandboxPath( Directory ) );
@@ -440,7 +440,7 @@ public:
 		}
 	};
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		FSandboxVisitor SandboxVisitor( Visitor, *this );
 		bool Result = false;
@@ -449,7 +449,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		FSandboxVisitor SandboxVisitor( Visitor, *this );
 		bool Result = false;
@@ -458,19 +458,19 @@ public:
 		return Result;
 	}
 
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		// Directories can be deleted only under the sandbox path
 		return LowerLevel->DeleteDirectoryRecursively( *ConvertToSandboxPath( Directory ) );
 	}
 
-	virtual bool CreateDirectoryTree(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectoryTree(const TCHAR* Directory) override
 	{
 		// Directories can only be created only under the sandbox path
 		return LowerLevel->CreateDirectoryTree( *ConvertToSandboxPath( Directory ) );
 	}
 
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// Files can be copied only to the sandbox directory
 		bool Result = false;
@@ -485,8 +485,8 @@ public:
 		return Result;
 	}
 
-	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE;
-	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE;
+	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
 };
 
 

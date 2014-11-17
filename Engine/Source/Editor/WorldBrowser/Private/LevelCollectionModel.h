@@ -26,9 +26,9 @@ public:
 	virtual ~FLevelCollectionModel();
 
 	/** FTickableEditorObject interface */
-	void Tick( float DeltaTime ) OVERRIDE;
-	bool IsTickable() const OVERRIDE { return true; }
-	TStatId GetStatId() const OVERRIDE;
+	void Tick( float DeltaTime ) override;
+	bool IsTickable() const override { return true; }
+	TStatId GetStatId() const override;
 	/** FTickableEditorObject interface */
 	
 	/**	@return	Whether level collection is read only now */
@@ -63,6 +63,9 @@ public:
 
 	/** Removes a filter which restricted the Levels shown in UI */
 	void RemoveFilter(const TSharedRef<LevelFilter>& InFilter);
+
+	/**	@return	Whether level filtering is active now */
+	bool IsFilterActive() const;
 	
 	/**	Iterates through level hierarchy with given Visitor */
 	void IterateHierarchy(FLevelModelVisitor& Visitor);
@@ -124,8 +127,8 @@ public:
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
 
-	/**	@return	Observer position in the world, usually camera position */
-	virtual FVector GetObserverPosition() const;
+	/**	@return	Observer view matrix in the world, usually camera view */
+	virtual FMatrix GetObserverViewMatrix() const;
 
 	/**	Compares 2 levels by Z order */
 	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const;
@@ -136,8 +139,8 @@ public:
 	/**	Unregisters level details customizations */
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView);
 
-	/** @return	Whether this level collection model supports grid view */
-	virtual bool SupportsGridView() const { return true; };
+	/** @return	Whether this level collection model is a tile world */
+	virtual bool IsTileWorld() const { return false; };
 
 	/** Rebuilds levels collection */
 	void PopulateLevelsList();
@@ -202,11 +205,26 @@ public:
 	/** @return	whether at least one actor is selected */
 	bool AreActorsSelected() const;
 
+	/** @return whether moving the selected actors to the selected level is a valid action */
+	bool IsValidMoveActorsToLevel();
+
+	/** delegate used to pickup when the selection has changed */
+	void OnActorSelectionChanged(UObject* obj);
+
+	/** Sets a flag to re-cache whether the selected actors move to the selected level is valid */
+	void OnActorOrLevelSelectionChanged();
+
 	/** @return	whether 'display paths' is enabled */
 	bool GetDisplayPathsState() const;
 
 	/** Sets 'display paths', whether to show long package name in level display name */
 	void SetDisplayPathsState(bool bDisplayPaths);
+
+	/** @return	whether 'display actors count' is enabled */
+	bool GetDisplayActorsCountState() const;
+
+	/** Sets 'display actors count', whether to show actors count next to level name */
+	void SetDisplayActorsCountState(bool bDisplayActorsCount);
 
 	/**	Broadcasts whenever items selection has changed */
 	FSimpleEvent SelectionChanged;
@@ -260,6 +278,12 @@ public:
 
 	/** @return	The UICommandList supported by this collection */
 	const TSharedRef<const FUICommandList> GetCommandList() const;
+
+	/**  */
+	void LoadSettings();
+	
+	/**  */
+	void SaveSettings();
 
 protected:
 	/** Refreshes current cached data */
@@ -474,6 +498,9 @@ protected:
 	/** Whether we should show long package names in level display names */
 	bool								bDisplayPaths;
 
+	/** Whether we should show actors count next to level name */
+	bool								bDisplayActorsCount;
+
 	/** true if the SCC Check-Out option is available */
 	mutable bool						bCanExecuteSCCCheckOut;
 
@@ -485,6 +512,9 @@ protected:
 
 	/** true if Source Control options are generally available. */
 	mutable bool						bCanExecuteSCC;
+
+	/** Flag for whether the selection of levels or actors has changed */
+	bool								bSelectionHasChanged;
 };
 
 //
@@ -539,9 +569,18 @@ struct FTiledLandscapeImportSettings
 
 
 	TWeakObjectPtr<UMaterialInterface>	LandscapeMaterial;
-	
-	TArray<FName>						LandscapeLayerNameList;
-	// list of weightmap files per each layer
-	TArray<TArray<FString>>				WeightmapFileList;
 
+	// Landscape layers 
+	struct LandscapeLayerSettings
+	{
+		LandscapeLayerSettings() 
+			: bNoBlendWeight(false)
+		{}
+
+		FName						Name;
+		bool						bNoBlendWeight;
+		TMap<FIntPoint, FString>	WeightmapFiles;
+	};
+	
+	TArray<LandscapeLayerSettings>		LandscapeLayerSettingsList;
 };

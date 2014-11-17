@@ -5,14 +5,18 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "PixelFormat.h"
 #include "ShaderCompiler.h"
 #include "MaterialCompiler.h"
-#include "MaterialShader.h"
-#include "MeshMaterialShader.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShaderType.h"
 #include "HLSLMaterialTranslator.h"
 #include "MaterialUniformExpressions.h"
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
+#include "ComponentReregisterContext.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);
 
@@ -23,7 +27,7 @@ FName MaterialQualityLevelNames[] =
 	FName(TEXT("Num"))
 };
 
-checkAtCompileTime(ARRAY_COUNT(MaterialQualityLevelNames) == EMaterialQualityLevel::Num + 1, MissingEntryFromMaterialQualityLevelNames);
+static_assert(ARRAY_COUNT(MaterialQualityLevelNames) == EMaterialQualityLevel::Num + 1, "Missing entry from material quality level names.");
 
 void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InQualityLevel, FString& OutName)
 {
@@ -314,14 +318,13 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-		Ar << bUsesSceneColor;
+		Ar << bRequiresSceneColorCopy;
 	}
 
 	Ar << bNeedsSceneTextures;
-
 	Ar << bUsesEyeAdaptation;
-
 	Ar << bModifiesMeshPosition;
+	Ar << bNeedsGBuffer;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -344,19 +347,35 @@ EMaterialTessellationMode FMaterial::GetTessellationMode() const
 	return MTM_NoTessellation; 
 };
 
-void FMaterial::FinishCompilation()
+void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds)
 {
-	TArray<int32> ShaderMapIdsToFinish;
-
-	// Build an array of the shader map Id's that we need to be compiled
+	// Build an array of the shader map Id's are not finished compiling.
 	if (GameThreadShaderMap && !GameThreadShaderMap->IsCompilationFinalized())
 	{
-		ShaderMapIdsToFinish.Add(GameThreadShaderMap->GetCompilingId());
+		ShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
 	}
 	else if (OutstandingCompileShaderMapId != INDEX_NONE)
 	{
-		ShaderMapIdsToFinish.Add(OutstandingCompileShaderMapId);
+		ShaderMapIds.Add(OutstandingCompileShaderMapId);
 	}
+}
+
+void FMaterial::CancelCompilation()
+{
+	TArray<int32> ShaderMapIdsToCancel;
+	GetShaderMapIDsWithUnfinishedCompilation(ShaderMapIdsToCancel);
+
+	if (ShaderMapIdsToCancel.Num() > 0)
+	{
+		// Cancel all compile jobs for these shader maps.
+		GShaderCompilingManager->CancelCompilation(*GetFriendlyName(), ShaderMapIdsToCancel);
+	}
+}
+
+void FMaterial::FinishCompilation()
+{
+	TArray<int32> ShaderMapIdsToFinish;
+	GetShaderMapIDsWithUnfinishedCompilation(ShaderMapIdsToFinish);
 
 	if (ShaderMapIdsToFinish.Num() > 0)
 	{
@@ -415,15 +434,15 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	return EmptyExpressions;
 }
 
-bool FMaterial::UsesSceneColor() const 
+bool FMaterial::RequiresSceneColorCopy() const 
 {
 	if (IsInGameThread() && GameThreadShaderMap)
 	{
-		return GameThreadShaderMap->UsesSceneColor();
+		return GameThreadShaderMap->RequiresSceneColorCopy();
 	}
 	else if (IsInRenderingThread() && RenderingThreadShaderMap)
 	{
-		return RenderingThreadShaderMap->UsesSceneColor();
+		return RenderingThreadShaderMap->RequiresSceneColorCopy();
 	}
 
 	return false;
@@ -440,6 +459,24 @@ bool FMaterial::NeedsSceneTextures() const
 	
 	return false;
 }
+
+bool FMaterial::NeedsGBuffer() const
+{
+	checkSlow(IsInRenderingThread());
+
+	if (IsOpenGLPlatform(GRHIShaderPlatform)) // @todo: TTP #341211
+	{
+		return true;
+	}
+
+	if (RenderingThreadShaderMap)
+	{
+		return RenderingThreadShaderMap->NeedsGBuffer();
+	}
+
+	return false;
+}
+
 
 bool FMaterial::UsesEyeAdaptation() const 
 {
@@ -730,6 +767,11 @@ bool FMaterialResource::IsUsedWithAPEXCloth() const
 	return Material->bUsedWithClothing;
 }
 
+bool FMaterialResource::IsUsedWithUI() const
+{
+	return Material->bUsedWithUI;
+}
+
 EMaterialTessellationMode FMaterialResource::GetTessellationMode() const 
 { 
 	return (EMaterialTessellationMode)Material->D3D11TessellationMode; 
@@ -753,6 +795,11 @@ bool FMaterialResource::IsAdaptiveTessellationEnabled() const
 bool FMaterialResource::IsFullyRough() const
 {
 	return Material->bFullyRough;
+}
+
+bool FMaterialResource::IsNonmetal() const
+{
+	return !Material->Metallic.IsConnected() && !Material->Specular.IsConnected();
 }
 
 bool FMaterialResource::UseLmDirectionality() const
@@ -792,12 +839,12 @@ EBlendMode FMaterialResource::GetBlendMode() const
 	return Ret;
 }
 
-EMaterialLightingModel FMaterialResource::GetLightingModel() const 
+EMaterialShadingModel FMaterialResource::GetShadingModel() const 
 { 
-	EMaterialLightingModel Ret;
-	if( !(MaterialInstance && MaterialInstance->GetLightingModelOverride(Ret)) )
+	EMaterialShadingModel Ret;
+	if( !(MaterialInstance && MaterialInstance->GetShadingModelOverride(Ret)) )
 	{
-		Ret = Material->GetLightingModel_Internal();
+		Ret = Material->GetShadingModel_Internal();
 	}
 	return Ret;
 }
@@ -862,7 +909,7 @@ void FMaterialResource::NotifyCompilationFinished()
 }
 
 /**
- * Gets instruction counts that best represent the likely usage of this material based on lighting model and other factors.
+ * Gets instruction counts that best represent the likely usage of this material based on shading model and other factors.
  * @param Descriptions - an array of descriptions to be populated
  * @param InstructionCounts - an array of instruction counts matching the Descriptions.  
  *		The dimensions of these arrays are guaranteed to be identical and all values are valid.
@@ -912,7 +959,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 
 	if (GetFeatureLevel() > ERHIFeatureLevel::ES2)
 	{
-		if (GetLightingModel() == MLM_Unlit)
+		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
 			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
@@ -946,7 +993,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 		const TCHAR* ShaderSuffix = bMobileHDR ? TEXT("HDRLinear64") : TEXT("LDRGamma32");
 		const TCHAR* DescSuffix = bMobileHDR ? TEXT(" (HDR)") : TEXT(" (LDR)");
 
-		if (GetLightingModel() == MLM_Unlit)
+		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
 			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy%s"), ShaderSuffix));
@@ -1133,21 +1180,22 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
-	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR"), UsesSceneColor() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_FULLY_ROUGH"), IsFullyRough() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
 
-	switch(GetLightingModel())
+	switch(GetShadingModel())
 	{
-	case MLM_DefaultLit: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_DEFAULT_LIT"),TEXT("1")); break;
-	case MLM_Subsurface: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_SUBSURFACE"),TEXT("1")); break;
-	case MLM_PreintegratedSkin: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_PREINTEGRATED_SKIN"),TEXT("1")); break;
-	case MLM_Unlit: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_UNLIT"),TEXT("1")); break;
-	default: 
-		UE_LOG(LogMaterial, Warning, TEXT("Unknown material lighting model: %u  Setting to MLM_DefaultLit"),(int32)GetLightingModel());
-		OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_DEFAULT_LIT"),TEXT("1"));
-	
+		case MSM_Unlit:				OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_UNLIT"),				TEXT("1")); break;
+		case MSM_DefaultLit:		OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),			TEXT("1")); break;
+		case MSM_Subsurface:		OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_SUBSURFACE"),			TEXT("1")); break;
+		case MSM_PreintegratedSkin: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN"),	TEXT("1")); break;
+		case MSM_ClearCoat:			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_CLEAR_COAT"),			TEXT("1")); break;
+		default: 
+			UE_LOG(LogMaterial, Warning, TEXT("Unknown material shading model: %u  Setting to MSM_DefaultLit"),(int32)GetShadingModel());
+			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),TEXT("1"));
 	};
 
 	if (IsTranslucentBlendMode(GetBlendMode()))
@@ -1720,7 +1768,7 @@ int32 FMaterialResource::GetSamplerUsage() const
 FString FMaterialResource::GetMaterialUsageDescription() const
 {
 	check(Material);
-	FString BaseDescription = GetLightingModelString(GetLightingModel()) + TEXT(", ") + GetBlendModeString(GetBlendMode());
+	FString BaseDescription = GetShadingModelString(GetShadingModel()) + TEXT(", ") + GetBlendModeString(GetBlendMode());
 
 	if (IsSpecialEngineMaterial())
 	{
@@ -2295,11 +2343,11 @@ void DoMaterialAttributeReorder(FExpressionInput* Input)
 FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	:bOverride_OpacityMaskClipValue(false)
 	,bOverride_BlendMode(false)
-	,bOverride_LightingModel(false)
+	,bOverride_ShadingModel(false)
 	,bOverride_TwoSided(false)
 	,OpacityMaskClipValue(0.0f)
 	,BlendMode(BLEND_Opaque)
-	,LightingModel(MLM_DefaultLit)
+	,ShadingModel(MSM_DefaultLit)
 	,TwoSided(0)
 {
 
@@ -2309,7 +2357,7 @@ void FMaterialInstanceBasePropertyOverrides::Init(const UMaterialInstance& Insta
 {
 	OpacityMaskClipValue = Instance.GetOpacityMaskClipValue();
 	BlendMode = Instance.GetBlendMode();
-	LightingModel = Instance.GetLightingModel();
+	ShadingModel = Instance.GetShadingModel();
 	TwoSided = (uint32)Instance.IsTwoSided();
 }
 
@@ -2329,11 +2377,11 @@ void FMaterialInstanceBasePropertyOverrides::UpdateHash(FSHA1& HashState) const
  		HashState.Update((const uint8*)&BlendMode, sizeof(BlendMode));
 	}
 
-	if(bOverride_LightingModel)
+	if(bOverride_ShadingModel)
 	{
-		const FString HashString = TEXT("bOverride_LightingModel");
+		const FString HashString = TEXT("bOverride_ShadingModel");
 		HashState.UpdateWithString(*HashString, HashString.Len());
-		HashState.Update((const uint8*)&LightingModel, sizeof(LightingModel));
+		HashState.Update((const uint8*)&ShadingModel, sizeof(ShadingModel));
 	}
 
 	//This does seem like it needs to be in the hash but due to some shaders being added to when two sided is enabled
@@ -2359,8 +2407,8 @@ bool FMaterialInstanceBasePropertyOverrides::Update(const FMaterialInstanceBaseP
 	bRet |= (Updated.bOverride_BlendMode != bOverride_BlendMode);
 	bRet |= Updated.bOverride_BlendMode && (BlendMode != Updated.BlendMode);
 
-	bRet |= (Updated.bOverride_LightingModel != bOverride_LightingModel);
-	bRet |= Updated.bOverride_LightingModel && (LightingModel != Updated.LightingModel);
+	bRet |= (Updated.bOverride_ShadingModel != bOverride_ShadingModel);
+	bRet |= Updated.bOverride_ShadingModel && (ShadingModel != Updated.ShadingModel);
 
 	bRet |= (Updated.bOverride_TwoSided != bOverride_TwoSided);
 	bRet |= Updated.bOverride_TwoSided && (TwoSided != Updated.TwoSided);

@@ -60,7 +60,7 @@ class FMyBlueprintCategoryDragDropAction : public FGraphEditorDragDropAction
 public:
 	DRAG_DROP_OPERATOR_TYPE(FMyBlueprintCategoryDragDropAction, FGraphEditorDragDropAction)
 
-	virtual void HoverTargetChanged() OVERRIDE
+	virtual void HoverTargetChanged() override
 	{
 		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("NoBrush")); 
 		FText Message = FText::FromString(DraggedCategory);
@@ -93,7 +93,7 @@ public:
 		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, Message);
 	}
 	
-	virtual FReply DroppedOnCategory(FString OnCategory) OVERRIDE
+	virtual FReply DroppedOnCategory(FString OnCategory) override
 	{
 		// Get the Blueprint via BlueprintEditor
 		TSharedPtr<SMyBlueprint> MyBlueprint = MyBlueprintPtr.Pin();
@@ -539,7 +539,6 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 
 		TSharedPtr<FEdGraphSchemaAction_K2Event> EventNodeAction = MakeShareable(new FEdGraphSchemaAction_K2Event(ActionCategory, Description, Tooltip, 0));
 		EventNodeAction->NodeTemplate = EventNode;
-		EventNodeAction->SearchTitle = EventNodeAction->NodeTemplate->GetNodeSearchTitle();
 		EventNodeAction->SectionID = SectionId;
 		OutAllActions.AddAction(EventNodeAction);
 	}
@@ -607,6 +606,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 	// List of names of functions we implement
 	TArray<FName> ImplementedFunctions;
+	TArray<TSharedPtr<FEdGraphSchemaAction>> VariableActions;
+	TArray<TSharedPtr<FEdGraphSchemaAction>> ComponentPropertyActions;
 
 	// Grab Variables
 	for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, FieldIteratorSuperFlag); PropertyIt; ++PropertyIt)
@@ -620,6 +621,9 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		const bool bShouldShowAsVar = (!Property->HasAnyPropertyFlags(CPF_Parm) && Property->HasAllPropertyFlags(CPF_BlueprintVisible)) && !bDelegateProp;
 		const bool bShouldShowAsDelegate = !Property->HasAnyPropertyFlags(CPF_Parm) && bMulticastDelegateProp 
 			&& Property->HasAnyPropertyFlags(CPF_BlueprintAssignable | CPF_BlueprintCallable);
+		UObjectPropertyBase* Obj = Cast<UObjectPropertyBase>(Property);
+		const bool bComponentProperty = Obj && Obj->PropertyClass ? Obj->PropertyClass->IsChildOf<UActorComponent>() : false;
+		TArray<TSharedPtr<FEdGraphSchemaAction>>& ActionList = bComponentProperty ? ComponentPropertyActions : VariableActions;
 		
 		if(!bShouldShowAsVar && !bShouldShowAsDelegate)
 		{
@@ -643,7 +647,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 			TSharedPtr<FEdGraphSchemaAction_K2Var> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2Var(PropertyCategory, PropertyDesc, PropertyTooltip.ToString(), 0));
 			NewVarAction->SetVariableInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
 			NewVarAction->SectionID = NodeSectionID::VARIABLE;
-			OutAllActions.AddAction(NewVarAction);
+			ActionList.Add(NewVarAction);
 		}
 		else if (bShouldShowAsDelegate)
 		{
@@ -654,8 +658,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 				NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Delegate(PropertyCategory, PropertyDesc, PropertyTooltip.ToString(), 0));
 				NewFuncAction->SetDelegateInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
 				NewFuncAction->EdGraph = NULL;
-				NewFuncAction->SectionID = NodeSectionID::DELEGATE;				
-				OutAllActions.AddAction(NewFuncAction);
+				NewFuncAction->SectionID = NodeSectionID::DELEGATE;
+				ActionList.Add(NewFuncAction);
 			}
 
 			UClass* OwnerClass = CastChecked<UClass>(Property->GetOuter());
@@ -669,6 +673,16 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 				ImplementedFunctions.AddUnique(PropertyName);
 			}
 		}
+	}
+
+	// Add all variable actions first so their order can control the categories
+	for( int32 i = 0; i < VariableActions.Num(); ++i)
+	{
+		OutAllActions.AddAction( VariableActions[ i ] );
+	}
+	for( int32 i = 0; i < ComponentPropertyActions.Num(); ++i)
+	{
+		OutAllActions.AddAction( ComponentPropertyActions[ i ] );
 	}
 
 	// Grab functions implemented by the blueprint
@@ -1188,7 +1202,19 @@ bool SMyBlueprint::SelectionIsCategory() const
 
 bool SMyBlueprint::SelectionHasContextMenu() const
 {
-	return SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsLocalVar() || SelectionAsStruct();
+	bool bSelectionHasContextMenu = false;
+
+	// Do not consider the selection having a context menu if the menu is being brought up in the other action menu, that being if an item is selected in the GraphActionMenu and you right click in LocalGraphActionMenu
+	if(GraphActionMenu.IsValid() && GraphActionMenu->HasFocusedDescendants())
+	{
+		bSelectionHasContextMenu = SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsStruct();
+	}
+	else if(LocalGraphActionMenu.IsValid() && LocalGraphActionMenu->HasFocusedDescendants())
+	{
+		bSelectionHasContextMenu = SelectionAsLocalVar() != NULL;
+	}
+
+	return bSelectionHasContextMenu;
 }
 
 void SMyBlueprint::GetSelectedItemsForContextMenu(TArray<FComponentEventConstructionData>& OutSelectedItems) const

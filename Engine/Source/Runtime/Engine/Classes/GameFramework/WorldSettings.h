@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Sound/ReverbVolume.h"
+#include "Engine/PostProcessVolume.h"
+#include "MusicTrackDataStructures.h"
+
 #include "WorldSettings.generated.h"
 
 UENUM()
@@ -173,8 +178,8 @@ struct ENGINE_API FNetViewer
 /**
  * Actor containing all script accessible world properties.
  */
-UCLASS(config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
-class ENGINE_API AWorldSettings : public AInfo
+UCLASS(config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable)
+class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -188,6 +193,18 @@ class ENGINE_API AWorldSettings : public AInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config)
 	uint32 bEnableNavigationSystem:1;
 
+	/** 
+	 * Enables tools for composing a tiled world. 
+	 * Level has to be saved to enable this option.
+	 * Warning: Enabling this option will remove all streaming levels from your persistent level.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config)
+	uint32 bEnableWorldComposition:1;
+
+	/** World origin will shift to a camera position when camera goes far away from current origin */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config, meta=(editcondition = "bEnableWorldComposition"))
+	uint32 bEnableWorldOriginRebasing:1;
+		
 	/** if set to true, when we call GetGravityZ we assume WorldGravityZ has already been initialized and skip the lookup of DefaultGravityZ and GlobalGravityZ */
 	UPROPERTY(transient)
 	uint32 bWorldGravitySet:1;
@@ -394,20 +411,26 @@ class ENGINE_API AWorldSettings : public AInfo
 	/** Maximum number of bookmarks	*/
 	static const int32 MAX_BOOKMARK_NUMBER = 10;
 
+	protected:
+
+	/** Array of user data stored with the asset */
+	UPROPERTY()
+	TArray<UAssetUserData*> AssetUserData;
+
 public:
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 
 
 	// Begin AActor interface.
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif
-	virtual void PreInitializeComponents() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PreInitializeComponents() override;
+	virtual void PostInitializeComponents() override;
 	// End AActor interface.
 
 	/**
@@ -433,11 +456,21 @@ public:
 	 */	
 	virtual void NotifyMatchStarted();
 
+	// Begin IInterface_AssetUserData Interface
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	// End IInterface_AssetUserData Interface
+
+
 private:
 
 	// Hidden functions that don't make sense to use on this class.
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+
+	/** Toggles world composition mode */
+	void EnabledWorldComposition(bool bEnable);
 };
 

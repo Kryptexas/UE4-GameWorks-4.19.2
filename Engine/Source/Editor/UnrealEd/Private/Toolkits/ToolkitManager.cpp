@@ -89,7 +89,7 @@ void FToolkitManager::OnToolkitHostDestroyed( IToolkitHost* HostBeingDestroyed )
 }
 
 
-TSharedPtr< IToolkit > FToolkitManager::FindEditorForAsset( UObject* Asset )
+TSharedPtr< IToolkit > FToolkitManager::FindEditorForAsset( const UObject* Asset )
 {
 	for( auto ToolkitIndex = 0; ToolkitIndex < Toolkits.Num(); ++ToolkitIndex )
 	{
@@ -98,7 +98,7 @@ TSharedPtr< IToolkit > FToolkitManager::FindEditorForAsset( UObject* Asset )
 
 		if( Toolkit->IsAssetEditor() )
 		{
-			if( Toolkit->GetObjectsCurrentlyBeingEdited()->Contains( Asset ) )
+			if (Toolkit->GetObjectsCurrentlyBeingEdited()->FindByKey(Asset) != NULL )
 			{
 				return Toolkit;
 			}

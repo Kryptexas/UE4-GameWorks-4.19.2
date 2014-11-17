@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherBuildCommands.h: Declares the FLauncherBuildCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,22 +10,22 @@ class FLauncherBuildGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherBuildGameCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherBuildGameTaskName", "Building game").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherBuildGameTaskDesc", "Build game for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -52,22 +48,22 @@ class FLauncherBuildServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherBuildServerCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherBuildServerTaskName", "Building server").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherBuildServerTaskDesc", "Build game for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 

@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Matinee/InterpFilter.h"
 #include "InterpFilter_Custom.generated.h"
 
 UCLASS(MinimalAPI)
@@ -22,7 +23,7 @@ class UInterpFilter_Custom : public UInterpFilter
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UInterpFilter Interface
-	virtual void FilterData(class AMatineeActor* InMatineeActor) OVERRIDE;
+	virtual void FilterData(class AMatineeActor* InMatineeActor) override;
 	// End UInterpFilter Interface
 };
 

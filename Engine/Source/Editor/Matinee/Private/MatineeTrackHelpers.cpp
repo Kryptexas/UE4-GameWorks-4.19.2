@@ -8,6 +8,20 @@
 #include "SoundDefinitions.h"
 #include "MatineeUtils.h"
 #include "ContentBrowserModule.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackColorProp.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/MatineeAnimInterface.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 
@@ -20,7 +34,7 @@ UInterpTrackHelper::UInterpTrackHelper(const class FPostConstructInitializePrope
 
 AActor* UInterpTrackHelper::GetGroupActor(const UInterpTrack* Track) const
 {
-	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(mode != NULL);
 
 	IMatineeBase* InterpEd = mode->InterpEd;
@@ -68,7 +82,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateTrack( UInterpGroup* Group, const 
 	// For AnimControl tracks - pop up a dialog to choose slot name.
 	AnimSlotName = NAME_None;
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 
 	IMatineeBase* InterpEd = Mode->InterpEd;
@@ -225,7 +239,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateKeyframe( UInterpTrack *Track, flo
 	if ( Skeleton )
 	{
 		// Show the dialog.
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 		check(Mode->InterpEd != NULL);
 		
@@ -304,11 +318,12 @@ UMatineeTrackDirectorHelper::UMatineeTrackDirectorHelper(const class FPostConstr
 }
 
 bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float KeyTime ) const
+
 {
 	// If adding a cut, bring up combo to let user choose group to cut to.
 	KeyframeAddDataName = NAME_None;
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 	check(Mode->InterpEd != NULL);
 
@@ -318,8 +333,7 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 		TArray<FString> GroupNames;
 		for ( UInterpGroup* InterpGroup : Mode->InterpEd->GetInterpData()->InterpGroups )
 		{
-			// Skip folder groups and the director group (we can't cut to ourselves)
-			if ( !(InterpGroup->bIsFolder || InterpGroup->IsA(UInterpGroupDirector::StaticClass())) )
+			if ( !InterpGroup->bIsFolder )
 			{
 				GroupNames.Add(InterpGroup->GroupName.ToString());
 			}
@@ -378,7 +392,7 @@ bool UMatineeTrackEventHelper::PreCreateKeyframe( UInterpTrack *Track, float Key
 	KeyframeAddDataName = NAME_None;
 
 	// Prompt user for name of new event.
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 	check(Mode->InterpEd != NULL);
 	TSharedRef<STextEntryPopup> TextEntryPopup = 
@@ -480,7 +494,7 @@ bool UMatineeTrackFloatPropHelper::PreCreateTrack( UInterpGroup* Group, const UI
 		// For Property tracks - pop up a dialog to choose property name.
 		TrackAddPropName = NAME_None;
 
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 
 		IMatineeBase* InterpEd = Mode->InterpEd;
@@ -618,7 +632,7 @@ bool UMatineeTrackBoolPropHelper::PreCreateTrack( UInterpGroup* Group, const UIn
 		// For Property tracks - pop up a dialog to choose property name.
 		TrackAddPropName = NAME_None;
 
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 
 		IMatineeBase* InterpEd = Mode->InterpEd;
@@ -753,7 +767,7 @@ bool UMatineeTrackToggleHelper::PreCreateKeyframe( UInterpTrack *Track, float Ke
 
 	bool bResult = false;
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 
 	IMatineeBase* InterpEd = Mode->InterpEd;
@@ -830,7 +844,7 @@ bool UMatineeTrackVectorPropHelper::ChooseProperty(TArray<FName> &PropNames) con
 {
 	bool bResult = false;
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 
 	IMatineeBase* InterpEd = Mode->InterpEd;
@@ -926,7 +940,7 @@ bool UMatineeTrackVectorPropHelper::PreCreateTrack( UInterpGroup* Group, const U
 		// For Property tracks - pop up a dialog to choose property name.
 		TrackAddPropName = NAME_None;
 
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 
 		IMatineeBase* InterpEd = Mode->InterpEd;
@@ -984,7 +998,7 @@ bool UMatineeTrackColorPropHelper::PreCreateTrack( UInterpGroup* Group, const UI
 		// For Property tracks - pop up a dialog to choose property name.
 		TrackAddPropName = NAME_None;
 
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 
 		IMatineeBase* InterpEd = Mode->InterpEd;
@@ -1049,7 +1063,7 @@ bool UMatineeTrackLinearColorPropHelper::PreCreateTrack( UInterpGroup* Group, co
 		// For Property tracks - pop up a dialog to choose property name.
 		TrackAddPropName = NAME_None;
 
-		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 		check(Mode != NULL);
 
 		IMatineeBase *InterpEd = Mode->InterpEd;
@@ -1106,7 +1120,7 @@ bool UMatineeTrackVisibilityHelper::PreCreateKeyframe( UInterpTrack *Track, floa
 {
 	bool bResult = false;
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);
 
 	IMatineeBase *InterpEd = Mode->InterpEd;

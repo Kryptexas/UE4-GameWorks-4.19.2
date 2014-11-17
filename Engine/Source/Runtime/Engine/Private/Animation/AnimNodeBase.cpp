@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Animation/AnimNodeBase.h"
 
 /////////////////////////////////////////////////////
 // FPoseLinkBase
@@ -13,9 +14,13 @@ void FPoseLinkBase::AttemptRelink(const FAnimationBaseContext& Context)
 		UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
 		check(AnimBlueprintClass);
 
-		UProperty* LinkedProperty = AnimBlueprintClass->AnimNodeProperties[LinkID];
-		void* LinkedNodePtr = LinkedProperty->ContainerPtrToValuePtr<void>(Context.AnimInstance);
-		LinkedNode = (FAnimNode_Base*)LinkedNodePtr;
+		// adding ensure. We had a crash on here
+		if ( ensure(AnimBlueprintClass->AnimNodeProperties.IsValidIndex(LinkID)) )
+		{
+			UProperty* LinkedProperty = AnimBlueprintClass->AnimNodeProperties[LinkID];
+			void* LinkedNodePtr = LinkedProperty->ContainerPtrToValuePtr<void>(Context.AnimInstance);
+			LinkedNode = (FAnimNode_Base*)LinkedNodePtr;
+		}
 	}
 }
 

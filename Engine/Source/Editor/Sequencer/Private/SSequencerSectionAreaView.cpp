@@ -7,7 +7,7 @@
 #include "MovieSceneSection.h"
 #include "SequencerDisplayNode.h"
 #include "SSequencer.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 
@@ -129,7 +129,7 @@ int32 SSequencerSectionAreaView::OnPaint( const FGeometry& AllottedGeometry, con
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint( CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId+1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId+1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 
 	return LayerId+1;
@@ -146,7 +146,7 @@ FReply SSequencerSectionAreaView::OnMouseButtonDown( const FGeometry& MyGeometry
 	return FReply::Handled();
 }
 
-void SSequencerSectionAreaView::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	int32 MaxRowIndex = 0;
 	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
@@ -193,7 +193,7 @@ FTimeToPixel SSequencerSectionAreaView::GetTimeToPixel( const FGeometry& Allotte
 }
 
 
-ISequencerInternals& SSequencerSectionAreaView::GetSequencer() const
+FSequencer& SSequencerSectionAreaView::GetSequencer() const
 {
 	return SectionAreaNode->GetSequencer();
 }

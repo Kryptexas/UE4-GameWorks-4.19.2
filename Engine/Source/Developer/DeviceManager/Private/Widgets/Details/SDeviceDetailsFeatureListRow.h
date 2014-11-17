@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceDetailsFeatureListRow.h: Declares the SDeviceDetailsFeatureListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,8 +23,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InOwnerTableView - The table view that owns this row.
+	 * @param InArgs The construction arguments.
+	 * @param InOwnerTableView The table view that owns this row.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FDeviceDetailsFeatureRef& InFeature )
 	{
@@ -42,10 +38,10 @@ public:
 
 public:
 
-	// Begin SMultiColumnTableRow interface
+	// SMultiColumnTableRow interface
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "Available")
 		{
@@ -73,8 +69,6 @@ public:
 		return SNullWidget::NullWidget;
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-	// End SMultiColumnTableRow interface
 
 private:
 

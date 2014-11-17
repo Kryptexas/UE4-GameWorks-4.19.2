@@ -26,7 +26,7 @@ class UAchievementQueryCallbackProxy : public UOnlineBlueprintCallProxyBase
 	static UAchievementQueryCallbackProxy* CacheAchievementDescriptions(class APlayerController* PlayerController);
 
 	// UOnlineBlueprintCallProxyBase interface
-	virtual void Activate() OVERRIDE;
+	virtual void Activate() override;
 	// End of UOnlineBlueprintCallProxyBase interface
 
 private:

@@ -14,9 +14,9 @@ class UGeomModifier_Weld : public UGeomModifier_Edit
 
 
 	// Begin UGeomModifier Interface
-	virtual bool Supports() OVERRIDE;
+	virtual bool Supports() override;
 protected:
-	virtual bool OnApply() OVERRIDE;
+	virtual bool OnApply() override;
 	// End UGeomModifier Interface
 };
 

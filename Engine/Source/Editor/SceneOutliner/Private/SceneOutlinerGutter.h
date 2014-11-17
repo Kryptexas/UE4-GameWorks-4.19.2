@@ -21,19 +21,19 @@ public:
 
 	// -----------------------------------------
 	// ISceneOutlinerColumn Implementation
-	virtual FName GetColumnID() OVERRIDE;
+	virtual FName GetColumnID() override;
 
-	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() OVERRIDE;
+	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override;
 
 	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override;
 
-	virtual bool ProvidesSearchStrings() OVERRIDE { return false; }
+	virtual bool ProvidesSearchStrings() override { return false; }
 
-	virtual void PopulateActorSearchStrings(const AActor* const Actor, OUT TArray< FString >& OutSearchStrings) const OVERRIDE {}
+	virtual void PopulateActorSearchStrings(const AActor* const Actor, OUT TArray< FString >& OutSearchStrings) const override {}
 
-	virtual bool SupportsSorting() const OVERRIDE { return true; }
+	virtual bool SupportsSorting() const override { return true; }
 
-	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const OVERRIDE;
+	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override;
 	// -----------------------------------------
 
 private:

@@ -8,14 +8,35 @@
 #include "TimeSliderController.h"
 #include "SSequencerSectionAreaView.h"
 
+void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
+{
+	ViewRange = InArgs._ViewRange;
+	OutlinerFillPercent = InArgs._OutlinerFillPercent;
+	Sequencer = InSequencer;
+
+	TSharedRef<SScrollBar> ScrollBar =
+		SNew(SScrollBar)
+		.Thickness(FVector2D(5.0f, 5.0f));
+
+	ChildSlot
+	[
+		SNew(SOverlay)
+		+ SOverlay::Slot()
+		[
+			SAssignNew(ScrollBox, SScrollBox)
+			.ExternalScrollbar(ScrollBar)
+		]
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Right)
+		[
+			ScrollBar
+		]
+	];
+}
 
 void SSequencerTrackArea::Update( const FSequencerNodeTree& InSequencerNodeTree )
 {
-	// @todo Sequencer: Currently need to recreate the scroll box to remove all its children
-	ChildSlot
-	[
-		SAssignNew( ScrollBox, SScrollBox )
-	];
+	ScrollBox->ClearChildren();
 
 	const TArray< TSharedRef<FSequencerDisplayNode> >& RootNodes = InSequencerNodeTree.GetRootNodes();
 
@@ -29,6 +50,9 @@ void SSequencerTrackArea::Update( const FSequencerNodeTree& InSequencerNodeTree 
 		// Generate a node for each children of the root node
 		GenerateLayoutNodeWidgetsRecursive( RootNode->GetChildNodes() );
 	}
+
+	// @todo Sequencer - Remove this expensive operation
+	ScrollBox->SlatePrepass();
 }
 
 void SSequencerTrackArea::GenerateLayoutNodeWidgetsRecursive( const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes )

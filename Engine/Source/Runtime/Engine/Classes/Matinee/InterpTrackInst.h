@@ -9,6 +9,8 @@
 #pragma once
 #include "InterpTrackInst.generated.h"
 
+class UInterpTrack;
+
 UCLASS(MinimalAPI)
 class UInterpTrackInst : public UObject
 {
@@ -19,7 +21,7 @@ class UInterpTrackInst : public UObject
 	 *	Return the  AActor  associated with this instance of a Group. 
 	 *	Note that all Groups have at least 1 instance, even if no  AActor  variable is attached, so this may return NULL. 
 	 */
-	ENGINE_API AActor* GetGroupActor();
+	ENGINE_API AActor* GetGroupActor() const;
 
 	/** 
 	 * Save any variables from the actor that will be modified by this instance.
@@ -54,6 +56,6 @@ class UInterpTrackInst : public UObject
 	*
 	* returns the GroupActor's world
 	*/
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 };
 

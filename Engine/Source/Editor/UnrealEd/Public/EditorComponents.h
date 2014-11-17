@@ -19,7 +19,7 @@ public:
 	 *
 	 * @param Ar	FArchive to serialize with
 	 */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 	// ALU based

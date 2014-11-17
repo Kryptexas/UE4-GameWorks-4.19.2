@@ -1545,7 +1545,7 @@ int DistributePoint
 	{
 		// This point is coplanar with this node, so check point for intersection with
 		// this node's sides, then loop with its coplanars.
-		for( iNode; iNode!=INDEX_NONE; iNode=Model->Nodes[iNode].iPlane )
+		for( ; iNode!=INDEX_NONE; iNode=Model->Nodes[iNode].iPlane )
 		{
 			FVert* VertPool = &Model->Verts[Model->Nodes[iNode].iVertPool];
 

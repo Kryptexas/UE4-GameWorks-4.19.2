@@ -13,7 +13,10 @@ namespace EAssetTypeCategories
 		Sounds					= 1 << 3,
 		Physics					= 1 << 4,
 		UI						= 1 << 5,
-		Misc					= 1 << 6
+		Misc					= 1 << 6,
+		Gameplay				= 1 << 7,
+		Blueprint				= 1 << 8
+		// Last allowed value is 1 << 31
 	};
 }
 
@@ -35,6 +38,12 @@ struct FRevisionInfo
 	int32		Revision;
 	int32		Changelist;
 	FDateTime	Date;	
+
+	static inline FRevisionInfo InvalidRevision()
+	{
+		static const FRevisionInfo Ret = { -1, -1, FDateTime() };
+		return Ret;
+	}
 };
 
 /** AssetTypeActions provide actions and other information about asset types */

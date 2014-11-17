@@ -13,16 +13,6 @@
 #include <StoreKit/SKPaymentQueue.h>
 
 
-struct FMicrotransactionPurchaseInfo
-{
-	FString Identifier;
-	FString DisplayName;
-	FString DisplayDescription;
-	FString DisplayPrice;
-	FString CurrencyType;
-};
-
-
 @interface FStoreKitHelper : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
 {
 };
@@ -50,21 +40,53 @@ public:
 	virtual ~FOnlineStoreInterfaceIOS();
 
 	// Begin IOnlineStore interface
-	virtual bool QueryForAvailablePurchases() OVERRIDE;
+	virtual bool QueryForAvailablePurchases() override;
 
-	virtual bool IsAllowedToMakePurchases() OVERRIDE;
+	virtual bool IsAllowedToMakePurchases() override;
 
-	virtual bool BeginPurchase(int Index) OVERRIDE;
+	virtual bool BeginPurchase(int Index) override;
 	// End IOnlineStore interface
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	/**
 	 * Process a response from the StoreKit
 	 */
 	void ProcessProductsResponse( SKProductsResponse* Response );
+
+
+	/**
+	 * Micro-transaction purchase information
+	 */
+	struct FMicrotransactionPurchaseInfo
+	{
+		FMicrotransactionPurchaseInfo(FString InProductIdentifier)
+		{
+			Identifier = InProductIdentifier;
+			bWasUpdatedByServer = false;
+		}
+
+		// The product identifier that matches the one in iTunesConnect
+		FString Identifier;
+
+		// Display name, gathered from querying the Apple Store
+		FString DisplayName;
+
+		// Display description, gathered from querying the Apple Store
+		FString DisplayDescription;
+
+		// Product price, gathered from querying the Apple Store
+		FString DisplayPrice;
+
+		// The currency type for this MT, gathered from querying the Apple Store
+		FString CurrencyType;
+
+		// flag that lets the user know if the data has been completed from the server
+		bool bWasUpdatedByServer;
+	};
+
 
 private:
 	FStoreKitHelper* StoreHelper;

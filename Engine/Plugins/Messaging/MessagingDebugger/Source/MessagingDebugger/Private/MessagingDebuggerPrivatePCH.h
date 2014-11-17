@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerPrivatePCH.h: Pre-compiled header file for the MessagingDebugger module.
-=============================================================================*/
-
 #pragma once
 
 

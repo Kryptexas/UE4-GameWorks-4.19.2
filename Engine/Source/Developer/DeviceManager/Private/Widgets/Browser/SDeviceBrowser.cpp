@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowser.cpp: Implements the SDeviceBrowser class.
-=============================================================================*/
-
 #include "DeviceManagerPrivatePCH.h"
 
 

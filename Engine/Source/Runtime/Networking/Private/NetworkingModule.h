@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkingModule.h: Declares the FNetworkingModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,9 +11,9 @@ class FNetworkingModule
 {
 public:
 
-	virtual void StartupModule( ) OVERRIDE;
+	virtual void StartupModule( ) override;
 
-	virtual void ShutdownModule( ) OVERRIDE;
+	virtual void ShutdownModule( ) override;
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE;
+	virtual bool SupportsDynamicReloading( ) override;
 };

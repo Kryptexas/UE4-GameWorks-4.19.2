@@ -6,12 +6,21 @@
 
 FEdModeActorPicker::FEdModeActorPicker()
 {
-	ID = FBuiltinEditorModes::EM_ActorPicker;
 	PickState = EPickState::NotOverViewport;
 	HoveredActor.Reset();
 }
-	
-void FEdModeActorPicker::Tick(FLevelEditorViewportClient* ViewportClient, float DeltaTime)
+
+void FEdModeActorPicker::Initialize()
+{
+	CursorDecoratorWindow = SWindow::MakeCursorDecorator();
+	FSlateApplication::Get().AddWindow(CursorDecoratorWindow.ToSharedRef(), true);
+	CursorDecoratorWindow->SetContent(
+		SNew(SToolTip)
+		.Text(this, &FEdModeActorPicker::GetCursorDecoratorText)
+		);
+}
+
+void FEdModeActorPicker::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
 	if(CursorDecoratorWindow.IsValid())
 	{
@@ -21,21 +30,21 @@ void FEdModeActorPicker::Tick(FLevelEditorViewportClient* ViewportClient, float 
 	FEdMode::Tick(ViewportClient, DeltaTime);
 }
 
-bool FEdModeActorPicker::MouseEnter(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport,int32 x, int32 y)
+bool FEdModeActorPicker::MouseEnter(FEditorViewportClient* ViewportClient, FViewport* Viewport,int32 x, int32 y)
 {
 	PickState = EPickState::OverViewport;
 	HoveredActor.Reset();
 	return FEdMode::MouseEnter(ViewportClient, Viewport, x, y);
 }
 
-bool FEdModeActorPicker::MouseLeave(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport)
+bool FEdModeActorPicker::MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport)
 {
 	PickState = EPickState::NotOverViewport;
 	HoveredActor.Reset();
 	return FEdMode::MouseLeave(ViewportClient, Viewport);
 }
 
-bool FEdModeActorPicker::MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y)
+bool FEdModeActorPicker::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y)
 {
 	if (ViewportClient == GCurrentLevelEditingViewportClient)
 	{
@@ -65,19 +74,19 @@ bool FEdModeActorPicker::MouseMove(FLevelEditorViewportClient* ViewportClient, F
 	return true;
 }
 
-bool FEdModeActorPicker::LostFocus(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport)
+bool FEdModeActorPicker::LostFocus(FEditorViewportClient* ViewportClient, FViewport* Viewport)
 {
 	if (ViewportClient == GCurrentLevelEditingViewportClient)
 	{
 		// Make sure actor picking mode is disabled once the active viewport loses focus
-		EndMode();
+		RequestDeletion();
 		return true;
 	}
 
 	return false;
 }
 
-bool FEdModeActorPicker::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool FEdModeActorPicker::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	if (ViewportClient == GCurrentLevelEditingViewportClient)
 	{
@@ -93,20 +102,20 @@ bool FEdModeActorPicker::InputKey(FLevelEditorViewportClient* ViewportClient, FV
 				if(IsActorValid(ActorHit->Actor))
 				{
 					OnActorSelected.ExecuteIfBound(ActorHit->Actor);
-					EndMode();
+					RequestDeletion();
 				}
 			}
 			return true;
 		}
 		else if(Key == EKeys::Escape && Event == IE_Pressed)
 		{
-			EndMode();
+			RequestDeletion();
 			return true;
 		}
 	}
 	else
 	{
-		EndMode();
+		RequestDeletion();
 	}
 
 	return false;
@@ -131,30 +140,17 @@ bool FEdModeActorPicker::UsesToolkits() const
 	return false;
 }
 
-
-void FEdModeActorPicker::BeginMode(FOnGetAllowedClasses InOnGetAllowedClasses, FOnShouldFilterActor InOnShouldFilterActor, FOnActorSelected InOnActorSelected )
+bool FEdModeActorPicker::IsCompatibleWith(FEditorModeID OtherModeID) const
 {
-	OnActorSelected = InOnActorSelected;
-	OnGetAllowedClasses = InOnGetAllowedClasses;
-	OnShouldFilterActor = InOnShouldFilterActor;
-	GEditorModeTools().ActivateMode(GetID());
-	CursorDecoratorWindow = SWindow::MakeCursorDecorator();
-	FSlateApplication::Get().AddWindow(CursorDecoratorWindow.ToSharedRef(), true);
-	CursorDecoratorWindow->SetContent(
-		SNew(SToolTip)
-		.Text(this, &FEdModeActorPicker::GetCursorDecoratorText)
-		);
-
-	HoveredActor.Reset();
-	PickState = EPickState::NotOverViewport;
+	// We want to be able to perform this action with all the built-in editor modes
+	return OtherModeID != FBuiltinEditorModes::EM_None;
 }
 
-void FEdModeActorPicker::EndMode()
+void FEdModeActorPicker::Exit()
 {
 	OnActorSelected = FOnActorSelected();
 	OnGetAllowedClasses = FOnGetAllowedClasses();
 	OnShouldFilterActor = FOnShouldFilterActor();
-	GEditorModeTools().DeactivateMode(GetID());
 
 	if (CursorDecoratorWindow.IsValid())
 	{
@@ -164,6 +160,8 @@ void FEdModeActorPicker::EndMode()
 
 	HoveredActor.Reset();
 	PickState = EPickState::NotOverViewport;
+
+	FEdMode::Exit();
 }
 
 FString FEdModeActorPicker::GetCursorDecoratorText() const

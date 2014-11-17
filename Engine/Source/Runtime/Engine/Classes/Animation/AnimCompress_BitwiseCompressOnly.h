@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_BitwiseCompressOnly.generated.h"
 
 UCLASS(MinimalAPI)
@@ -16,7 +17,7 @@ class UAnimCompress_BitwiseCompressOnly : public UAnimCompress
 
 protected:
 	// Begin UAnimCompress Interface
-	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) OVERRIDE;
+	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	// Begin UAnimCompress Interface
 };
 

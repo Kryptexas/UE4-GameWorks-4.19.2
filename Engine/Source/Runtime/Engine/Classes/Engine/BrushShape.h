@@ -13,9 +13,9 @@ class ABrushShape : public ABrush
 	GENERATED_UCLASS_BODY()
 
 
-	virtual bool IsStaticBrush() const OVERRIDE {return false; }
+	virtual bool IsStaticBrush() const override {return false; }
 
-	virtual bool IsBrushShape() const OVERRIDE {return true; }
+	virtual bool IsBrushShape() const override {return true; }
 };
 
 

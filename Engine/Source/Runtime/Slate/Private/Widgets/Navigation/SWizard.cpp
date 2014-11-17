@@ -72,28 +72,74 @@ void SWizard::Construct( const FArguments& InArgs )
 				[
 					// 'Prev' button
 					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
 					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
 					.IsEnabled(this, &SWizard::HandlePrevButtonIsEnabled)
 					.OnClicked(this, &SWizard::HandlePrevButtonClicked)
 					.Visibility(this, &SWizard::HandlePrevButtonVisibility)
 					.ToolTipText(LOCTEXT("PrevButtonTooltip", "Go back to the previous step"))
-					.Text(LOCTEXT("PrevButtonLabel", "< Back"))
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.Padding(2.0f, 0.0f)
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage)
+							.Image(FCoreStyle::Get().GetBrush("Wizard.BackIcon"))
+							.ColorAndOpacity(FLinearColor(0.05f, 0.05f, 0.05f))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("PrevButtonLabel", "Back"))
+						]
+					]
 				]
 				+SUniformGridPanel::Slot(1,0)
 				[
 					// 'Next' button
 					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
 					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
 					.IsEnabled(this, &SWizard::HandleNextButtonIsEnabled)
 					.OnClicked(this, &SWizard::HandleNextButtonClicked)
 					.Visibility(this, &SWizard::HandleNextButtonVisibility)
 					.ToolTipText(LOCTEXT("NextButtonTooltip", "Go to the next step"))
-					.Text(LOCTEXT("NextButtonLabel", "Next >"))
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("NextButtonLabel", "Next"))
+						]
+
+						+SHorizontalBox::Slot()
+						.Padding(2.0f, 0.0f)
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage)
+							.Image(FCoreStyle::Get().GetBrush("Wizard.NextIcon"))
+							.ColorAndOpacity(FLinearColor(0.05f, 0.05f, 0.05f))
+						]
+					]
 				]
 				+SUniformGridPanel::Slot(2,0)
 				[
 					// 'Finish' button
 					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
 					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
 					.IsEnabled(InArgs._CanFinish)
 					.OnClicked(this, &SWizard::HandleFinishButtonClicked)
@@ -109,6 +155,8 @@ void SWizard::Construct( const FArguments& InArgs )
 		[
 			// cancel button
 			SNew(SButton)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
 			.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
 			.OnClicked(this, &SWizard::HandleCancelButtonClicked)
 			.ToolTipText(LOCTEXT("CancelButtonTooltip", "Cancel this wizard"))

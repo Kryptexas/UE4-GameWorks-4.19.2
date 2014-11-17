@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackInstProperty.h"
 #include "InterpTrackInstFloatProp.generated.h"
 
 UCLASS(MinimalAPI)
@@ -18,9 +19,9 @@ class UInterpTrackInstFloatProp : public UInterpTrackInstProperty
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void InitTrackInst(UInterpTrack* Track) OVERRIDE;
-	virtual void SaveActorState(UInterpTrack* Track) OVERRIDE;
-	virtual void RestoreActorState(UInterpTrack* Track) OVERRIDE;
+	virtual void InitTrackInst(UInterpTrack* Track) override;
+	virtual void SaveActorState(UInterpTrack* Track) override;
+	virtual void RestoreActorState(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

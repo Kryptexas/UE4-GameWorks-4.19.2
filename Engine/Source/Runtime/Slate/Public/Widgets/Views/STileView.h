@@ -113,7 +113,7 @@ public:
 
 public:
 	// Inherited from SWidget
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
@@ -152,7 +152,7 @@ public:
 
 public:	
 
-	virtual STableViewBase::FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) OVERRIDE
+	virtual STableViewBase::FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) override
 	{
 		// Clear all the items from our panel. We will re-add them in the correct order momentarily.
 		this->ClearWidgets();
@@ -180,14 +180,31 @@ public:
 			// Index of the item at which we start generating based on how far scrolled down we are
 			int32 StartIndex = FMath::Max( 0, FMath::FloorToInt(ClampedScrollOffset / NumItemsWide) * NumItemsWide );
 
-			// Let the WidgetGenerator that we are starting a pass so that it can keep track of data items and widgets.
+			// Let the WidgetGenerator know that we are starting a pass so that it can keep track of data items and widgets.
 			this->WidgetGenerator.OnBeginGenerationPass();
 
 			// Actually generate the widgets.
 			bool bKeepGenerating = true;
+			bool bNewRow = true;
+			double NumRowsShownOnScreen = 0;
 			for( int32 ItemIndex = StartIndex; bKeepGenerating && ItemIndex < SourceItems->Num(); ++ItemIndex )
 			{
 				const ItemType& CurItem = (*SourceItems)[ItemIndex];
+
+				if (bNewRow)
+				{
+					bNewRow = false;
+					HeightUsedSoFar += ItemHeight;
+
+					if (HeightUsedSoFar > MyGeometry.Size.Y)
+					{
+						NumRowsShownOnScreen += 1.0f - ((HeightUsedSoFar - MyGeometry.Size.Y) / ItemHeight);
+					}
+					else
+					{
+						++NumRowsShownOnScreen;
+					}
+				}
 
 				const float GeneratedItemHeight = SListView<ItemType>::GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
 
@@ -199,7 +216,8 @@ public:
 				{
 					// A new row of widgets was added.
 					WidthUsedSoFar = 0;
-					HeightUsedSoFar += ItemHeight;	
+					bNewRow = true;
+
 					// Stop when we've generated a widget that's partially clipped by the bottom of the list.
 					if ( HeightUsedSoFar > MyGeometry.Size.Y + ItemHeight )
 					{
@@ -211,16 +229,14 @@ public:
 			// We have completed the generation pass. The WidgetGenerator will clean up unused Widgets.
 			this->WidgetGenerator.OnEndGenerationPass();
 
-			const double ExactNumItemsOnScreen = MyGeometry.Size.Y / ItemHeight * NumItemsWide;
-
-			return STableViewBase::FReGenerateResults(ClampedScrollOffset, ItemHeight * ExactNumItemsOnScreen, ExactNumItemsOnScreen, bAtEndOfList);
+			return STableViewBase::FReGenerateResults(ClampedScrollOffset, HeightUsedSoFar, NumRowsShownOnScreen, bAtEndOfList);
 		}
 
 		return STableViewBase::FReGenerateResults(0, 0, 0, false);
 
 	}
 
-	virtual int32 GetNumItemsBeingObserved() const OVERRIDE
+	virtual int32 GetNumItemsBeingObserved() const override
 	{
 		const int32 NumItemsBeingObserved = this->ItemsSource == NULL ? 0 : this->ItemsSource->Num();
 		const int32 NumItemsWide = GetNumItemsWide();
@@ -240,15 +256,37 @@ public:
 
 protected:
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
 	{
-		const float ItemHeight = this->GetItemHeight();
-		const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
+		// Working around a CLANG bug, where all the base class
+		// members require an explicit namespace resolution.
+		typedef STableViewBase S;
 
-		return this->ScrollTo( NewScrollOffset );
+		const bool bWholeListVisible = S::ScrollOffset == 0 && S::bWasAtEndOfList;
+		if (bWholeListVisible)
+		{
+			return 0;
+		}
+		else if ( AllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		{
+			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / (10 * GetNumItemsWide());
+			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
+			if (ActuallyScrolledBy != 0.0f)
+			{
+				this->RequestListRefresh();
+			}
+			return ActuallyScrolledBy;
+		}
+		else
+		{
+			const float ItemHeight = this->GetItemHeight();
+			const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
+
+			return this->ScrollTo( NewScrollOffset );
+		}
 	}
 
-	virtual int32 GetNumItemsWide() const OVERRIDE
+	virtual int32 GetNumItemsWide() const override
 	{
 		const float ItemWidth = this->GetItemWidth();
 		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;

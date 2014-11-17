@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "GameFramework/PainCausingVolume.h"
 
 APainCausingVolume::APainCausingVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -11,7 +12,6 @@ APainCausingVolume::APainCausingVolume(const class FPostConstructInitializePrope
 	DamagePerSec = 1.0f;
 	bEntryPain = true;
 	PainInterval = 1.0f;
-	bWantsInitialize = true;
 }
 
 void APainCausingVolume::PostInitializeComponents()

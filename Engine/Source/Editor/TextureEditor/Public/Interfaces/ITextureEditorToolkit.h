@@ -1,18 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITextureEditorToolkit.h: Declares the ITextureEditorToolkit interface.
-=============================================================================*/
-
 #pragma once
 
 #include "Toolkits/IToolkitHost.h"
 
 
-/*-----------------------------------------------------------------------------
-   ITextureEditor
------------------------------------------------------------------------------*/
-
+/**
+ * Interface for texture editor tool kits.
+ */
 class ITextureEditorToolkit
 	: public FAssetEditorToolkit
 {
@@ -38,6 +33,11 @@ public:
 	virtual bool GetFitToViewport() const = 0;
 	virtual void SetFitToViewport( const bool bFitToViewport ) = 0;
 	
+public:
+
+	/**
+	 * Toggles the fit-to-viewport mode.
+	 */
 	void ToggleFitToViewport()
 	{
 		const bool bFitToViewport = GetFitToViewport();

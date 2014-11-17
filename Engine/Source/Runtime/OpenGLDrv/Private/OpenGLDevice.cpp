@@ -65,10 +65,11 @@ void OnPixelBufferDeletion( GLuint PixelBufferResource )
 	PrivateOpenGLDevicePtr->OnPixelBufferDeletion( PixelBufferResource );
 }
 
-void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 Offset, uint8* Pointer )
+//gilmerge lose more of these args?
+void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 , uint8*  )
 {
 	check(PrivateOpenGLDevicePtr);
-	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw, Offset, Pointer );
+	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw );
 }
 
 void CachedBindArrayBuffer( GLuint Buffer )
@@ -145,10 +146,24 @@ void FOpenGLDynamicRHI::RHIEndFrame()
 
 void FOpenGLDynamicRHI::RHIBeginScene()
 {
+	// Increment the frame counter. INDEX_NONE is a special value meaning "uninitialized", so if
+	// we hit it just wrap around to zero.
+	SceneFrameCounter++;
+	if (SceneFrameCounter == INDEX_NONE)
+	{
+		SceneFrameCounter++;
+	}
+
+	static auto* ResourceTableCachingCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("rhi.ResourceTableCaching"));
+	if (ResourceTableCachingCvar == NULL || ResourceTableCachingCvar->GetValueOnAnyThread() == 1)
+	{
+		ResourceTableFrameCounter = SceneFrameCounter;
+	}
 }
 
 void FOpenGLDynamicRHI::RHIEndScene()
 {
+	ResourceTableFrameCounter = INDEX_NONE;
 }
 
 bool GDisableOpenGLDebugOutput = false;
@@ -423,17 +438,7 @@ static void InitRHICapabilitiesForGL()
 	GTexturePoolSize = 0;
 	GPoolSizeVRAMPercentage = 0;
 #if PLATFORM_WINDOWS
-	if ( GReadTexturePoolSizeFromIni )
-	{
-		int32 PoolSize;
-		GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSize"), PoolSize, GEngineIni);
-
-		GTexturePoolSize = int64(PoolSize) * 1024 * 1024;
-	}
-	else
-	{
-		GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );
-	}
+	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );	
 #endif
 
 	// GL vendor and version information.
@@ -625,6 +630,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsVertexTextureFetch = true;
 	GSupportsRenderTargetFormat_PF_G8 = true;
 	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
+	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 
@@ -656,6 +662,7 @@ static void InitRHICapabilitiesForGL()
 	}
 
 	GVertexElementTypeSupport.SetSupported(VET_Half2, FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half4, FOpenGL::SupportsVertexHalfFloat());
 
 	for (int32 PF = 0; PF < PF_MAX; ++PF)
 	{
@@ -716,17 +723,32 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE,				GL_LUMINANCE	,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
 		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA,					GL_ALPHA,									GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
 	#endif
+
+#if PLATFORM_ANDROID
+	bool bNeedFloatRGBAtoRGBA8 = true;
+#endif
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
 		if (FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4
 			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA16F_EXT,				GL_RGBA16F_EXT,								GL_RGBA,				GL_HALF_FLOAT_OES,					false));
+			bNeedFloatRGBAtoRGBA8 = false;
 #else
 			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,							GL_RGBA,									GL_RGBA,				GL_HALF_FLOAT_OES,					false));
 #endif
+#if PLATFORM_ANDROID
+			bNeedFloatRGBAtoRGBA8 = false;
+#endif
 		}
 	}
+#if PLATFORM_ANDROID
+	if (bNeedFloatRGBAtoRGBA8)
+	{
+		SetupTextureFormat( PF_FloatRGBA,			FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA,					GL_UNSIGNED_BYTE,					false));
+	}
+#endif
+
 	if (FOpenGL::SupportsPackedDepthStencil())
 	{
 		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES,				GL_NONE,									GL_DEPTH_STENCIL_OES,	GL_UNSIGNED_INT_24_8_OES,			false));
@@ -785,7 +807,9 @@ static void InitRHICapabilitiesForGL()
 }
 
 FOpenGLDynamicRHI::FOpenGLDynamicRHI()
-:	bRevertToSharedContextAfterDrawingViewport(false)
+:	SceneFrameCounter(0)
+,	ResourceTableFrameCounter(INDEX_NONE)
+,	bRevertToSharedContextAfterDrawingViewport(false)
 ,	bIsRenderingContextAcquired(false)
 ,	PlatformDevice(NULL)
 ,	GPUProfilingData(this)
@@ -805,6 +829,67 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 }
 
 extern void DestroyShadersAndPrograms();
+
+#if PLATFORM_ANDROID
+// only used to test for shader compatibility issues
+static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool IsFatal )
+{
+	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileVerifyTime);
+
+	GLint CompileStatus;
+	glGetShaderiv(Shader, GL_COMPILE_STATUS, &CompileStatus);
+	if (CompileStatus != GL_TRUE)
+	{
+		GLint LogLength;
+		ANSICHAR DefaultLog[] = "No log";
+		ANSICHAR *CompileLog = DefaultLog;
+		glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, &LogLength);
+#if PLATFORM_ANDROID
+		if ( LogLength == 0 )
+		{
+			// make it big anyway
+			// there was a bug in android 2.2 where glGetShaderiv would return 0 even though there was a error message
+			// https://code.google.com/p/android/issues/detail?id=9953
+			LogLength = 4096;
+		}
+#endif
+		if (LogLength > 1)
+		{
+			CompileLog = (ANSICHAR *)FMemory::Malloc(LogLength);
+			glGetShaderInfoLog(Shader, LogLength, NULL, CompileLog);
+		}
+
+#if DEBUG_GL_SHADERS
+		if (GlslCode)
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Shader:\n%s"),ANSI_TO_TCHAR(GlslCode));
+
+
+			const ANSICHAR *Temp = GlslCode;
+
+			for ( int i = 0; i < 30 && (*Temp != '\0'); ++i )
+			{
+				FString Converted = ANSI_TO_TCHAR( Temp );
+				Converted.LeftChop( 256 );
+
+				UE_LOG(LogRHI,Display,TEXT("%s"), *Converted );
+				Temp += Converted.Len();
+			}
+
+		}	
+#endif
+		UE_LOG(LogRHI,Warning,TEXT("Failed to compile shader. Compile log:\n%s"), ANSI_TO_TCHAR(CompileLog));
+		
+		if (LogLength > 1)
+		{
+			FMemory::Free(CompileLog);
+		}
+		return false;
+	}
+	return true;
+}
+#endif
+
 
 void FOpenGLDynamicRHI::Init()
 {
@@ -870,6 +955,94 @@ void FOpenGLDynamicRHI::Init()
 
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
+
+	
+#if PLATFORM_ANDROID
+	{
+		UE_LOG(LogRHI,Display,TEXT("Testing for shader compiler compatibility"));
+		// This code creates a sample program and finds out which hacks are required to compile it
+		const ANSICHAR* TestFragmentProgram = "\n"
+			"#version 100\n"
+			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
+			"#extension GL_EXT_shader_texture_lod : enable\n"
+			"#endif\n"
+			"precision mediump float;\n"
+			"precision mediump int;\n"
+			"#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n"
+			"precision mediump sampler2D;\n"
+			"precision mediump samplerCube;\n"
+			"#endif\n"
+			"varying vec3 TexCoord;\n"
+			"uniform samplerCube Texture;\n"
+			"void main()\n"
+			"{\n"
+			"	gl_FragColor = textureCubeLodEXT(Texture,TexCoord, 4.0);\n"
+			"}\n";
+
+		/*TArray<uint8> Code;
+		Code.Add( strlen( TestFragmentProgram ) + 1 );
+		FMemory::Memcpy( Code.GetData(), TestFragmentProgram, Code.Num() );*/
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+
+		FOpenGLCodeHeader Header;
+		Header.FrequencyMarker = 0x5053;
+		Header.GlslMarker = 0x474c534c;
+		TArray<uint8> Code;
+		{
+			FMemoryWriter Writer(Code );
+			Writer << Header;
+			Writer.Serialize( (void*)(TestFragmentProgram), strlen(TestFragmentProgram)+1);
+			Writer.Close();
+		}
+		// try to compile without any hacks
+		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Display,TEXT("Shaders compile fine no need to enable hacks"));
+			// we are done
+			return;
+		}
+		
+
+
+		FOpenGLES2::bRequiresDontEmitPrecisionForTextureSamplers = true;
+		FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+		// second most number of devices fall into this hack category
+		// try to compile without using precision for texture samplers 
+		// Samsung Galaxy Express	Samsung Galaxy S3	Samsung Galaxy S3 mini	Samsung Galaxy Tab GT-P1000	Samsung Galaxy Tab 2
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to remove precision modifiers for texture samplers"));
+
+			// we are done
+			return;
+		}
+
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
+
+		// third most likely Samsung Galaxy Tab GT-P1000
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod"));
+			// we are done
+			return;
+		}
+		
+		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
+
+	}
+#endif
 }
 
 void FOpenGLDynamicRHI::Shutdown()
@@ -976,6 +1149,11 @@ void FOpenGLDynamicRHI::RHIFlushComputeShaderCache()
 	// Nothing to do here...
 }
 
+void* FOpenGLDynamicRHI::RHIGetNativeDevice()
+{
+	return nullptr;
+}
+
 void FOpenGLDynamicRHI::InvalidateQueries( void )
 {
 	{
@@ -1001,3 +1179,4 @@ bool FOpenGLDynamicRHIModule::IsSupported()
 {
 	return PlatformInitOpenGL();
 }
+

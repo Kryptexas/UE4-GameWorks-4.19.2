@@ -1,8 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsViewerPrivatePCH.h"
+#include "StaticMeshResources.h"
 #include "PrimitiveStatsPage.h"
 #include "PrimitiveStats.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeComponent.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 

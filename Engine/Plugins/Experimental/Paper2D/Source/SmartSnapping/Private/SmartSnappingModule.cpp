@@ -15,7 +15,7 @@ public:
 	TSharedPtr<FPlanarConstraintSnapPolicy> PlanarPolicy;
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		if (!IsRunningCommandlet())
 		{
@@ -30,13 +30,13 @@ public:
 				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FSmartSnappingModule::OnExtendLevelEditorViewMenu);
 
 
-				FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+				FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 				LevelEditor.GetAllLevelEditorToolbarViewMenuExtenders().Add(ViewMenuExtender);
 			}
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (UObjectInitialized() && !IsRunningCommandlet())
 		{

@@ -59,10 +59,10 @@ public:
 public:
 
 	// SWidget interface
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
-	virtual FChildren* GetChildren() OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FChildren* GetChildren() override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
 	/** Fraction of the first item that we should offset by to simulate smooth scrolling. */
@@ -85,6 +85,12 @@ public:
 
 	/** Returns true if this list panel is pending a refresh, false otherwise */
 	bool IsRefreshPending() const;
+
+	/** See ItemHeight attribute */
+	void SetItemHeight(TAttribute<float> Height);
+
+	/** See ItemWidth attribute */
+	void SetItemWidth(TAttribute<float> Width);
 	
 protected:
 

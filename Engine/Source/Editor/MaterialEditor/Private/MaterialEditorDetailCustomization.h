@@ -16,7 +16,7 @@ public:
 	FMaterialExpressionParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate);
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 private:
 	/** Populates the group name that this parameter details uses */
@@ -60,7 +60,7 @@ public:
 	FMaterialExpressionCollectionParameterDetails();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 private:
 	/** Populates the group name that this parameter details uses */

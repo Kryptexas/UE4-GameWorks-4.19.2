@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceQuickInfo.h: Declares the SDeviceQuickInfo class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,9 +26,9 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceServiceManager - The target device service manager to use.
-	 * @param InDeviceManagerState - The optional device manager view state.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceServiceManager The target device service manager to use.
+	 * @param InDeviceManagerState The optional device manager view state.
 	 */
 	void Construct( const FArguments& InArgs )
 	{
@@ -165,7 +161,7 @@ public:
 	/**
 	 * Sets the device service whose information is being shown.
 	 *
-	 * @param InDeviceService - The device service to show.
+	 * @param InDeviceService The device service to show.
 	 */
 	void SetDeviceService( const ITargetDeviceServicePtr& InDeviceService )
 	{
@@ -245,10 +241,14 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			return FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s.XLarge"), *DeviceService->GetDeviceId().GetPlatformName()));
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+			if(PlatformInfo)
+			{
+				return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge));
+			}
 		}
 
-		return NULL;
+		return FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the name of the device's platform.

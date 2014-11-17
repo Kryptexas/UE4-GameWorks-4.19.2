@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Sound/SoundNodeWave.h" // deprecated
 #include "AudioDecompress.h"
 #include "SoundDefinitions.h"
 #include "SubtitleManager.h"

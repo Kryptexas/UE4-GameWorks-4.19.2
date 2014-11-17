@@ -105,6 +105,7 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 
 		int32 ViewIndex,
 		int32 NumViews,
@@ -118,14 +119,15 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		DeferredParameters.Set(ShaderRHI, View);
-		SetTextureParameter(ShaderRHI, InTexture, InTextureValue.GetRenderTargetItem().ShaderResourceTexture);
-		OutTexture.SetTexture(ShaderRHI, 0, OutTextureValue.GetRenderTargetItem().UAV);
-	
-		SetShaderValue(ShaderRHI, ViewDimensions, View.ViewRect);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		SetTextureParameter(RHICmdList, ShaderRHI, InTexture, InTextureValue.GetRenderTargetItem().ShaderResourceTexture);
+		OutTexture.SetTexture(RHICmdList, ShaderRHI, 0, OutTextureValue.GetRenderTargetItem().UAV);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensions, View.ViewRect);
 
 		SetTextureParameter(
+			RHICmdList, 
 			ShaderRHI,
 			PreIntegratedBRDF,
 			PreIntegratedBRDFSampler,
@@ -165,6 +167,10 @@ public:
 
 				if (LightSceneInfo->Proxy->IsInverseSquared())
 				{
+					// Correction for lumen units
+					LightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
+					LightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
+					LightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
 					LightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 				}
 
@@ -200,17 +206,23 @@ public:
 				LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(FVector(1, 0, 0), 0);
 				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(-2, 1, 0, 1);
 				LightData2.ShadowMapChannelMask[LightIndex] = FVector4(0, 0, 0, 0);
+
+				if( SimpleLight.Exponent == 0.0f )
+				{
+					// Correction for lumen units
+					LightData.LightColorAndFalloffExponent[LightIndex] *= 16.0f;
+				}
 			}
 		}
 
-		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FTiledDeferredLightData>(), LightData);
-		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FTiledDeferredLightData2>(), LightData2);
-		SetShaderValue(ShaderRHI, NumLights, NumThisPass);
+		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FTiledDeferredLightData>(), LightData);
+		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FTiledDeferredLightData2>(), LightData2);
+		SetShaderValue(RHICmdList, ShaderRHI, NumLights, NumThisPass);
 	}
 
-	void UnsetParameters()
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		OutTexture.UnsetUAV(GetComputeShader());
+		OutTexture.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -269,11 +281,12 @@ bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLi
 
 template <bool bVisualizeLightCulling>
 static void SetShaderTemplTiledLighting(
-	const FSceneView& View,
+	FRHICommandListImmediate& RHICmdList,
+	const FSceneView& View, 
 	int32 ViewIndex,
 	int32 NumViews,
-	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights,
-	int32 NumLightsToRenderInSortedLights,
+	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
+	int32 NumLightsToRenderInSortedLights, 
 	const FSimpleLightArray& SimpleLights,
 	int32 StartIndex, 
 	int32 NumThisPass,
@@ -281,19 +294,19 @@ static void SetShaderTemplTiledLighting(
 	IPooledRenderTarget& OutTexture)
 {
 	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(GetGlobalShaderMap());
-	RHISetComputeShader(ComputeShader->GetComputeShader());
+	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
-	ComputeShader->SetParameters(View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, OutTexture);
+	ComputeShader->SetParameters(RHICmdList, View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, OutTexture);
 
 	uint32 GroupSizeX = (View.ViewRect.Size().X + GDeferredLightTileSizeX - 1) / GDeferredLightTileSizeX;
 	uint32 GroupSizeY = (View.ViewRect.Size().Y + GDeferredLightTileSizeY - 1) / GDeferredLightTileSizeY;
-	DispatchComputeShader(*ComputeShader, GroupSizeX, GroupSizeY, 1);
+	DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-	ComputeShader->UnsetParameters();
+	ComputeShader->UnsetParameters(RHICmdList);
 }
 
 
-void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights)
+void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListImmediate& RHICmdList, const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights)
 {
 	check(GUseTiledDeferredShading);
 	check(SortedLights.Num() >= NumUnshadowedLights);
@@ -307,7 +320,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 		INC_DWORD_STAT_BY(STAT_NumLightsUsingSimpleTiledDeferred, SimpleLights.InstanceData.Num());
 		SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 
-		RHISetRenderTarget(NULL, NULL);
+		SetRenderTarget(RHICmdList, NULL, NULL);
 
 		// Determine how many compute shader passes will be needed to process all the lights
 		const int32 NumPassesNeeded = FMath::DivideAndRoundUp(NumLightsToRender, GMaxNumTiledDeferredLights);
@@ -320,7 +333,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 			// One some hardware we can read and write from the same UAV with a 32 bit format. We don't do that yet.
 			TRefCountPtr<IPooledRenderTarget> OutTexture;
 			{
-				GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+				GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 				FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
 				Desc.TargetableFlags |= TexCreate_UAV;
@@ -339,11 +352,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 
 					if(View.Family->EngineShowFlags.VisualizeLightCulling)
 					{
-						SetShaderTemplTiledLighting<1>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, *OutTexture);
+						SetShaderTemplTiledLighting<1>(RHICmdList, View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, *OutTexture);
 					}
 					else
 					{
-						SetShaderTemplTiledLighting<0>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, *OutTexture);
+						SetShaderTemplTiledLighting<0>(RHICmdList, View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, *OutTexture);
 					}
 				}
 			}

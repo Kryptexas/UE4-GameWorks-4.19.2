@@ -45,6 +45,7 @@ namespace EJsonToken
 		True,
 		False,
 		Null,
+		Identifier,
 	};
 }
 

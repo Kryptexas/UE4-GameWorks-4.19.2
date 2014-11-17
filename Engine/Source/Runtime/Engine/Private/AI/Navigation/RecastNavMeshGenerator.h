@@ -7,8 +7,12 @@
 #include "DetourCommon.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshBuilder.h"
+#include "AI/NavDataGenerator.h"
 
 #define MAX_VERTS_PER_POLY	6
+
+struct FNavigationRelevantData;
+class FNavigationOctree;
 
 struct FRecastBuildConfig : public rcConfig
 {
@@ -163,7 +167,7 @@ public:
 
 	FORCEINLINE const FBox& GetUnrealBB() const { return TileBB; }
 	
-	void SetDirty(const FNavigationDirtyArea& DirtyArea);
+	void SetDirty(const FNavigationDirtyArea& DirtyArea, const FBox& AreaBounds);
 	FORCEINLINE void GetDirtyState(FRecastTileDirtyState& Data) const { Data = DirtyState; }
 	FORCEINLINE void SetDirtyState(const FRecastTileDirtyState& Data) { DirtyState.Append(Data); }
 	FORCEINLINE bool HasDirtyGeometry() const { return DirtyState.bRebuildGeometry; }
@@ -338,14 +342,14 @@ private:
 public:
 
 	// Triggers navmesh building process
-	virtual bool Generate() OVERRIDE;
+	virtual bool Generate() override;
 
 	/** Asks generator to update navigation affected by DirtyAreas */
-	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) OVERRIDE;
+	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) override;
 
-	virtual void TriggerGeneration() OVERRIDE;
+	virtual void TriggerGeneration() override;
 
-	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const OVERRIDE;
+	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const override;
 
 	bool AreAnyTilesBeingBuilt(bool bCheckDirtyToo = false) const;
 	bool IsAsyncBuildInProgress() const;
@@ -354,7 +358,7 @@ public:
 	 *	If TileIndex is out of bounds function returns false (i.e. not being built) */
 	bool IsTileFresh(int32 X, int32 Y, float FreshnessTime = FRecastNavMeshGenerator::DefaultFreshness) const;
 
-	virtual void OnWorldInitDone(bool bAllowedToRebuild) OVERRIDE;
+	virtual void OnWorldInitDone(bool bAllowedToRebuild) override;
 
 	/** Moves data from this generator to it's destination navmesh object. 
 	 *	@return fail if DestNavMesh is not valid in some way, true otherwise */
@@ -432,14 +436,20 @@ public:
 
 	bool HasDirtyAreas() const { return DirtyAreas.Num() > 0; }
 	
-	FORCEINLINE FBox GrowBoundingBox(const FBox& BBox) const { return BBox.ExpandBy(2 * Config.borderSize * Config.cs); }
+	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const
+	{
+		const FVector BBoxGrowOffsetBoth = FVector(2.0f * Config.borderSize * Config.cs);
+		const FVector BBoxGrowOffsetMin = FVector(0, 0, bIncludeAgentHeight ? Config.AgentHeight : 0.0f);
+
+		return FBox(BBox.Min - BBoxGrowOffsetBoth - BBoxGrowOffsetMin, BBox.Max + BBoxGrowOffsetBoth);
+	}
 
 	FORCEINLINE bool HasResultsPending() const { return AsyncGenerationResultContainer.Num() > 0; }
 	void GetAsyncResultsCopy(TNavStatArray<FNavMeshGenerationResult>& Dest, bool bClearSource);
 
 	void StoreAsyncResults(TArray<FNavMeshGenerationResult> AsyncResults);
 
-#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
 #endif
 private:
@@ -456,7 +466,7 @@ private:
 	//void NotifyBoxDirty(FBox Bounds, const AActor* Actor);
 	//void MarkBoxDirty(FBox Bounds, const AActor* Actor);
 
-	virtual void RebuildAll() OVERRIDE;
+	virtual void RebuildAll() override;
 
 	void RequestDirtyTilesRebuild();
 	
@@ -488,16 +498,16 @@ public:
 	/** Called to trigger generation at earliest convenience */
 	void RequestGeneration();
 
-	virtual void OnNavigationBuildingLocked() OVERRIDE;
-	virtual void OnNavigationBuildingUnlocked(bool bForce) OVERRIDE;
-	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) OVERRIDE;
+	virtual void OnNavigationBuildingLocked() override;
+	virtual void OnNavigationBuildingUnlocked(bool bForce) override;
+	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) override;
 
-	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) OVERRIDE;
+	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) override;
 
 	//----------------------------------------------------------------------//
 	// debug
 	//----------------------------------------------------------------------//
-	virtual uint32 LogMemUsed() const OVERRIDE;
+	virtual uint32 LogMemUsed() const override;
 
 private:
 	/** Parameters defining navmesh tiles */

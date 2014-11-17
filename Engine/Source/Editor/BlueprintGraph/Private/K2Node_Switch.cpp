@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "K2Node_SwitchEnum.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Switch"
 
@@ -28,7 +29,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_Switch* SwitchNode = Cast<UK2Node_Switch>(Node);
 
@@ -44,7 +45,7 @@ public:
 		BoolTermMap.Add(Node, BoolTerm);
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_Switch* SwitchNode = CastChecked<UK2Node_Switch>(Node);
 

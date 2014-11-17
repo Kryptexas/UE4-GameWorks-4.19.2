@@ -32,7 +32,7 @@ public:
 		//@TODO: check(StrideBytes >= 4*Width);
 	}
 
-	virtual void ConditionalUpdateTexture() OVERRIDE {}
+	virtual void ConditionalUpdateTexture() override {}
 
 	void CopyToTexture(UTexture2D* Texture)
 	{

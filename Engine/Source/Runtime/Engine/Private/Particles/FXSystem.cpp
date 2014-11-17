@@ -314,19 +314,19 @@ void FFXSystem::PreInitViews()
 	}
 }
 
-void FFXSystem::PreRender()
+void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList)
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		SimulateGPUParticles(EParticleSimulatePhase::Main,NULL,FTexture2DRHIParamRef(),FTexture2DRHIParamRef());
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
 	}
 }
 
-void FFXSystem::PostRenderOpaque(const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture)
+void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture)
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		SimulateGPUParticles(EParticleSimulatePhase::Collision,CollisionView,SceneDepthTexture,GBufferATexture);
-		SortGPUParticles();
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Collision, CollisionView, SceneDepthTexture, GBufferATexture);
+		SortGPUParticles(RHICmdList);
 	}
 }

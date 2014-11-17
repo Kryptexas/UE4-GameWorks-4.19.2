@@ -5,15 +5,16 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorUtils.h"
 #include "Layers/ILayers.h"
+#include "ComponentInstanceDataCache.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
 
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
-	: DuplicatedClass(NULL)
-	, bHasReinstanced(false)
-	, ClassToReinstance(InClassToReinstance)
+	: ClassToReinstance(InClassToReinstance)
+	, DuplicatedClass(NULL)
 	, OriginalCDO(NULL)
+	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
 {
 	if( InClassToReinstance != NULL )
@@ -223,14 +224,8 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
 
 	TArray<UObject*> ObjectsToReplace;
-	for( TObjectIterator<UObject> It; It; ++It )
-	{
-		UObject* Obj = *It;
-		if( Obj && (Obj->GetClass() == OldClass) && (Obj != OldClass->ClassDefaultObject) )
-		{
-			ObjectsToReplace.Add(Obj);
-		}
-	}
+	const bool bIncludeDerivedClasses = false;
+	GetObjectsOfClass(OldClass, ObjectsToReplace, bIncludeDerivedClasses);
 
 	bool bSelectionChanged = false;
 	
@@ -287,7 +282,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 					for (auto AttachIt = OldRootComponent->AttachChildren.CreateConstIterator(); AttachIt; ++AttachIt)
 					{
 						USceneComponent* Child = *AttachIt;
-						if (ensure(Child != nullptr))
+						if (Child != nullptr)
 						{
 							OldAttachChildren.Add(Child->GetOwner());
 						}
@@ -337,7 +332,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewActor->RegisterAllComponents(); // Register native components
 
 				// Run the construction script, which will use the properties we just copied over
-				NewActor->OnConstruction(WorldTransform);
+				NewActor->ExecuteConstruction(WorldTransform, &InstanceDataCache);
 
 				//Attach the new instance to original parent
 				if(AttachParentActor)
@@ -350,9 +345,6 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 					// Cannot attach to a socket on a blueprint
 					GEditor->ParentActors(NewActor, *AttachIt, FName());
 				}
-
-				// Apply cached data to new instance
-				InstanceDataCache.ApplyToActor(NewActor);
 
 				// Determine if the actor used to be selected.
 				if (OldActor->IsSelected())
@@ -516,8 +508,15 @@ void FBlueprintCompileReinstancer::ReparentChild(UBlueprint* ChildBP)
 
 void FBlueprintCompileReinstancer::ReparentChild(UClass* ChildClass)
 {
-	check(ChildClass);
-	check(ChildClass->GetSuperClass() == ClassToReinstance || ChildClass->GetSuperClass() == DuplicatedClass);
+	check(ChildClass && ClassToReinstance && DuplicatedClass && ChildClass->GetSuperClass());
+	bool bIsReallyAChild = ChildClass->GetSuperClass() == ClassToReinstance || ChildClass->GetSuperClass() == DuplicatedClass;
+	const auto SuperClassBP = Cast<UBlueprint>(ChildClass->GetSuperClass()->ClassGeneratedBy);
+	if (SuperClassBP && !bIsReallyAChild)
+	{
+		bIsReallyAChild |= (SuperClassBP->SkeletonGeneratedClass == ClassToReinstance) || (SuperClassBP->SkeletonGeneratedClass == DuplicatedClass);
+		bIsReallyAChild |= (SuperClassBP->GeneratedClass == ClassToReinstance) || (SuperClassBP->GeneratedClass == DuplicatedClass);
+	}
+	check(bIsReallyAChild);
 
 	ChildClass->AssembleReferenceTokenStream();
 	ChildClass->SetSuperStruct(DuplicatedClass);

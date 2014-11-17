@@ -7,13 +7,14 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "MeshParticleVertexFactory.h"
+#include "ShaderParameterUtils.h"
 
 
 class FMeshParticleVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
 
-	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
 		Transform1.Bind(ParameterMap,TEXT("Transform1"));
 		Transform2.Bind(ParameterMap,TEXT("Transform2"));
@@ -24,7 +25,7 @@ public:
 		ParticleColor.Bind(ParameterMap,TEXT("ParticleColor"));
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << Transform1;
 		Ar << Transform2;
@@ -35,12 +36,12 @@ public:
 		Ar << ParticleColor;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
-		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+		const bool bInstanced = View.GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 		FMeshParticleVertexFactory* MeshParticleVF = (FMeshParticleVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
-		SetUniformBufferParameter( VertexShaderRHI, Shader->GetUniformBufferParameter<FMeshParticleUniformParameters>(), MeshParticleVF->GetUniformBuffer() );
+		SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FMeshParticleUniformParameters>(), MeshParticleVF->GetUniformBuffer() );
 
 		if (!bInstanced)
 		{
@@ -48,13 +49,13 @@ public:
 			const FMeshParticleInstanceVertex* Vertex = BatchParameters->InstanceBuffer + BatchElement.UserIndex;
 			const FMeshParticleInstanceVertexDynamicParameter* DynamicVertex = BatchParameters->DynamicParameterBuffer + BatchElement.UserIndex;
 
-			SetShaderValue(VertexShaderRHI, Transform1, Vertex->Transform[0]);
-			SetShaderValue(VertexShaderRHI, Transform2, Vertex->Transform[1]);
-			SetShaderValue(VertexShaderRHI, Transform3, Vertex->Transform[2]);
-			SetShaderValue(VertexShaderRHI, SubUVParams, FVector4((float)Vertex->SubUVParams[0], (float)Vertex->SubUVParams[1], (float)Vertex->SubUVParams[2], (float)Vertex->SubUVParams[3]));
-			SetShaderValue(VertexShaderRHI, SubUVLerp, Vertex->SubUVLerp);
-			SetShaderValue(VertexShaderRHI, DynamicParameter, FVector4(DynamicVertex->DynamicValue[0], DynamicVertex->DynamicValue[1], DynamicVertex->DynamicValue[2], DynamicVertex->DynamicValue[3]));
-			SetShaderValue(VertexShaderRHI, ParticleColor, FVector4(Vertex->Color.Component(0), Vertex->Color.Component(1), Vertex->Color.Component(2), Vertex->Color.Component(3)));
+			SetShaderValue(RHICmdList, VertexShaderRHI, Transform1, Vertex->Transform[0]);
+			SetShaderValue(RHICmdList, VertexShaderRHI, Transform2, Vertex->Transform[1]);
+			SetShaderValue(RHICmdList, VertexShaderRHI, Transform3, Vertex->Transform[2]);
+			SetShaderValue(RHICmdList, VertexShaderRHI, SubUVParams, FVector4((float)Vertex->SubUVParams[0], (float)Vertex->SubUVParams[1], (float)Vertex->SubUVParams[2], (float)Vertex->SubUVParams[3]));
+			SetShaderValue(RHICmdList, VertexShaderRHI, SubUVLerp, Vertex->SubUVLerp);
+			SetShaderValue(RHICmdList, VertexShaderRHI, DynamicParameter, FVector4(DynamicVertex->DynamicValue[0], DynamicVertex->DynamicValue[1], DynamicVertex->DynamicValue[2], DynamicVertex->DynamicValue[3]));
+			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleColor, FVector4(Vertex->Color.Component(0), Vertex->Color.Component(1), Vertex->Color.Component(2), Vertex->Color.Component(3)));
 		}
 	}
 
@@ -88,15 +89,16 @@ void FMeshParticleVertexFactory::InitRHI()
 				VertexStream.Offset = 0;
 				Streams.Add(VertexStream);
 	
-				Elements.Add(FVertexElement(0, Data.TransformComponent[0].Offset, Data.TransformComponent[0].Type, 8, Data.TransformComponent[0].bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.TransformComponent[1].Offset, Data.TransformComponent[1].Type, 9, Data.TransformComponent[1].bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.TransformComponent[2].Offset, Data.TransformComponent[2].Type, 10, Data.TransformComponent[2].bUseInstanceIndex));
+				// @todo metal: this will need a valid stride when we get to instanced meshes!
+				Elements.Add(FVertexElement(0, Data.TransformComponent[0].Offset, Data.TransformComponent[0].Type, 8, 0xFFFF, Data.TransformComponent[0].bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.TransformComponent[1].Offset, Data.TransformComponent[1].Type, 9, 0xFFFF, Data.TransformComponent[1].bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.TransformComponent[2].Offset, Data.TransformComponent[2].Type, 10, 0xFFFF, Data.TransformComponent[2].bUseInstanceIndex));
 	
-				Elements.Add(FVertexElement(0, Data.SubUVs.Offset, Data.SubUVs.Type, 11, Data.SubUVs.bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.SubUVLerpAndRelTime.Offset, Data.SubUVLerpAndRelTime.Type, 12, Data.SubUVLerpAndRelTime.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.SubUVs.Offset, Data.SubUVs.Type, 11, 0, Data.SubUVs.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.SubUVLerpAndRelTime.Offset, Data.SubUVLerpAndRelTime.Type, 12, 0xFFFF, Data.SubUVLerpAndRelTime.bUseInstanceIndex));
 	
-				Elements.Add(FVertexElement(0, Data.ParticleColorComponent.Offset, Data.ParticleColorComponent.Type, 14, Data.ParticleColorComponent.bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.VelocityComponent.Offset, Data.VelocityComponent.Type, 15, Data.VelocityComponent.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.ParticleColorComponent.Offset, Data.ParticleColorComponent.Type, 14, 0xFFFF, Data.ParticleColorComponent.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.VelocityComponent.Offset, Data.VelocityComponent.Type, 15, 0xFFFF, Data.VelocityComponent.bUseInstanceIndex));
 			}
 
 			// Stream 1 - Dynamic parameter
@@ -107,7 +109,7 @@ void FMeshParticleVertexFactory::InitRHI()
 				VertexStream.Offset = 0;
 				Streams.Add(VertexStream);
 	
-				Elements.Add(FVertexElement(1, 0, VET_Float4, 13, true));
+				Elements.Add(FVertexElement(1, 0, VET_Float4, 13, 0xFFFF, true));
 			}
 		}
 

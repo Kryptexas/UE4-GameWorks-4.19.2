@@ -19,16 +19,6 @@ static FString GSavedCommandLine;
 	[NSApp terminate: self];
 }
 
-- (IBAction)OnQuitRequest:(id)Sender
-{
-	[NSApp terminate: self];
-}
-
-- (IBAction)OnShowAboutWindow:(id)Sender
-{
-	[NSApp orderFrontStandardAboutPanel: Sender];
-}
-
 @end
 
 int main(int argc, char *argv[])
@@ -44,5 +34,9 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += Argument;
 	}
 
-	return NSApplicationMain(argc, (const char **)argv);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[UE4AppDelegate new]];
+	[NSApp run];
+	return 0;
 }

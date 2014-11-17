@@ -7,29 +7,8 @@
 class FBspMode : public FEdMode
 {
 public:
-	static TSharedRef< FBspMode > Create();
 
-	~FBspMode();
-	virtual bool UsesToolkits() const OVERRIDE;
+	virtual bool UsesToolkits() const override { return false; }
 
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
-
-	virtual bool UsesPropertyWidgets() const OVERRIDE { return true; }
-
-private:
-	FBspMode();
-	void Initialize();
-
-	void CreateBspModeItems( FToolBarBuilder& Builder );
-
-	void EditorModeChanged( FEdMode* Mode, bool IsEntering );
-
-	void HandleModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange );
-
-private:
-
-	bool IsActive;
-	bool bNeedsToRegisterCommands;
-	FName LastActiveModeIdentifier;
+	virtual bool UsesPropertyWidgets() const override { return true; }
 };

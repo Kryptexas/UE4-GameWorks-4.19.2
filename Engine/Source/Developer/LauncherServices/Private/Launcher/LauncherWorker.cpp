@@ -1,11 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherWorker.cpp: Implements the FLauncherWorker class.
-=============================================================================*/
-
 #include "LauncherServicesPrivatePCH.h"
 
+
+bool FLauncherUATTask::FirstTimeCompile = true;
 
 /* FLauncherWorker structors
  *****************************************************************************/
@@ -31,6 +29,8 @@ bool FLauncherWorker::Init( )
 uint32 FLauncherWorker::Run( )
 {
 	FString Line;
+
+	LaunchStartTime = FPlatformTime::Seconds();
 
 	// wait for tasks to be completed
 	while (Status == ELauncherWorkerStatus::Busy)
@@ -61,7 +61,7 @@ uint32 FLauncherWorker::Run( )
 		{
 			Status = ELauncherWorkerStatus::Completed;
 
-			FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+			NewLine = FPlatformProcess::ReadPipe(ReadPipe);
 			while (NewLine.Len() > 0)
 			{
 				// process the string to break it up in to lines
@@ -103,11 +103,11 @@ uint32 FLauncherWorker::Run( )
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
 		Status = ELauncherWorkerStatus::Canceled;
-		LaunchCanceled.Broadcast();
+		LaunchCanceled.Broadcast(FPlatformTime::Seconds() - LaunchStartTime);
 	}
 	else
 	{
-		LaunchCompleted.Broadcast(TaskChain->Succeeded());
+		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime);
 	}
 
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
@@ -164,15 +164,19 @@ int32 FLauncherWorker::GetTasks( TArray<ILauncherTaskPtr>& OutTasks ) const
 	return OutTasks.Num();
 }
 
+
 void FLauncherWorker::OnTaskStarted(const FString& TaskName)
 {
+	StageStartTime = FPlatformTime::Seconds();
 	StageStarted.Broadcast(TaskName);
 }
 
+
 void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 {
-	StageCompleted.Broadcast(TaskName);
+	StageCompleted.Broadcast(TaskName, FPlatformTime::Seconds() - StageStartTime);
 }
+
 
 /* FLauncherWorker implementation
  *****************************************************************************/
@@ -198,6 +202,8 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 	TSharedPtr<FLauncherTask> FirstPlatformPackageTask = NULL;
 	TSharedPtr<FLauncherTask> FirstPlatformDeviceTask = NULL;
 
+	FLauncherUATTask::FirstTimeCompile = true;
+
 	// determine deployment platforms
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
 
@@ -222,7 +228,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 		const FString& TargetPlatformName = Platforms[PlatformIndex];
 		const ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(TargetPlatformName);
 
-		if (TargetPlatform == NULL)
+		if (TargetPlatform == nullptr)
 		{
 			continue;
 		}
@@ -304,7 +310,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
         }
 
 		// ... package the build...
-		if (InProfile->GetPackagingMode() != ELauncherProfilePackagingModes::DoNotPackage || (TargetPlatform->PlatformName() == TEXT("IOS") && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::CopyRepository && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy))
+		if (InProfile->GetPackagingMode() != ELauncherProfilePackagingModes::DoNotPackage || ((TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName() == TEXT("HTML5")) && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::CopyRepository && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy))
 		{
 			TSharedPtr<FLauncherUATCommand> Command = NULL;
 			if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))

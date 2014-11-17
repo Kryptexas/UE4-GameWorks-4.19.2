@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserDeviceListRow.h: Declares the SDeviceBrowserDeviceListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,7 +24,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The arguments.
+	 * @param InArgs The arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -46,12 +42,11 @@ public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == TEXT("Claimed"))
 		{
@@ -66,11 +61,15 @@ public:
 		}
 		else if (ColumnName == TEXT("Icon"))
 		{
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
+				.WidthOverride(24)
+				.HeightOverride(24)
 				[
 					SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *DeviceService->GetDeviceId().GetPlatformName())))
+						.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
 				];
 		}
 		else if (ColumnName == TEXT("Name"))

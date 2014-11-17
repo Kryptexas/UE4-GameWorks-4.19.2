@@ -23,25 +23,25 @@ void FEmptyIndexBuffer::Unlock()
 
 }
 
-FIndexBufferRHIRef FEmptyDynamicRHI::RHICreateIndexBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 InUsage)
+FIndexBufferRHIRef FEmptyDynamicRHI::RHICreateIndexBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	// make the RHI object, which will allocate memory
 	FEmptyIndexBuffer* IndexBuffer = new FEmptyIndexBuffer(Stride, Size, InUsage);
 	
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
 
 		// make a buffer usable by CPU
 		void* Buffer = RHILockIndexBuffer(IndexBuffer, 0, Size, RLM_WriteOnly);
 
 		// copy the contents of the given data into the buffer
-		FMemory::Memcpy(Buffer, ResourceArray->GetResourceData(), Size);
+		FMemory::Memcpy(Buffer, CreateInfo.ResourceArray->GetResourceData(), Size);
 
 		RHIUnlockIndexBuffer(IndexBuffer);
 
 		// Discard the resource array's contents.
-		ResourceArray->Discard();
+		CreateInfo.ResourceArray->Discard();
 	}
 
 	return IndexBuffer;

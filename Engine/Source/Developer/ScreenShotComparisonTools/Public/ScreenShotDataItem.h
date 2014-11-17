@@ -11,10 +11,10 @@ struct FScreenShotDataItem
 {
 	// Constructors
 	FScreenShotDataItem( const FString& InViewName, const FString& InDeviceName, const FString& InAssetName, const int32 InChangeListNumber )
-		: ViewName( InViewName )
-		, DeviceName( InDeviceName )
-		, AssetName( InAssetName )
+		: AssetName( InAssetName )
 		, ChangeListNumber( InChangeListNumber )
+		, DeviceName( InDeviceName )
+		, ViewName( InViewName )
 	{}
 
 public:

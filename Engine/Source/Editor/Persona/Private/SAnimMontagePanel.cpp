@@ -37,7 +37,7 @@ public:
 		return Operation;
 	}
 
-	virtual void OnDragged( const class FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void OnDragged( const class FDragDropEvent& DragDropEvent ) override;
 };
 
 class SMontageBranchingPointNode : public STrackNode
@@ -46,6 +46,7 @@ public:
 	SLATE_BEGIN_ARGS( SMontageBranchingPointNode )
 		: _Montage()
 		, _BranchingPoint()
+		, _AllowDrag(true)
 		{}
 		SLATE_ARGUMENT( class UAnimMontage*, Montage )
 		SLATE_ARGUMENT( FBranchingPoint*, BranchingPoint )
@@ -67,11 +68,11 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const OVERRIDE;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
-	virtual FVector2D GetDragDropScreenSpacePosition(const FGeometry& ParentAllottedGeometry, const FDragDropEvent& DragDropEvent) const OVERRIDE;
+	virtual FVector2D GetDragDropScreenSpacePosition(const FGeometry& ParentAllottedGeometry, const FDragDropEvent& DragDropEvent) const override;
 
-	virtual FReply BeginDrag( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply BeginDrag( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	bool SnapToDragBars() const {return true;}
 
@@ -85,11 +86,11 @@ private:
 	FBranchingPoint* BranchingPoint;
 
 	FString GetBranchingPointText() const;
-	virtual FVector2D GetSize() const OVERRIDE;
+	virtual FVector2D GetSize() const override;
 
 	// virtual draw related functions STrackNode
-	virtual FVector2D GetOffsetRelativeToParent(const FGeometry& ParentAllottedGeometry) const OVERRIDE;
-	virtual FVector2D GetSizeRelativeToParent(const FGeometry& ParentAllottedGeometry) const OVERRIDE;
+	virtual FVector2D GetOffsetRelativeToParent(const FGeometry& ParentAllottedGeometry) const override;
+	virtual FVector2D GetSizeRelativeToParent(const FGeometry& ParentAllottedGeometry) const override;
 };
 
 void FBranchingPointDragDropOp::OnDragged( const class FDragDropEvent& DragDropEvent )

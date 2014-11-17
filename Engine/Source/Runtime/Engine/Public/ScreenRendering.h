@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ScreenRendering.h: D3D render target implementation.
+	ScreenRendering.h: Screen rendering definitions.
 =============================================================================*/
 
 #pragma once
 
-#include "Engine.h"
 #include "Shader.h"
 #include "ShaderParameters.h"
 #include "GlobalShader.h"
+#include "ShaderParameterUtils.h"
 
 struct FScreenVertex
 {
@@ -26,11 +26,12 @@ public:
 	// Destructor.
 	virtual ~FScreenVertexDeclaration() {}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FScreenVertex,Position),VET_Float2,0));
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FScreenVertex,UV),VET_Float2,1));
+		uint32 Stride = sizeof(FScreenVertex);
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FScreenVertex,Position),VET_Float2,0,Stride));
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FScreenVertex,UV),VET_Float2,1,Stride));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
@@ -60,14 +61,14 @@ public:
 	}
 	FScreenPS() {}
 
-	void SetParameters(const FTexture* Texture)
+	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture)
 	{
-		SetTextureParameter(GetPixelShader(),InTexture,InTextureSampler,Texture);
+		SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,Texture);
 	}
 
-	void SetParameters(FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
+	void SetParameters(FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
 	{
-		SetTextureParameter(GetPixelShader(),InTexture,InTextureSampler,SamplerStateRHI,TextureRHI);
+		SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,SamplerStateRHI,TextureRHI);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -100,9 +101,9 @@ public:
 	FScreenVS() {}
 
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 	}
 
 
@@ -126,9 +127,3 @@ public:
 	FScreenVSForGS() {}
 };
 
-/**
- * Draws a texture rectangle on the screen using normalized (-1 to 1) device coordinates.
- */
-extern void DrawScreenQuad(  float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, const FTexture* Texture );
-
-extern void ENGINE_API DrawNormalizedScreenQuad(  float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, FIntPoint TargetSize, FTexture2DRHIRef TextureRHI );

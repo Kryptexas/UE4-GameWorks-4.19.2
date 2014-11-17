@@ -203,7 +203,7 @@ public:
 protected:
 
 	/** Pointer to the UTexture2D. Holding onto it as a UObject because UTexture2D is not available in Slate core. */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayThumbnail="true", DisplayName="Texture"))
+	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayThumbnail="true", DisplayName="Texture or Material Asset"))
 	UObject* ResourceObject;
 
 	/** The name of the rendering resource to use */
@@ -211,9 +211,11 @@ protected:
 	FName ResourceName;
 
 	/** Whether or not the brush path is a path to a UObject */
+	UPROPERTY()
 	bool bIsDynamicallyLoaded;
 
 	/** Whether or not the brush has a UTexture resource */
+	UPROPERTY()
 	bool bHasUObject_DEPRECATED;
 
 protected:

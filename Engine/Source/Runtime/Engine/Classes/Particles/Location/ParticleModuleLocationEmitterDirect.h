@@ -9,6 +9,7 @@
 //=============================================================================
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationEmitterDirect.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
@@ -22,8 +23,8 @@ class UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase
 
 
 	// Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	// End UParticleModule Interface
 
 };

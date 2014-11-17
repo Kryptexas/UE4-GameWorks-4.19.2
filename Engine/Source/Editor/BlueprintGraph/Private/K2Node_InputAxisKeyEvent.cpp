@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_InputAxisKeyEvent.h"
 #include "CompilerResultsLog.h"
 
 UK2Node_InputAxisKeyEvent::UK2Node_InputAxisKeyEvent(const class FPostConstructInitializeProperties& PCIP)
@@ -24,12 +24,6 @@ void UK2Node_InputAxisKeyEvent::Initialize(const FKey InAxisKey)
 FText UK2Node_InputAxisKeyEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return AxisKey.GetDisplayName();
-}
-
-FString UK2Node_InputAxisKeyEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return AxisKey.GetDisplayName().ToString();
 }
 
 FString UK2Node_InputAxisKeyEvent::GetTooltip() const

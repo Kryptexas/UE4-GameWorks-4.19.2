@@ -29,8 +29,23 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FPerforceSourceCon
 	return NULL;
 }
 
+TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FPerforceSourceControlState::GetBaseRevForMerge() const
+{
+	if( PendingResolveRevNumber == INVALID_REVISION )
+	{
+		return NULL;
+	}
+
+	return FindHistoryRevision(PendingResolveRevNumber);
+}
+
 FName FPerforceSourceControlState::GetIconName() const
 {
+	if( !IsCurrent() )
+	{
+		return FName("Perforce.NotAtHeadRevision");
+	}
+
 	switch(State)
 	{
 	default:
@@ -40,8 +55,6 @@ FName FPerforceSourceControlState::GetIconName() const
 		return FName("Perforce.CheckedOut");
 	case EPerforceState::ReadOnly:
 		return NAME_None;
-	case EPerforceState::NotCurrent:
-		return FName("Perforce.NotAtHeadRevision");
 	case EPerforceState::NotInDepot:
 		return FName("Perforce.NotInDepot");
 	case EPerforceState::CheckedOutOther:
@@ -52,11 +65,18 @@ FName FPerforceSourceControlState::GetIconName() const
 		return FName("Perforce.OpenForAdd");
 	case EPerforceState::MarkedForDelete:
 		return NAME_None;
+	case EPerforceState::Branched:
+		return FName("Perforce.Branched");
 	}
 }
 
 FName FPerforceSourceControlState::GetSmallIconName() const
 {
+	if( !IsCurrent() )
+	{
+		return FName("Perforce.NotAtHeadRevision_Small");
+	}
+
 	switch(State)
 	{
 	default:
@@ -66,8 +86,6 @@ FName FPerforceSourceControlState::GetSmallIconName() const
 		return FName("Perforce.CheckedOut_Small");
 	case EPerforceState::ReadOnly:
 		return NAME_None;
-	case EPerforceState::NotCurrent:
-		return FName("Perforce.NotAtHeadRevision_Small");
 	case EPerforceState::NotInDepot:
 		return FName("Perforce.NotInDepot_Small");
 	case EPerforceState::CheckedOutOther:
@@ -78,11 +96,22 @@ FName FPerforceSourceControlState::GetSmallIconName() const
 		return FName("Perforce.OpenForAdd_Small");
 	case EPerforceState::MarkedForDelete:
 		return NAME_None;
+	case EPerforceState::Branched:
+		return FName("Perforce.Branched_Small");
 	}
 }
 
 FText FPerforceSourceControlState::GetDisplayName() const
 {
+	if( IsConflicted() )
+	{
+		return LOCTEXT("Conflicted", "Conflicted");
+	}
+	else if( !IsCurrent() )
+	{
+		return LOCTEXT("NotCurrent", "Not current");
+	}
+
 	switch(State)
 	{
 	default:
@@ -92,8 +121,6 @@ FText FPerforceSourceControlState::GetDisplayName() const
 		return LOCTEXT("CheckedOut", "Checked out");
 	case EPerforceState::ReadOnly:
 		return LOCTEXT("ReadOnly", "Read only");
-	case EPerforceState::NotCurrent:
-		return LOCTEXT("NotCurrent", "Not current");
 	case EPerforceState::NotInDepot:
 		return LOCTEXT("NotInDepot", "Not in depot");
 	case EPerforceState::CheckedOutOther:
@@ -104,11 +131,22 @@ FText FPerforceSourceControlState::GetDisplayName() const
 		return LOCTEXT("OpenedForAdd", "Opened for add");
 	case EPerforceState::MarkedForDelete:
 		return LOCTEXT("MarkedForDelete", "Marked for delete");
+	case EPerforceState::Branched:
+		return LOCTEXT("Branched", "Branched");
 	}
 }
 
 FText FPerforceSourceControlState::GetDisplayTooltip() const
 {
+	if (IsConflicted())
+	{
+		return LOCTEXT("Conflicted_Tooltip", "The files(s) have local changes that need to be resolved with changes submitted to the Perforce depot");
+	}
+	else if( !IsCurrent() )
+	{
+		return LOCTEXT("NotCurrent_Tooltip", "The file(s) are not at the head revision");
+	}
+
 	switch(State)
 	{
 	default:
@@ -118,8 +156,6 @@ FText FPerforceSourceControlState::GetDisplayTooltip() const
 		return LOCTEXT("CheckedOut_Tooltip", "The file(s) are checked out");
 	case EPerforceState::ReadOnly:
 		return LOCTEXT("ReadOnly_Tooltip", "The file(s) are marked locally as read-only");
-	case EPerforceState::NotCurrent:
-		return LOCTEXT("NotCurrent_Tooltip", "The file(s) are not at the head revision");
 	case EPerforceState::NotInDepot:
 		return LOCTEXT("NotInDepot_Tooltip", "The file(s) are not present in the Perforce depot");
 	case EPerforceState::CheckedOutOther:
@@ -130,6 +166,8 @@ FText FPerforceSourceControlState::GetDisplayTooltip() const
 		return LOCTEXT("OpenedForAdd_Tooltip", "The file(s) are opened for add");
 	case EPerforceState::MarkedForDelete:
 		return LOCTEXT("MarkedForDelete_Tooltip", "The file(s) are marked for delete");
+	case EPerforceState::Branched:
+		return LOCTEXT("Branched_Tooltip", "The file(s) are opened for branching");
 	}
 }
 
@@ -143,19 +181,29 @@ const FDateTime& FPerforceSourceControlState::GetTimeStamp() const
 	return TimeStamp;
 }
 
+bool FPerforceSourceControlState::CanCheckIn() const
+{
+	return ( (State == EPerforceState::CheckedOut) || (State == EPerforceState::OpenForAdd) || (State == EPerforceState::Branched) ) && !IsConflicted() && IsCurrent();
+}
+
 bool FPerforceSourceControlState::CanCheckout() const
 {
 	bool bCanDoCheckout = false;
 
-	if ( State == EPerforceState::ReadOnly )
+	const bool bIsInP4NotCheckedOut = State == EPerforceState::ReadOnly;
+	if (!bBinary && !bExclusiveCheckout)
 	{
-		bCanDoCheckout = State == EPerforceState::ReadOnly;
+		// Notice that we don't care whether we're up to date. User can perform textual
+		// merge via P4V:
+		const bool bIsCheckedOutElseWhere = State == EPerforceState::CheckedOutOther;
+		bCanDoCheckout =	bIsInP4NotCheckedOut ||
+							bIsCheckedOutElseWhere;
 	}
-	// For non-binary, non-exclusive checkout files, we can check out and merge later
-	else if ( !bBinary && !bExclusiveCheckout )	
+	else
 	{
-		bCanDoCheckout = State == EPerforceState::CheckedOutOther ||
-						State == EPerforceState::NotCurrent;
+		// For assets that are either binary or textual but marked for exclusive checkout
+		// we only want to permit check out when we are at head:
+		bCanDoCheckout = bIsInP4NotCheckedOut && IsCurrent();
 	}
 
 	return bCanDoCheckout;
@@ -177,7 +225,7 @@ bool FPerforceSourceControlState::IsCheckedOutOther(FString* Who) const
 
 bool FPerforceSourceControlState::IsCurrent() const
 {
-	return State != EPerforceState::NotCurrent;
+	return LocalRevNumber == DepotRevNumber;
 }
 
 bool FPerforceSourceControlState::IsSourceControlled() const
@@ -202,7 +250,7 @@ bool FPerforceSourceControlState::IsIgnored() const
 
 bool FPerforceSourceControlState::CanEdit() const
 {
-	return State == EPerforceState::CheckedOut || State == EPerforceState::OpenForAdd;
+	return State == EPerforceState::CheckedOut || State == EPerforceState::OpenForAdd || State == EPerforceState::Branched;
 }
 
 bool FPerforceSourceControlState::IsUnknown() const
@@ -218,6 +266,11 @@ bool FPerforceSourceControlState::IsModified() const
 bool FPerforceSourceControlState::CanAdd() const
 {
 	return State == EPerforceState::NotInDepot;
+}
+
+bool FPerforceSourceControlState::IsConflicted() const
+{
+	return PendingResolveRevNumber != INVALID_REVISION;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -14,14 +14,14 @@ public:
 public:
 
 	~FDocumentationPage();
-	virtual bool HasExcerpt( const FString& ExcerptName ) OVERRIDE;
-	virtual int32 GetNumExcerpts() const OVERRIDE;
-	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) OVERRIDE;
-	virtual bool GetExcerptContent( FExcerpt& Excerpt ) OVERRIDE;
+	virtual bool HasExcerpt( const FString& ExcerptName ) override;
+	virtual int32 GetNumExcerpts() const override;
+	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) override;
+	virtual bool GetExcerptContent( FExcerpt& Excerpt ) override;
 
-	virtual FText GetTitle() OVERRIDE;
+	virtual FText GetTitle() override;
 
-	virtual void Reload() OVERRIDE;
+	virtual void Reload() override;
 
 private:
 

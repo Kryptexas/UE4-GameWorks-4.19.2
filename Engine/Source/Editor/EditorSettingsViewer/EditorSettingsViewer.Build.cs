@@ -16,6 +16,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"CoreUObject",
 					"Engine",
+					"GraphEditor",
 					"InputBindingEditor",
 					"MessageLog",
 					"SettingsEditor",

@@ -34,7 +34,7 @@ public:
 	virtual void PushEvent(const TCHAR* Name) {}
 	virtual void PopEvent() {}
 
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type Name ParameterTypesAndNames = 0
+	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames = 0
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 };
@@ -43,10 +43,19 @@ public:
 extern RHI_API FDynamicRHI* GDynamicRHI;
 
 // Implement the statically bound RHI methods to simply call the dynamic RHI.
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
+#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern RHI_API Type RHI##Name ParameterTypesAndNames;
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
 #define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern RHI_API Type Name ParameterTypesAndNames;
+	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
 #include "RHIMethods.h"
 #undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
 
 #endif	//#if USE_DYNAMIC_RHI
 

@@ -41,6 +41,9 @@ namespace UnrealBuildTool
 			// List of platforms supported by this modules
 			public List<UnrealTargetPlatform> Platforms;
 		}
+		
+		// Whether or not the plugin should be built
+		public bool bShouldBuild;
 
 		// Plugin name
 		public string Name;
@@ -48,8 +51,17 @@ namespace UnrealBuildTool
 		// Path to the plugin's root directory
 		public string Directory;
 
+		// Path to the plugin's intermediate build folder
+		public string IntermediateBuildPath;
+
+		// Path to the plugin's Inc folder
+		public string IntermediateIncPath;
+
 		// List of modules in this plugin
 		public readonly List<PluginModuleInfo> Modules = new List<PluginModuleInfo>();
+
+		// Whether this plugin is enabled by default
+		public bool bEnabledByDefault;
 
 		// Where does this plugin live?
 		public LoadedFromType LoadedFrom;
@@ -60,6 +72,64 @@ namespace UnrealBuildTool
 		}
 	}
 
+	class PluginReferenceDescriptor
+	{
+		public string Name;
+		public bool bEnabled;
+		public List<UnrealTargetPlatform> WhitelistPlatforms = new List<UnrealTargetPlatform>();
+		public List<UnrealTargetPlatform> BlacklistPlatforms = new List<UnrealTargetPlatform>();
+
+		public PluginReferenceDescriptor(string InName, bool bInEnabled)
+		{
+			Name = InName;
+			bEnabled = bInEnabled;
+		}
+
+		public static PluginReferenceDescriptor FromJson(Dictionary<string, object> Dictionary)
+		{
+			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor((string)Dictionary["Name"], (bool)Dictionary["Enabled"]);
+			TryParsePlatformList(Dictionary, "WhitelistPlatforms", Descriptor.WhitelistPlatforms);
+			TryParsePlatformList(Dictionary, "BlacklistPlatforms", Descriptor.BlacklistPlatforms);
+			return Descriptor;
+		}
+
+		public bool IsEnabledForPlatform(UnrealTargetPlatform Platform)
+		{
+			if(!bEnabled)
+			{
+				return false;
+			}
+			if(WhitelistPlatforms.Count > 0 && !WhitelistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+			if(BlacklistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+			return true;
+		}
+
+		static void TryParsePlatformList(Dictionary<string, object> Dictionary, string FieldName, List<UnrealTargetPlatform> Platforms)
+		{
+			object ArrayObject;
+			if(Dictionary.TryGetValue(FieldName, out ArrayObject))
+			{
+				foreach(string PlatformName in ((object[])ArrayObject).Select(x => (string)x))
+				{
+					UnrealTargetPlatform Platform;
+					if(Enum.TryParse(PlatformName, true, out Platform))
+					{
+						Platforms.Add(Platform);
+					}
+					else
+					{
+						throw new BuildException("Unknown platform name '{0}'", PlatformName);
+					}
+				}
+			}
+		}
+	}
 
 	public class Plugins
 	{
@@ -133,6 +203,13 @@ namespace UnrealBuildTool
 			PluginInfo.LoadedFrom = LoadedFrom;
 			PluginInfo.Directory = PluginFileInfo.Directory.FullName;
 			PluginInfo.Name = Path.GetFileName(PluginInfo.Directory);
+
+			// Determine whether the plugin should be enabled by default
+			object EnabledByDefaultObject;
+			if(PluginDescriptorDict.TryGetValue("EnabledByDefault", out EnabledByDefaultObject) && (EnabledByDefaultObject is bool))
+			{
+				PluginInfo.bEnabledByDefault = (bool)EnabledByDefaultObject;
+			}
 
 			// This plugin might have some modules that we need to know about.  Let's take a look.
 			{
@@ -245,9 +322,22 @@ namespace UnrealBuildTool
 								}
 							}
 						}
-				
-						// add to list of modules
-						PluginInfo.Modules.Add( PluginModuleInfo );
+						
+						object ModuleShouldBuild;
+						if( ModuleDict.TryGetValue( "bShouldBuild", out ModuleShouldBuild ) )
+						{
+							PluginInfo.bShouldBuild = (Int64)ModuleShouldBuild == 1 ? true : false;
+						}
+						else
+						{
+							PluginInfo.bShouldBuild = true;
+						}
+
+						if (PluginInfo.bShouldBuild)
+						{
+							// add to list of modules
+							PluginInfo.Modules.Add(PluginModuleInfo);
+						}
 					}
 				}
 				else
@@ -423,17 +513,6 @@ namespace UnrealBuildTool
 				DiscoverAllPlugins();
 				return AllPluginsVar;
 			}
-		}
-
-		public static string GetPluginSubfolderName(UEBuildBinaryType InBinaryType, string InTargetName)
-		{
-			string SubFolderName = Path.Combine("Dynamic", InTargetName);
-			if (InBinaryType != UEBuildBinaryType.DynamicLinkLibrary)
-			{
-				SubFolderName = Path.Combine("Static", InTargetName);
-			}
-
-			return SubFolderName;
 		}
 
 		/// Access a mapping of modules to their respective owning plugin.  Dictionary is case-insensitive.

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "ISourceControlModule.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "Toolkits/AssetEditorCommonCommands.h"
@@ -68,8 +69,7 @@ void FUnrealEdMisc::OnInit()
 		return;
 	}
 	bInitialized = true;
-
-
+	
 	// Register all callback notifications
 	FEditorDelegates::SelectedProps.AddRaw(this, &FUnrealEdMisc::CB_SelectedProps);
 	FEditorDelegates::DisplayLoadErrors.AddRaw(this, &FUnrealEdMisc::CB_DisplayLoadErrors);
@@ -111,9 +111,8 @@ void FUnrealEdMisc::OnInit()
 	// Register navigation commands for all viewports
 	FViewportNavigationCommands::Register();
 
-	// Init the editor mode tools, and set default editor mode initially
-	GEditorModeTools().Init();
-	GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+	FEditorModeRegistry::Initialize();
+	GLevelEditorModeTools().ActivateDefaultMode();
 
 	// Are we in immersive mode?
 	const TCHAR* ParsedCmdLine = FCommandLine::Get();
@@ -164,10 +163,9 @@ void FUnrealEdMisc::OnInit()
 				// be reflected in the splash screen status
 				const bool bShowProgress = false;
 				const bool bLoadAsTemplate = false;
-				const bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
 
 				// Load the map
-				FEditorFileUtils::LoadMap(InitialMapName, bLoadAsTemplate, bShowProgress, bWorldComposition);
+				FEditorFileUtils::LoadMap(InitialMapName, bLoadAsTemplate, bShowProgress);
 				bMapLoaded = true;
 			}
 		}
@@ -315,6 +313,13 @@ void FUnrealEdMisc::OnInit()
 
 	// Send Project Analytics
 	InitEngineAnalytics();
+	
+	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
+	float Seconds = 60.0f;
+	FTimerDelegate Delegate;
+	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
+	GEditor->GetTimerManager()->SetTimer( Delegate, Seconds, true );
+
 }
 
 void FUnrealEdMisc::InitEngineAnalytics()
@@ -369,7 +374,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 		}
 
 		// Record known modules' compilation methods
-		TArray<FModuleManager::FModuleStatus> Modules;
+		TArray<FModuleStatus> Modules;
 		FModuleManager::Get().QueryModules(Modules);
 		for (auto& Module : Modules)
 		{
@@ -383,6 +388,22 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			}
 		}
 	}
+}
+
+void FUnrealEdMisc::EditorAnalyticsHeartbeat()
+{
+	static double LastHeartbeatTime = FPlatformTime::Seconds();
+	
+	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
+	
+	// Did the user interact since the last heartbeat
+	bool bIdle = LastInteractionTime < LastHeartbeatTime;
+	
+	TArray< FAnalyticsEventAttribute > Attributes;
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("Idle"), bIdle));
+	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
+	
+	LastHeartbeatTime = FPlatformTime::Seconds();
 }
 
 void FUnrealEdMisc::TickAssetAnalytics()
@@ -668,7 +689,7 @@ void FUnrealEdMisc::CB_MapChange( uint32 InFlags )
 
 	GEditor->EditorUpdateComponents();
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	/*if ((InFlags&MapChangeEventFlags::MapRebuild) != 0)
 	{
@@ -709,7 +730,7 @@ void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 
 void FUnrealEdMisc::CB_Undo()
 {
-	GEditorModeTools().PostUndo();
+	GLevelEditorModeTools().PostUndo();
 }
 
 void FUnrealEdMisc::CB_PreAutomationTesting()
@@ -729,7 +750,7 @@ void FUnrealEdMisc::CB_PostAutomationTesting()
 
 void FUnrealEdMisc::OnEditorChangeMode(FEditorModeID NewEditorMode)
 {
-	GEditorModeTools().ActivateMode( NewEditorMode, true );
+	GLevelEditorModeTools().ActivateMode( NewEditorMode, true );
 }
 
 void FUnrealEdMisc::OnEditorPreModal()
@@ -1201,6 +1222,12 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 		return;
 	}
 
+	// Don't run if we've not yet loaded a project
+	if( !FApp::HasGameName() )
+	{
+		return;
+	}
+
 	// Before beginning the survey wait for the asset registry to load and make sure Slate is ready
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	if (AssetRegistryModule.Get().IsLoadingAssets() || !FSlateApplication::IsInitialized())
@@ -1211,6 +1238,13 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 	// Don't run the survey if Slate isn't running normally
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	if (!SlateApp.IsNormalExecution())
+	{
+		return;
+	}
+
+	// Don't run the test if we are throttling (due to minimized or not in foreground) as this will 
+	// greatly affect the framerate
+	if( GEditor->ShouldThrottleCPUUsage() )
 	{
 		return;
 	}

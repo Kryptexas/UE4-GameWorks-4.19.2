@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionService.h: Declares the FSessionService class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -19,7 +15,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InMessageBus - The message bus to use.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FSessionService( const IMessageBusRef& InMessageBus );
 
@@ -28,61 +24,52 @@ public:
 	 */
 	~FSessionService( );
 
-
 public:
 
-	// Begin FOutputDevice interface
+	// FOutputDevice interface
 
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		SendLog(Data, Verbosity, Category);
 	}
 
-	// End FOutputDevice interface
-
-
 public:
 
-	// Begin ISessionService interface
+	// ISessionService interface
 
-	virtual bool IsRunning( ) OVERRIDE
+	virtual bool IsRunning( ) override
 	{
 		return MessageEndpoint.IsValid();
 	}
 
-	virtual bool Start( ) OVERRIDE;
-
-	virtual void Stop( ) OVERRIDE;
-
-	// End ISessionService interface
-
+	virtual bool Start( ) override;
+	virtual void Stop( ) override;
 
 protected:
 
 	/**
 	 * Sends a log message to subscribed recipients.
 	 *
-	 * @param Data - The log message data.
-	 * @param Verbosity - The verbosity type.
-	 * @param Category - The log category.
+	 * @param Data The log message data.
+	 * @param Verbosity The verbosity type.
+	 * @param Category The log category.
 	 */
 	void SendLog( const TCHAR* Data, ELogVerbosity::Type Verbosity = ELogVerbosity::Log, const class FName& Category = "Log" );
 
 	/**
 	 * Sends a notification to the specified recipient.
 	 *
-	 * @param NotificationText - The notification text.
-	 * @param Recipient - The recipient's message address.
+	 * @param NotificationText The notification text.
+	 * @param Recipient The recipient's message address.
 	 */
 	void SendNotification( const TCHAR* NotificationText, const FMessageAddress& Recipient );
 
 	/**
 	 * Publishes a ping response.
 	 *
-	 * @param Context - The context of the received Ping message.
+	 * @param Context The context of the received Ping message.
 	 */
 	void SendPong( const IMessageContextRef& Context );
-
 
 private:
 
@@ -97,7 +84,6 @@ private:
 
 	// Handles FSessionServicePing messages.
 	void HandleSessionPingMessage( const FSessionServicePing& Message, const IMessageContextRef& Context );
-
 
 private:
 

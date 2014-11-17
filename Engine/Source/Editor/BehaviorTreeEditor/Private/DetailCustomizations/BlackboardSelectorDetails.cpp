@@ -2,17 +2,18 @@
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardSelectorDetails.h"
+#include "BehaviorTree/BlackboardData.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardSelectorDetails"
 
-TSharedRef<IStructCustomization> FBlackboardSelectorDetails::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FBlackboardSelectorDetails::MakeInstance()
 {
 	return MakeShareable( new FBlackboardSelectorDetails );
 }
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FBlackboardSelectorDetails::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FBlackboardSelectorDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	MyStructProperty = StructPropertyHandle;
 	PropUtils = StructCustomizationUtils.GetPropertyUtilities().Get();
@@ -40,9 +41,8 @@ void FBlackboardSelectorDetails::CustomizeStructHeader( TSharedRef<class IProper
 
 	InitKeyFromProperty();
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FBlackboardSelectorDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FBlackboardSelectorDetails::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 }
 

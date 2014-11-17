@@ -25,18 +25,18 @@ class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
 	bool bFontSelected;
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	// Begin UFactory Interface
-	virtual bool ConfigureProperties() OVERRIDE;
-	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) OVERRIDE;
+	virtual bool ConfigureProperties() override;
+	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
 	// Begin UFactory Interface	
 
 	// Begin FReimportHandler interface
-	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) OVERRIDE;
-	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) OVERRIDE;
-	virtual EReimportResult::Type Reimport( UObject* Obj ) OVERRIDE;
+	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;
+	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) override;
+	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
 	// End FReimportHandler interface
 
 	/** Creates the import options structure for this font */
@@ -56,7 +56,7 @@ class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
 	UTexture2D* CreateTextureFromDC( UFont* Font, HDC dc, int32 RowHeight, int32 TextureNum );
 #endif
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 	void* LoadFontFace( void* FTLibrary, int32 Height, FFeedbackContext* Warn, void** OutFontData );
 	UTexture2D* CreateTextureFromBitmap( UFont* Font, uint8* BitmapData, int32 Height, int32 TextureNum );
 	bool CreateFontTexture( UFont* Font, FFeedbackContext* Warn, const int32 NumResolutions, const int32 CharsPerPage,

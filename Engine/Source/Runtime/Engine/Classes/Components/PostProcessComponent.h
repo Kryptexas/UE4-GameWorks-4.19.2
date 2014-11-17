@@ -1,8 +1,8 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Interfaces/Interface_PostProcessVolume.h"
 #include "PostProcessComponent.generated.h"
-
 /**
  *  PostProcessComponent. Enables Post process controls for blueprints.
  *	Will use a parent UShapeComponent to provide volume data if available.
@@ -41,8 +41,8 @@ class UPostProcessComponent : public USceneComponent, public IInterface_PostProc
 	uint32 bUnbound: 1;
  
 	// Begin IInterface_PostProcessVolume Interface
-	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) OVERRIDE;
-	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const OVERRIDE
+	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) override;
+	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const override
 	{
 		FPostProcessVolumeProperties Ret;
 		Ret.bIsEnabled = bEnabled != 0;

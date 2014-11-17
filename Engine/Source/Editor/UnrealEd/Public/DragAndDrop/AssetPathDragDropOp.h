@@ -22,7 +22,7 @@ public:
 	}
 	
 public:
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		FString Text = PathNames.Num() > 0 ? PathNames[0] : TEXT("");
 

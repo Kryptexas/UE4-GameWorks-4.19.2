@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+ï»¿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
 
@@ -77,11 +78,14 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 	physx::PxI32 NumBoneActors;
 	verify(NxParameterized::getParamArraySize(*AssetParams, "boneActors", NumBoneActors));
 
+	// convexes are constructed with bone vertices
+	physx::PxI32 NumBoneVertices;
+	verify(NxParameterized::getParamArraySize(*AssetParams, "boneVertices", NumBoneVertices));
+
 	Asset.ClothCollisionVolumes.Empty(NumBoneActors);
 
 	char ParameterName[MAX_SPRINTF];
 
-	physx::PxMat44 PxLocalPose;
 	for(int32 i=0; i<NumBoneActors; i++)
 	{
 		FApexClothCollisionVolumeData& CollisionData = Asset.ClothCollisionVolumes[Asset.ClothCollisionVolumes.AddZeroed()];
@@ -92,8 +96,20 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 		verify(NxParameterized::getParamU32(*AssetParams, ParameterName, CollisionData.ConvexVerticesCount));
 		if(CollisionData.ConvexVerticesCount > 0)
 		{
+			CollisionData.BoneVertices.Empty(CollisionData.ConvexVerticesCount);
 			FCStringAnsi::Sprintf(ParameterName, "boneActors[%d].convexVerticesStart", i);
 			verify(NxParameterized::getParamU32(*AssetParams, ParameterName, CollisionData.ConvexVerticesStart));
+			// read vertex data which compose a convex
+			int32 NumMaxVertIndex = CollisionData.ConvexVerticesStart + CollisionData.ConvexVerticesCount;
+			check( NumMaxVertIndex <= NumBoneVertices );
+
+			for(int32 VertIdx=CollisionData.ConvexVerticesStart; VertIdx < NumMaxVertIndex; VertIdx++)
+			{
+				FCStringAnsi::Sprintf(ParameterName, "boneVertices[%d]", VertIdx);
+				physx::PxVec3 BoneVertex;
+				verify(NxParameterized::getParamVec3(*AssetParams, ParameterName, BoneVertex));
+				CollisionData.BoneVertices.Add(P2UVector(BoneVertex));
+			}
 		}
 		else
 		{
@@ -101,12 +117,13 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 			verify(NxParameterized::getParamF32(*AssetParams, ParameterName, CollisionData.CapsuleRadius));
 			FCStringAnsi::Sprintf(ParameterName, "boneActors[%d].capsuleHeight", i);
 			verify(NxParameterized::getParamF32(*AssetParams, ParameterName, CollisionData.CapsuleHeight));
+			// local pose is only used for a capsule
+			physx::PxMat44 PxLocalPose;
+		    FCStringAnsi::Sprintf(ParameterName, "boneActors[%d].localPose", i);
+		    verify(NxParameterized::getParamMat34(*AssetParams, ParameterName, PxLocalPose));
+    
+		    CollisionData.LocalPose = P2UMatrix(PxLocalPose);
 		}
-
-		FCStringAnsi::Sprintf(ParameterName, "boneActors[%d].localPose", i);
-		verify(NxParameterized::getParamMat34(*AssetParams, ParameterName, PxLocalPose));
-
-		CollisionData.LocalPose = P2UMatrix(PxLocalPose);
 	}
 
 	// load convex data
@@ -186,6 +203,18 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 		FCStringAnsi::Sprintf(ParameterName, "boneSphereConnections[%d]", i);
 		verify(NxParameterized::getParamU16(*AssetParams, ParameterName, ConnectionIndex));
 	}
+}
+
+bool USkeletalMesh::HasClothSectionsInAllLODs(int AssetIndex)
+{
+	bool bResult = false;
+
+	for (int32 LODIndex = 0; LODIndex < LODInfo.Num(); LODIndex++)
+	{
+		bResult |= HasClothSections(LODIndex, AssetIndex);
+	}
+
+	return bResult;
 }
 
 bool USkeletalMesh::HasClothSections(int32 LODIndex, int AssetIndex)
@@ -272,44 +301,56 @@ void USkeletalMesh::GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 Asset
 	}
 }
 
-bool USkeletalMesh::IsEnabledClothLOD(int32 AssetIndex)
+bool USkeletalMesh::IsMappedClothingLOD(int32 InLODIndex, int32 InAssetIndex)
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
 
-	FStaticLODModel& LODModel = Resource->LODModels[0];
-
-	TArray<uint32> SectionIndices;
-	GetOriginSectionIndicesWithCloth(0, AssetIndex, SectionIndices);
-
-	//if found more than 1 section enabled, return true
-	for(int32 i=0; i < SectionIndices.Num(); i++)
+	if (Resource && Resource->LODModels.IsValidIndex(InLODIndex))
 	{
-		if(LODModel.Sections[SectionIndices[i]].bEnableClothLOD)
+		FStaticLODModel& LODModel = Resource->LODModels[InLODIndex];
+
+		int32 NumSections = LODModel.Sections.Num();
+
+		// loop reversely for optimized search
+		for (int32 SecIdx = NumSections-1; SecIdx >= 0; SecIdx--)
 		{
-			return true;
+			int32 ClothAssetIndex = LODModel.Chunks[LODModel.Sections[SecIdx].ChunkIndex].CorrespondClothAssetIndex;
+			if (ClothAssetIndex == InAssetIndex)
+			{
+				return true;
+			}
+			else if (ClothAssetIndex == INDEX_NONE) // no more cloth sections
+			{
+				return false;
+			}
 		}
 	}
 
 	return false;
 }
 
-int32 USkeletalMesh::GetClothAssetIndex(int32 SectionIndex)
+int32 USkeletalMesh::GetClothAssetIndex(int32 LODIndex, int32 SectionIndex)
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
 
-	FStaticLODModel& LODModel = Resource->LODModels[0];
+	// no LODs
+	if (!Resource || !Resource->LODModels.IsValidIndex(LODIndex))
+	{
+		return INDEX_NONE;
+	}
+	FStaticLODModel& LODModel = Resource->LODModels[LODIndex];
 
-	//no sections
+	// no sections
 	if(!LODModel.Sections.IsValidIndex(SectionIndex))
 	{
-		return -1;
+		return INDEX_NONE;
 	}
 	int16 ClothSecIdx = LODModel.Sections[SectionIndex].CorrespondClothSectionIndex;
 
-	//no mapping
+	// no mapping
 	if(ClothSecIdx < 0)
 	{
-		return -1;
+		return INDEX_NONE;
 	}
 
 	int16 ChunkIdx = LODModel.Sections[ClothSecIdx].ChunkIndex;
@@ -317,23 +358,133 @@ int32 USkeletalMesh::GetClothAssetIndex(int32 SectionIndex)
 }
 #endif//#if WITH_APEX_CLOTHING
 
+void USkeletalMeshComponent::CreateBodySetup()
+{
+	if (BodySetup == NULL)
+	{
+		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
+	}
+}
+
+bool USkeletalMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
+{
+#if WITH_EDITORONLY_DATA
+
+	// Fail if no mesh or not per poly collision
+	if (!SkeletalMesh || !MeshObject || !bEnablePerPolyCollision)
+	{
+		return false;
+	}
+
+	const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+
+	{
+		// Copy all verts into collision vertex buffer.
+		CollisionData->Vertices.Empty();
+		CollisionData->Vertices.AddUninitialized(Model.NumVertices);
+		const uint32 NumChunks = Model.Chunks.Num();
+
+		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+		{
+			const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
+			{
+				//rigid
+				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
+				const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
+				for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
+				{
+					CollisionData->Vertices[RigidIdx + RigidOffset] = Chunk.RigidVertices[RigidIdx].Position;
+				}
+			}
+			{
+				//soft
+				const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
+				const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
+				for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+				{
+					CollisionData->Vertices[SoftIdx + SoftOffset] = Chunk.SoftVertices[SoftIdx].Position;
+				}
+			}
+			
+		}
+	}
+	
+	{
+		// Copy indices into collision index buffer
+		const FMultiSizeIndexContainer & IndexBufferContainer = Model.MultiSizeIndexContainer;
+
+		TArray<uint32> Indices;
+		IndexBufferContainer.GetIndexBuffer(Indices);
+
+		const uint32 NumTris = Indices.Num() / 3;
+		CollisionData->Indices.Empty();
+		CollisionData->Indices.Reserve(NumTris);
+
+		FTriIndices TriIndex;
+		for (int32 SectionIndex = 0; SectionIndex < Model.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+
+			const uint32 OnePastLastIndex = Section.BaseIndex + Section.NumTriangles * 3;
+
+			for (uint32 i = Section.BaseIndex; i < OnePastLastIndex; i += 3)
+			{
+				TriIndex.v0 = Indices[i];
+				TriIndex.v1 = Indices[i + 1];
+				TriIndex.v2 = Indices[i + 2];
+
+				CollisionData->Indices.Add(TriIndex);
+				CollisionData->MaterialIndices.Add(Section.MaterialIndex);
+			}
+		}
+	}
+
+	CollisionData->bFlipNormals = true;
+
+	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
+	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
+	return CollisionData->Vertices.Num() > 0 && CollisionData->Indices.Num() > 0;
+#else // #if WITH_EDITORONLY_DATA
+	return false;
+#endif // #if WITH_EDITORONLY_DATA
+}
+
+bool USkeletalMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
+{
+	return bEnablePerPolyCollision;
+}
+
 //
 //	USkeletalMeshComponent
 //
 UBodySetup* USkeletalMeshComponent::GetBodySetup()
 {
-	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
-	if(SkeletalMesh && PhysicsAsset)
+	if (bEnablePerPolyCollision == false)
 	{
-		for(int32 i=0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
+		UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+		if (SkeletalMesh && PhysicsAsset)
 		{
-			int32 BodyIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(i) );
-			if(BodyIndex != INDEX_NONE)
+			for (int32 i = 0; i < SkeletalMesh->RefSkeleton.GetNum(); i++)
 			{
-				return PhysicsAsset->BodySetup[BodyIndex];
+				int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(i));
+				if (BodyIndex != INDEX_NONE)
+				{
+					return PhysicsAsset->BodySetup[BodyIndex];
+				}
 			}
 		}
-	}	
+	}
+	else
+	{
+		if (BodySetup == NULL)
+		{
+			CreateBodySetup();
+		}
+
+		return BodySetup;
+	}
+
 
 	return NULL;
 }
@@ -541,6 +692,42 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaQuat);
+					BI->SetBodyTransform( BodyTM, true );
+				}
+			}
+
+			// Move component to new physics location
+			SyncComponentToRBPhysics();
+		}
+	}
+}
+
+void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation)
+{
+	if(RootBodyIndex < Bodies.Num())
+	{
+		// calculate the deltas to get the root body to NewRot
+		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		check(RootBI);
+		if(RootBI->IsValidBodyInstance())
+		{
+			// move the root body
+			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
+			RootBodyTM.SetRotation(RootBodyTM.GetRotation() * DeltaRotation);
+			RootBodyTM.SetTranslation(RootBodyTM.GetTranslation() + DeltaLocation);
+			RootBI->SetBodyTransform(RootBodyTM, true);
+
+			// apply the delta to all the other bodies
+			for (int32 i = 0; i < Bodies.Num(); i++)
+			{
+				if (i != RootBodyIndex)
+				{
+					FBodyInstance* BI = Bodies[i];
+					check(BI);
+
+					FTransform BodyTM = BI->GetUnrealWorldTransform();
+					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaRotation);
+					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLocation);
 					BI->SetBodyTransform( BodyTM, true );
 				}
 			}
@@ -854,7 +1041,7 @@ void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBo
 	for(int32 i=0; i<BodyIndices.Num(); i++)
 	{
 		//UE_LOG(LogSkeletalMesh, Warning, TEXT( "ForceAllBodiesBelowUnfixed %s" ), *InAsset->BodySetup(BodyIndices(i))->BoneName.ToString() );
-		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics( bNewSimulate );
+		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics(bNewSimulate);
 	}
 }
 
@@ -1122,7 +1309,7 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove )
 	{
-		UpdateKinematicBonesToPhysics(false);
+		UpdateKinematicBonesToPhysics(false, false);
 	}
 
 #if WITH_APEX_CLOTHING
@@ -1144,15 +1331,27 @@ void USkeletalMeshComponent::CreatePhysicsState()
 {
 	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
 	// Init physics
-	InitArticulated(World->GetPhysicsScene());
+	if (bEnablePerPolyCollision == false)
+	{
+		InitArticulated(World->GetPhysicsScene());
+		USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+	}
+	else
+	{
+		CreateBodySetup();
+		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
+	}
 
-	USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+	
 }
 
 
 void USkeletalMeshComponent::DestroyPhysicsState()
 {
-	TermArticulated();
+	if (bEnablePerPolyCollision == false)
+	{
+		TermArticulated();
+	}
 
 	Super::DestroyPhysicsState();
 }
@@ -1412,6 +1611,94 @@ void USkeletalMeshComponent::UpdatePhysicsToRBChannels()
 	}
 }
 
+FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
+{
+#if WITH_APEX_CLOTHING
+	// only if this component has clothing and is showing simulated results	
+	if (SkeletalMesh &&
+		SkeletalMesh->ClothingAssets.Num() > 0 &&
+		MeshObject &&
+		!bDisableClothSimulation &&
+		ClothBlendWeight > 0.0f // if cloth blend weight is 0.0, only showing skinned vertices regardless of simulation positions
+		)
+	{
+		FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+
+		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
+		int32 ChunkIndex;
+		int32 VertIndexInChunk;
+		bool bSoftVertex;
+		bool bHasExtraBoneInfluences;
+		Model.GetChunkAndSkinType(VertexIndex, ChunkIndex, VertIndexInChunk, bSoftVertex, bHasExtraBoneInfluences);
+
+		bool bClothVertex = false;
+		int32 ClothAssetIndex = -1;
+
+		// if this chunk has cloth data
+		if (Model.Chunks[ChunkIndex].HasApexClothData())
+		{
+			bClothVertex = true;
+			ClothAssetIndex = Model.Chunks[ChunkIndex].CorrespondClothAssetIndex;
+		}
+		else
+		{
+			// if this chunk corresponds to a cloth section, returns corresponding cloth section's info instead
+			for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); SectionIdx++)
+			{
+				const FSkelMeshSection& Section = Model.Sections[SectionIdx];
+
+				// find a section which has this chunk index
+				if (Section.ChunkIndex == ChunkIndex)
+				{
+					// if current section is disabled and the corresponding cloth section is visible
+					if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
+					{
+						bClothVertex = true;
+
+						const FSkelMeshSection& ClothSection = Model.Sections[Section.CorrespondClothSectionIndex];
+						const FSkelMeshChunk& ClothChunk = Model.Chunks[ClothSection.ChunkIndex];
+
+						ClothAssetIndex = ClothChunk.CorrespondClothAssetIndex;
+
+						// the index can exceed the range because this vertex index is based on the corresponding original section
+						// the number of cloth chunk's vertices is not always same as the corresponding one 
+						// cloth chunk has only soft vertices
+						if (VertIndexInChunk >= ClothChunk.GetNumSoftVertices())
+						{
+							// if the index exceeds, re-assign a random vertex index for this chunk
+							VertIndexInChunk = FMath::TruncToInt(FMath::SRand() * (ClothChunk.GetNumSoftVertices() - 1));
+						}
+					}
+					// if found, quit this loop quickly
+					break;
+				}
+			}
+		}
+
+		if (bClothVertex)
+		{
+			FVector SimulatedPos;
+			if (GetClothSimulatedPosition(ClothAssetIndex, VertIndexInChunk, SimulatedPos))
+			{
+				// a simulated position is in world space and convert this to local space
+				// because SkinnedMeshComponent::GetSkinnedVertexPosition() returns the position in local space
+				SimulatedPos = ComponentToWorld.InverseTransformPosition(SimulatedPos);
+
+				// if blend weight is 1.0, doesn't need to blend with a skinned position
+				if (ClothBlendWeight < 1.0f) 
+				{
+					// blend with a skinned position
+					FVector SkinnedPos = Super::GetSkinnedVertexPosition(VertexIndex);
+					SimulatedPos = SimulatedPos*ClothBlendWeight + SkinnedPos*(1.0f - ClothBlendWeight);
+				}
+				return SimulatedPos;
+			}
+		}
+	}
+#endif // #if WITH_APEX_CLOTHING
+	return Super::GetSkinnedVertexPosition(VertexIndex);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // COLLISION
 
@@ -1419,7 +1706,7 @@ extern float DebugLineLifetime;
 
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
 {
-	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	bool bHaveHit = false;
 
 	float MinTime = MAX_FLT;
@@ -1469,6 +1756,7 @@ bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector S
 
 bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp,const FVector Pos,const FRotator Rot,const struct FCollisionQueryParams& Params)
 {
+	//@TODO: BOX2D: USkeletalMeshComponent::ComponentOverlapComponent is not supported.  Try to rephrase this in terms of agnostic operations on a set of FBodyInstances, reducing the amount of PhysX-specific code
 #if WITH_PHYSX
 	// will have to do per component - default single body or physicsinstance 
 	const PxRigidActor* TargetRigidBody = (PrimComp)? PrimComp->BodyInstance.GetPxRigidActor():NULL;
@@ -1509,7 +1797,7 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 		{
 			for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
 			{
-				bHaveOverlap = Bodies[BodyIdx]->Overlap(*PGeom, PShapeGlobalPose);
+				bHaveOverlap = Bodies[BodyIdx]->OverlapPhysX(*PGeom, PShapeGlobalPose);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
 				{
@@ -1540,127 +1828,40 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 
 bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape)
 {
-
-#if WITH_PHYSX
-	PxSphereGeometry PSphereGeom;
-	PxBoxGeometry PBoxGeom;
-	PxCapsuleGeometry PCapsuleGeom;
-	PxGeometry * PGeom = NULL;
-	PxTransform PShapePose;
-
-	switch (CollisionShape.ShapeType)
+	for (FBodyInstance* Body : Bodies)
 	{
-	case ECollisionShape::Sphere:
+		if (Body->OverlapTest(Pos, Rot, CollisionShape))
 		{
-			PSphereGeom = PxSphereGeometry(CollisionShape.GetSphereRadius()) ;
-			// calculate the test global pose of the actor
-			PShapePose = U2PTransform(FTransform(Rot, Pos));
-			PGeom = &PSphereGeom;
-			break;
-		}
-	case ECollisionShape::Box:
-		{
-			PBoxGeom = PxBoxGeometry(U2PVector(CollisionShape.GetBox()));
-			PShapePose = U2PTransform(FTransform(Rot, Pos));
-			PGeom = &PBoxGeom;
-			break;
-		}
-	case ECollisionShape::Capsule:
-		{
-			PCapsuleGeom = PxCapsuleGeometry( CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength() );
-			PShapePose = ConvertToPhysXCapsulePose( FTransform(Rot,Pos) );
-			PGeom = &PCapsuleGeom;
-			break;
-		}
-	default:
-		// invalid point
-		ensure(false);
-	}
-
-	if (PGeom)
-	{
-		for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
-		{
-			if (Bodies[BodyIdx]->Overlap(*PGeom, PShapePose))
-			{
-				return true;
-			}
+			return true;
 		}
 	}
-#endif //WITH_PHYSX
 
 	return false;
 }
 
 bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-#if WITH_PHYSX
-
 	OutOverlaps.Reset();
 
-	if(!Bodies.IsValidIndex(RootBodyIndex))
+	if (!Bodies.IsValidIndex(RootBodyIndex))
 	{
 		return false;
 	}
 
-	// calculate the test global pose of the actor
-	// because we're using skeletal mesh we need to use relative transform to root body
-	PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
-	check(Bodies[RootBodyIndex]);
-	PxTransform PRootGlobalPoseInv = U2PTransform(Bodies[RootBodyIndex]->GetUnrealWorldTransform()).getInverse();
-	PxTransform PGlobalRootSpacePose = PTestGlobalPose.transform(PRootGlobalPoseInv);
+	const FTransform WorldToComponent(ComponentToWorld.InverseSafe());
+	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
 	bool bHaveBlockingHit = false;
-
-	for(int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+	for (const FBodyInstance* Body : Bodies)
 	{
-		const FBodyInstance * BodyInstance = Bodies[BodyIdx];
-		PxRigidActor* PRigidActor = BodyInstance->GetPxRigidActor();
-
-		if(PRigidActor == NULL)
+		checkSlow(Body);
+		if (Body->OverlapMulti(/*inout*/ OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, Params, ResponseParams, ObjectQueryParams))
 		{
-			UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) No physics data"), *GetPathName());
-			return false;
-		}
-
-		// Get all the shapes from the actor
-		{
-			SCOPED_SCENE_READ_LOCK(PRigidActor->getScene());
-
-			TArray<PxShape*, TInlineAllocator<8>> PShapes;
-			PShapes.AddZeroed(PRigidActor->getNbShapes());
-			int32 NumShapes = PRigidActor->getShapes(PShapes.GetData(), PShapes.Num());
-
-			// Iterate over each shape
-			for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
-			{
-				PxShape* PShape = PShapes[ShapeIdx];
-				check(PShape);
-				TArray<struct FOverlapResult> Overlaps;
-				// Calc shape global pose
-				PxTransform PLocalPose = PShape->getLocalPose();
-				PxTransform PBodyPoseGlobal = U2PTransform(BodyInstance->GetUnrealWorldTransform());
-				PxTransform PShapeGlobalPose = PGlobalRootSpacePose.transform(PBodyPoseGlobal.transform(PLocalPose));
-
-				GET_GEOMETRY_FROM_SHAPE(PGeom, PShape);
-
-				if(PGeom != NULL)
-				{
-					// if object query param isn't valid, it will use trace channel
-					if (GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams))
-					{
-						bHaveBlockingHit = true;
-					}
-
-					OutOverlaps.Append(Overlaps);
-				}
-			}
+			bHaveBlockingHit = true;
 		}
 	}
 
 	return bHaveBlockingHit;
-#endif //WITH_PHYSX
-	return false;
 }
 
 
@@ -1737,8 +1938,8 @@ void USkeletalMeshComponent::ValidateClothingActors()
 	{
 		FClothingAssetData& ClothAsset = SkeletalMesh->ClothingAssets[AssetIdx];
 
-		// if there exist mapped sections, create a clothing actor
-		if(SkeletalMesh->HasClothSections(0, AssetIdx))
+		// if there exist mapped sections for all LODs, create a clothing actor
+		if (SkeletalMesh->HasClothSectionsInAllLODs(AssetIdx))
 		{
 			if(CreateClothingActor(AssetIdx, ClothAsset.ApexClothingAsset))
 			{
@@ -1746,10 +1947,10 @@ void USkeletalMeshComponent::ValidateClothingActors()
 			}
 		}
 		else 
-		{	//don't have cloth sections but clothing actor is alive
+		{	// don't have cloth sections but a clothing actor is alive
 			if(IsValidClothingActor(AssetIdx))
 			{
-				//clear because mapped sections are removed
+				// clear this clothing actor because mapped sections are removed
 				ClothingActors[AssetIdx].Clear(true);
 			}
 		}
@@ -1816,6 +2017,8 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.distanceWeight",1.0f));
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.bias",0));
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.benefitsBias",0));
+
+	verify(NxParameterized::setParamBool(*ActorDesc, "localSpaceSim", bLocalSpaceSimulation));
 
 	// Initialize the global pose
 
@@ -1895,42 +2098,44 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 
 	bool bFrozen = false;
 
-	for(int32 i=0; i<NumActors; i++)
+	for (int32 AssetIndex = 0; AssetIndex<NumActors; AssetIndex++)
 	{
-		if(IsValidClothingActor(i))
+		if (IsValidClothingActor(AssetIndex))
 		{			
-			int32 CurLODIndex = (int32)ClothingActors[i].ApexClothingActor->getGraphicalLod();
+			FClothingActor& Actor = ClothingActors[AssetIndex];
 
-			int32 NumClothLODs = ClothingActors[i].ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+			int32 CurLODIndex = (int32)Actor.ApexClothingActor->getGraphicalLod();
 
-			bool bEnabledLOD = SkeletalMesh->IsEnabledClothLOD(i);
+			// check whether clothing LOD is mapped for this LOD index
+			bool IsMappedClothLOD = SkeletalMesh->IsMappedClothingLOD(LODIndex, AssetIndex);
 
-			//Change Clothing LOD if new LOD index is different from current index
-			if(CurLODIndex != LODIndex)
+			// Change Clothing LOD if a new LOD index is different from the current index
+			if (IsMappedClothLOD && CurLODIndex != LODIndex)
 			{
 				//physical LOD is changed by graphical LOD
-				ClothingActors[i].ApexClothingActor->setGraphicalLOD(LODIndex);
+				Actor.ApexClothingActor->setGraphicalLOD(LODIndex);
 
-				if(ClothingActors[i].ApexClothingActor->isFrozen())
+				if (Actor.ApexClothingActor->isFrozen())
 				{
 					bFrozen = true;
 				}
 			}
 
-			//decide whether enable or disable
-			if( (LODIndex > 0  && !bEnabledLOD) ||
-			    (LODIndex >= NumClothLODs) )
+			int32 NumClothLODs = Actor.ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+
+			// decide whether should enable or disable
+			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
 			{
-				//disable clothing simulation
-				ClothingActors[i].ApexClothingActor->forcePhysicalLod(0);
+				// disable clothing simulation
+				Actor.ApexClothingActor->forcePhysicalLod(0);
 			}
 			else
 			{	
-				int32 CurPhysLOD = ClothingActors[i].ApexClothingActor->getActivePhysicalLod();
-				//enable clothing simulation
+				int32 CurPhysLOD = Actor.ApexClothingActor->getActivePhysicalLod();
+				// if disabled, enables clothing simulation
 				if(CurPhysLOD == 0)
 				{
-					ClothingActors[i].ApexClothingActor->forcePhysicalLod(1);
+					Actor.ApexClothingActor->forcePhysicalLod(1);
 				}
 			}
 		}
@@ -1941,7 +2146,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 #if WITH_EDITOR
 		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("SkelmeshComponent", "Warning_FrozenCloth", "Clothing will be melted from frozen state"));
 #endif
-		//melt it because rendering mesh is broken if frozen when changing LODs
+		// melt it because rendering mesh will be broken if frozen when changing LODs
 		FreezeClothSection(false);
 	}
 
@@ -2316,7 +2521,7 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 
 void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolumeData>& OutCollisions)
 {
-	if(!SkeletalMesh)
+	if (!SkeletalMesh)
 	{
 		return;
 	}
@@ -2324,16 +2529,17 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
 
 	// find all new collisions passing to children
-	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	for (int32 AssetIdx = 0; AssetIdx < NumAssets; AssetIdx++)
 	{
 		FClothingAssetData& Asset = SkeletalMesh->ClothingAssets[AssetIdx];
 		int32 NumCollisions = Asset.ClothCollisionVolumes.Num();
 
-		for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
+		int32 ConvexCount = 0;
+		for (int32 ColIdx = 0; ColIdx < NumCollisions; ColIdx++)
 		{
 			FApexClothCollisionVolumeData& Collision = Asset.ClothCollisionVolumes[ColIdx];
 
-			if(Collision.BoneIndex < 0)
+			if (Collision.BoneIndex < 0)
 			{
 				continue;
 			}
@@ -2342,7 +2548,7 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
-			if(BoneIndex < 0)
+			if (BoneIndex < 0)
 			{
 				continue;
 			}
@@ -2351,19 +2557,43 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 
 			FMatrix LocalToWorld = Collision.LocalPose * BoneMat;
 
-			// support only capsule now 
-			if(Collision.IsCapsule())
+			if (Collision.IsCapsule())
 			{
 				FApexClothCollisionVolumeData NewCollision = Collision;
 				NewCollision.LocalPose = LocalToWorld;
 				OutCollisions.Add(NewCollision);
 			}
+			else
+			{
+				if (Asset.ClothCollisionConvexPlaneIndices.IsValidIndex(ConvexCount))
+				{
+					uint32 PlaneIndices = Asset.ClothCollisionConvexPlaneIndices[ConvexCount];
+
+					uint32 BitShiftIndex = 1;
+					for (uint32 PlaneIndex = 0; PlaneIndex < 32; PlaneIndex++)
+					{
+						if (PlaneIndices&BitShiftIndex)
+						{
+							FPlane UPlane = Asset.ClothCollisionVolumePlanes[PlaneIndex].PlaneData;
+
+							check(Collision.BoneIndex == Asset.ClothCollisionVolumePlanes[PlaneIndex].BoneIndex);
+							UPlane = UPlane.TransformBy(BoneMat);
+							Collision.BonePlanes.Add(UPlane);
+						}
+
+						// shift 1 bit because a bit index means a plane's index 
+						BitShiftIndex <<= 1;
+					}
+				}
+
+				ConvexCount++;
 			}
 		}
 	}
+}
 
 void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothCollisionVolumeData>& InCollisions, TArray<physx::apex::NxClothingCollision*>& OutCollisions)
-	{
+{
 	int32 NumCollisions = InCollisions.Num();
 
 	const int32 MaxNumCapsules = 16;
@@ -2373,7 +2603,7 @@ void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothColl
 
 		for(int32 ActorIdx=0; ActorIdx < NumActors; ActorIdx++)
 		{
-		if (!IsValidClothingActor(ActorIdx))
+			if (!IsValidClothingActor(ActorIdx))
 			{
 				continue;
 			}
@@ -2383,26 +2613,51 @@ void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothColl
 
 			for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
 			{
-				// support only capsules now 
-			if (InCollisions[ColIdx].IsCapsule() && NumCurrentCapsules < MaxNumCapsules)
+				// capsules
+				if (InCollisions[ColIdx].IsCapsule())
 				{
-				FVector Origin = InCollisions[ColIdx].LocalPose.GetOrigin();
-					// apex uses y-axis as the up-axis of capsule
-				FVector UpAxis = InCollisions[ColIdx].LocalPose.GetScaledAxis(EAxis::Y);
-					
-				float Radius = InCollisions[ColIdx].CapsuleRadius*UpAxis.Size();
+					if(NumCurrentCapsules < MaxNumCapsules)
+					{
+				        FVector Origin = InCollisions[ColIdx].LocalPose.GetOrigin();
+					        // apex uses y-axis as the up-axis of capsule
+				        FVector UpAxis = InCollisions[ColIdx].LocalPose.GetScaledAxis(EAxis::Y);
+					        
+				        float Radius = InCollisions[ColIdx].CapsuleRadius*UpAxis.Size();
+        
+				        float HalfHeight = InCollisions[ColIdx].CapsuleHeight*0.5f;
+					        const FVector TopEnd = Origin + (HalfHeight * UpAxis);
+					        const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
+        
+					        NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
+					        NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
+        
+					        NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+        
+				        OutCollisions.Add(Capsule);
+				        NumCurrentCapsules++;
+					}
+				}
+				else // convexes
+				{
+					int32 NumPlanes = InCollisions[ColIdx].BonePlanes.Num();
 
-				float HalfHeight = InCollisions[ColIdx].CapsuleHeight*0.5f;
-					const FVector TopEnd = Origin + (HalfHeight * UpAxis);
-					const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
+					TArray<NxClothingPlane*> ClothingPlanes;
 
-					NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
-					NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
+					//can not exceed 32 planes
+					NumPlanes = FMath::Min(NumPlanes, 32);
 
-					NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+					ClothingPlanes.AddUninitialized(NumPlanes);
 
-				OutCollisions.Add(Capsule);
-				NumCurrentCapsules++;
+					for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
+					{
+						PxPlane PPlane = U2PPlane(InCollisions[ColIdx].BonePlanes[PlaneIdx]);
+
+						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
+					}
+
+					NxClothingConvex* Convex = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+
+					OutCollisions.Add(Convex);
 				}
 			}
 		}
@@ -2784,6 +3039,8 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 		BlendInPhysics();
 	}
 
+	//TODO: move this into pre physics tick
+
 #if WITH_APEX_CLOTHING
 	// if skeletal mesh has clothing assets, call TickClothing
 	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
@@ -2872,7 +3129,7 @@ void USkeletalMeshComponent::CheckClothTeleport(float DeltaTime)
 		// Rotation matrix's transpose means an inverse but can't use a transpose because this matrix includes scales
 		FMatrix AInvB = CurRootBoneMat * PrevRootBoneMatrix.Inverse();
 		float Trace = AInvB.M[0][0] + AInvB.M[1][1] + AInvB.M[2][2];
-		float CosineTheta = (Trace - 1.0f) / 2.0f; // trace = 1+2cos(¥è) for a 3¡¿3 matrix
+		float CosineTheta = (Trace - 1.0f) / 2.0f; // trace = 1+2cos(theta) for a 3x3 matrix
 
 		if ( CosineTheta < ClothTeleportCosineThresholdInRad ) // has the root bone rotated too much
 		{
@@ -2988,6 +3245,65 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 	// reset to Continuous
 	ClothTeleportMode = FClothingActor::Continuous;
 }
+
+void USkeletalMeshComponent::GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& OutRootBoneMatrix) const
+{
+	if (IsValidClothingActor(AssetIndex))
+	{
+		TSharedPtr<FClothingAssetWrapper> Asset = ClothingActors[AssetIndex].ParentClothingAsset;
+
+		check(Asset.IsValid());
+
+		const NxParameterized::Interface* AssetParams = Asset->GetAsset()->getAssetNxParameterized();
+		uint32 InternalRootBoneIndex;
+		verify(NxParameterized::getParamU32(*AssetParams, "rootBoneIndex", InternalRootBoneIndex));
+		check(InternalRootBoneIndex >= 0);
+		FName BoneName = Asset->GetConvertedBoneName(InternalRootBoneIndex);
+		int32 BoneIndex = GetBoneIndex(BoneName);
+		check(BoneIndex >= 0);
+		OutRootBoneMatrix = GetBoneMatrix(BoneIndex);
+	}
+	else
+	{
+		OutRootBoneMatrix = GetBoneMatrix(0);
+	}
+}
+
+bool USkeletalMeshComponent::GetClothSimulatedPosition(int32 AssetIndex, int32 VertexIndex, FVector& OutSimulPos) const
+{
+	bool bSucceed = false;
+
+	if (IsValidClothingActor(AssetIndex))
+	{
+		NxClothingActor* ApexClothingActor = ClothingActors[AssetIndex].ApexClothingActor;
+
+		if (ApexClothingActor)
+		{
+			uint32 NumSimulVertices = ApexClothingActor->getNumSimulationVertices();
+
+			// handles only simulated vertices, indices of fixed vertices are bigger than # of simulated vertices
+			if ((uint32)VertexIndex < NumSimulVertices)
+			{
+				bSucceed = true;
+				const physx::PxVec3* Vertices = ApexClothingActor->getSimulationPositions();
+
+				if (bLocalSpaceSimulation)
+				{
+					FMatrix ClothRootBoneMatrix;
+					GetClothRootBoneMatrix(AssetIndex, ClothRootBoneMatrix);
+					OutSimulPos = ClothRootBoneMatrix.TransformPosition(P2UVector(Vertices[VertexIndex]));
+				}
+				else
+				{
+					OutSimulPos = P2UVector(Vertices[VertexIndex]);
+				}
+			}
+		}
+	}
+
+	return bSucceed;
+}
+
 #endif// #if WITH_APEX_CLOTHING
 
 void USkeletalMeshComponent::TickClothing(float DeltaTime)
@@ -3000,7 +3316,7 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 	}
 	else
 	{
-	ValidateClothingActors();
+		ValidateClothingActors();
 		UpdateClothState(DeltaTime);
 	}
 #if 0 //if turn on this flag, you can check which primitive objects are activated for collision detection
@@ -3062,10 +3378,24 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 				const physx::PxVec3* Vertices = ClothingActor->getSimulationPositions();
 				const physx::PxVec3* Normals = ClothingActor->getSimulationNormals();
 
-				for(uint32 VertexIndex=0; VertexIndex<NumSimulVertices; VertexIndex++)
+				// In case of Local space simulation, need to transform simulated positions with the internal bone matrix
+				if (bLocalSpaceSimulation)
 				{
-					ClothData.ClothSimulPositions[VertexIndex] = P2UVector(Vertices[VertexIndex]);
-					ClothData.ClothSimulNormals[VertexIndex] = P2UVector(Normals[VertexIndex]);
+					FMatrix ClothRootBoneMatrix;
+					GetClothRootBoneMatrix(ActorIndex, ClothRootBoneMatrix);
+					for (uint32 VertexIndex = 0; VertexIndex < NumSimulVertices; VertexIndex++)
+					{						
+						ClothData.ClothSimulPositions[VertexIndex] = ClothRootBoneMatrix.TransformPosition(P2UVector(Vertices[VertexIndex]));
+						ClothData.ClothSimulNormals[VertexIndex] = ClothRootBoneMatrix.TransformVector(P2UVector(Normals[VertexIndex]));
+					}
+				}
+				else
+				{
+					for (uint32 VertexIndex = 0; VertexIndex < NumSimulVertices; VertexIndex++)
+					{
+						ClothData.ClothSimulPositions[VertexIndex] = P2UVector(Vertices[VertexIndex]);
+						ClothData.ClothSimulNormals[VertexIndex] = P2UVector(Normals[VertexIndex]);
+					}
 				}
 			}
 		}
@@ -3446,6 +3776,8 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 		return;
 	}
 
+	static bool bDrawnPlanes = false;
+
 	FColor Colors[3] = { FColor::Red, FColor::Green, FColor::Blue };
 	FColor GrayColor(50, 50, 50); // dark gray to represent ignored collisions
 
@@ -3454,17 +3786,16 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 	for(int32 AssetIdx=0; AssetIdx < SkeletalMesh->ClothingAssets.Num(); AssetIdx++)
 	{
 		TArray<FApexClothCollisionVolumeData>& Collisions = SkeletalMesh->ClothingAssets[AssetIdx].ClothCollisionVolumes;
-		int32 NumCollisions = Collisions.Num();
 		int32 SphereCount = 0;
 
-		for(int32 i=0; i<NumCollisions; i++)
+		for (const FApexClothCollisionVolumeData& Collision : Collisions)
 		{
-			if(Collisions[i].BoneIndex < 0)
+			if(Collision.BoneIndex < 0)
 			{
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collisions[i].BoneIndex);
+			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
 			
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3475,9 +3806,9 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 			FMatrix BoneMat = GetBoneMatrix(BoneIndex);
 
-			FMatrix LocalToWorld = Collisions[i].LocalPose * BoneMat;
+			FMatrix LocalToWorld = Collision.LocalPose * BoneMat;
 
-			if(Collisions[i].IsCapsule())
+			if(Collision.IsCapsule())
 			{
 				FColor CapsuleColor = Colors[AssetIdx % 3];
 				if (SphereCount >= MaxSphereCollisions)
@@ -3485,14 +3816,66 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 					CapsuleColor = GrayColor; // Draw in gray to show that these collisions are ignored
 				}
 
-				const int32 CapsuleSides = FMath::Clamp<int32>(Collisions[i].CapsuleRadius/4.f, 16, 64);
-				float CapsuleHalfHeight = (Collisions[i].CapsuleHeight*0.5f+Collisions[i].CapsuleRadius);
-				float CapsuleRadius = Collisions[i].CapsuleRadius*2.f;
+				const int32 CapsuleSides = FMath::Clamp<int32>(Collision.CapsuleRadius/4.f, 16, 64);
+				float CapsuleHalfHeight = (Collision.CapsuleHeight*0.5f+Collision.CapsuleRadius);
+				float CapsuleRadius = Collision.CapsuleRadius*2.f;
 				// swapped Y-axis and Z-axis to convert apex coordinate to UE coordinate
-				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collisions[i].CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
+				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collision.CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
 				SphereCount += 2; // 1 capsule takes 2 spheres
 			}
+			else // convex
+			{
+				int32 NumVerts = Collision.BoneVertices.Num();
+
+				TArray<FVector> TransformedVerts;
+				TransformedVerts.AddUninitialized(NumVerts);
+
+				for(int32 VertIdx=0; VertIdx < NumVerts; VertIdx++)
+				{
+					TransformedVerts[VertIdx] = BoneMat.TransformPosition(Collision.BoneVertices[VertIdx]);
+				}
+
+				// just draw all connected wires to check convex shape
+				for(int32 i=0; i < NumVerts-2; i++)
+				{
+					for(int32 j=i+1; j < NumVerts; j++)
+					{
+						PDI->DrawLine(TransformedVerts[i], TransformedVerts[j], Colors[AssetIdx%3], SDPG_World);
+					}
+				}
 			}
+		}
+
+		TArray<FClothBonePlane>& BonePlanes = SkeletalMesh->ClothingAssets[AssetIdx].ClothCollisionVolumePlanes;
+		int32 NumPlanes = BonePlanes.Num();
+
+		FVector Origin = ComponentToWorld.GetLocation();
+
+
+		for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
+		{
+			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(BonePlanes[PlaneIdx].BoneIndex);
+
+			int32 BoneIndex = GetBoneIndex(BoneName);
+
+			if(BoneIndex < 0)
+			{
+				continue;
+			}
+
+			FMatrix BoneMat = GetBoneMatrix(BoneIndex);
+			FPlane UPlane = BonePlanes[PlaneIdx].PlaneData.TransformBy(BoneMat);
+			FVector BoneMatOrigin = BoneMat.GetOrigin();
+
+			// draw once becasue of a bug in DrawDebugSolidPlane() method
+			if(!bDrawnPlanes)
+			{
+				DrawDebugSolidPlane(GetWorld(), UPlane, BoneMatOrigin, 2, Colors[AssetIdx%3]);
+			}
+
+		}
+
+		bDrawnPlanes = true;
 
 		// draw bone spheres
 		TArray<FApexClothBoneSphereData>& Spheres = SkeletalMesh->ClothingAssets[AssetIdx].ClothBoneSpheres;
@@ -3749,7 +4132,6 @@ void USkeletalMeshComponent::LoadClothingVisualizationInfo(int32 AssetIndex)
 					verify(NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.boneIndices", BoneIndicesCount));
 					check(BoneIndicesCount == BoneWeightsCount);
 
-					NxParameterized::Handle BoneWeightHandle(*PhysicalMeshParams);
 					for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
 					{
 						for(uint8 WeightIndex=0; WeightIndex < MaxBoneWeights; ++WeightIndex)
@@ -4028,7 +4410,6 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 		FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos[PhysicalMeshLOD];
 
 		uint32 NumPhysicalMeshVerts = VisualInfo.ClothPhysicalMeshVertices.Num();
-		const physx::PxVec3* SimulVertices = NULL;
 
 		bool bUseSimulatedResult = false;
 		// skinning for fixed vertices
@@ -4045,6 +4426,13 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 
 				if(NumSimulVertices > 0)
 				{
+					// if # of simulated vertices is bigger than loaded info, it will be LOD transition period 
+					// just skip this tick because PredictedLODLevel is different from internal clothing LOD. it will be matched at next tick
+					if (NumSimulVertices > NumPhysicalMeshVerts)
+					{
+						return;
+					}
+
 					bUseSimulatedResult = true;
 					SimulatedPhysicalMeshVertices.AddUninitialized(NumPhysicalMeshVerts);
 

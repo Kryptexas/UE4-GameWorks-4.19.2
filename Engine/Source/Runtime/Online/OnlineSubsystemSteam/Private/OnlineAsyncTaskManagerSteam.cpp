@@ -210,7 +210,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamLobbyEnter LobbyId: %s Result: %s"), 
 			*FUniqueNetIdSteam(CallbackResults.m_ulSteamIDLobby).ToDebugString(),
@@ -284,7 +284,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamLobbyChatUpdate User: %s Instigator: %s Result: %s"), 
 			*FUniqueNetIdSteam(CallbackResults.m_ulSteamIDUserChanged).ToDebugString(),
@@ -359,7 +359,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamLobbyUpdate LobbyId: %s"), *LobbyId.ToDebugString());	
 	}
@@ -368,7 +368,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncEvent::Finalize();
 
@@ -474,7 +474,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamStatsReceived bWasSuccessful: %d User: %s Result: %s"), (StatsReceivedResult == k_EResultOK) ? 1 : 0, *UserId.ToDebugString(), *SteamResultString(StatsReceivedResult));	
 	}
@@ -483,7 +483,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncEvent::Finalize();
 
@@ -565,7 +565,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamStatsStored bWasSuccessful: %d User: %s Result: %s"), (StatsStoredResult == k_EResultOK) ? 1 : 0, *UserId.ToDebugString(), *SteamResultString(StatsStoredResult));	
 	}
@@ -650,7 +650,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamStatsUnloaded UserId: %s"), *UserId.ToDebugString());	
 	}
@@ -659,7 +659,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncEvent::Finalize();
 		// Remove given user's stats from the cached list
@@ -722,7 +722,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamServerConnectionState StateChange: %s"), EOnlineServerConnectionStatus::ToString(ConnectionState));	
 	}
@@ -731,7 +731,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		Subsystem->TriggerOnConnectionStatusChangedDelegates(ConnectionState);
 	}
@@ -786,7 +786,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamServerConnectedGS ServerId: %s"), *ServerId.ToDebugString());	
 	}
@@ -795,7 +795,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 		if (SessionInt.IsValid())
@@ -855,7 +855,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamServerDisconnectedGS Result: %s"), *SteamResultString(CallbackResults.m_eResult));	
 	}
@@ -864,7 +864,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		bool bTriggerConnectionStatusUpdate = true;
 		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
@@ -937,7 +937,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamServerPolicyResponseGS Secure: %d"), CallbackResults.m_bSecure);	
 	}
@@ -946,7 +946,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 		if (SessionInt.IsValid())
@@ -1003,7 +1003,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamConnectionRequest RemoteId: %s"), *RemoteId.ToDebugString());	
 	}
@@ -1012,7 +1012,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FSocketSubsystemSteam* SocketSubsystem = (FSocketSubsystemSteam*)ISocketSubsystem::Get(STEAM_SUBSYSTEM);
 		if (SocketSubsystem)
@@ -1058,7 +1058,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamConnectionFailed RemoteId: %s Reason: %s"), *RemoteId.ToDebugString(), *SteamP2PConnectError(ErrorCode));	
 	}
@@ -1067,7 +1067,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		// Mark the relevant sockets with this failure so they can properly notify higher level engine code
 		FSocketSubsystemSteam* SocketSubsystem = (FSocketSubsystemSteam*)ISocketSubsystem::Get(STEAM_SUBSYSTEM);
@@ -1159,7 +1159,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncEventSteamShutdown shutdown received."));	
 	}
@@ -1168,7 +1168,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FPlatformMisc::RequestExit(false);
 	}

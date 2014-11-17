@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserFilterBar.h: Declares the SDeviceBrowserFilterBar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,8 +33,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InFilter - The filter model to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InFilter The filter model to use.
 	 */
 	void Construct( const FArguments& InArgs, FDeviceBrowserFilterRef InFilter );
 
@@ -71,5 +67,5 @@ private:
 	TSharedPtr<SSearchBox> FilterStringTextBox;
 
 	// Holds the platform filters list view.
-	TSharedPtr<SListView<TSharedPtr<FString> > > PlatformListView;
+	TSharedPtr<SListView<TSharedPtr<FString>>> PlatformListView;
 };

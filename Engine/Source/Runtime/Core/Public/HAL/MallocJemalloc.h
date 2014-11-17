@@ -34,13 +34,13 @@ public:
 	
 	// Begin FMalloc interface.
 
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE;
-	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE;
-	virtual void Free( void* Ptr ) OVERRIDE;
-	virtual void DumpAllocatorStats( FOutputDevice& Ar ) OVERRIDE;
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE;
-	virtual bool IsInternallyThreadSafe() const OVERRIDE {  return true; }
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("jemalloc"); }
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override;
+	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override;
+	virtual void Free( void* Ptr ) override;
+	virtual void DumpAllocatorStats( FOutputDevice& Ar ) override;
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override;
+	virtual bool IsInternallyThreadSafe() const override {  return true; }
+	virtual const TCHAR * GetDescriptiveName() override { return TEXT("jemalloc"); }
 
 	// End FMalloc interface.
 

@@ -22,7 +22,7 @@
  *
  * A sample implementation of OnGenerateWidgetForList would simply return a TextBlock with the corresponding text:
  *
- * TSharedRef<ITableRow> OnGenerateWidgetForList( FString* InItem )
+ * TSharedRef<ITableRow> OnGenerateWidgetForList( FString* InItem, const TSharedRef<STableViewBase>& OwnerTable )
  * {
  *     return SNew(STextBlock).Text( (*InItem) )
  * }
@@ -31,8 +31,6 @@
 template <typename ItemType>
 class SListView : public STableViewBase, TListTypeTraits<ItemType>::SerializerType, public ITypedTableView< ItemType >
 {
-	checkAtCompileTime( TIsValidListItem<ItemType>::Value, ItemType_must_be_a_pointer_or_TSharedPtr );
-
 public:
 	typedef typename TListTypeTraits< ItemType >::NullableType NullableItemType;
 
@@ -159,7 +157,7 @@ public:
 
 public:
 	// Inherited from SWidget
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
@@ -334,7 +332,7 @@ public:
 		return STableViewBase::OnKeyDown(MyGeometry, InKeyboardEvent);
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
 			&& SelectionMode != ESelectionMode::None
@@ -357,7 +355,7 @@ public:
 		return STableViewBase::OnMouseButtonDown(MyGeometry, MouseEvent);
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
 			&& SelectionMode != ESelectionMode::None
@@ -512,7 +510,7 @@ public:
 	// These handle selection, expansion, and other such properties common to ItemsWidgets.
 	//
 
-	virtual void Private_SetItemSelection( ItemType TheItem, bool bShouldBeSelected, bool bWasUserDirected = false ) OVERRIDE
+	virtual void Private_SetItemSelection( ItemType TheItem, bool bShouldBeSelected, bool bWasUserDirected = false ) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -538,14 +536,14 @@ public:
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_ClearSelection() OVERRIDE
+	virtual void Private_ClearSelection() override
 	{
 		SelectedItems.Empty();
 
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) OVERRIDE
+	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -578,7 +576,7 @@ public:
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) OVERRIDE
+	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -595,71 +593,71 @@ public:
 		}
 	}
 
-	virtual const ItemType* Private_ItemFromWidget( const ITableRow* TheWidget ) const OVERRIDE
+	virtual const ItemType* Private_ItemFromWidget( const ITableRow* TheWidget ) const override
 	{
 		ItemType const * LookupResult = WidgetGenerator.WidgetMapToItem.Find( TheWidget );
 		return LookupResult == NULL ? NULL : LookupResult;
 	}
 
-	virtual bool Private_UsesSelectorFocus() const OVERRIDE
+	virtual bool Private_UsesSelectorFocus() const override
 	{
 		return true;
 	}
 
-	virtual bool Private_HasSelectorFocus( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_HasSelectorFocus( const ItemType& TheItem ) const override
 	{
 		return SelectorItem == TheItem;
 	}
 
-	virtual bool Private_IsItemSelected( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_IsItemSelected( const ItemType& TheItem ) const override
 	{
 		return NULL != SelectedItems.Find(TheItem);
 	}
 
-	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const override
 	{
 		// List View does not support item expansion.
 		return false;	
 	}
 
-	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		// Do nothing; you cannot expand an item in a list!
 	}
 
-	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		// Do nothing; you cannot expand an item in a list!
 	}
 
-	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const OVERRIDE
+	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const override
 	{
 		// List View items cannot have children
 		return false;
 	}
 
-	virtual int32 Private_GetNumSelectedItems() const OVERRIDE
+	virtual int32 Private_GetNumSelectedItems() const override
 	{
 		return SelectedItems.Num();
 	}
 
-	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const OVERRIDE
+	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const override
 	{
 		// List View items are not indented
 		return 0;
 	}
 
-	virtual ESelectionMode::Type Private_GetSelectionMode() const OVERRIDE
+	virtual ESelectionMode::Type Private_GetSelectionMode() const override
 	{
 		return SelectionMode.Get();
 	}
 
-	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) override
 	{
 		this->OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
 	}
 
-	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) OVERRIDE
+	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) override
 	{
 		if( OnDoubleClick.ExecuteIfBound( TheItem ) )
 		{
@@ -669,12 +667,12 @@ public:
 		return false;	// Not handled
 	}
 
-	virtual ETableViewMode::Type GetTableViewMode() const OVERRIDE
+	virtual ETableViewMode::Type GetTableViewMode() const override
 	{
 		return TableViewMode;
 	}
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE
+	virtual TSharedRef<SWidget> AsWidget() override
 	{
 		return SharedThis(this);
 	}
@@ -732,7 +730,7 @@ public:
 	 * Update generate Widgets for Items as needed and clean up any Widgets that are no longer needed.
 	 * Re-arrange the visible widget order as necessary.
 	 */
-	virtual FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) OVERRIDE
+	virtual FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) override
 	{
 		// Clear all the items from our panel. We will re-add them in the correct order momentarily.
 		this->ClearWidgets();
@@ -1068,7 +1066,7 @@ protected:
 	 * 
 	 * @param ListViewGeometry  The geometry of the listView; can be useful for centering the item.
 	 */
-	virtual void ScrollIntoView( const FGeometry& ListViewGeometry ) OVERRIDE
+	virtual void ScrollIntoView( const FGeometry& ListViewGeometry ) override
 	{
 		if ( TListTypeTraits<ItemType>::IsPtrValid(ItemToScrollIntoView) && ItemsSource != NULL )
 		{
@@ -1079,7 +1077,7 @@ protected:
 				if (NumLiveWidgets == 0 && IsPendingRefresh())
 				{
 					// Use the last number of widgets on screen to estimate if we actually need to scroll.
-					NumLiveWidgets = LastGenerateResults.ExactNumWidgetsOnScreen;
+					NumLiveWidgets = LastGenerateResults.ExactNumRowsOnScreen;
 				}
 
 				// Only scroll the item into view if it's not already in the visible range
@@ -1105,7 +1103,7 @@ protected:
 		}
 	}
 
-	virtual void NotifyItemScrolledIntoView() OVERRIDE
+	virtual void NotifyItemScrolledIntoView() override
 	{
 		// Notify that an item that came into view
 		if ( TListTypeTraits<ItemType>::IsPtrValid( ItemToNotifyWhenInView ) )
@@ -1118,108 +1116,133 @@ protected:
 		}
 	}
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
 	{
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;
 
-		const TArray<ItemType>* SourceItems = ItemsSource;
-		if ( SourceItems != NULL && SourceItems->Num() > 0 )
+		const bool bWholeListVisible = ScrollOffset == 0 && bWasAtEndOfList;
+		if (bWholeListVisible)
 		{
-			int ItemIndex = StartingItemIndex;
-			while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
+			return 0;
+		}
+		else if ( AllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		{
+			const float UnclampedScrollDelta = FMath::Sign(ScrollByAmountInSlateUnits) * AbsScrollByAmount / 10;				
+			const float ActuallyScrolledBy = Overscroll.ScrollBy( UnclampedScrollDelta );
+			if (ActuallyScrolledBy != 0.0f)
 			{
-				const ItemType CurItem = (*SourceItems)[ ItemIndex ];
-				TSharedPtr<ITableRow> RowWidget = WidgetGenerator.GetWidgetForItem( CurItem );
-				if ( !RowWidget.IsValid() )
+				this->RequestListRefresh();
+			}
+			return ActuallyScrolledBy;
+		}
+		else
+		{
+			// We know how far we want to scroll in SlateUnits, but we store scroll offset in "number of widgets".
+			// Challenge: each widget can be a different height.
+			// Strategy:
+			//           Scroll "one widget's height" at a time until we've scrolled as far as the user asked us to.
+			//           Generate widgets on demand so we can figure out how tall they are.
+
+			const TArray<ItemType>* SourceItems = ItemsSource;
+			if ( SourceItems != NULL && SourceItems->Num() > 0 )
+			{
+				int ItemIndex = StartingItemIndex;
+				while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
 				{
-					// We couldn't find an existing widgets, meaning that this data item was not visible before.
-					// Make a new widget for it.
-					RowWidget = this->GenerateNewWidget( CurItem );
-
-					// It is useful to know the item's index that the widget was generated from.
-					// Helps with even/odd coloring
-					RowWidget->SetIndexInList(ItemIndex);
-
-					// Let the item generator know that we encountered the current Item and associated Widget.
-					WidgetGenerator.OnItemSeen( CurItem, RowWidget.ToSharedRef() );
-
-					RowWidget->AsWidget()->SlatePrepass();
-				}
-
-				if ( ScrollByAmountInSlateUnits > 0 )
-				{
-					FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
-					const float RemainingHeight = DesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
-
-					if ( AbsScrollByAmount > RemainingHeight )
+					const ItemType CurItem = (*SourceItems)[ ItemIndex ];
+					TSharedPtr<ITableRow> RowWidget = WidgetGenerator.GetWidgetForItem( CurItem );
+					if ( !RowWidget.IsValid() )
 					{
-						if ( ItemIndex != SourceItems->Num() )
+						// We couldn't find an existing widgets, meaning that this data item was not visible before.
+						// Make a new widget for it.
+						RowWidget = this->GenerateNewWidget( CurItem );
+
+						// It is useful to know the item's index that the widget was generated from.
+						// Helps with even/odd coloring
+						RowWidget->SetIndexInList(ItemIndex);
+
+						// Let the item generator know that we encountered the current Item and associated Widget.
+						WidgetGenerator.OnItemSeen( CurItem, RowWidget.ToSharedRef() );
+
+						RowWidget->AsWidget()->SlatePrepass();
+					}
+
+					if ( ScrollByAmountInSlateUnits > 0 )
+					{
+						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						const float RemainingHeight = DesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
+
+						if ( AbsScrollByAmount > RemainingHeight )
 						{
-							AbsScrollByAmount -= RemainingHeight;
+							if ( ItemIndex != SourceItems->Num() )
+							{
+								AbsScrollByAmount -= RemainingHeight;
+								NewScrollOffset = 1.0f + (int32)NewScrollOffset;
+								++ItemIndex;
+							}
+							else
+							{
+								NewScrollOffset = SourceItems->Num();
+								break;
+							}
+						} 
+						else if ( AbsScrollByAmount == RemainingHeight )
+						{
 							NewScrollOffset = 1.0f + (int32)NewScrollOffset;
-							++ItemIndex;
+							break;
 						}
 						else
 						{
-							NewScrollOffset = SourceItems->Num();
+							NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / DesiredSize.Y ) );
 							break;
 						}
-					} 
-					else if ( AbsScrollByAmount == RemainingHeight )
-					{
-						NewScrollOffset = 1.0f + (int32)NewScrollOffset;
-						break;
 					}
 					else
 					{
-						NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / DesiredSize.Y ) );
-						break;
-					}
-				}
-				else
-				{
-					FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
 
-					float Fractional = FMath::Fractional( NewScrollOffset );
-					if ( Fractional == 0 )
-					{
-						Fractional = 1.0f;
-						--NewScrollOffset;
-					}
-
-					const float PrecedingHeight = DesiredSize.Y * Fractional;
-
-					if ( AbsScrollByAmount > PrecedingHeight )
-					{
-						if ( ItemIndex != 0 )
+						float Fractional = FMath::Fractional( NewScrollOffset );
+						if ( Fractional == 0 )
 						{
-							AbsScrollByAmount -= PrecedingHeight;
+							Fractional = 1.0f;
+							--NewScrollOffset;
+						}
+
+						const float PrecedingHeight = DesiredSize.Y * Fractional;
+
+						if ( AbsScrollByAmount > PrecedingHeight )
+						{
+							if ( ItemIndex != 0 )
+							{
+								AbsScrollByAmount -= PrecedingHeight;
+								NewScrollOffset -= FMath::Fractional( NewScrollOffset );
+								--ItemIndex;
+							}
+							else
+							{
+								NewScrollOffset = 0;
+								break;
+							}
+						} 
+						else if ( AbsScrollByAmount == PrecedingHeight )
+						{
 							NewScrollOffset -= FMath::Fractional( NewScrollOffset );
-							--ItemIndex;
+							break;
 						}
 						else
 						{
-							NewScrollOffset = 0;
+							NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / DesiredSize.Y );
 							break;
 						}
-					} 
-					else if ( AbsScrollByAmount == PrecedingHeight )
-					{
-						NewScrollOffset -= FMath::Fractional( NewScrollOffset );
-						break;
-					}
-					else
-					{
-						NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / DesiredSize.Y );
-						break;
 					}
 				}
 			}
-		}
 
-		return ScrollTo( NewScrollOffset );
+
+			return ScrollTo( NewScrollOffset );
+		}
 	}
 
 protected:

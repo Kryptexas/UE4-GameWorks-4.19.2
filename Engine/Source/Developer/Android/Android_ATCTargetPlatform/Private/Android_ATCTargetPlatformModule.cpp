@@ -15,22 +15,22 @@
 class FAndroid_ATCTargetPlatform
 	: public FAndroidTargetPlatform
 {
-	virtual FString GetAndroidVariantName( ) OVERRIDE
+	virtual FString GetAndroidVariantName( ) override
 	{
 		return TEXT("ATC");
 	}
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return LOCTEXT("Android_ATC", "Android (ATC)");
 	}
 
-	virtual FString PlatformName() const OVERRIDE
+	virtual FString PlatformName() const override
 	{
 		return FString(FAndroid_ATCCPlatformProperties::PlatformName());
 	}
 
-	virtual bool SupportsTextureFormat( FName Format ) const OVERRIDE
+	virtual bool SupportsTextureFormat( FName Format ) const override
 	{
 		if( Format == AndroidTexFormat::NameATC_RGB ||
 			Format == AndroidTexFormat::NameATC_RGBA_I ||
@@ -41,7 +41,7 @@ class FAndroid_ATCTargetPlatform
 		return false;
 	}
 
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
 		return (ExtensionsString.Contains(TEXT("GL_ATI_texture_compression_atitc")) || ExtensionsString.Contains(TEXT("GL_AMD_compressed_ATC_texture")));
 	}
@@ -75,7 +75,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{

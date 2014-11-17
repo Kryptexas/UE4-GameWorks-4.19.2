@@ -597,7 +597,7 @@ EColumnSortMode::Type SPackagesDialog::GetColumnSortMode( const FName ColumnId )
 	return SortMode;
 }
 
-void SPackagesDialog::OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode )
+void SPackagesDialog::OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode )
 {
 	SortByColumn = ColumnId;
 	SortMode = InSortMode;

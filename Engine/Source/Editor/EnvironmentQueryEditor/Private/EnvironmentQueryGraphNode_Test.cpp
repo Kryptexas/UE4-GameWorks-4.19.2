@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 
 UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

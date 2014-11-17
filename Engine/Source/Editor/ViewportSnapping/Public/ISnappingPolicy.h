@@ -5,6 +5,8 @@
 class ISnappingPolicy
 {
 public:
+	virtual ~ISnappingPolicy() {}
+
 	/**
 	 * Snaps a scale value to the scale grid
 	 *

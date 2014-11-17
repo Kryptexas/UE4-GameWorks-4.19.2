@@ -40,9 +40,9 @@ public:
 	TSharedPtr<SViewport> GetViewportWidget() const;
 	
 protected:
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
-	virtual void OnFocusViewportToSelection() OVERRIDE;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual void OnFocusViewportToSelection() override;
 public:
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;

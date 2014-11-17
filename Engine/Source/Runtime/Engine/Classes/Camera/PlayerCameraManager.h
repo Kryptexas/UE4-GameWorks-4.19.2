@@ -3,6 +3,9 @@
 #pragma once
 
 #include "CameraTypes.h"
+#include "Engine/Scene.h"
+#include "Engine/EngineBaseTypes.h"
+
 #include "PlayerCameraManager.generated.h"
 
 UENUM()
@@ -133,7 +136,7 @@ struct FViewTargetTransitionParams
 /**
  *	Defines the point of view of a player in world space.
  */
-UCLASS(notplaceable, dependson=UEngineBaseTypes, transient, dependson=UScene, BlueprintType, Blueprintable)
+UCLASS(notplaceable, transient, BlueprintType, Blueprintable)
 class ENGINE_API APlayerCameraManager : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -399,11 +402,11 @@ public:
 	APawn* GetViewTargetPawn() const;
 
 	// Begin AActor Interface
-	virtual bool ShouldTickIfViewportsOnly() const OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual bool ShouldTickIfViewportsOnly() const override;
+	virtual void PostInitializeComponents() override;
+	virtual void Destroyed() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor Interface
 
 	/** Static.  Plays an in-world camera shake that affects all nearby players, with distance-based attenuation.
@@ -477,9 +480,11 @@ public:
 	void GetCameraViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const;
 	
 	// @todo document
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	FRotator GetCameraRotation() const;
 
 	// @todo document
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	FVector GetCameraLocation() const;
 	
 	/** Sets the new desired color scale and enables interpolation. */

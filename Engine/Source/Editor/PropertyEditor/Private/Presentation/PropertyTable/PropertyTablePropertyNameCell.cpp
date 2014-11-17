@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
- PropertyTablePropertyNameCell.cpp: Implements the FPropertyTablePropertyNameCell class.
-=============================================================================*/
-
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyTablePropertyNameCell.h"
 #include "PropertyTablePropertyNameColumn.h"
@@ -15,6 +11,7 @@
 #include "ObjectPropertyNode.h"
 #include "ItemPropertyNode.h"
 #include "PropertyHandle.h"
+
 
 FPropertyTablePropertyNameCell::FPropertyTablePropertyNameCell( const TSharedRef< class FPropertyTablePropertyNameColumn >& InColumn, const TSharedRef< class IPropertyTableRow >& InRow )
 	: EnteredEditModeEvent()

@@ -46,7 +46,7 @@ public:
 	/** 
 	 * Returns a texture associated with the passed in name.  Should return nullptr if not found 
 	 */
-	virtual FSlateShaderResourceProxy* GetTexture( const FSlateBrush& InBrush ) = 0;
+	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) = 0;
 
 protected:
 
@@ -60,7 +60,7 @@ protected:
 		ResourceMap.Empty();
 	}
 
-	FString GetResourcePath( const FSlateBrush& InBrush )
+	FString GetResourcePath( const FSlateBrush& InBrush ) const
 	{
 		// assume the brush name contains the whole path
 		return InBrush.GetResourceName().ToString();
@@ -68,4 +68,10 @@ protected:
 
 	/** Mapping of names to texture pointers */
 	TMap<FName,FSlateShaderResourceProxy*> ResourceMap;
+
+private:
+	// Non-copyable
+	FSlateShaderResourceManager(const FSlateShaderResourceManager&);
+	FSlateShaderResourceManager& operator=(const FSlateShaderResourceManager&);
+
 };

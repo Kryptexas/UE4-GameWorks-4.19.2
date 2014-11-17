@@ -39,6 +39,7 @@ struct FD3D11VertexDeclarationKey
 			case VET_Short4:		D3DElement.Format = DXGI_FORMAT_R16G16B16A16_SINT; break;
 			case VET_Short2N:		D3DElement.Format = DXGI_FORMAT_R16G16_SNORM; break;
 			case VET_Half2:			D3DElement.Format = DXGI_FORMAT_R16G16_FLOAT; break;
+			case VET_Half4:			D3DElement.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
 			default: UE_LOG(LogD3D11RHI, Fatal,TEXT("Unknown RHI vertex element type %u"),(uint8)InElements[ElementIndex].Type);
 			};
 			D3DElement.SemanticName = "ATTRIBUTE";

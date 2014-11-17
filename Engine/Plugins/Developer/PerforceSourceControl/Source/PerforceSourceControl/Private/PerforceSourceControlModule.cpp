@@ -29,6 +29,8 @@ void FPerforceSourceControlModule::StartupModule()
 	PerforceSourceControlProvider.RegisterWorker( "Sync", FGetPerforceSourceControlWorker::CreateStatic( &CreateWorker<FPerforceSyncWorker> ) );
 	PerforceSourceControlProvider.RegisterWorker( "CheckIn", FGetPerforceSourceControlWorker::CreateStatic( &CreateWorker<FPerforceCheckInWorker> ) );
 	PerforceSourceControlProvider.RegisterWorker( "GetWorkspaces", FGetPerforceSourceControlWorker::CreateStatic( &CreateWorker<FPerforceGetWorkspacesWorker> ) );
+	PerforceSourceControlProvider.RegisterWorker( "Copy", FGetPerforceSourceControlWorker::CreateStatic( &CreateWorker<FPerforceCopyWorker> ) );
+	PerforceSourceControlProvider.RegisterWorker( "Resolve", FGetPerforceSourceControlWorker::CreateStatic( &CreateWorker<FPerforceResolveWorker> ) );
 
 	// load our settings
 	PerforceSourceControlSettings.LoadSettings();

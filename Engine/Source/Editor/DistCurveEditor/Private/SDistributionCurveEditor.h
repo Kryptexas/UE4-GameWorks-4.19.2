@@ -49,26 +49,26 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	/** IDistributionCurveEditor interface */
-	virtual void RefreshViewport() OVERRIDE;
-	virtual void CurveChanged() OVERRIDE;
-	virtual void SetCurveVisible(const UObject* InCurve, bool bShow) OVERRIDE;
-	virtual void ClearAllVisibleCurves() OVERRIDE;
-	virtual void SetCurveSelected(const UObject* InCurve, bool bSelected) OVERRIDE;
-	virtual void ClearAllSelectedCurves() OVERRIDE;
-	virtual void ScrollToFirstSelected() OVERRIDE;
-	virtual void SetActiveTabToFirstSelected() OVERRIDE;
-	virtual UInterpCurveEdSetup* GetEdSetup() OVERRIDE;
-	virtual float GetStartIn() OVERRIDE;
-	virtual float GetEndIn() OVERRIDE;
-	virtual void SetPositionMarker(bool bEnabled, float InPosition, const FColor& InMarkerColor) OVERRIDE;
-	virtual void SetEndMarker(bool bEnabled, float InEndPosition) OVERRIDE;
-	virtual void SetRegionMarker(bool bEnabled, float InRegionStart, float InRegionEnd, const FColor& InRegionFillColor) OVERRIDE;
-	virtual void SetInSnap(bool bEnabled, float SnapAmount, bool bInSnapToFrames) OVERRIDE;
-	virtual void SetViewInterval(float StartIn, float EndIn) OVERRIDE;
+	virtual void RefreshViewport() override;
+	virtual void CurveChanged() override;
+	virtual void SetCurveVisible(const UObject* InCurve, bool bShow) override;
+	virtual void ClearAllVisibleCurves() override;
+	virtual void SetCurveSelected(const UObject* InCurve, bool bSelected) override;
+	virtual void ClearAllSelectedCurves() override;
+	virtual void ScrollToFirstSelected() override;
+	virtual void SetActiveTabToFirstSelected() override;
+	virtual UInterpCurveEdSetup* GetEdSetup() override;
+	virtual float GetStartIn() override;
+	virtual float GetEndIn() override;
+	virtual void SetPositionMarker(bool bEnabled, float InPosition, const FColor& InMarkerColor) override;
+	virtual void SetEndMarker(bool bEnabled, float InEndPosition) override;
+	virtual void SetRegionMarker(bool bEnabled, float InRegionStart, float InRegionEnd, const FColor& InRegionFillColor) override;
+	virtual void SetInSnap(bool bEnabled, float SnapAmount, bool bInSnapToFrames) override;
+	virtual void SetViewInterval(float StartIn, float EndIn) override;
 	/** Fits the curve editor view horizontally to the curve data */
-	virtual void FitViewHorizontally() OVERRIDE;
+	virtual void FitViewHorizontally() override;
 	/** Fits the curve editor view vertically to the curve data */
-	virtual void FitViewVertically() OVERRIDE;
+	virtual void FitViewVertically() override;
 
 	/** Accessors */
 	TSharedPtr<FCurveEditorSharedData> GetSharedData();

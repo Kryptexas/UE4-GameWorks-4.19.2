@@ -5,8 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/PhysicsVolume.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -26,14 +28,16 @@ USceneComponent::USceneComponent(const class FPostConstructInitializeProperties&
 	NetUpdateTransform = false;
 }
 
-FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const
+FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
 {
 	// With no attachment
 	FTransform ParentToWorld = FTransform::Identity;
 
-	if(AttachParent != NULL)
+	Parent = Parent ? Parent : AttachParent;
+
+	if (Parent != NULL)
 	{
-		ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
+		ParentToWorld = Parent->GetSocketTransform(AttachSocketName);
 	}
 
 	FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
@@ -60,13 +64,13 @@ void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 {
 }
 
-void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
+void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent * Parent, bool bSkipPhysicsMove)
 {
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
-	if (AttachParent && !AttachParent->bWorldToComponentUpdated)
+	if (Parent && !Parent->bWorldToComponentUpdated)
 	{
-		AttachParent->UpdateComponentToWorld();
-		
+		Parent->UpdateComponentToWorld();
+
 		// Updating the parent may (depending on if we were already attached to parent) result in our being updated, so just return
 		if (bWorldToComponentUpdated)
 		{
@@ -77,11 +81,11 @@ void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
 	bWorldToComponentUpdated = true;
 
 	// Calculate the new ComponentToWorld transform
-	const FTransform RelativeTransform( RelativeRotation, RelativeLocation, RelativeScale3D );
-	const FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform);
+	const FTransform RelativeTransform(RelativeRotation, RelativeLocation, RelativeScale3D);
+	const FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent);
 
 	// If transform has changed..
-	if(!ComponentToWorld.Equals(NewTransform, SMALL_NUMBER))
+	if (!ComponentToWorld.Equals(NewTransform, SMALL_NUMBER))
 	{
 		// Update transform
 		ComponentToWorld = NewTransform;
@@ -92,6 +96,11 @@ void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
 	{
 		PropagateTransformUpdate(false);
 	}
+}
+
+void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
+{
+	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove);
 }
 
 
@@ -194,6 +203,21 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->GetOverlapsAtEnd())
 			{
 				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
+			}
+
+			// Dispatch all deferred blocking hits
+			if (CompletedScope.BlockingHits.Num() > 0)
+			{
+				AActor* const Owner = GetOwner();
+				if (Owner)
+				{
+					// If we have blocking hits, we must be a primitive component.
+					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
+					for (const FHitResult& Hit : CompletedScope.BlockingHits)
+					{
+						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+					}
+				}
 			}
 		}
 		else
@@ -407,7 +431,7 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 	if(AttachParent != NULL && !bAbsoluteScale)
 	{
 		FTransform ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
-		NewRelScale = ParentToWorld.InverseTransformVector(NewScale);
+		NewRelScale = NewScale * ParentToWorld.GetSafeScaleReciprocal(ParentToWorld.GetScale3D());
 	}
 
 	SetRelativeScale3D(NewRelScale);
@@ -676,14 +700,24 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
-		if (IsSimulatingPhysics() && GetWorld() && GetWorld()->IsGameWorld())
 		{
-			//Only at run time we break this attachment
-			RelativeLocation = ComponentToWorld.GetLocation();
-			RelativeRotation = ComponentToWorld.GetRotation().Rotator();
-			RelativeScale3D = ComponentToWorld.GetScale3D();
-			return;
+			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
+			//At runtime we must not attach physically simulated objects as it will cause double transform updates, and you should just use a physical constraint if attachment is the desired behavior.
+			//We must fixup the relative location,rotation,scale as the attachment is no longer valid. Blueprint uses simple construction to try and attach before ComponentToWorld has ever been updated, so we cannot rely on it.
+			//As such we must calculate the proper Relative information
+			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
+			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && GetWorld() && GetWorld()->IsGameWorld())
+			{
+				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
+				UpdateComponentToWorldWithParent(Parent, false);
+				RelativeLocation = ComponentToWorld.GetLocation();
+				RelativeRotation = ComponentToWorld.GetRotation().Rotator();
+				RelativeScale3D = ComponentToWorld.GetScale3D();
+				return;
+			}
 		}
+		
 
 		// Make sure we are detached
 		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
@@ -747,8 +781,11 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				}
 				else
 				{
-					FTransform ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
-					FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
+					// when snap, we'd like to give socket or bone scale only
+					// to do so, get parent and get socket relative to parent
+					FTransform ParentToWorld = AttachParent->GetComponentToWorld();
+					FTransform SocketTransform = AttachParent->GetSocketTransform(AttachSocketName);
+					FTransform RelativeTM = SocketTransform.GetRelativeTransform(ParentToWorld);
 					RelativeScale3D = RelativeTM.GetScale3D();
 				}
 			}
@@ -1527,6 +1564,9 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 	if (IsValid(Component))
 	{
 		InitialTransform = Component->GetComponentToWorld();
+		InitialRelativeLocation = Component->RelativeLocation;
+		InitialRelativeRotation = Component->RelativeRotation;
+		InitialRelativeScale = Component->RelativeScale3D;
 
 		if (ScopeBehavior == EScopedUpdate::ImmediateUpdates)
 		{
@@ -1584,11 +1624,15 @@ void FScopedMovementUpdate::RevertMove()
 	{
 		bHasValidOverlapsAtEnd = false;
 		PendingOverlaps.Reset();
+		BlockingHits.Reset();
 		
 		if (IsTransformDirty())
 		{
 			// Teleport to start
 			Component->ComponentToWorld = InitialTransform;
+			Component->RelativeLocation = InitialRelativeLocation;
+			Component->RelativeRotation = InitialRelativeRotation;
+			Component->RelativeScale3D = InitialRelativeScale;
 
 			if (!IsDeferringUpdates())
 			{
@@ -1624,6 +1668,7 @@ void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& In
 
 		// Combine with the next item on the stack
 		AppendOverlaps(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+		BlockingHits.Append(InnerScope.GetPendingBlockingHits());
 	}	
 }
 

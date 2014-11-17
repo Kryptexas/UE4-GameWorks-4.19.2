@@ -38,16 +38,6 @@ public:
 	static void ImportMeshLOD( FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD);
 
 	/**
-	* Import the temporary skeletal mesh into the specified LOD of the destination skeletal mesh
-	*
-	* @param UpdateContext - The skeletal mesh and actor components to operate on.
-	* @param InputSkeletalMesh - newly created mesh used as LOD
-	* @param DesiredLOD - the LOD index to import into. A new LOD entry is created if one doesn't exist
-	* @return If true, import succeeded
-	*/
-	static bool ImportMeshLOD(FSkeletalMeshUpdateContext& UpdateContext, USkeletalMesh* InputSkeletalMesh, int32 DesiredLOD);
-	
-	/**
 	 *	Simplifies the static mesh based upon various user settings.
 	 *
 	 * @param UpdateContext - The skeletal mesh and actor components to operate on.

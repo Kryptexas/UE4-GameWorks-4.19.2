@@ -21,9 +21,9 @@ public:
 
 protected:
 	// Begin UActorComponent interface.
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// End UActorComponent interface.
 
 public:

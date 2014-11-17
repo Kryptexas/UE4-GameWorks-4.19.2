@@ -56,7 +56,7 @@ public:
 	 *
 	 * @return false if no longer needs ticking
 	 */
-	bool Tick(float DeltaSeconds) OVERRIDE;
+	bool Tick(float DeltaSeconds) override;
 
 	/**
 	 * List all of the Http requests currently being processed

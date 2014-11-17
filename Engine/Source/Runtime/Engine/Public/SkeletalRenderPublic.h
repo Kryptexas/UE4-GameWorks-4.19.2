@@ -44,7 +44,7 @@ public:
 	 * Called by the rendering thread to update the current dynamic data
 	 * @param	InDynamicData - data that was created by the game thread for use by the rendering thread
 	 */
-	virtual void UpdateDynamicData_RenderThread(class FDynamicSkelMeshObjectData* InDynamicData) = 0;
+	virtual void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, class FDynamicSkelMeshObjectData* InDynamicData) = 0;
 
 	/**
 	 * @param	LODIndex - each LOD has its own vertex data

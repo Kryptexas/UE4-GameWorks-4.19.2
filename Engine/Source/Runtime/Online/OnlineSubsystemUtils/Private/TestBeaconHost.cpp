@@ -5,19 +5,15 @@
 ATestBeaconHost::ATestBeaconHost(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
 {
+	BeaconTypeName = TEXT("TestBeacon");
 }
 
-bool ATestBeaconHost::InitHost()
+bool ATestBeaconHost::Init()
 {
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogBeacon, Verbose, TEXT("InitHost"));
-	if(AOnlineBeaconHost::InitHost())
-	{
-		OnBeaconConnected(FName(TEXT("TestBeacon"))).BindUObject(this, &ATestBeaconHost::ClientConnected);
-		return true;
-	}
+	UE_LOG(LogBeacon, Verbose, TEXT("Init"));
 #endif
-	return false;
+	return true;
 }
 
 void ATestBeaconHost::ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
@@ -35,7 +31,7 @@ void ATestBeaconHost::ClientConnected(AOnlineBeaconClient* NewClientActor, UNetC
 #endif
 }
 
-AOnlineBeaconClient* ATestBeaconHost::SpawnBeaconActor()
+AOnlineBeaconClient* ATestBeaconHost::SpawnBeaconActor(UNetConnection* ClientConnection)
 {	
 #if !UE_BUILD_SHIPPING
 	FActorSpawnParameters SpawnInfo;

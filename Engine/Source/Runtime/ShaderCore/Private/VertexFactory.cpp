@@ -7,6 +7,7 @@
 #include "ShaderCore.h"
 #include "Shader.h"
 #include "VertexFactory.h"
+#include "RHICommandList.h"
 
 uint32 FVertexFactoryType::NextHashIndex = 0;
 bool FVertexFactoryType::bInitializedSerializationHistory = false;
@@ -166,18 +167,18 @@ FVertexFactoryType* FindVertexFactoryType(FName TypeName)
 	return NULL;
 }
 
-void FVertexFactory::Set() const
+void FVertexFactory::Set(FRHICommandList& RHICmdList) const
 {
 	check(IsInitialized());
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
 		checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
-		RHISetStreamSource(StreamIndex,Stream.VertexBuffer->VertexBufferRHI,Stream.Stride,Stream.Offset);
+		RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset);
 	}
 }
 
-void FVertexFactory::SetPositionStream() const
+void FVertexFactory::SetPositionStream(FRHICommandList& RHICmdList) const
 {
 	check(IsInitialized());
 	// Set the predefined vertex streams.
@@ -185,7 +186,7 @@ void FVertexFactory::SetPositionStream() const
 	{
 		const FVertexStream& Stream = PositionStream[StreamIndex];
 		check(Stream.VertexBuffer->IsInitialized());
-		RHISetStreamSource(StreamIndex,Stream.VertexBuffer->VertexBufferRHI,Stream.Stride,Stream.Offset);
+		RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset);
 	}
 }
 
@@ -244,7 +245,7 @@ FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponen
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
 
-	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,Component.bUseInstanceIndex);
+	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }
 
 FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStreamComponent& Component,uint8 AttributeIndex)
@@ -254,7 +255,7 @@ FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStream
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
 
-	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,Component.bUseInstanceIndex);
+	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }
 
 //TTP:51684
@@ -282,6 +283,7 @@ static uint8 GetVertexElementSize( uint8 Type )
 		case VET_Short2N:
 		case VET_Short4:
 		case VET_Half2:
+		case VET_Half4:
 		default:
 			return 0;
 	}
@@ -324,6 +326,7 @@ static void PatchVertexStreamOffsetsToBeUnique( FVertexDeclarationElementList& E
 				VertElement.StreamIndex = Elements[ i ].StreamIndex;
 				VertElement.Type		= Elements[ i ].Type;
 				VertElement.AttributeIndex	= Elements[ i ].AttributeIndex;
+				VertElement.Stride = Elements[ i ].Stride;
 				VertElement.bUseInstanceIndex = Elements[i].bUseInstanceIndex;
 
 				// remove the old redundant element

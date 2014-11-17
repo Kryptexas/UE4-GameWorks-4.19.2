@@ -1,7 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "../Engine/BlendableInterface.h"
+
+#include "Engine/BlendableInterface.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpression.h"
+#include "Materials/MaterialInterface.h"
+
 #include "Material.generated.h"
 
 #if WITH_EDITOR
@@ -251,7 +256,7 @@ struct FMaterialParameterCollectionInfo
 
 /**
  * A Material is an asset which can be applied to a mesh to control the visual look of the scene. In general,
- * when light from the scene hits the surface, the lighting model of the material is used to calculate how
+ * when light from the scene hits the surface, the shading model of the material is used to calculate how
  * that light interacts with the surface. 
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
@@ -330,7 +335,7 @@ class UMaterial : public UMaterialInterface
 private:
 	/** Determines how inputs are combined to create the material's final color. */
 	UPROPERTY(EditAnywhere, Category=Material, AssetRegistrySearchable)
-	TEnumAsByte<enum EMaterialLightingModel> LightingModel;
+	TEnumAsByte<enum EMaterialShadingModel> ShadingModel;
 public:
 
 	/** If BlendMode is BLEND_Masked, the surface is not rendered where OpacityMask < OpacityMaskClipValue. */
@@ -349,7 +354,7 @@ public:
 	UPROPERTY()
 	FScalarMaterialInput TessellationMultiplier;
 
-	/** Inner material color, only used for LightingModel=Subsurface */
+	/** Inner material color, only used for ShadingModel=Subsurface */
 	UPROPERTY()
 	FColorMaterialInput SubsurfaceColor;
 
@@ -424,7 +429,7 @@ public:
 	float TranslucentSelfShadowSecondOpacity;
 
 	/** 
-	 * Controls how diffuse the material's backscattering is when using the MLM_Subsurface lighting model.
+	 * Controls how diffuse the material's backscattering is when using the MSM_Subsurface shading model.
 	 * Larger exponents give a less diffuse look (smaller, brighter backscattering highlight).
 	 * This is only used when the object is casting a volumetric translucent shadow from a directional light.
 	 */
@@ -573,6 +578,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithClothing:1;
 
+	/** 
+	 * Indicates that the material and its instances can be use with Slate UI and UMG
+	 * This will result in the shaders required to support UI materials being compiled which will increase shader compile time and memory usage.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
+	uint32 bUsedWithUI:1;
+
 	/* Forces the material to be completely rough. Saves a number of instructions and one sampler. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bFullyRough:1;
@@ -719,68 +731,73 @@ private:
 public:
 
 	// Begin UMaterialInterface interface.
-	ENGINE_API virtual UMaterial* GetMaterial() OVERRIDE;
-	ENGINE_API virtual const UMaterial* GetMaterial() const OVERRIDE;
-	ENGINE_API virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const OVERRIDE;
+	ENGINE_API virtual UMaterial* GetMaterial() override;
+	ENGINE_API virtual const UMaterial* GetMaterial() const override;
+	ENGINE_API virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
 	ENGINE_API virtual bool GetParameterDesc(FName ParameterName, FString& OutDesc) const;
-	ENGINE_API virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const OVERRIDE;
-	ENGINE_API virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const OVERRIDE;
-	ENGINE_API virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const OVERRIDE;
-	ENGINE_API virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue,int32& OutFontPage) const OVERRIDE;
-	ENGINE_API virtual bool GetGroupName(FName ParameterName, FName& OutDesc) const OVERRIDE;
-	ENGINE_API virtual bool GetRefractionSettings(float& OutBiasValue) const OVERRIDE;
-	ENGINE_API virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const OVERRIDE;
-	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const OVERRIDE;
-	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const OVERRIDE;
-	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) OVERRIDE;
-	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) OVERRIDE;
-	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const OVERRIDE;
+	ENGINE_API virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const override;
+	ENGINE_API virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const override;
+	ENGINE_API virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const override;
+	ENGINE_API virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue,int32& OutFontPage) const override;
+	ENGINE_API virtual bool GetGroupName(FName ParameterName, FName& OutDesc) const override;
+	ENGINE_API virtual bool GetRefractionSettings(float& OutBiasValue) const override;
+	ENGINE_API virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const override;
+	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
+	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const override;
+	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) override;
+	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
+	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
-	ENGINE_API virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) OVERRIDE;
-	ENGINE_API virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const OVERRIDE;
-	ENGINE_API virtual bool GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid) OVERRIDE;
-	ENGINE_API virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A, FGuid &OutExpressionGuid) OVERRIDE;
-	ENGINE_API virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) OVERRIDE;
-	ENGINE_API virtual bool UpdateLightmassTextureTracking() OVERRIDE;
+	ENGINE_API virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
+	ENGINE_API virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
+	ENGINE_API virtual bool GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid) override;
+	ENGINE_API virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A, FGuid &OutExpressionGuid) override;
+	ENGINE_API virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) override;
+	ENGINE_API virtual bool UpdateLightmassTextureTracking() override;
 	ENGINE_API virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures, 
-		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) OVERRIDE;
-	ENGINE_API virtual void RecacheUniformExpressions() const OVERRIDE;
+		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
+	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialLightingModel GetLightingModel_Internal() const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 
-	ENGINE_API void SetLightingModel(EMaterialLightingModel NewModel) {LightingModel = NewModel;}
+	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector );
-	ENGINE_API virtual void ForceRecompileForRendering() OVERRIDE;
+	ENGINE_API virtual void ForceRecompileForRendering() override;
 	// End UMaterialInterface interface.
 
 	// Begin UObject Interface
 	ENGINE_API virtual void PreSave();
 	ENGINE_API virtual void PostInitProperties();	
-	ENGINE_API virtual void Serialize(FArchive& Ar) OVERRIDE;
-	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	ENGINE_API virtual void PostLoad() OVERRIDE;
-	ENGINE_API virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
-	ENGINE_API virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
-	ENGINE_API virtual void ClearAllCachedCookedPlatformData() OVERRIDE;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
+	ENGINE_API virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
+	ENGINE_API virtual void ClearAllCachedCookedPlatformData() override;
 
 #if WITH_EDITOR
-	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	ENGINE_API virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
+	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	ENGINE_API virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual void BeginDestroy() OVERRIDE;
-	ENGINE_API virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	ENGINE_API virtual void FinishDestroy() OVERRIDE;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void FinishDestroy() override;
+	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
+
+#if WITH_EDITOR
+	/** Cancels any currently outstanding compilation jobs for this material. Useful in the material editor when some edits superceds existing, in flight compilation jobs.*/
+	ENGINE_API virtual void CancelOutstandingCompilation();
+#endif // WITH_EDITOR
 
 	/**
 	 * Return the default material, loading it if necessary
@@ -1038,7 +1055,7 @@ public:
 	 *
 	 * @param	Expression	The expression node to inspect.
 	 */
-	ENGINE_API static bool IsParameter(UMaterialExpression* Expression);
+	ENGINE_API static bool IsParameter(const UMaterialExpression* Expression);
 
 	/**
 	 * Return whether the provided expression node is a dynamic parameter.
@@ -1070,8 +1087,8 @@ public:
 	void GetReferencedParameterCollectionIds(TArray<FGuid>& OutIds) const;
 
 	/* Helper functions for text output of properties. */
-	static const TCHAR* GetMaterialLightingModelString(EMaterialLightingModel InMaterialLightingModel);
-	static EMaterialLightingModel GetMaterialLightingModelFromString(const TCHAR* InMaterialLightingModelStr);
+	static const TCHAR* GetMaterialShadingModelString(EMaterialShadingModel InMaterialShadingModel);
+	static EMaterialShadingModel GetMaterialShadingModelFromString(const TCHAR* InMaterialShadingModelStr);
 	static const TCHAR* GetBlendModeString(EBlendMode InBlendMode);
 	static EBlendMode GetBlendModeFromString(const TCHAR* InBlendModeStr);
 
@@ -1155,6 +1172,13 @@ public:
 	 * @param	Material		The Material to flip its home coords (optional)
 	 */
 	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* Material = NULL);
+
+	/**
+	 * Shifts the positions of comments so that they are aligned correctly with other expressions
+	 *
+	 * @param	Comments	Array of comments to fix
+	 */
+	static void FixCommentPositions(const TArray<UMaterialExpressionComment*>& Comments);
 
 	/**
 	 * Checks whether a Material is arranged in the old style, with inputs flowing from right to left

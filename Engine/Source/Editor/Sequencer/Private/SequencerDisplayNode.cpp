@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SectionLayoutBuilder.h"
 #include "ISequencerSection.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 #include "SSequencer.h"
 #include "SSequencerSectionAreaView.h"
@@ -23,8 +23,8 @@ public:
 	SLATE_END_ARGS()
 
 	/** SLeafWidget Interface */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FVector2D ComputeDesiredSize() const override;
 	
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode )
 	{
@@ -138,7 +138,7 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	bExpanded = ParentTree.GetSavedExpansionState( *this );
 }
 
-TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FString& DisplayLabel )
+TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
 {
 	TSharedPtr<FSectionCategoryNode> CategoryNode;
 
@@ -189,7 +189,7 @@ TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionN
 	return SectionNode.ToSharedRef();
 }
 
-void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FString& DisplayName, TSharedRef<IKeyArea> KeyArea )
+void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea )
 {
 	TSharedPtr<FSectionKeyAreaNode> KeyAreaNode;
 
@@ -213,7 +213,7 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FString& Di
 	KeyAreaNode->AddKeyArea( KeyArea );
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForOutliner( TSharedRef<class ISequencerInternals> Sequencer )
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer )
 {
 	return SNew( SAnimationOutlinerView, SharedThis( this ), Sequencer );
 }
@@ -362,10 +362,10 @@ float FTrackNode::GetNodeHeight() const
 	return Sections.Num() > 0 ? Sections[0]->GetSectionHeight() * (GetMaxRowIndex()+1) : SequencerLayoutConstants::SectionAreaDefaultHeight;
 }
 
-FString FTrackNode::GetDisplayName() const
+FText FTrackNode::GetDisplayName() const
 {
 	// @todo Sequencer - IS there a better way to get the section interface name for the animation outliner?
-	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : NodeName.ToString();
+	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
 }
 
 void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
@@ -373,7 +373,7 @@ void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
 	if( !TopLevelKeyNode.IsValid() )
 	{
 		bool bTopLevel = true;
-		TopLevelKeyNode = MakeShareable( new FSectionKeyAreaNode( GetNodeName(), TEXT(""), NULL, ParentTree, bTopLevel ) );
+		TopLevelKeyNode = MakeShareable( new FSectionKeyAreaNode( GetNodeName(), FText::GetEmpty(), NULL, ParentTree, bTopLevel ) );
 	}
 
 	TopLevelKeyNode->AddKeyArea( KeyArea );
@@ -459,7 +459,7 @@ bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 
 TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ISequencerInternals& ParentSequencer = GetSequencer();
+	FSequencer& ParentSequencer = GetSequencer();
 
 	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
 

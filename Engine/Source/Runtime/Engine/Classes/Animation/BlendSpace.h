@@ -2,13 +2,16 @@
 
 #pragma once
 
+#include "BlendSpaceBase.h"
 #include "AnimInterpFilter.h"
+#include "AnimInstance.h"
+
 #include "BlendSpace.generated.h"
 
 /**
  * Contains a grid of data points with weights from sample points in the space
  */
-UCLASS(config=Engine, hidecategories=Object, dependson=UAnimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpace : public UBlendSpaceBase
 {
 	GENERATED_UCLASS_BODY()
@@ -44,10 +47,10 @@ public:
 
 protected:
 	// Begin UBlendSpaceBase interface
-	virtual void SnapToBorder(FBlendSample& Sample) const OVERRIDE;
-	virtual EBlendSpaceAxis GetAxisToScale() const OVERRIDE;
-	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const OVERRIDE;
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const OVERRIDE;
+	virtual void SnapToBorder(FBlendSample& Sample) const override;
+	virtual EBlendSpaceAxis GetAxisToScale() const override;
+	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const override;
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const override;
 	// End UBlendSpaceBase interface
 
 private:

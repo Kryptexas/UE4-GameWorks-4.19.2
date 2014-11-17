@@ -454,7 +454,7 @@ void SafeCreateTexture2D(ID3D11Device* Direct3DDevice, const D3D11_TEXTURE2D_DES
 
 template<typename BaseResourceType>
 TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool bCubeTexture,uint8 Format,
-	uint32 NumMips,uint32 NumSamples,uint32 Flags, FResourceBulkDataInterface* BulkData)
+	uint32 NumMips,uint32 NumSamples,uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
 	check(SizeX > 0 && SizeY > 0 && NumMips > 0);
 
@@ -576,6 +576,10 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		check(!(Flags & TexCreate_DepthStencilTargetable));
 		check(!(Flags & TexCreate_ResolveTargetable));
 		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+#if PLATFORM_XBOXONE
+		// Turn off color compression until we get to the bottom of the random CMASK corruption.
+		TextureDesc.MiscFlags |= D3D11X_RESOURCE_MISC_NO_COLOR_COMPRESSION;
+#endif
 		bCreateRTV = true;
 	}
 	else if(Flags & TexCreate_DepthStencilTargetable)
@@ -651,9 +655,9 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	{
 		TArray<D3D11_SUBRESOURCE_DATA> SubResourceData;
 
-		if (BulkData)
+		if (CreateInfo.BulkData)
 		{
-			uint8* Data = (uint8*)BulkData->GetResourceBulkData();
+			uint8* Data = (uint8*)CreateInfo.BulkData->GetResourceBulkData();
 
 			// each mip of each array slice counts as a subresource
 			SubResourceData.AddZeroed(NumMips * SizeZ);
@@ -688,7 +692,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		else
 #endif
 		{
-			SafeCreateTexture2D(Direct3DDevice, &TextureDesc, BulkData != NULL ? (const D3D11_SUBRESOURCE_DATA*)SubResourceData.GetData() : NULL, TextureResource.GetInitReference());
+			SafeCreateTexture2D(Direct3DDevice, &TextureDesc, CreateInfo.BulkData != NULL ? (const D3D11_SUBRESOURCE_DATA*)SubResourceData.GetData() : NULL, TextureResource.GetInitReference());
 		}
 
 		if(bCreateRTV)
@@ -848,7 +852,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	return Texture2D;
 }
 
-FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D11CreateTextureTime);
 	
@@ -898,9 +902,9 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	TArray<D3D11_SUBRESOURCE_DATA> SubResourceData;
 
-	if (BulkData)
+	if (CreateInfo.BulkData)
 	{
-		uint8* Data = (uint8*)BulkData->GetResourceBulkData();
+		uint8* Data = (uint8*)CreateInfo.BulkData->GetResourceBulkData();
 		SubResourceData.AddZeroed(NumMips);
 		uint32 MipOffset = 0;
 		for(uint32 MipIndex = 0;MipIndex < NumMips;++MipIndex)
@@ -924,7 +928,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	TRefCountPtr<ID3D11Texture3D> TextureResource;
 	VERIFYD3D11CREATETEXTURERESULT(
-		Direct3DDevice->CreateTexture3D(&TextureDesc,BulkData != NULL ? (const D3D11_SUBRESOURCE_DATA*)SubResourceData.GetData() : NULL,TextureResource.GetInitReference()),
+		Direct3DDevice->CreateTexture3D(&TextureDesc,CreateInfo.BulkData != NULL ? (const D3D11_SUBRESOURCE_DATA*)SubResourceData.GetData() : NULL,TextureResource.GetInitReference()),
 		SizeX,
 		SizeY,
 		SizeZ,
@@ -974,9 +978,9 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 	2D texture support.
 -----------------------------------------------------------------------------*/
 
-FTexture2DRHIRef FD3D11DynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture2DRHIRef FD3D11DynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& CreateInfo)
 {
-	return CreateD3D11Texture2D<FD3D11BaseTexture2D>(SizeX,SizeY,1,false,false,Format,NumMips,NumSamples,Flags,BulkData);
+	return CreateD3D11Texture2D<FD3D11BaseTexture2D>(SizeX,SizeY,1,false,false,Format,NumMips,NumSamples,Flags,CreateInfo);
 }
 
 FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 Flags,void** InitialMipData,uint32 NumInitialMips)
@@ -1108,16 +1112,16 @@ void FD3D11DynamicRHI::RHICopySharedMips(FTexture2DRHIParamRef DestTexture2DRHI,
 	}
 }
 
-FTexture2DArrayRHIRef FD3D11DynamicRHI::RHICreateTexture2DArray(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture2DArrayRHIRef FD3D11DynamicRHI::RHICreateTexture2DArray(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo)
 {
 	check(SizeZ >= 1);
-	return CreateD3D11Texture2D<FD3D11BaseTexture2DArray>(SizeX,SizeY,SizeZ,true,false,Format,NumMips,1,Flags,BulkData);
+	return CreateD3D11Texture2D<FD3D11BaseTexture2DArray>(SizeX,SizeY,SizeZ,true,false,Format,NumMips,1,Flags,CreateInfo);
 }
 
-FTexture3DRHIRef FD3D11DynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture3DRHIRef FD3D11DynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo)
 {
 	check(SizeZ >= 1);
-	return CreateD3D11Texture3D(SizeX,SizeY,SizeZ,Format,NumMips,Flags,BulkData);
+	return CreateD3D11Texture3D(SizeX,SizeY,SizeZ,Format,NumMips,Flags,CreateInfo);
 }
 
 void FD3D11DynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
@@ -1175,10 +1179,19 @@ FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture
 		SRVDesc.Texture2D.MipLevels = NumMipLevels;
 	}
 	
-
 	SRVDesc.Format = PlatformShaderResourceFormat;
 	TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()));
+
+	HRESULT hResCreateShaderResourceView = Direct3DDevice->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference());
+
+	if(FAILED(hResCreateShaderResourceView))
+	{
+		// provide more input data to track down error
+		UE_LOG(LogD3D11RHI,Warning,TEXT("CreateShaderResourceView failed, input: ViewDim:%d MSAA:%d Format:%d/%d SRGB:%d hRes:%x"),
+			(int32)SRVDesc.ViewDimension, (int32)TextureDesc.SampleDesc.Count, (int32)PlatformResourceFormat, (int32)PlatformShaderResourceFormat, bSRGB ? 1 : 0, hResCreateShaderResourceView);
+	}
+
+	VERIFYD3D11RESULT(hResCreateShaderResourceView);
 
 	return new FD3D11ShaderResourceView(ShaderResourceView,Texture2D);
 }
@@ -1231,7 +1244,8 @@ FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture2D);
 
 	// Allocate a new texture.
-	FD3D11Texture2D* NewTexture2D = CreateD3D11Texture2D<FD3D11BaseTexture2D>(NewSizeX,NewSizeY,1,false,false,Texture2D->GetFormat(),NewMipCount,1,Texture2D->GetFlags());
+	FRHIResourceCreateInfo CreateInfo;
+	FD3D11Texture2D* NewTexture2D = CreateD3D11Texture2D<FD3D11BaseTexture2D>(NewSizeX,NewSizeY,1,false,false,Texture2D->GetFormat(),NewMipCount,1,Texture2D->GetFlags(),CreateInfo);
 	
 	// Use the GPU to asynchronously copy the old mip-maps into the new texture.
 	const uint32 NumSharedMips = FMath::Min(Texture2D->GetNumMips(),NewTexture2D->GetNumMips());
@@ -1397,6 +1411,7 @@ void* FD3D11DynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32
 {
 	check(TextureRHI);
 	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture);
+	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,0,LockMode,DestStride);
 }
 
@@ -1410,6 +1425,7 @@ void FD3D11DynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 void* FD3D11DynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(Texture2DArray,Texture);
+	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,TextureIndex,LockMode,DestStride);
 }
 
@@ -1454,19 +1470,20 @@ void FD3D11DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 /*-----------------------------------------------------------------------------
 	Cubemap texture support.
 -----------------------------------------------------------------------------*/
-FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6,false,true,Format,NumMips,1,Flags,BulkData);
+	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6,false,true,Format,NumMips,1,Flags,CreateInfo);
 }
 
-FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6 * ArraySize,true,true,Format,NumMips,1,Flags,BulkData);
+	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6 * ArraySize,true,true,Format,NumMips,1,Flags,CreateInfo);
 }
 
 void* FD3D11DynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(TextureCube,TextureCube);
+	ConditionalClearShaderResource(TextureCube);
 	uint32 D3DFace = GetD3D11CubeFace((ECubeFace)FaceIndex);
 	return TextureCube->Lock(MipIndex,D3DFace + ArrayIndex * 6,LockMode,DestStride);
 }
@@ -1487,4 +1504,31 @@ void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRe
 
 void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)
 {
+}
+
+FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
+{
+	return new FD3D11TextureReference(this,LastRenderTime);
+}
+
+void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)
+{
+	// Updating texture references is disallowed while the RHI could be caching them in referenced resource tables.
+	check(ResourceTableFrameCounter == INDEX_NONE);
+
+	FD3D11TextureReference* TextureRef = (FD3D11TextureReference*)TextureRefRHI;
+	if (TextureRef)
+	{
+		FD3D11TextureBase* NewTexture = NULL;
+		ID3D11ShaderResourceView* NewSRV = NULL;
+		if (NewTextureRHI)
+		{
+			NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
+			if (NewTexture)
+			{
+				NewSRV = NewTexture->GetShaderResourceView();
+			}
+		}
+		TextureRef->SetReferencedTexture(NewTextureRHI,NewTexture,NewSRV);
+	}
 }

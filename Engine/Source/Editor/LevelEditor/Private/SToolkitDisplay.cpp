@@ -142,7 +142,7 @@ FText SLevelEditorActiveToolkit::GetToolkitTextLabel() const
 {
 	if( ActiveToolkitType == ELevelEditorActiveToolkit::LegacyEditorMode )
 	{
-		return EditorMode->GetName();
+		return EditorMode->GetModeInfo().Name;
 	}
 	else if( ActiveToolkitType == ELevelEditorActiveToolkit::Toolkit )
 	{
@@ -172,7 +172,7 @@ void SLevelEditorActiveToolkit::DeactivateMode()
 	{
 		// Exit the mode.  This will immediately call back to remove the active toolkit from our list
 		check( EditorMode != NULL );
-		GEditorModeTools().DeactivateMode( EditorMode->GetID() );
+		GLevelEditorModeTools().DeactivateMode( EditorMode->GetID() );
 	}
 	else if( ActiveToolkitType == ELevelEditorActiveToolkit::Toolkit )
 	{
@@ -238,12 +238,12 @@ void SToolkitDisplay::Construct( const FArguments& InArgs, const TSharedRef< cla
 		];
 
 	// Register with the mode system to find out when a mode is entered or exited
-	GEditorModeTools().OnEditorModeChanged().AddSP( SharedThis( this ), &SToolkitDisplay::OnEditorModeChanged );
+	GLevelEditorModeTools().OnEditorModeChanged().AddSP( SharedThis( this ), &SToolkitDisplay::OnEditorModeChanged );
 
 	// Find all of the current active modes and toolkits and add those right away.  This widget could have been created "late"!
 	{
 		TArray< FEdMode* > ActiveModes;
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( auto EdModeIt = ActiveModes.CreateConstIterator(); EdModeIt; ++EdModeIt )
 		{
 			// We don't care about the default editor mode.  Just ignore it.
@@ -271,7 +271,7 @@ SToolkitDisplay::~SToolkitDisplay()
 	}
 
 	// Unregister delegates
-	GEditorModeTools().OnEditorModeChanged().RemoveAll( this );
+	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll( this );
 }
 
 

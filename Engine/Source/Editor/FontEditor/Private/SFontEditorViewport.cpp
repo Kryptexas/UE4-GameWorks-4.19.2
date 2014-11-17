@@ -19,8 +19,8 @@ public:
 	FFontEditorViewportClient(TWeakPtr<SFontEditorViewport> InFontEditorViewport);
 
 	/** FLevelEditorViewportClient interface */
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false) OVERRIDE;
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false) override;
 	
 	/** Determines which texture page was selected. */
 	void UpdateSelectedPage(UObject* SelectedObject);

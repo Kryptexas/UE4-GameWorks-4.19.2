@@ -432,7 +432,7 @@ public:
 		return false;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		check(Format == NAME_ADPCM);
 		return UE_AUDIO_ADPCM_VER;

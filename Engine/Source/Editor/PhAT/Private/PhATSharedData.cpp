@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
+#include "PhysicsPublic.h"
+#include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "SPhATNewAssetDlg.h"
 #include "PhATEdSkeletalMeshComponent.h"
@@ -122,13 +124,13 @@ void FPhATSharedData::Initialize()
 		UBodySetup* BodySetup = PhysicsAsset->BodySetup[i];
 		if (BodySetup->AggGeom.GetElementCount() == 0)
 		{
-			BodySetup->AggGeom.BoxElems.AddZeroed(1);
+			FKBoxElem BoxElem;
+			BoxElem.SetTransform(FTransform::Identity);
+			BoxElem.X = 15.f;
+			BoxElem.Y = 15.f;
+			BoxElem.Z = 15.f;
+			BodySetup->AggGeom.BoxElems.Add(BoxElem);
 			check(BodySetup->AggGeom.BoxElems.Num() == 1);
-			FKBoxElem& Box = BodySetup->AggGeom.BoxElems[0];
-			Box.SetTransform( FTransform::Identity );
-			Box.X = 15.f;
-			Box.Y = 15.f;
-			Box.Z = 15.f;
 
 			bFoundEmptyShape = true;
 		}
@@ -798,14 +800,21 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
 	
 	BodySetup->Modify();
 
+	bool bCreatedBody = false;
 	// Create a new physics body for this bone.
 	if (NewBodyData.VertWeight == EVW_DominantWeight)
 	{
-		FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
 	}
 	else
 	{
-		FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+	}
+
+	if (bCreatedBody == false)
+	{
+		FPhysicsAssetUtils::DestroyBody(PhysicsAsset, NewBodyIndex);
+		return;
 	}
 
 	// Check if the bone of the new body has any physical children bones
@@ -892,12 +901,13 @@ void FPhATSharedData::SetSelectedConstraintRelTM(const FTransform& RelTM)
 
 	// Get child bone transform
 	int32 BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
-	check(BoneIndex != INDEX_NONE);
+	if (BoneIndex != INDEX_NONE)
+	{
+		FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
+		BoneTM.RemoveScaling();
 
-	FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
-	BoneTM.RemoveScaling();
-
-	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, WNewChildFrame.GetRelativeTransform(BoneTM));
+		ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, WNewChildFrame.GetRelativeTransform(BoneTM));
+	}
 }
 
 FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const
@@ -921,12 +931,19 @@ FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection * Constraint, 
 	{
 		BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone2);
 	}
-	check(BoneIndex != INDEX_NONE);
 
-	FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
-	BoneTM.RemoveScaling();
+	//It's possible for BoneIndex to be INDEX_NONE, for example if the constraint name is invalid
+	if (BoneIndex != INDEX_NONE)
+	{
+		FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
+		BoneTM.RemoveScaling();
 
-	return FrameTM * BoneTM;
+		return FrameTM * BoneTM;
+	}
+	else
+	{
+		return FTransform::Identity;
+	}	
 }
 
 void FPhATSharedData::CopyConstraint()

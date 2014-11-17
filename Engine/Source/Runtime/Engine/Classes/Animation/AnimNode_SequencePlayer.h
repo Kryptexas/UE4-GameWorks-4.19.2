@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_SequencePlayer.generated.h"
 
 #pragma once
@@ -45,11 +46,11 @@ public:
 	}
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) OVERRIDE;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
-	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
-	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
-	virtual void OverrideAsset(UAnimationAsset* NewAsset) OVERRIDE;
-	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones(const FAnimationCacheBonesContext & Context) override;
+	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void OverrideAsset(UAnimationAsset* NewAsset) override;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 };

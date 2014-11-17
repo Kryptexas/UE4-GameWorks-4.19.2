@@ -57,9 +57,9 @@ class UControlChannel : public UChannel
 	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally );
 
 	// Begin UChannel interface.
-	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) OVERRIDE;
+	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override;
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 	// End UChannel interface.
 
 

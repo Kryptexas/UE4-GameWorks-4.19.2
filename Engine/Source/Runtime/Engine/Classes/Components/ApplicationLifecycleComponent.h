@@ -39,8 +39,8 @@ class ENGINE_API UApplicationLifecycleComponent : public UActorComponent
 	FApplicationLifetimeDelegate ApplicationWillTerminateDelegate;
 
 public:
-	void OnRegister() OVERRIDE;
-	void OnUnregister() OVERRIDE;
+	void OnRegister() override;
+	void OnUnregister() override;
 
 private:
 	/** Native handlers that get registered with the actual FCoreDelegates, and then proceed to broadcast to the delegates above */

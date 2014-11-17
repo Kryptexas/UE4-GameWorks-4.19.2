@@ -12,8 +12,8 @@
 class FFontEditor : public IFontEditor, public FGCObject, public FNotifyHook, public FEditorUndoClient
 {
 public:
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	/** Destructor */
 	virtual ~FFontEditor();
@@ -22,20 +22,20 @@ public:
 	void InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit);
 
 	/** IFontEditor interface */
-	virtual UFont* GetFont() const OVERRIDE;
-	virtual void SetSelectedPage(int32 PageIdx) OVERRIDE;
+	virtual UFont* GetFont() const override;
+	virtual void SetSelectedPage(int32 PageIdx) override;
 	
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/** Called to determine if the user should be prompted for a new file if one is missing during an asset reload*/
-	virtual bool ShouldPromptForNewFilesOnReload(const UObject& object) const OVERRIDE;
+	virtual bool ShouldPromptForNewFilesOnReload(const UObject& object) const override;
 
 protected:
 	/** Called when the preview text changes */
@@ -43,13 +43,13 @@ protected:
 	
 	// Begin FEditorUndoClient Interface
 	/** Handles any post undo cleanup of the GUI so that we don't have stale data being displayed. */
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 private:
 	/** FNotifyHook interface */
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) OVERRIDE;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
 
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();

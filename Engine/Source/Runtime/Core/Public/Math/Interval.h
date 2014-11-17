@@ -12,28 +12,23 @@
  */
 struct FInterval
 {
-	/**
-	 * Holds the lower bound of the interval.
-	 */
+	/** Holds the lower bound of the interval. */
 	float Min;
 	
-	/**
-	 * Holds the upper bound of the interval.
-	 */
+	/** Holds the upper bound of the interval. */
 	float Max;
 	
-	/**
-	 * Holds a flag indicating whether the interval is empty.
-	 */
+	/** Holds a flag indicating whether the interval is empty. */
 	bool bIsEmpty;
-
 
 public:
 
 	/**
 	 * Default constructor.
+	 *
+	 * The interval is initialized to [0, 0].
 	 */
-	FInterval()
+	FInterval( )
 		: Min(0.0f)
 		, Max(0.0f)
 		, bIsEmpty(true)
@@ -42,20 +37,23 @@ public:
     /**
 	 * Creates and initializes a new interval with the specified lower and upper bounds.
 	 *
-	 * @param InMin - The lower bound of the constructed interval.
-	 * @param InMax - The upper bound of the constructed interval.
+	 * @param InMin The lower bound of the constructed interval.
+	 * @param InMax The upper bound of the constructed interval.
 	 */
-	FInterval(float InMin, float InMax)
+	FInterval( float InMin, float InMax )
 		: Min(InMin)
 		, Max(InMax)
 		, bIsEmpty(InMin >= InMax)
 	{ }
 
-
 public:
 
-	/** Offset the interval by adding X. */
-	void operator+= (float X)
+	/**
+	 * Offset the interval by adding X.
+	 *
+	 * @param X The offset.
+	 */
+	void operator+= ( float X )
 	{
 		if (!bIsEmpty)
 		{
@@ -64,8 +62,12 @@ public:
 		}
 	}
 
-	/** Offset the interval by subtracting X. */
-	void operator-= (float X)
+	/**
+	 * Offset the interval by subtracting X.
+	 *
+	 * @param X The offset.
+	 */
+	void operator-= ( float X )
 	{
 		if (!bIsEmpty)
 		{
@@ -74,15 +76,14 @@ public:
 		}
 	}
 
-
 public:
 
 	/**
 	 * Expands this interval to both sides by the specified amount.
 	 *
-	 * @param ExpandAmount - The amount to expand by.
+	 * @param ExpandAmount The amount to expand by.
 	 */
-	void Expand(float ExpandAmount)
+	void Expand( float ExpandAmount )
 	{
 		if (!bIsEmpty)
 		{
@@ -94,22 +95,21 @@ public:
 	/**
 	 * Expands this interval if necessary to include the specified element.
 	 *
-	 * @param X - The element to include.
+	 * @param X The element to include.
 	 */
-	FORCEINLINE void Include(float X);
-
+	FORCEINLINE void Include( float X );
 
 public:
 
 	/**
 	 * Calculates the intersection of two intervals.
 	 *
-	 * @param A - The first interval.
-	 * @param B - The second interval.
+	 * @param A The first interval.
+	 * @param B The second interval.
 	 *
 	 * @return The intersection.
 	 */
-	friend FInterval Intersect(const FInterval& A, const FInterval& B)
+	friend FInterval Intersect( const FInterval& A, const FInterval& B )
 	{
 		if (A.bIsEmpty || B.bIsEmpty)
 		{
@@ -124,7 +124,7 @@ public:
 /* FInterval inline functions
  *****************************************************************************/
 
-FORCEINLINE void FInterval::Include(float X)
+FORCEINLINE void FInterval::Include( float X )
 {
 	if (bIsEmpty)
 	{

@@ -16,24 +16,24 @@ namespace FAssetViewModeUtils
 class SAssetTileView : public STileView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** The list view mode of the asset view */
 class SAssetListView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** The columns view mode of the asset view */
 class SAssetColumnView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** A base class for all asset view items */
@@ -47,8 +47,6 @@ public:
 	SLATE_BEGIN_ARGS( SAssetViewItem )
 		: _ShouldAllowToolTip(true)
 		, _ThumbnailEditMode(false)
-		, _LabelVisibility(EVisibility::Visible)
-		, _ConstructToolTip()
 		{}
 
 		/** Data for the asset this item represents */
@@ -72,11 +70,8 @@ public:
 		/** If true, display the thumbnail edit mode UI */
 		SLATE_ATTRIBUTE( bool, ThumbnailEditMode )
 
-		/** The visibility state of the labels used in asset view items */
-		SLATE_ATTRIBUTE( EVisibility, LabelVisibility )
-
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
+		/** The string in the title to highlight (used when searching by string) */
+		SLATE_ATTRIBUTE(FText, HighlightText)
 
 		/** Delegate for when assets are dropped on this item, if it is a folder */
 		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
@@ -95,12 +90,12 @@ public:
 	/** Performs common initialization logic for all asset view items */
 	void Construct( const FArguments& InArgs );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual TSharedPtr<IToolTip> GetToolTip() override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	/** Returns the color this item should be tinted with */
 	virtual FSlateColor GetAssetColor() const;
@@ -129,6 +124,9 @@ protected:
 
 	/** Notification for when the dirty flag changes */
 	virtual void DirtyStateChanged();
+
+	/** Gets the name of the class of this asset */
+	FText GetAssetClassText() const;
 
 	/** Gets the brush for the source control indicator image */
 	const FSlateBrush* GetSCCStateImage() const;
@@ -172,6 +170,9 @@ protected:
 	/** Set mips to be resident while this (loaded) asset is visible */
 	void SetForceMipLevelsToBeResident(bool bForce) const;
 
+	/** Delegate handler for when source control state changes */
+	void HandleSourceControlStateChanged();
+
 protected:
 
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
@@ -181,6 +182,9 @@ protected:
 
 	/** The package containing the asset that this item represents */
 	TWeakObjectPtr<UPackage> AssetPackage;
+
+	/** The asset type actions associated with the asset that this item represents */
+	TWeakPtr<IAssetTypeActions> AssetTypeActions;
 
 	/** The cached name of the package containing the asset that this item represents */
 	FString CachedPackageName;
@@ -209,8 +213,8 @@ protected:
 	/** If true, display the thumbnail edit mode UI */
 	TAttribute<bool> ThumbnailEditMode;
 
-	/** The visibility state of the labels used in asset view items */
-	TAttribute<EVisibility> LabelVisibility;
+	/** The substring to be highlighted in the name and tooltip path */
+	TAttribute<FText> HighlightText;
 
 	/**
 	 * A map of class names to their important asset registry tags and values.
@@ -224,9 +228,6 @@ protected:
 
 	/** Cached flag describing if the package is dirty */
 	bool bPackageDirty;
-
-	/** The callback for external code to construct the tooltip used for this asset */
-	FConstructToolTipForAsset ConstructToolTipForAsset;
 
 	/** Flag indicating whether we have requested initial source control state */
 	bool bSourceControlStateRequested;
@@ -245,6 +246,9 @@ protected:
 
 	/** Whether an item is dragged over us or not */
 	bool bDraggedOver;
+
+	/** Cached brush for the source control state */
+	const FSlateBrush* SCCStateBrush;
 };
 
 
@@ -292,9 +296,6 @@ public:
 		/** Called when any asset item is destroyed. Used in thumbnail management */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
 
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
-
 		/** If false, the tooltip will not be displayed */
 		SLATE_ATTRIBUTE( bool, ShouldAllowToolTip )
 
@@ -328,7 +329,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 private:
 	/** Returns the size of the thumbnail widget */
@@ -343,6 +344,9 @@ private:
 
 	/** The height allowed for this item */
 	TAttribute<float> ItemHeight;
+
+	/** The text block containing the class name */
+	TSharedPtr<STextBlock> ClassText;
 };
 
 /** An item in the asset tile view */
@@ -354,7 +358,6 @@ public:
 		, _ItemWidth(16)
 		, _ShouldAllowToolTip(true)
 		, _ThumbnailEditMode(false)
-		, _LabelVisibility(EVisibility::Visible)
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _ThumbnailHintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
 		, _AllowThumbnailHintLabel(true)
@@ -393,9 +396,6 @@ public:
 		/** Called when any asset item is destroyed. Used in thumbnail management */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
 
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
-
 		/** If false, the tooltip will not be displayed */
 		SLATE_ATTRIBUTE( bool, ShouldAllowToolTip )
 
@@ -404,9 +404,6 @@ public:
 
 		/** If true, the thumbnail in this item can be edited */
 		SLATE_ATTRIBUTE( bool, ThumbnailEditMode )
-
-		/** The visibility state of the labels used in asset view items */
-		SLATE_ATTRIBUTE( EVisibility, LabelVisibility )
 
 		/** Whether the item is selected in the view */
 		SLATE_ARGUMENT( FIsSelected, IsSelected )
@@ -429,7 +426,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 private:
 	/** Returns the size of the thumbnail box widget */
@@ -473,9 +470,6 @@ public:
 		/** Called when any asset item is destroyed. Used in thumbnail management, though it may be used for more so It is in column items for consistency. */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
 
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
-
 		/** The string in the title to highlight (used when searching by string) */
 		SLATE_ATTRIBUTE( FText, HighlightText )
 
@@ -497,17 +491,11 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName, FIsSelected InIsSelected );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
-
-	/** Returns the color this item should be tinted with */
-	virtual FSlateColor GetAssetColor() const OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 private:
 	/** Gets the tool tip text for the name */
 	FString GetAssetNameToolTipText() const;
-
-	/** Gets the name of the class of this asset */
-	FText GetAssetClassText() const;
 
 	/** Gets the path to this asset */
 	FText GetAssetPathText() const;
@@ -547,7 +535,7 @@ public:
 		Content = this->AssetColumnItem;
 	}
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if ( this->AssetColumnItem.IsValid() )
 		{
@@ -560,7 +548,7 @@ public:
 		
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SMultiColumnTableRow< TSharedPtr<FAssetViewItem> >::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 

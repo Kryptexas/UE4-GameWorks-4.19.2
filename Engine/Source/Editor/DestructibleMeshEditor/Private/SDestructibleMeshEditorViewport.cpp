@@ -2,12 +2,14 @@
 
 #include "DestructibleMeshEditorPrivatePCH.h"
 
+#include "PhysicsPublic.h"
 #include "MouseDeltaTracker.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "PreviewScene.h"
 #include "ApexDestructibleAssetImport.h"
 #include "DesktopPlatformModule.h"
 #include "FbxImporter.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 
@@ -26,11 +28,11 @@ public:
 	FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene);
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	// FEditorViewportClient interface
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	FLinearColor GetBackgroundColor() const { return FLinearColor::Black; }
 	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
 
@@ -75,7 +77,7 @@ private:
 };
 
 FDestructibleMeshEditorViewportClient::FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(&InPreviewScene)
+	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 	, DestructibleMeshEditorPtr(InDestructibleMeshEditor)
 {
 	SetViewMode(VMI_Lit);
@@ -203,7 +205,7 @@ void FDestructibleMeshEditorViewportClient::Fracture()
 		else if (DestructibleMesh->ApexDestructibleAsset != NULL)
 		{
 			DestructibleMesh = ImportDestructibleMeshFromApexDestructibleAsset(DestructibleMesh->GetOuter(), *DestructibleMesh->ApexDestructibleAsset, DestructibleMesh->GetFName(), DestructibleMesh->GetFlags(), NULL,
- 																			   EImportOptions::PreserveSettings);
+ 																			   EDestructibleImportOptions::PreserveSettings);
 		}
 		
 		DestructibleMesh->FractureSettings->CreateVoronoiSitesInRootMesh();

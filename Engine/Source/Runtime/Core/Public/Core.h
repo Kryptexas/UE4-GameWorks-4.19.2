@@ -73,7 +73,6 @@ class               UTextProperty;
 class               UArrayProperty;
 class				UDelegateProperty;
 class				UMulticastDelegateProperty;
-class				UAttributeProperty;
 class			UStruct;
 class				UFunction;
 class				UClass;
@@ -99,10 +98,8 @@ class FPackageInfo;
 class ITransaction;
 class FUnknown;
 class FRepLink;
-class FString;
 class FText;
 class FMalloc;
-class FString;
 class FConfigCacheIni;
 class FConfigFile;
 class IFileManager;
@@ -240,6 +237,7 @@ extern CORE_API uint64 GMakeCacheIDIndex;
 extern CORE_API FString GEditorKeyBindingsIni;
 extern CORE_API FString GEngineIni;
 extern CORE_API FString GEditorIni;
+extern CORE_API FString GEditorLayoutIni;
 extern CORE_API FString GEditorUserSettingsIni;
 extern CORE_API FString GEditorGameAgnosticIni;
 extern CORE_API FString GCompatIni;
@@ -342,7 +340,7 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 extern CORE_API int32 GScreenshotBitmapIndex;
 
 /** Whether stats should emit named events for e.g. PIX. */
-extern CORE_API bool GCycleStatsShouldEmitNamedEvents;
+extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
 
 /** Disables some warnings and minor features that would interrupt a demo presentation*/
 extern CORE_API bool GIsDemoMode;
@@ -364,6 +362,9 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 
 /** Total blueprint compile time. */
 extern CORE_API double GBlueprintCompileTime;
+
+/** Stack names from the VM to be unrolled when we assert */
+extern CORE_API TArray<struct FScriptTraceStackNode> GScriptStack;
 
 /*----------------------------------------------------------------------------
 	Metadata macros.
@@ -408,6 +409,7 @@ extern CORE_API double GBlueprintCompileTime;
 #include "Bitstreams.h"					// Bit stream archiver.
 #include "SparseArray.h"				// Sparse array definitions.
 #include "UnrealString.h"				// Dynamic string definitions.
+#include "NameTypes.h"					// Global name subsystem.
 #include "CoreMisc.h"					// Low level utility code.
 #include "Paths.h"						// Path helper functions
 #include "StaticArray.h"                // Static array definition.
@@ -418,7 +420,6 @@ extern CORE_API double GBlueprintCompileTime;
 #include "List.h"						// Dynamic list definitions.
 #include "ResourceArray.h"				// Resource array definitions.
 #include "RefCounting.h"				// Reference counting definitions.
-#include "NameTypes.h"					// Global name subsystem.
 #include "ScriptDelegates.h"
 #include "Delegate.h"					// C++ delegate system
 #include "ThreadingBase.h"				// Non-platform specific multi-threaded support.
@@ -426,7 +427,6 @@ extern CORE_API double GBlueprintCompileTime;
 #include "Internationalization/Culture.h"
 #include "Guid.h"						// FGuid class
 #include "NetworkGuid.h"				// FNetworkGuid class
-#include "AffinityManager.h"			// Non-platform Affinity information for threads.
 #include "UnrealMath.h"					// Vector math functions.
 #include "SHMath.h"						// SH math functions.
 #include "RandomStream.h"				// Random stream definitions.

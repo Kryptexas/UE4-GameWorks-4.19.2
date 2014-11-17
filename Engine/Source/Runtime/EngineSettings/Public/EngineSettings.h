@@ -1,21 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineSettings.h: EngineSettings module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "CoreUObject.h"
 
 
-/* Messages
+/* Public Includes
  *****************************************************************************/
 
+#include "ConsoleSettings.h"
 #include "GameNetworkManagerSettings.h"
 #include "GameMapsSettings.h"
 #include "GameSessionSettings.h"

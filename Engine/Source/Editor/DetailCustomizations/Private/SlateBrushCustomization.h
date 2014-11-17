@@ -3,15 +3,15 @@
 #pragma once
 
 
-class FSlateBrushStructCustomization : public IStructCustomization
+class FSlateBrushStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;              
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
 
 private:
 	/**
@@ -24,7 +24,11 @@ private:
 	 */
 	EVisibility GetMarginPropertyVisibility() const;
 
+
 	/** Slate Brush DrawAs property */
 	TSharedPtr<IPropertyHandle> DrawAsProperty;
+
+	/** Error text to display if the resource object is not valid*/
+	TSharedPtr<SErrorText> ResourceErrorText;
 };
 

@@ -2,6 +2,7 @@
 
 #pragma once 
 
+#include "Commandlets/Commandlet.h"
 #include "InternationalizationConditioningCommandlet.generated.h"
 
 
@@ -185,7 +186,7 @@ class UInternationalizationConditioningCommandlet : public UGatherTextCommandlet
 
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 private: 

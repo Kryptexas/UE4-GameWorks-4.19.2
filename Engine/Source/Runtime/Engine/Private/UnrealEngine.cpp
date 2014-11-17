@@ -5,9 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "AllEngineHeaders.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Engine/Console.h"
+#include "VisualLog.h"
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"
@@ -37,6 +38,33 @@
 #include "IHeadMountedDisplay.h"
 #include "Scalability.h"
 #include "StatsData.h"
+#include "ScreenRendering.h"
+#include "RHIStaticStates.h"
+#include "AudioDevice.h"
+#include "ActiveSound.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/Character.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Vehicles/TireType.h"
+
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
+#include "Sound/ReverbEffect.h"
+#include "Sound/SoundWave.h"
+
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "BehaviorTree/BehaviorTreeManager.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 #if !UE_BUILD_SHIPPING
 #include "STaskGraph.h"
@@ -46,6 +74,10 @@
 #endif
 
 #include "HardwareInfo.h"
+#include "EngineModule.h"
+#include "UnrealExporter.h"
+#include "ComponentReregisterContext.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -70,11 +102,6 @@ void FEngineModule::StartupModule()
 ENGINE_API UEngine*	GEngine = NULL;
 
 /**
- * Cache for property window queries
- */
-FPropertyWindowDataCache* GPropertyWindowDataCache = NULL;
-
-/**
  * Whether to visualize the light map selected by the Debug Camera.
  */
 ENGINE_API bool GShowDebugSelectedLightmap = false;
@@ -96,7 +123,7 @@ FSystemResolution GSystemResolution;
 static TAutoConsoleVariable<float> GHitchThresholdCVar(
 	TEXT("t.HitchThreshold"),
 	GHitchThreshold,
-	TEXT("Time in seconds that is considered a hitch by \"stat hitches\"")
+	TEXT("Time in seconds that is considered a hitch by \"stat dumphitches\"")
 	);
 
 static TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
@@ -112,6 +139,22 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("  Format e.g. 1280x720w")
 	TEXT("  	   e.g. 1920x1080f")
 	);
+
+static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
+	TEXT("r.DepthOfFieldNearBlurSizeThreshold"),
+	0.01f,
+	TEXT("Sets the minimum near blur size before the effect is forcably disabled. Currently only affects Gaussian DOF.\n")
+	TEXT(" (default = 0.01f)"),
+	ECVF_RenderThreadSafe);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarSetOverrideFPS(
+	TEXT("t.OverrideFPS"),
+	0.0f,
+	TEXT("This allows to override the frame time measurement with a fixed fps number (game can run faster or slower).\n")
+	TEXT("<=0:off, in frames per second, e.g. 60"),
+	ECVF_Cheat);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 /** Enum entries represent index to global object referencer stored in UGameEngine */
 enum EGametypeContentReferencerTypes
@@ -183,12 +226,11 @@ void ScalabilityCVarsSinkCallback()
 	static const auto* MaxAnisotropy = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
 	static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
 	static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
-	static const auto GaussianDOFNearThreshold = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DepthOfFieldNearBlurSizeThreshold"));
 	GCachedScalabilityCVars.MaxAnisotropy = MaxAnisotropy->GetValueOnGameThread();
 	GCachedScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
 	GCachedScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
 	GCachedScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(GCachedScalabilityCVars.ViewDistanceScale);
-	GCachedScalabilityCVars.GaussianDOFNearThreshold = GaussianDOFNearThreshold->GetValueOnGameThread();
+	GCachedScalabilityCVars.GaussianDOFNearThreshold = CVarDepthOfFieldNearBlurSizeThreshold.GetValueOnGameThread();
 
 	// action needed if we change r.MaterialQualityLevel at runtime
 	{
@@ -327,6 +369,7 @@ void RefreshSamplerStatesCallback()
 			UTexture2D* Texture = *It;
 			Texture->RefreshSamplerStates();
 		}
+		UMaterialInterface::RecacheAllMaterialUniformExpressions();
 	}
 }
 
@@ -579,8 +622,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Add to root.
 	AddToRoot();
 
-    // Initialize the HMD, if any
-    InitializeHMDDevice();
+	// Initialize the HMD, if any
+	InitializeHMDDevice();
 
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
@@ -648,16 +691,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	{
-		// if the console variable FreezeAtPosition is set, we right away freeze at the given position
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("FreezeAtPosition")); 
-
-		if(!CVar->GetString().IsEmpty())
-		{
-			new(GEngine->DeferredCommands) FString(TEXT("FreezeAt"));
-		}
-	}
-
 	// Optionally Exec an exec file
 	FString Temp;
 	if( FParse::Value(FCommandLine::Get(), TEXT("EXEC="), Temp) )
@@ -689,6 +722,17 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		}
 	}
 
+	// optionally set the vsync console variable
+	if( FParse::Param(FCommandLine::Get(), TEXT("vsync")) )
+	{
+		new(GEngine->DeferredCommands) FString(TEXT("r.vsync 1"));
+	}
+
+	// optionally set the vsync console variable
+	if( FParse::Param(FCommandLine::Get(), TEXT("novsync")) )
+	{
+		new(GEngine->DeferredCommands) FString(TEXT("r.vsync 0"));
+	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	if (GetDerivedDataCache())
@@ -746,9 +790,11 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, true));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, true));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Unit"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatUnit, &UEngine::ToggleStatUnit, true));
+	/* @todo Slate Rendering
 #if STATS
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SlateBatches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSlateBatches, NULL, true));
 #endif
+	*/
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Hitches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatHitches, &UEngine::ToggleStatHitches, true));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_AI"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatAI, NULL, true));
 
@@ -761,13 +807,14 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, NULL));
 #endif
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Sounds"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSounds, &UEngine::ToggleStatSounds));
+/* @todo UE4 physx fix this once we have convexelem drawing again
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_LevelMap"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevelMap, NULL));
-
+*/
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Detailed"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatDetailed));
 #if !UE_BUILD_SHIPPING
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitMax"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitMax));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitGraph"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitGraph));
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitTime"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitTime"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitTime));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Raw"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatRaw));
 #endif
 
@@ -777,6 +824,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
 		NewStatDelegate.Broadcast(EngineStat.CommandName, EngineStat.CategoryName, EngineStat.DescriptionString);
 	}
+
+	// Record the analytics for any attached HMD devices
+	RecordHMDAnalytics();
 }
 
 void UEngine::RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate )
@@ -811,6 +861,14 @@ void UEngine::PreExit()
 #if WITH_EDITOR
 	UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
 #endif
+
+	if (ScreenSaverInhibitor)
+	{
+		ScreenSaverInhibitor->Kill();
+		delete ScreenSaverInhibitor;
+	}
+
+	delete ScreenSaverInhibitorRunnable;
 }
 
 void UEngine::TickDeferredCommands()
@@ -965,10 +1023,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto ICVarMin = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("t.OverrideFPS"));
-
-		float OverrideFPS = ICVarMin->GetValueOnGameThread();
-
+		float OverrideFPS = CVarSetOverrideFPS.GetValueOnGameThread();
 		if(OverrideFPS >= 0.001f)
 		{
 			// in seconds
@@ -1228,16 +1283,6 @@ void UEngine::InitializeObjectReferences()
 		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ClassName, NULL, LOAD_None, NULL);
 	}
 
-	if ( BehaviorTreeManagerClass == NULL )
-	{
-		BehaviorTreeManagerClass = LoadClass<UBehaviorTreeManager>(NULL, *BehaviorTreeManagerClassName.ClassName, NULL, LOAD_None, NULL);
-	}
-
-	if ( EnvironmentQueryManagerClass == NULL )
-	{
-		EnvironmentQueryManagerClass = LoadClass<UEnvQueryManager>(NULL, *EnvironmentQueryManagerClassName.ClassName, NULL, LOAD_None, NULL);
-	}
-
 	if ( AvoidanceManagerClass == NULL )
 	{
 		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ClassName, NULL, LOAD_None, NULL);
@@ -1381,6 +1426,7 @@ void UEngine::CleanupGameViewport()
 					Player->PlayerController->CleanupGameViewport();
 				}
 				Player->ViewportClient = NULL;
+				Player->PlayerRemoved();
 				Context.GamePlayers.RemoveAt(idx);
 			}
 		}
@@ -1503,11 +1549,11 @@ class FFakeStereoRenderingDevice : public IStereoRendering
 public:
 	virtual ~FFakeStereoRenderingDevice() {}
 
-	virtual bool IsStereoEnabled() const { return true; }
+	virtual bool IsStereoEnabled() const override { return true; }
 
-	virtual bool EnableStereo(bool stereo = true) { return true; }
+	virtual bool EnableStereo(bool stereo = true) override { return true; }
 
-	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const
+	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override
 	{
 		SizeX = SizeX / 2;
 		if( StereoPass == eSSP_RIGHT_EYE )
@@ -1516,7 +1562,7 @@ public:
 		}
 	}
 
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override
 	{
 		if( StereoPassType != eSSP_FULL)
 		{
@@ -1526,7 +1572,7 @@ public:
 		}
 	}
 
-	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const
+	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const override
 	{
 		const float ProjectionCenterOffset = 0.151976421f;
 		const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : -ProjectionCenterOffset;
@@ -1538,36 +1584,60 @@ public:
 		const float YS = InWidth / tan(HalfFov) / InHeight;
 
 		const float InNearZ = GNearClippingPlane;
- 		return FMatrix(
- 			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
- 			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
- 			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
- 			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
+		return FMatrix(
+			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
+			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
+			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
+			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
  
- 			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
+			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
 
 	}
 
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) {}
 
-	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const 
+	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const override 
 	{
 		FMatrix m;
 		m.SetIdentity();
 		InCanvas->PushAbsoluteTransform(m);
 	}
 
-	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const 
+	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const override 
 	{
 		FMatrix m;
 		m.SetIdentity();
 		InCanvas->PushAbsoluteTransform(m);
 	}
 
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
+	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override
 	{
 		EyeToSrcUVOffsetValue = FVector2D::ZeroVector;
 		EyeToSrcUVScaleValue = FVector2D(1.0f, 1.0f);
+	}
+
+	virtual bool ShouldUseSeparateRenderTarget() const override 
+	{ 
+		// should return true to test rendering into a separate texture; however, there is a bug
+		// in DrawNormalizedScreenQuad (FScreenVS shader), TTP #338597, so false for now.
+		return false; //true; 
+	}
+
+	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override
+	{
+		check(IsInRenderingThread());
+
+		//RHISetRenderTarget( BackBuffer, FTextureRHIRef() );
+		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+		const uint32 ViewportWidth = BackBuffer->GetSizeX();
+		const uint32 ViewportHeight = BackBuffer->GetSizeY();
+		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 1.0f );
+
+		
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
 	}
 };
 
@@ -1580,7 +1650,8 @@ bool UEngine::InitializeHMDDevice()
 			TSharedPtr<FFakeStereoRenderingDevice> FakeStereoDevice(new FFakeStereoRenderingDevice());
 			StereoRenderingDevice = FakeStereoDevice;
 		}
-		else if(!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")))
+		// No reason to connect an HMD on a dedicated server.  Also fixes dedicated servers stealing the oculus connection.
+		else if(!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")) && !IsRunningDedicatedServer())
 		{
 			// Get a list of plugins that implement this feature
 			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>( IHeadMountedDisplayModule::GetModularFeatureName() );
@@ -1596,6 +1667,17 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
+}
+
+void UEngine::RecordHMDAnalytics()
+{
+	if( !GIsEditor )
+	{
+		if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")))
+		{
+			HMDDevice->RecordAnalytics();
+		}
+	}
 }
 
 /** @return whether we're currently running in split screen (more than one local player) */
@@ -1975,10 +2057,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-    if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
-    {
-        return true;
-    }
+	if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
+	{
+		return true;
+	}
 
 	// Handle engine command line.
 	if ( FParse::Command(&Cmd,TEXT("FLUSHLOG")) )
@@ -5444,18 +5526,18 @@ static TAutoConsoleVariable<float> CVarMaxFPS(
 // CauseHitches cvar
 static TAutoConsoleVariable<int32> CVarCauseHitches(
 	TEXT("CauseHitches"),0,
-	TEXT("Causes a 100ms hitch every second."));
+	TEXT("Causes a 200ms hitch every second."));
 
 static TAutoConsoleVariable<int32> CVarUnsteadyFPS(
 	TEXT("t.UnsteadyFPS"),0,
-	TEXT("Causes FPS to bounce around randomly in the 10-30 range."));
+	TEXT("Causes FPS to bounce around randomly in the 8-32 range."));
 
 /** Get tick rate limitor. */
 float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 {
 	float MaxTickRate = 0;
 
-	if (FPlatformProperties::SupportsWindowedMode())
+	if (FPlatformProperties::AllowsFramerateSmoothing())
 	{
 		// Smooth the framerate if wanted. The code uses a simplistic running average. Other approaches, like reserving
 		// a percentage of time, ended up creating negative feedback loops in conjunction with GPU load and were abandonend.
@@ -5546,8 +5628,8 @@ void UEngine::EnableScreenSaver( bool bEnable )
 				if( !ScreenSaverInhibitor )
 				{
 					// Create thread inhibiting screen saver while it is running.
-					FScreenSaverInhibitor* ScreenSaverInhibitorRunnable = new FScreenSaverInhibitor();
-					ScreenSaverInhibitor = FRunnableThread::Create( ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), true, true, 16 * 1024 );
+					ScreenSaverInhibitorRunnable = new FScreenSaverInhibitor();
+					ScreenSaverInhibitor = FRunnableThread::Create(ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), 16 * 1024, TPri_Normal, FPlatformAffinity::GetPoolThreadMask());
 					// Only actually run when needed to not bypass group policies for screensaver, etc.
 					ScreenSaverInhibitor->Suspend( true );
 					ScreenSaverInhibitorSemaphore = 0;
@@ -5749,6 +5831,10 @@ void UEngine::PerformanceCapture(const FString& CaptureName)
 	PathName += TEXT("/");
 
 	//mapname/CaptureName/platform/version.png
+
+	//Make path relative to the root.
+	PathName = FPaths::AutomationDir() + PathName;
+	FPaths::MakePathRelativeTo(PathName,*FPaths::RootDir());
 	
 	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, GEngineVersion.GetChangelist());
 	
@@ -5844,34 +5930,35 @@ static FVector2D RotateVec2D(const FVector2D InVec, float RotAngle)
 #if !UE_BUILD_SHIPPING
 bool UEngine::HandleLogoutStatLevelsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	TMap<FName,int32> StreamingLevels;
-	FString LevelPlayerIsInName;
-	GetLevelStreamingStatus( InWorld, StreamingLevels, LevelPlayerIsInName );
+	const TArray<FSubLevelStatus> SubLevelsStatusList = GetSubLevelsStatus(InWorld);
 
-	Ar.Logf( TEXT( "Level Streaming:" ) );
+	Ar.Logf( TEXT( "Levels:" ) );
 
 	// now draw the "map" name
-	FString MapName	= InWorld->GetCurrentLevel()->GetOutermost()->GetName();
-
-	if( LevelPlayerIsInName == MapName )
+	if (SubLevelsStatusList.Num())
 	{
-		MapName = *FString::Printf( TEXT("->  %s"), *MapName );
-	}
-	else
-	{
-		MapName = *FString::Printf( TEXT("    %s"), *MapName );
-	}
+		// First entry - always persistent level
+		FString MapName	= SubLevelsStatusList[0].PackageName.ToString();
+		if (SubLevelsStatusList[0].bPlayerInside)
+		{
+			MapName = *FString::Printf( TEXT("->  %s"), *MapName );
+		}
+		else
+		{
+			MapName = *FString::Printf( TEXT("    %s"), *MapName );
+		}
 
-	Ar.Logf( TEXT( "%s" ), *MapName );
+		Ar.Logf( TEXT( "%s" ), *MapName );
+	}
 
 	// now log the levels
-	for( TMap<FName,int32>::TIterator It(StreamingLevels); It; ++It )
+	for (int32 LevelIdx = 1; LevelIdx < SubLevelsStatusList.Num(); ++LevelIdx)
 	{
-		FString LevelName = It.Key().ToString();
-		const int32 Status = It.Value();
+		const FSubLevelStatus& LevelStatus = SubLevelsStatusList[LevelIdx];
+		FString DisplayName = LevelStatus.PackageName.ToString();
 		FString StatusName;
 
-		switch( Status )
+		switch( LevelStatus.StreamingStatus )
 		{
 		case LEVEL_Visible:
 			StatusName = TEXT( "red loaded and visible" );
@@ -5895,33 +5982,37 @@ bool UEngine::HandleLogoutStatLevelsCommand( const TCHAR* Cmd, FOutputDevice& Ar
 			break;
 		};
 
+		if (LevelStatus.LODIndex != INDEX_NONE)
+		{
+			DisplayName += FString::Printf(TEXT(" [LOD%d]"), LevelStatus.LODIndex+1);
+		}
 
-		UPackage* LevelPackage = FindObject<UPackage>( NULL, *LevelName );
+		UPackage* LevelPackage = FindObjectFast<UPackage>( NULL, LevelStatus.PackageName );
 
 		if( LevelPackage 
 			&& (LevelPackage->GetLoadTime() > 0) 
-			&& (Status != LEVEL_Unloaded) )
+			&& (LevelStatus.StreamingStatus != LEVEL_Unloaded) )
 		{
-			LevelName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
+			DisplayName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
 		}
-		else if( GetAsyncLoadPercentage( *LevelName ) >= 0 )
+		else if( GetAsyncLoadPercentage( *LevelStatus.PackageName.ToString() ) >= 0 )
 		{
-			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( *LevelName ) );
-			LevelName += FString::Printf(TEXT(" - %3i %%"), Percentage ); 
+			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( *LevelStatus.PackageName.ToString() ) );
+			DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage ); 
 		}
 
-		if( LevelPlayerIsInName == LevelName )
+		if ( LevelStatus.bPlayerInside )
 		{
-			LevelName = *FString::Printf( TEXT("->  %s"), *LevelName );
+			DisplayName = *FString::Printf( TEXT("->  %s"), *DisplayName );
 		}
 		else
 		{
-			LevelName = *FString::Printf( TEXT("    %s"), *LevelName );
+			DisplayName = *FString::Printf( TEXT("    %s"), *DisplayName );
 		}
 
-		LevelName = FString::Printf( TEXT("%s \t\t%s"), *LevelName, *StatusName );
+		DisplayName = FString::Printf( TEXT("%s \t\t%s"), *DisplayName, *StatusName );
 
-		Ar.Logf( TEXT( "%s" ), *LevelName );
+		Ar.Logf( TEXT( "%s" ), *DisplayName );
 
 	}
 
@@ -6166,6 +6257,11 @@ void UEngine::SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float
 	}
 }
 
+bool UEngine::ShouldThrottleCPUUsage() const
+{
+	return false;
+}
+
 /**
  *	Renders stats
  *
@@ -6190,7 +6286,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 	//@todo joeg: Move this stuff to a function, make safe to use on consoles by
 	// respecting the various safe zones, and make it compile out.
-	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D()) ? 250 : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
+	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D()) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
 	const int32 StatsXOffset	= FPlatformProperties::SupportsWindowedMode() ?  4 : 100;
 
 	int32 MessageY = 35;
@@ -6264,6 +6360,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				MessageY += 20;
 			}
 
+#if ENABLE_VISUAL_LOG
 			FVisualLog* VisLog = FVisualLog::Get();
 			if (VisLog && (VisLog->IsRecording() || VisLog->IsRecordingOnServer()))
 			{
@@ -6279,7 +6376,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				Canvas->DrawItem(SmallTextItem);
 				SmallTextItem.SetColor(FLinearColor::White);
 			}
-
+#endif
 
 			/* @todo ue4 temporarily disabled
 			AWorldSettings* WorldSettings = World->GetWorldSettings();
@@ -6932,7 +7029,7 @@ static class FCDODump : private FSelfRegisteringExec
 	}
 
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if(FParse::Command(&Cmd,TEXT("CDODump")))
 		{
@@ -7206,8 +7303,7 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 		// If this net driver has already been unregistered with this world, then don't handle it.
 		if (World)
 		{
-			UNetDriver * NetDriver = FindNamedNetDriver(World, NetDriverName);
-			if (!NetDriver)
+			if (!FindNamedNetDriver(World, NetDriverName))
 			{
 				// This netdriver has already been destroyed (probably waiting for GC)
 				return;
@@ -8058,8 +8154,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			else
 			{
 				TransitionGameMode = TEXT("");
-			}
-			LoadMapRedrawViewports();
+			}			
+			LoadMapRedrawViewports();			
 			TransitionType = TT_None;
 		}
 
@@ -8132,6 +8228,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// Clean up the previous level out of memory.
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
+	
+	// For platforms which manage GPU memory directly we must Enqueue a flush, and wait for it to be processed
+	// so that any pending frees that depend on the GPU will be processed.  Otherwise a whole map's worth of GPU memory
+	// may be unavailable to load the next one.
+	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
+		{
+			RHIFlushResources();
+		}
+	);
+	FlushRenderingCommands();	  
 
 	// Cancels the Forced StreamType for textures using a timer.
 	if (!IStreamingManager::HasShutdown())
@@ -8155,9 +8261,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 #endif
 
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapMid( URL.Map ); )
-
-	// Whether we should treat URL.Map as world root for WorldComposition
-	const bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
 
 	if( GUseSeekFreeLoading )
 	{
@@ -8231,6 +8334,17 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				}
 
 				NewWorld = UWorld::FindWorldInPackage(WorldPackage);
+
+				// If the world was not found, follow a redirector if there is one.
+				if ( !NewWorld )
+				{
+					NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
+					if ( NewWorld )
+					{
+						WorldPackage = NewWorld->GetOutermost();
+					}
+				}
+
 				check(NewWorld);
 #if WITH_EDITOR
 				WorldPackage->PIEInstanceID = WorldContext.PIEInstance;
@@ -8274,17 +8388,27 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			Error = FString::Printf(TEXT("Failed to load package '%s'"), *URL.Map);
 			return false;
 		}
-		
-		FScopeCycleCounterUObject MapScope(WorldPackage);
-
-		if( FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !(WorldPackage->PackageFlags & PKG_DisallowLazyLoading) )
-		{
-			UE_LOG(LogLoad, Fatal,TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."),*WorldPackage->GetName());
-		}
 
 		// Find the newly loaded world.
 		NewWorld = UWorld::FindWorldInPackage(WorldPackage);
+
+		// If the world was not found, it could be a redirector to a world. If so, follow it to the destination world.
+		if ( !NewWorld )
+		{
+			NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
+			if ( NewWorld )
+			{
+				WorldPackage = NewWorld->GetOutermost();
+			}
+		}
 		check(NewWorld);
+
+		FScopeCycleCounterUObject MapScope(WorldPackage);
+
+		if (FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !(WorldPackage->PackageFlags & PKG_DisallowLazyLoading))
+		{
+			UE_LOG(LogLoad, Fatal, TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."), *WorldPackage->GetName());
+		}
 
 		if (WorldContext.WorldType == EWorldType::PIE)
 		{
@@ -8335,7 +8459,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// In the PIE case the world will already have been initialized as part of CreatePIEWorldByDuplication
 	if (!WorldContext.World()->bIsWorldInitialized)
 	{
-		WorldContext.World()->InitWorld(UWorld::InitializationValues().CreateWorldComposition(bWorldComposition));
+		WorldContext.World()->InitWorld();
 	}
 
 	// Handle pending level.
@@ -8363,7 +8487,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			UE_LOG(LogNet, Error, TEXT("LoadMap: failed to Listen(%s)"), *URL.ToString());
 		}
- 	}
+	}
 
 	const TCHAR* MutatorString = URL.GetOption(TEXT("Mutator="), TEXT(""));
 	if (MutatorString)
@@ -8382,12 +8506,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
 	// Set initial world origin and stream in levels
-	if (bWorldComposition)
+	if (WorldContext.World()->WorldComposition)
 	{
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
 	}
 	
-	UNavigationSystem::InitializeForWorld(WorldContext.World(), NavigationSystem::GameMode);
+	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
+	
+	// Note that AI system will be created only if ai-system-creation conditions are met
+	WorldContext.World()->CreateAISystem();
 
 	// Initialize gameplay for the level.
 	WorldContext.World()->InitializeActorsForPlay(URL);
@@ -8505,58 +8632,6 @@ void UEngine::ClearDebugDisplayProperties()
 		}
 	}
 }
-
-bool UEngine::LoadAdditionalMaps(UWorld* PersistentWorld, const TArray<FString>& MapsToLoad, FString& Error)
-{
-	UPackage* OuterPackage = NULL;
-	
-	for (int32 MapIdx = 0; MapIdx < MapsToLoad.Num(); ++MapIdx)
-	{
-		FString MapName = MapsToLoad[MapIdx];
-
-		// convert MapName to long package name
-		if (FPackageName::IsShortPackageName(MapName))
-		{
-			if (!FPackageName::SearchForPackageOnDisk(MapName, &MapName))
-			{
-				Error = FString::Printf(TEXT("Failed to find package '%s'"), *MapName);
-				return false;
-			}
-		}
-		
-		// Load package 
-		UPackage* MapPackage = LoadPackage(OuterPackage, *MapName, LOAD_None);
-		if (MapPackage == NULL)
-		{
-			Error = FString::Printf(TEXT("Failed to load package '%s'"), *MapName);
-			return false;
-		}
-		
-		//  
-		UWorld* World = UWorld::FindWorldInPackage(MapPackage);
-		if (World == NULL)
-		{
-			Error = FString::Printf(TEXT("Not a map package '%s'"), *MapName);
-			return false;
-		}
-
-		// Add loaded map to Runtime level
-		FName MapFName = FName(*MapName);
-		PersistentWorld->AddToWorld(World->PersistentLevel);
-						
-		ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>(StaticConstructObject(ULevelStreamingKismet::StaticClass(), PersistentWorld, NAME_None, RF_NoFlags, NULL));
-		// Associate a package name.
-		StreamingLevel->PackageName			= MapFName;
-		StreamingLevel->PackageNameToLoad	= MapFName;
-		StreamingLevel->bShouldBeLoaded		= true;
-		StreamingLevel->bShouldBeVisible	= true;
-		StreamingLevel->bShouldBlockOnLoad	= true;
-		PersistentWorld->StreamingLevels.Add(StreamingLevel);
-	}
-
-	return true;
-}
-
 
 void UEngine::MovePendingLevel(FWorldContext &Context)
 {
@@ -8724,6 +8799,7 @@ FWorldContext& UEngine::GetWorldContextFromHandleChecked(FName WorldContextHandl
 		return *WorldContext;
 	}
 
+	UE_LOG(LogLoad, Warning, TEXT("WorldContext requested with invalid context handle %s"), *WorldContextHandle.ToString());
 	return HandleInvalidWorldContext();
 }
 
@@ -8880,6 +8956,17 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FString& PackageName
 	{	
 		// Try to find a UWorld object in the level package.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
+
+		// If the world was not found, try to follow a redirector if it exists
+		if ( !World )
+		{
+			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+			if ( World )
+			{
+				LevelPackage = World->GetOutermost();
+			}
+		}
+
 		ULevel* Level = World ? World->PersistentLevel : NULL;	
 		
 		// Print out a warning and set the error if we couldn't find a level in this package.
@@ -9027,7 +9114,7 @@ struct FPendingStreamingLevelHolder : public FGCObject
 public:
 	TArray<ULevel*> Levels;
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
 		{
@@ -9186,7 +9273,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 									StreamingLevel->bShouldBeLoaded, 
 									StreamingLevel->bShouldBeVisible,
 									StreamingLevel->bShouldBlockOnLoad,
-									StreamingLevel->GetLODIndex(Context.World()));							
+									StreamingLevel->LevelLODIndex);							
 						}
 					}
 #endif // WITH_SERVER_CODE
@@ -9223,7 +9310,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 						{
 							LevelStreamingObject->bShouldBeLoaded	= Context.PendingLevelStreamingStatusUpdates[i].bShouldBeLoaded;
 							LevelStreamingObject->bShouldBeVisible	= Context.PendingLevelStreamingStatusUpdates[i].bShouldBeVisible;
-							LevelStreamingObject->SetLODIndex(Context.World(), Context.PendingLevelStreamingStatusUpdates[i].LODIndex);
+							LevelStreamingObject->LevelLODIndex		= Context.PendingLevelStreamingStatusUpdates[i].LODIndex;
 						}
 						else
 						{
@@ -9430,6 +9517,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 						if (CDOInst)
 						{
 							ReferenceReplacementMap.Add(CDOInst, NewInstance);
+#if WITH_EDITOR
 							if (Class->ClassGeneratedBy && Cast<UBlueprint>(Class->ClassGeneratedBy)->SkeletonGeneratedClass)
 							{
 								UObject *CDOInstS = Cast<UBlueprint>(Class->ClassGeneratedBy)->SkeletonGeneratedClass->GetDefaultSubobjectByName(NewInstance->GetFName());
@@ -9439,6 +9527,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 								}
 
 							}
+#endif // WITH_EDITOR
 						}
 						else
 						{
@@ -9495,6 +9584,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	if(NewActor != NULL)
 	{
 		NewActor->SetRootComponent(SavedRootComponent);
+		NewActor->ResetOwnedComponents();
 	}
 
 	bool bDumpProperties = CVarDumpCopyPropertiesForUnrelatedObjects.GetValueOnGameThread() != 0;
@@ -9950,12 +10040,20 @@ bool UEngine::ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* Viewpo
 	check(ViewportClient);
 	if (ViewportClient->IsStatEnabled(TEXT("NamedEvents")))
 	{
-		StatsMasterEnableAdd();
+		if (GCycleStatsShouldEmitNamedEvents == 0)
+		{
+			StatsMasterEnableAdd();
+		}
+		GCycleStatsShouldEmitNamedEvents++;
 	}
 	// Disable emission of named events and force-enabling cycle stats.
 	else
 	{
-		StatsMasterEnableSubtract();
+		if (GCycleStatsShouldEmitNamedEvents == 1)
+		{
+			StatsMasterEnableSubtract();
+		}
+		GCycleStatsShouldEmitNamedEvents = FMath::Max(0, GCycleStatsShouldEmitNamedEvents - 1);
 	}
 	return false;
 }
@@ -10016,37 +10114,39 @@ int32 UEngine::RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* 
 int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
 	int32 MaxY = Y;
-	TMap<FName, int32> StreamingLevels;
-	FString LevelPlayerIsInName;
-	GetLevelStreamingStatus(World, StreamingLevels, LevelPlayerIsInName);
+	const TArray<FSubLevelStatus> SubLevelsStatusList = GetSubLevelsStatus(World);
 
 	// now do drawing to the screen
 
 	// Render unloaded levels in red, loaded ones in yellow and visible ones in green. Blue signifies that a level is unloaded but
 	// hasn't been garbage collected yet.
-	Canvas->DrawShadowedString(X, Y, TEXT("Level streaming"), GetSmallFont(), FLinearColor::White);
+	Canvas->DrawShadowedString(X, Y, TEXT("Levels"), GetSmallFont(), FLinearColor::White);
 	Y += 12;
 
-	// now draw the "map" name
-	FString MapName = World->GetCurrentLevel()->GetOutermost()->GetName();
-
-	if (LevelPlayerIsInName == MapName)
+	if (SubLevelsStatusList.Num())
 	{
-		MapName = *FString::Printf(TEXT("->  %s"), *MapName);
-	}
-	else
-	{
-		MapName = *FString::Printf(TEXT("    %s"), *MapName);
-	}
+		// First entry - always persistent level
+		FString MapName	= SubLevelsStatusList[0].PackageName.ToString();
+		if (SubLevelsStatusList[0].bPlayerInside)
+		{
+			MapName = *FString::Printf( TEXT("->  %s"), *MapName );
+		}
+		else
+		{
+			MapName = *FString::Printf( TEXT("    %s"), *MapName );
+		}
 
-	Canvas->DrawShadowedString(X, Y, *MapName, GetSmallFont(), FColor(127, 127, 127));
-	Y += 12;
+		Canvas->DrawShadowedString(X, Y, *MapName, GetSmallFont(), FColor(127, 127, 127));
+		Y += 12;
+	}
 
 	int32 BaseY = Y;
 
 	// now draw the levels
-	for (TMap<FName, int32>::TIterator It(StreamingLevels); It; ++It)
+	for (int32 LevelIdx = 1; LevelIdx < SubLevelsStatusList.Num(); ++LevelIdx)
 	{
+		const FSubLevelStatus& LevelStatus = SubLevelsStatusList[LevelIdx];
+		
 		// Wrap around at the bottom.
 		if (Y > Viewport->GetSizeXY().Y - 30)
 		{
@@ -10055,34 +10155,38 @@ int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Can
 			X += 250;
 		}
 
-		FString	LevelName = It.Key().ToString();
-		int32		Status = It.Value();
-		FColor	Color = GetColorForLevelStatus(Status);
+		FColor	Color = GetColorForLevelStatus(LevelStatus.StreamingStatus);
+		FString DisplayName = LevelStatus.PackageName.ToString();
 
-		UPackage* LevelPackage = FindObject<UPackage>(NULL, *LevelName);
+		if (LevelStatus.LODIndex != INDEX_NONE)
+		{
+			DisplayName += FString::Printf(TEXT(" [LOD%d]"), LevelStatus.LODIndex+1);
+		}
 
+		UPackage* LevelPackage = FindObjectFast<UPackage>(NULL, LevelStatus.PackageName);
+				
 		if (LevelPackage
 			&& (LevelPackage->GetLoadTime() > 0)
-			&& (Status != LEVEL_Unloaded))
+			&& (LevelStatus.StreamingStatus != LEVEL_Unloaded))
 		{
-			LevelName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
+			DisplayName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
 		}
-		else if (GetAsyncLoadPercentage(*LevelName) >= 0)
+		else if (GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString()) >= 0)
 		{
-			const int32 Percentage = FMath::TruncToInt(GetAsyncLoadPercentage(*LevelName));
-			LevelName += FString::Printf(TEXT(" - %3i %%"), Percentage);
+			const int32 Percentage = FMath::TruncToInt(GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString()));
+			DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage);
 		}
 
-		if (LevelPlayerIsInName == LevelName)
+		if (LevelStatus.bPlayerInside)
 		{
-			LevelName = *FString::Printf(TEXT("->  %s"), *LevelName);
+			DisplayName = *FString::Printf(TEXT("->  %s"), *DisplayName);
 		}
 		else
 		{
-			LevelName = *FString::Printf(TEXT("    %s"), *LevelName);
+			DisplayName = *FString::Printf(TEXT("    %s"), *DisplayName);
 		}
-
-		Canvas->DrawShadowedString(X + 4, Y, *LevelName, GetSmallFont(), Color);
+		
+		Canvas->DrawShadowedString(X + 4, Y, *DisplayName, GetSmallFont(), Color);
 		Y += 12;
 	}
 	return FMath::Max(MaxY, Y);
@@ -10095,17 +10199,13 @@ int32 UEngine::RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* C
 	const FVector2D MapSize = FVector2D(512, 512);
 
 	// Get status of each sublevel (by name)
-	TMap<FName, int32> StreamingLevels;
-	FString LevelPlayerIsInName;
-	GetLevelStreamingStatus(World, StreamingLevels, LevelPlayerIsInName);
+	const TArray<FSubLevelStatus> SubLevelsStatusList = GetSubLevelsStatus(World);
 
 	// First iterate to find bounds of all streaming volumes
 	FBox AllVolBounds(0);
-	for (TMap<FName, int32>::TIterator It(StreamingLevels); It; ++It)
+	for (const FSubLevelStatus& LevelStatus : SubLevelsStatusList)
 	{
-		FName	LevelName = It.Key();
-
-		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelName);
+		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelStatus.PackageName);
 		if (LevelStreaming && LevelStreaming->bDrawOnLevelStatusMap)
 		{
 			AllVolBounds += LevelStreaming->GetStreamingVolumeBounds();
@@ -10134,16 +10234,13 @@ int32 UEngine::RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* C
 
 
 	// Now we iterate and actually draw volumes
-	for (TMap<FName, int32>::TIterator It(StreamingLevels); It; ++It)
+	for (const FSubLevelStatus& LevelStatus : SubLevelsStatusList)
 	{
-		FName	LevelName = It.Key();
-		int32	Status = It.Value();
-
 		// Find the color to draw this level in
-		FColor StatusColor = GetColorForLevelStatus(Status);
+		FColor StatusColor = GetColorForLevelStatus(LevelStatus.StreamingStatus);
 		StatusColor.A = 64; // make it translucent
 
-		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelName);
+		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelStatus.PackageName);
 		if (LevelStreaming && LevelStreaming->bDrawOnLevelStatusMap)
 		{
 			for (int32 VolIdx = 0; VolIdx < LevelStreaming->EditorStreamingVolumes.Num(); VolIdx++)
@@ -10244,8 +10341,8 @@ bool UEngine::ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportCl
 bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
 	check(ViewportClient);
-	const bool bShowUnitTimeGraph = ViewportClient->IsStatEnabled(TEXT("UnitGraph"));
-	if (bShowUnitTimeGraph)
+	const bool bShowUnitGraph = ViewportClient->IsStatEnabled(TEXT("UnitGraph"));
+	if (bShowUnitGraph)
 	{
 		// Force Unit to Active
 		SetEngineStat(World, ViewportClient, TEXT("Unit"), true);
@@ -10265,17 +10362,34 @@ bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* Viewport
 	return true;
 }
 
+// UNITTIME
+bool UEngine::ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
+{
+	check(ViewportClient);
+	const bool bShowUnitTime = ViewportClient->IsStatEnabled(TEXT("UnitTime"));
+	if (bShowUnitTime)
+	{
+		// Force UnitGraph to Active
+		SetEngineStat(World, ViewportClient, TEXT("UnitGraph"), true);
+	}
+	return true;
+}
+
 // RAW
 bool UEngine::ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
 	const bool bShowRaw = ViewportClient->IsStatEnabled(TEXT("Raw"));
 	const bool bShowDetailed = ViewportClient->IsStatEnabled(TEXT("Detailed"));
-	if (!bShowRaw && bShowDetailed)
+	if (bShowRaw)
+	{
+		// Force UnitGraph to Active
+		SetEngineStat(World, ViewportClient, TEXT("UnitGraph"), true);
+	}
+	else if (bShowDetailed)
 	{
 		// Since we're turning this off, we also need to toggle off detailed too
 		ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 	}
-
 	return true;
 }
 #endif

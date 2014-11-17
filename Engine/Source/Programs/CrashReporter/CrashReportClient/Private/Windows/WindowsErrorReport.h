@@ -18,15 +18,20 @@ public:
 	}
 
 	/**
-	 * Discover all files in the crash report directory
-	 * @param Directory Full path to directory containing the report
+	 * Load helper modules
 	 */
-	explicit FWindowsErrorReport(const FString& Directory);
+	static void Init();
 
 	/**
 	 * Unload helper modules
 	 */
-	~FWindowsErrorReport();
+	static void ShutDown();
+
+	/**
+	 * Discover all files in the crash report directory
+	 * @param Directory Full path to directory containing the report
+	 */
+	explicit FWindowsErrorReport(const FString& Directory);
 
 	/**
 	 * Provide the exception and a call-stack as plain text if possible

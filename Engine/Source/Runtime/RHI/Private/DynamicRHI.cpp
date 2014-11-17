@@ -38,14 +38,7 @@ void RHIInit(bool bHasEditorToken)
 	if(!GDynamicRHI)
 	{
 		const TCHAR* CmdLine = FCommandLine::Get();
-		FString Token = FParse::Token(CmdLine, false);
-
-		if ( FParse::Param(FCommandLine::Get(),TEXT("UseTexturePool")) )
-		{
-			/** Whether to read the texture pool size from engine.ini on PC. Can be turned on with -UseTexturePool on the command line. */
-			extern RHI_API bool GReadTexturePoolSizeFromIni;
-			GReadTexturePoolSizeFromIni = true;
-		}
+		FString Token = FParse::Token(CmdLine, false);		
 
 		if(USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || IsRunningCommandlet() || IsRunningDedicatedServer())
 		{
@@ -83,14 +76,35 @@ void RHIExit()
 }
 
 // Implement the static RHI methods that call the dynamic RHI.
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type Name ParameterTypesAndNames \
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
 	{ \
 		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->Name ParameterNames; \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type RHI##Name ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
 	}
 #include "RHIMethods.h"
 #undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
 
 #else
 
@@ -98,3 +112,4 @@ void RHIExit()
 int32 DynamicRHILinkerHelper;
 
 #endif // USE_DYNAMIC_RHI
+

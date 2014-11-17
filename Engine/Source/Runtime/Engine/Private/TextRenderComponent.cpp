@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "DynamicMeshBuilder.h"
 #include "../../../../Source/Runtime/Engine/Classes/Engine/TextRenderActor.h"
 
 ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)
@@ -102,9 +103,10 @@ class FTextRenderVertexBuffer : public FVertexBuffer
 public:
 	TArray<FDynamicMeshVertex> Vertices;
 
-	void InitRHI()
+	virtual void InitRHI() override
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo);
 
 		// Copy the vertex data into the vertex buffer.
 		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
@@ -117,15 +119,16 @@ public:
 class FTextRenderIndexBuffer : public FIndexBuffer 
 {
 public:
-	TArray<int32> Indices;
+	TArray<uint16> Indices;
 
 	void InitRHI()
 	{
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), Indices.Num() * sizeof(uint16), BUF_Static, CreateInfo);
 
 		// Copy the index data into the index buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
-		FMemory::Memcpy(Buffer,Indices.GetTypedData(),Indices.Num() * sizeof(int32));
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint16), RLM_WriteOnly);
+		FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(uint16));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 };
@@ -351,21 +354,21 @@ public:
 	virtual ~FTextRenderSceneProxy();
 
 	// Begin FPrimitiveSceneProxy interface
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
-	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual uint32 GetMemoryFootprint() const OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual bool CanBeOccluded() const override;
+	virtual uint32 GetMemoryFootprint() const override;
 	uint32 GetAllocatedSize() const;
 	// End FPrimitiveSceneProxy interface
 
 private:
 	// Begin FPrimitiveSceneProxy interface
-	virtual void CreateRenderThreadResources() OVERRIDE;
+	virtual void CreateRenderThreadResources() override;
 	// End FPrimitiveSceneProxy interface
 
 	void ReleaseRenderThreadResources();
-	bool BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<int32>& OutIndices );
+	bool BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<uint16>& OutIndices );
 
 private:
 	FMaterialRelevance MaterialRelevance;
@@ -552,7 +555,7 @@ uint32 FTextRenderSceneProxy::GetAllocatedSize() const
 /**
 * For the given text, constructs a mesh to be used by the vertex factory for rendering.
 */
-bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<int32>& OutIndices )
+bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<uint16>& OutIndices )
 {
 	if(!Font || Text.IsEmpty())
 	{
@@ -636,6 +639,11 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 				int32 V01 = OutVertices.Add( FDynamicMeshVertex( V2, TangentX, TangentZ, FVector2D(U,	V + SizeV), ActualColor));
 				int32 V11 = OutVertices.Add( FDynamicMeshVertex( V3, TangentX, TangentZ, FVector2D(U + SizeU,	V + SizeV), ActualColor));
 
+				check(V00 < 65536);
+				check(V10 < 65536);
+				check(V01 < 65536);
+				check(V11 < 65536);
+
 				OutIndices.Add(V00);
 				OutIndices.Add(V11);
 				OutIndices.Add(V10);
@@ -697,6 +705,7 @@ UTextRenderComponent::UTextRenderComponent(const class FPostConstructInitializeP
 
 	if( Font )
 	{
+		Font->ConditionalPostLoad();
 		WorldSize = Font->GetMaxCharHeight();
 		InvDefaultSize = 1.0f / WorldSize;
 	}

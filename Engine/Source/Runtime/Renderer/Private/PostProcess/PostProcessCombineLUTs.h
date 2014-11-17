@@ -15,7 +15,7 @@ public:
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 	/** */
@@ -38,7 +38,7 @@ public:
 
 	FColorRemapShaderParameters(const FShaderParameterMap& ParameterMap);
 
-	void Set(const FPixelShaderRHIParamRef ShaderRHI);
+	void Set(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI);
 
 	friend FArchive& operator<<(FArchive& Ar,FColorRemapShaderParameters& P);
 

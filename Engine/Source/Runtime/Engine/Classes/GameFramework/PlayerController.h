@@ -2,15 +2,16 @@
 
 #pragma once
 
-#include "PlayerMuteList.h"
-#include "../Camera/PlayerCameraManager.h"
-#include "GameMode.h"
+#include "GameFramework/PlayerMuteList.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/GameMode.h"
 #include "Components/InputComponent.h"
-#include "../Engine/GameViewportClient.h"
-#include "SceneManagement.h"
-#include "ForceFeedbackEffect.h"
-#include "OnlineReplStructs.h"
+#include "GameFramework/ForceFeedbackEffect.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "GameFramework/Controller.h"
 #include "PlayerController.generated.h"
+
+class FPrimitiveComponentId;
 
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
@@ -61,7 +62,7 @@ class ENGINE_API APlayerController : public AController
 	// Camera/view related variables
 
 	/** Camera manager associated with this Player Controller. */
-	UPROPERTY(EditInline)
+	UPROPERTY(EditInline, BlueprintReadOnly, Category=PlayerController)
 	class APlayerCameraManager* PlayerCameraManager;
 
 	/** PlayerCamera class should be set for each game, otherwise Engine.PlayerCamera is used */
@@ -336,6 +337,9 @@ protected:
 	// Leave playing state. */ 
 	virtual void EndPlayingState();
 
+	/** overridden to return that player controllers are capable of RPCs */
+	virtual bool HasNetOwner() const override;
+
 public:
 	/** Fire the player's currently selected weapon with the optional firemode. */
 	UFUNCTION(exec)
@@ -533,7 +537,7 @@ public:
 	 * @param Space - Animation play area
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
-	UFUNCTION(unreliable, client)
+	UFUNCTION(unreliable, client, BlueprintCallable, Category = "Game|Feedback")
 	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, enum ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
@@ -814,10 +818,6 @@ public:
 
 	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
 	UFUNCTION(reliable, server, WithValidation)
-	void ServerReplicateMessageToAIDebugView(class APawn* InPawn, uint32 InMessage, uint32 DataView = 0);
-
-	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
-	UFUNCTION(reliable, server, WithValidation)
 	void ServerToggleAILogging();
 
 	/** Add Pitch (look up) input */
@@ -858,7 +858,7 @@ public:
 
 	/** Retrieves the current motion state of the player's input device */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
-	void GetInputMotionState(float& Tilt, float& RotationRate, float& Gravity, float& Acceleration) const;
+	void GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const;
 
 	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if the touch index is not down */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
@@ -922,10 +922,6 @@ protected:
 	uint32 bCinemaDisableInputMove:1;
 	uint32 bCinemaDisableInputLook:1;
 
-	/** debugging controller used to communicate with gameplay debugging components - only for development builds */
-	UPROPERTY(Transient)
-	class UGameplayDebuggingControllerComponent* DebuggingController;
-
 private:
 	/* Whether the PlayerController's input handling is enabled. */
 	uint32 bInputEnabled:1;
@@ -972,44 +968,44 @@ public:
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true);
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End of UObject Interface
 
 	// Begin AActor Interface
-	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const OVERRIDE;
-	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) OVERRIDE;
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
-	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) OVERRIDE;
-	virtual void FellOutOfWorld(const class UDamageType& dmgType) OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual void Possess(APawn* aPawn) OVERRIDE;
-	virtual void UnPossess() OVERRIDE;
-	virtual void CleanupPlayerState() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
-	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) OVERRIDE;
-	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) OVERRIDE;
-	virtual void OnNetCleanup(class UNetConnection* Connection) OVERRIDE;
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
-	virtual class UPlayer* GetNetOwningPlayer() OVERRIDE;
-	virtual class UNetConnection* GetNetConnection() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void EnableInput(class APlayerController* PlayerController) OVERRIDE;
-	virtual void DisableInput(class APlayerController* PlayerController) OVERRIDE;
+	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
+	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual void FellOutOfWorld(const class UDamageType& dmgType) override;
+	virtual void Reset() override;
+	virtual void Possess(APawn* aPawn) override;
+	virtual void UnPossess() override;
+	virtual void CleanupPlayerState() override;
+	virtual void Destroyed() override;
+	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
+	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
+	virtual void OnNetCleanup(class UNetConnection* Connection) override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual class UPlayer* GetNetOwningPlayer() override;
+	virtual class UNetConnection* GetNetConnection() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void PostInitializeComponents() override;
+	virtual void EnableInput(class APlayerController* PlayerController) override;
+	virtual void DisableInput(class APlayerController* PlayerController) override;
 	// End AActor interface
 
 	// Begin AController interface
-	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) OVERRIDE;
-	virtual bool IsLocalPlayerController() const OVERRIDE;
-	virtual bool IsLocalController() const OVERRIDE;
-	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const OVERRIDE;
-	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) OVERRIDE;
-	virtual void ChangeState(FName NewState) OVERRIDE;
-	virtual class AActor* GetViewTarget() const OVERRIDE;
-	virtual void BeginInactiveState() OVERRIDE;
-	virtual void EndInactiveState() OVERRIDE;
-	virtual void FailedToSpawnPawn() OVERRIDE;
-	virtual void SetPawn(APawn* InPawn) OVERRIDE;
+	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
+	virtual bool IsLocalPlayerController() const override;
+	virtual bool IsLocalController() const override;
+	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
+	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) override;
+	virtual void ChangeState(FName NewState) override;
+	virtual class AActor* GetViewTarget() const override;
+	virtual void BeginInactiveState() override;
+	virtual void EndInactiveState() override;
+	virtual void FailedToSpawnPawn() override;
+	virtual void SetPawn(APawn* InPawn) override;
 	// End AController interface
 
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
@@ -1165,9 +1161,6 @@ public:
 
 	/** Update the camera manager; this is called after all actors have been ticked.	 */ 
 	virtual void UpdateCameraManager(float DeltaSeconds);
-
-	/** Get instance of debugging component */
-	class UGameplayDebuggingControllerComponent* GetDebuggingController() const { return DebuggingController; }
 
 public:
 	/**

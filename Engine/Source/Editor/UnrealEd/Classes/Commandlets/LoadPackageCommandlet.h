@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Commandlets/Commandlet.h"
 #include "LoadPackageCommandlet.generated.h"
 
 UCLASS()
@@ -18,7 +19,7 @@ class ULoadPackageCommandlet : public UCommandlet
 	bool ParseLoadListFile(FString& LoadListFilename, TArray<FString>& Tokens);
 
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 };
 

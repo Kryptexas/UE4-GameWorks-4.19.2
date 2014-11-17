@@ -8,6 +8,8 @@
 
 #if WITH_PHYSX
 
+#include "Union.h"
+#include "../PhysicsEngine/PhysXSupport.h"
 
 /** Temporary result buffer size */
 #define HIT_BUFFER_SIZE							512		// Hit buffer size for traces and sweeps. This is the total size allowed for sync + async tests.
@@ -15,8 +17,8 @@
 #define OVERLAP_BUFFER_SIZE						1024
 #define OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES	992
 
-checkAtCompileTime(HIT_BUFFER_SIZE > 0, InvalidPhysXHitBufferSize);
-checkAtCompileTime(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, InvalidPhysXSyncBufferSize);
+static_assert(HIT_BUFFER_SIZE > 0, "Invalid PhysX hit buffer size.");
+static_assert(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, "Invalid PhysX sync buffer size.");
 
 
 
@@ -107,10 +109,10 @@ public:
 	 */
 	static PxSceneQueryHitType::Enum CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter);
 	
-	virtual PxSceneQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxSceneQueryFlags& queryFlags) OVERRIDE;
+	virtual PxSceneQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxSceneQueryFlags& queryFlags) override;
 
 
-	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) OVERRIDE
+	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) override
 	{
 		// Currently not used
 		return PxSceneQueryHitType::eBLOCK;
@@ -129,48 +131,8 @@ public:
 		DiscardInitialOverlaps = false;
 	}
 
-	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) OVERRIDE;
+	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) override;
 };
-// RAYCAST
-
-/** Trace a ray against the world and return if a blocking hit is found */
-bool RaycastTest(const UWorld * World, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** Trace a ray against the world and return the first blocking hit */
-bool RaycastSingle(const UWorld * World, struct FHitResult& OutHit, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** 
- *  Trace a ray against the world and return touching hits and then first blocking hit
- *  Results are sorted, so a blocking hit (if found) will be the last element of the array
- *  Only the single closest blocking result will be generated, no tests will be done after that
- */
-bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-// GEOM OVERLAP
-
-/** Function for testing overlap between a supplied PxGeometry and the world. */
-bool GeomOverlapTest(const UWorld * World, const PxGeometry& PGeom, const PxTransform& PGeomPose, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** Function for testing overlap between a supplied PxGeometry and the world. */
-bool GeomOverlapSingle(const UWorld * World, const PxGeometry& PGeom, const PxTransform& PGeomPose, FOverlapResult& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** 
- * Function for overlapping a supplied PxGeometry against the world 
- * Note that this does not clear OutOverlaps, but adds unique results to it
- */
-bool GeomOverlapMulti(const UWorld * World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-
-// GEOM SWEEP
-
-/** Function used for sweeping a supplied PxGeometry against the world as a test */
-bool GeomSweepTest(const UWorld * World, const PxGeometry& PGeom, const PxQuat& PGeomRot, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** Function for sweeping a supplied PxGeometry against the world */
-bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat& PGeomRot, FHitResult& OutHit, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** Function for sweeping a supplied PxGeometry against the world */
-bool GeomSweepMulti(const UWorld * World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
 
 // MISC
 
@@ -183,11 +145,127 @@ PxTransform ConvertToPhysXCapsulePose(const FTransform& GeomPose);
 
 // FILTER DATA
 
-/** Utility for creating a PhysX PxFilterData for filtering query (trace) and sim (physics) from the Unreal filtering info. */
-void CreateShapeFilterData(const uint8 MyChannel, const int32 ActorID, const FCollisionResponseContainer& ResponseToChannels, uint32 SkelMeshCompID, uint16 BodyIndex, PxFilterData& OutQueryData, PxFilterData& OutSimData, bool bEnableCCD, bool bEnableContactNotify, bool bStaticShape);
-
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
 PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace);
 
 #endif // WITH_PHYX
 
+
+#if UE_WITH_PHYSICS
+
+// RAYCAST
+
+/** Trace a ray against the world and return if a blocking hit is found */
+bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** Trace a ray against the world and return the first blocking hit */
+bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** 
+ *  Trace a ray against the world and return touching hits and then first blocking hit
+ *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+ *  Only the single closest blocking result will be generated, no tests will be done after that
+ */
+bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+// GEOM OVERLAP
+
+/** Function for testing overlap between a supplied PxGeometry and the world. */
+bool GeomOverlapTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** Function for testing overlap between a supplied PxGeometry and the world. */
+bool GeomOverlapSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, FOverlapResult& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/**
+* Function for overlapping a supplied PxGeometry against the world
+* Note that this does not clear OutOverlaps, but adds unique results to it
+*/
+bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+// GEOM SWEEP
+
+/** Function used for sweeping a supplied PxGeometry against the world as a test */
+bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** Function for sweeping a supplied PxGeometry against the world */
+bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, FHitResult& OutHit, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** Function for sweeping a supplied PxGeometry against the world */
+bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+#endif
+
+// Note: Do not use these methods for new code, they are being phased out!
+#if WITH_PHYSX
+bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams);
+bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+#endif
+
+
+
+#if WITH_PHYSX
+
+// Adapts a FCollisionShape to a PxGeometry type, used for various queries
+struct FPhysXShapeAdaptor
+{
+public:
+	FPhysXShapeAdaptor(const FQuat& Rot, const FCollisionShape& CollisionShape)
+		: Rotation(PxIdentity)
+	{
+		// Perform other kinds of zero-extent queries as zero-extent sphere queries
+		if ((CollisionShape.ShapeType != ECollisionShape::Sphere) && CollisionShape.IsNearlyZero())
+		{
+			PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(0.0f));
+		}
+		else
+		{
+			switch (CollisionShape.ShapeType)
+			{
+			case ECollisionShape::Box:
+				PtrToUnionData = UnionData.SetSubtype<PxBoxGeometry>(PxBoxGeometry(U2PVector(CollisionShape.GetBox())));
+				Rotation = U2PQuat(Rot);
+				break;
+			case ECollisionShape::Sphere:
+				PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(CollisionShape.GetSphereRadius()));
+				break;
+			case ECollisionShape::Capsule:
+				PtrToUnionData = UnionData.SetSubtype<PxCapsuleGeometry>(PxCapsuleGeometry(CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength()));
+				Rotation = ConvertToPhysXCapsuleRot(Rot);
+				break;
+			default:
+				// invalid point
+				ensure(false);
+			}
+		}
+	}
+
+	PxGeometry& GetGeometry() const
+	{
+		return *PtrToUnionData;
+	}
+
+public:
+	PxTransform GetGeomPose(const FVector& Pos) const
+	{
+		return PxTransform(U2PVector(Pos), Rotation);
+	}
+
+	PxQuat GetGeomOrientation() const
+	{
+		return Rotation;
+	}
+
+private:
+	TUnion<PxSphereGeometry, PxBoxGeometry, PxCapsuleGeometry> UnionData;
+	
+	PxGeometry* PtrToUnionData;
+	PxQuat Rotation;
+};
+
+#endif
+
+
+#if WITH_BOX2D
+
+
+#endif

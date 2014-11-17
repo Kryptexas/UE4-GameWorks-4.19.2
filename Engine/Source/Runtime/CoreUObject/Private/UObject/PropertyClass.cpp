@@ -119,7 +119,7 @@ void UClassProperty::CheckValidObject(void* Value) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClassProperty, UObjectProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UClassProperty, MetaClass ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UClassProperty, MetaClass), TEXT("MetaClass"));
 	}
 );
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "Engine/NiagaraScript.h"
 #include "NiagaraEditorModule.h"
 #include "VectorVM.h"
 

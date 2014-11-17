@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "../../../Renderer/Private/ScenePrivate.h"
 #include "Atmosphere.h"
+#include "ComponentInstanceDataCache.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
@@ -184,7 +185,7 @@ public:
 	}
 
 	/** FTickableEditorObject interface */
-	virtual void Tick( float DeltaTime ) OVERRIDE
+	virtual void Tick( float DeltaTime ) override
 	{
 		if( Component && Component->PrecomputeCounter.GetValue() == UAtmosphericFogComponent::EFinishedComputation ) 
 		{
@@ -197,7 +198,7 @@ public:
 		return true;
 	}
 
-	TStatId GetStatId() const OVERRIDE
+	TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FAtmospherePrecomputeDataHandler, STATGROUP_Tickables);
 	}
@@ -681,15 +682,44 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 	}
 }
 
-const FName FAtmospherePrecomputeInstanceData::InstanceDataTypeName(TEXT("AtmospherePrecomputedInstanceData"));
+/** Used to store lightmap data during RerunConstructionScripts */
+class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
+{
+public:
+	FAtmospherePrecomputeInstanceData(const UAtmosphericFogComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+	{}
+
+	virtual ~FAtmospherePrecomputeInstanceData()
+	{}
+
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	{
+		return (PrecomputeParameter == CastChecked<UAtmosphericFogComponent>(Component)->GetPrecomputeParameters());
+	}
+
+	struct FAtmospherePrecomputeParameters PrecomputeParameter;
+
+	FByteBulkData TransmittanceData;
+	FByteBulkData IrradianceData;
+	FByteBulkData InscatterData;
+};
+
+FName UAtmosphericFogComponent::GetComponentInstanceDataType() const
+{
+	static const FName InstanceDataTypeName(TEXT("AtmospherePrecomputedInstanceData"));
+	return InstanceDataTypeName;
+}
 
 // Backup the precomputed data before re-running Blueprint construction script
-void UAtmosphericFogComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+TSharedPtr<FComponentInstanceDataBase> UAtmosphericFogComponent::GetComponentInstanceData() const
 {
+	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData;
+
 	if (TransmittanceData.GetElementCount() && IrradianceData.GetElementCount() && InscatterData.GetElementCount() && PrecomputeCounter.GetValue() == EValid)
 	{
 		// Allocate new struct for holding light map data
-		TSharedRef<FAtmospherePrecomputeInstanceData> PrecomputedData = MakeShareable(new FAtmospherePrecomputeInstanceData());
+		 PrecomputedData = MakeShareable(new FAtmospherePrecomputeInstanceData(this));
 
 		// Fill in info
 		PrecomputedData->PrecomputeParameter = PrecomputeParams;
@@ -716,55 +746,44 @@ void UAtmosphericFogComponent::GetComponentInstanceData(FComponentInstanceDataCa
 			InscatterData.GetCopy(&OutData, false);
 			PrecomputedData->InscatterData.Unlock();
 		}
-
-		// Add to cache
-		Cache.AddInstanceData(PrecomputedData);
 	}
+
+	return PrecomputedData;
 }
 
 // Restore the precomputed data after re-running Blueprint construction script
-void UAtmosphericFogComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+void UAtmosphericFogComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FAtmospherePrecomputeInstanceData::InstanceDataTypeName, CachedData);
+	check(ComponentInstanceData.IsValid());
+	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData = StaticCastSharedPtr<FAtmospherePrecomputeInstanceData>(ComponentInstanceData);
 
-	for (int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++)
+	FComponentReregisterContext ReregisterContext(this);
+	ReleaseResource();
+
 	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FAtmospherePrecomputeInstanceData::InstanceDataTypeName);
-		TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData = StaticCastSharedPtr<FAtmospherePrecomputeInstanceData>(CachedData[DataIdx]);
-
-		if (PrecomputedData->PrecomputeParameter == PrecomputeParams)
-		{
-			FComponentReregisterContext ReregisterContext(this);
-			ReleaseResource();
-
-			{
-				int32 TotalByte = PrecomputedData->TransmittanceData.GetBulkDataSize();
-				TransmittanceData.Lock(LOCK_READ_WRITE);
-				void* OutData = TransmittanceData.Realloc(TotalByte);
-				PrecomputedData->TransmittanceData.GetCopy(&OutData, false);
-				TransmittanceData.Unlock();
-			}
-
-			{
-				int32 TotalByte = PrecomputedData->IrradianceData.GetBulkDataSize();
-				IrradianceData.Lock(LOCK_READ_WRITE);
-				void* OutData = IrradianceData.Realloc(TotalByte);
-				PrecomputedData->IrradianceData.GetCopy(&OutData, false);
-				IrradianceData.Unlock();
-			}
-
-			{
-				int32 TotalByte = PrecomputedData->InscatterData.GetBulkDataSize();
-				InscatterData.Lock(LOCK_READ_WRITE);
-				void* OutData = InscatterData.Realloc(TotalByte);
-				PrecomputedData->InscatterData.GetCopy(&OutData, false);
-				InscatterData.Unlock();
-			}
-
-			PrecomputeCounter.Set(EValid);
-			InitResource();
-		}
+		int32 TotalByte = PrecomputedData->TransmittanceData.GetBulkDataSize();
+		TransmittanceData.Lock(LOCK_READ_WRITE);
+		void* OutData = TransmittanceData.Realloc(TotalByte);
+		PrecomputedData->TransmittanceData.GetCopy(&OutData, false);
+		TransmittanceData.Unlock();
 	}
+
+	{
+		int32 TotalByte = PrecomputedData->IrradianceData.GetBulkDataSize();
+		IrradianceData.Lock(LOCK_READ_WRITE);
+		void* OutData = IrradianceData.Realloc(TotalByte);
+		PrecomputedData->IrradianceData.GetCopy(&OutData, false);
+		IrradianceData.Unlock();
+	}
+
+	{
+		int32 TotalByte = PrecomputedData->InscatterData.GetBulkDataSize();
+		InscatterData.Lock(LOCK_READ_WRITE);
+		void* OutData = InscatterData.Realloc(TotalByte);
+		PrecomputedData->InscatterData.GetCopy(&OutData, false);
+		InscatterData.Unlock();
+	}
+
+	PrecomputeCounter.Set(EValid);
+	InitResource();
 }

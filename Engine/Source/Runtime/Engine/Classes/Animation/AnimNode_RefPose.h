@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_RefPose.generated.h"
 
 UENUM()
@@ -27,8 +27,8 @@ public:
 	{
 	}
 
-	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
-	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 
 };
 

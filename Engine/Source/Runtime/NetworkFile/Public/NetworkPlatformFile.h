@@ -13,6 +13,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
 {
 	friend class FAsyncFileSync;
+	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
 
 	/**
 	 * Initialize network platform file give the specified host IP
@@ -36,16 +37,16 @@ public:
 	/** Destructor */
 	virtual ~FNetworkPlatformFile();
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) OVERRIDE;
-	virtual void InitializeAfterSetActive() OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) override;
+	virtual void InitializeAfterSetActive() override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return InnerPlatformFile;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FNetworkPlatformFile::GetTypeName();
 	}
@@ -55,71 +56,62 @@ public:
 		return bIsUsable;
 	}
 
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.FileExists;
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.Size;
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE;
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override;
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.ReadOnly;
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE;
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override;
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override;
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.TimeStamp;
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE;
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override;
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.AccessTimeStamp;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE;
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE;
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectoryTree(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE;
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE;
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;
+	virtual bool		DirectoryExists(const TCHAR* Directory) override;
+	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override;
+	virtual bool		CreateDirectory(const TCHAR* Directory) override;
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override;
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override;
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override;
 
-	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE;
-	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE;
+	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
 
-	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) OVERRIDE;
+	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override;
 
 
 
 
 	bool SendReadMessage(uint8* Destination, int64 BytesToRead);
 	bool SendWriteMessage(const uint8* Source, int64 BytesToWrite);
-
-	/**
-	 * This function will receive a header, and then the payload array from the network, only public for an async task
-	 * 
-	 * @param OutPayload The archive to read into (the response is APPENDed to any data in the archive already, and the archive will be seeked to the start of new data)
-	 *
-	 * @return true if successful
-	 */
-	bool ReceivePayload(FArrayReader& OutPayload);
 
 	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
 
@@ -145,8 +137,14 @@ protected:
 
 	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion);
 
+		/**
+	 *  Handle HttpRequests This function collates data  puts it in a binary archive. 
+	 * 
+	 */
+	 virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out);
+
 private:
-	
+
 	/**
 	 * @return true if the path exists in a directory that should always use the local filesystem
 	 * This version does not worry about initialization or thread safety, do not call directly
@@ -164,16 +162,6 @@ private:
 	void EnsureFileIsLocal(const FString& Filename);
 
 	/**
-	 * This function will create a header for the payload, then send the header and 
-	 * payload over the network
-	 *
-	 * @param Payload Bytes to send over the network
-	 *
-	 * @return true if successful
-	 */
-	bool WrapAndSendPayload(const TArray<uint8>& Payload);
-
-	/**
 	 * This function will send a payload data (with header) and wait for a response, serializing
 	 * the response to a FBufferArchive
 	 *
@@ -182,8 +170,6 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool SendPayloadAndReceiveResponse(const TArray<uint8>& Payload, class FArrayReader& Response);
-
 
 protected:
 
@@ -212,12 +198,10 @@ protected:
 	FCriticalSection	LocalDirectoriesCriticalSection;
 	bool				bIsUsable;
 	int32				FileServerPort;
-	class FSocket*		FileSocket;
-	class FMultichannelTcpSocket* MCSocket;
-
 private:
-	FScopedEvent* FinishedAsyncReadUnsolicitedFiles;
-	FScopedEvent* FinishedAsyncWriteUnsolicitedFiles;
+	
+    // Our network Transport. 
+	class ITransport* Transport; 
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle
@@ -240,11 +224,11 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		return FilePos;
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		if (NewPosition >= 0 && NewPosition <= Size)
 		{
@@ -253,11 +237,11 @@ public:
 		}
 		return false;
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		return Seek(Size + NewPositionRelativeToEnd);
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		bool Result = false;
 		if (bReadable && BytesToRead >= 0 && BytesToRead + FilePos <= Size)
@@ -277,7 +261,7 @@ public:
 		}
 		return Result;
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		bool Result = false;
 		if (bWritable && BytesToWrite >= 0)

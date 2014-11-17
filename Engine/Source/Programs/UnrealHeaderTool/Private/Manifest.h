@@ -1,22 +1,24 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Array.h: Data structure containing the contents of an
-	         UnrealHeaderTool.manifest file.
-=============================================================================*/
-
 #pragma once
+
 
 struct FManifestModule
 {
 	/** The name of the module */
 	FString Name;
 
+	/** Module type */
+	EBuildModuleType::Type ModuleType;
+
 	/** Long package name for this module's UObject class */
 	FString LongPackageName;
 
 	/** Base directory of this module on disk */
 	FString BaseDirectory;
+
+	/** The directory to which #includes from this module should be relative */
+	FString IncludeBase;
 
 	/** Directory where generated include files should go */
 	FString GeneratedIncludeDirectory;
@@ -40,10 +42,10 @@ struct FManifestModule
 	bool SaveExportedHeaders;
 };
 
+
 struct FManifest
 {
-	bool    UseRelativePaths;
-	bool IsGameTarget;
+	bool    IsGameTarget;
 	FString RootLocalPath;
 	FString RootBuildPath;
 	FString TargetName;
@@ -56,7 +58,6 @@ struct FManifest
 	 * Loads an UnrealHeaderTool.manifest from the specified filename.
 	 *
 	 * @param Filename The filename of the manifest to load.
-	 *
 	 * @return The loaded module info.
 	 */
 	static FManifest LoadFromFile(const FString& Filename);

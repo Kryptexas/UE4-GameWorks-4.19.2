@@ -1,12 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameNetworkManager.h"
 #include "SoundDefinitions.h"
 #include "ParticleDefinitions.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Particles/ParticleEventManager.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
@@ -26,6 +29,8 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 
 	bEnableWorldBoundsChecks = true;
 	bEnableNavigationSystem = true;
+	bEnableWorldComposition = false;
+	bEnableWorldOriginRebasing = true;
 
 	KillZ = -HALF_WORLD_MAX1;
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;
@@ -163,6 +168,44 @@ void AWorldSettings::Serialize( FArchive& Ar )
 	}
 }
 
+void AWorldSettings::AddAssetUserData(UAssetUserData* InUserData)
+{
+	if (InUserData != NULL)
+	{
+		UAssetUserData* ExistingData = GetAssetUserDataOfClass(InUserData->GetClass());
+		if (ExistingData != NULL)
+		{
+			AssetUserData.Remove(ExistingData);
+		}
+		AssetUserData.Add(InUserData);
+	}
+}
+
+UAssetUserData* AWorldSettings::GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			return Datum;
+		}
+	}
+	return NULL;
+}
+
+void AWorldSettings::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			AssetUserData.RemoveAt(DataIdx);
+			return;
+		}
+	}
+}
 
 #if WITH_EDITOR
 
@@ -197,6 +240,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("bForceNoPrecomputedLightingIsEnabled", "bForceNoPrecomputedLighting is now enabled, build lighting once to propagate the change (will remove existing precomputed lighting data)."));
 		}
+
+		if (PropertyThatChanged->GetName()==TEXT("bEnableWorldComposition"))
+		{
+			EnabledWorldComposition(bEnableWorldComposition);
+		}
 	}
 
 	LightmassSettings.NumIndirectLightingBounces = FMath::Clamp(LightmassSettings.NumIndirectLightingBounces, 0, 100);
@@ -224,6 +272,38 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void AWorldSettings::EnabledWorldComposition(bool bEnable)
+{
+	bEnableWorldComposition = false;
+
+	if (!bEnable)
+	{
+		if (GetWorld()->WorldComposition != nullptr)
+		{
+			GetWorld()->WorldComposition = nullptr;
+			GetWorld()->StreamingLevels.Empty();
+			GetWorld()->FlushLevelStreaming();
+
+			UWorldComposition::OnWorldCompositionDestroyed.Broadcast(GetWorld());
+		}
+	}
+	else
+	{
+		FString RootPackageName = GetOutermost()->GetName();
+
+		if (GetWorld()->WorldComposition == nullptr && FPackageName::DoesPackageExist(RootPackageName))
+		{
+			GetWorld()->StreamingLevels.Empty();
+			GetWorld()->FlushLevelStreaming();
+			GetWorld()->WorldComposition = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), GetWorld());
+			
+			bEnableWorldComposition = true;
+
+			UWorldComposition::OnWorldCompositionCreated.Broadcast(GetWorld());
+		}
+	}
 }
 
 #endif // WITH_EDITOR

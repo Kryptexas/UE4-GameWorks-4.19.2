@@ -3,7 +3,9 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_TransitionResult.h"
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"
+
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_TransitionResult
@@ -17,7 +19,7 @@ UAnimGraphNode_TransitionResult::UAnimGraphNode_TransitionResult(const FPostCons
 
 FLinearColor UAnimGraphNode_TransitionResult::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
 FString UAnimGraphNode_TransitionResult::GetTooltip() const

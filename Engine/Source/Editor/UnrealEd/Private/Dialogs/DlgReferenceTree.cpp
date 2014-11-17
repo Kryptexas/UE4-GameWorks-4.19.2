@@ -184,7 +184,7 @@ public:
 
 private:
 	/** Called when a tree item is double clicked. */
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
 	{
 		// Show the object in the editor.  I.E show the object in the level if its an actor, or content browser otherwise.
 		if( Item->Object )

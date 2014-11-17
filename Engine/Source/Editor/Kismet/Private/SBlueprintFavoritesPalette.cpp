@@ -250,7 +250,7 @@ public:
 	TSharedPtr<FUICommandInfo> ClearFavorites;
 
 	/** Registers context menu commands for the blueprint favorites palette. */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(RemoveSingleFavorite, "Remove from Favorites",          "Removes this item from your favorites list.",                 EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(RemoveSubFavorites,   "Remove Category from Favorites", "Removes all the nodes in this category from your favorites.", EUserInterfaceActionType::Button, FInputGesture());

@@ -33,7 +33,7 @@ public:
 		Keywords = InAssetInfo.ObjectPath.ToString();
 	}
 
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) OVERRIDE
+	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override
 	{
 		UAnimGraphNode_SequencePlayer* SpawnedNode = CastChecked<UAnimGraphNode_SequencePlayer>(FEdGraphSchemaAction_K2NewNode::PerformAction(ParentGraph, FromPin, Location, bSelectNewNode));
 		SpawnedNode->Node.Sequence = Cast<UAnimSequence>(AssetInfo.GetAsset());
@@ -87,21 +87,6 @@ FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType
 		Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
 
 		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args);
-	}
-
-	return Title;
-}
-
-FString UAnimGraphNode_SequencePlayer::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
-	FString Title = GetTitleGivenAssetInfo((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"), bAdditive).ToString();
-
-	if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
-	{
-		Title += TEXT("\n");
-		Title += FString::Printf(TEXT("Sync group %s"), *SyncGroup.GroupName.ToString());
 	}
 
 	return Title;

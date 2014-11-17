@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
-
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsConstraintComponent.generated.h"
 
 /** Dynamic delegate to use by components that want to route the broken-event into blueprints */
@@ -9,7 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, C
 /**
  *	This is effectively a joint that allows you to connect 2 rigid bodies together. You can create different types of joints using the various parameters of this component.
  */
-UCLASS(ClassGroup=Physics, dependson(ConstraintInstance), MinimalAPI, meta=(BlueprintSpawnableComponent), HideCategories=(Activation,"Components|Activation", Physics, Mobility), ShowCategories=("Physics|Components|PhysicsConstraint"))
+UCLASS(ClassGroup=Physics, MinimalAPI, meta=(BlueprintSpawnableComponent), HideCategories=(Activation,"Components|Activation", Physics, Mobility), ShowCategories=("Physics|Components|PhysicsConstraint"))
 class UPhysicsConstraintComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -58,25 +58,25 @@ public:
 	FConstraintInstance			ConstraintInstance;
 
 	//Begin UObject Interface
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//End UObject interface
 
 	//Begin ActorComponent interface
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	virtual void InitializeComponent() override;
 	//End ActorComponent interface
 
 	// Begin SceneComponent interface
 #if WITH_EDITOR
-	virtual void PostEditComponentMove(bool bFinished) OVERRIDE;
+	virtual void PostEditComponentMove(bool bFinished) override;
 #endif // WITH_EDITOR
 	// End SceneComponent interface
 
@@ -158,7 +158,7 @@ public:
 	 *	@param InPosTarget		Target orientation
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	ENGINE_API void	SetAngularOrientationTarget(const FQuat& InPosTarget);
+	ENGINE_API void	SetAngularOrientationTarget(const FRotator& InPosTarget);
 
 	
 	/** Sets the target velocity for the angular drive. 
@@ -174,6 +174,49 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
 	ENGINE_API void	SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+
+
+	/** Sets the LinearX Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearXLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the LinearY Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearYLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the LinearZ Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearZLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the Angular Swing1 Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param Swing1LimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float Swing1LimitAngle);
+
+	/** Sets the Angular Swing2 Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param Swing2LimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float Swing2LimitAngle);
+
+	/** Sets the Angular Twist Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param TwistLimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularTwistLimit(EAngularConstraintMotion ConstraintType, float TwistLimitAngle);
 
 	/** 
 	 *	Update the reference frames held inside the constraint that indicate the joint location in the reference frame 

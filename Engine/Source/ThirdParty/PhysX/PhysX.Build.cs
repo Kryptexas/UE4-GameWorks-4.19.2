@@ -82,8 +82,14 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but APEX is not.
 			Definitions.Add("WITH_APEX=0");
 		}
+		if (UEBuildConfiguration.bCompilePhysXVehicle == false)
+		{
+			// Since PhysX Vehicle is dependent on PhysX, if Vehicle is not being include, set the flag properly.
+			// This will properly cover the case where PhysX is compiled but Vehicle is not.
+			Definitions.Add("WITH_VEHICLE=0");
+		}
 
-		string PhysXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/PhysX-3.3/";
+		string PhysXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/PhysX-3.3/";
 
 		string PhysXLibDir = PhysXDir + "lib/";
 
@@ -221,7 +227,7 @@ public class PhysX : ModuleRules
 				"PhysX3{0}",
 				"PhysX3CharacterKinematic{0}",
 				"PhysX3Extensions{0}",
-				"PhysX3Cooking{0}",
+				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
 				"PhysX3Vehicle{0}",
 				"PxTask{0}",
@@ -240,15 +246,12 @@ public class PhysX : ModuleRules
 
 			foreach (string Lib in StaticLibrariesAndroid)
 			{
-                if (!Lib.Contains("Cooking") || Target.IsCooked == false)
-                {
-                    PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
-                }
+				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PhysXLibDir += "/Linux";
+			PhysXLibDir += "/Linux/" + Target.Architecture;
 
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -296,7 +299,7 @@ public class PhysX : ModuleRules
 					"PhysX3",
 					"PhysX3CharacterKinematic",
 					"PhysX3Common",
-					"PhysX3Cooking",
+					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
 					"PhysX3Vehicle",
 					"PxTask",
@@ -310,11 +313,8 @@ public class PhysX : ModuleRules
 
 			foreach (string PhysXLib in PhysXLibs)
 			{
-                if (!PhysXLib.Contains("Cooking") || Target.IsCooked == false)
-                {
-                    PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
-                    PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
-                }
+				PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
+				PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
 			}
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -332,23 +332,38 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"PxTask",
 					"PhysXVisualDebuggerSDK",
 					"PhysXProfileSDK",
 					"PvdRuntime",
 					"SceneQuery",
 					"SimulationController",
-				}; 
+				};
 
             foreach (var lib in PhysXLibs)
             {
                 if (!lib.Contains("Cooking") || Target.IsCooked == false)
                 {
-                    PublicAdditionalLibraries.Add(PhysXLibDir + lib + ".bc");
+                    PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
                 }
             }
-        }
+
+			if (UEBuildConfiguration.bCompilePhysXVehicle)
+			{
+				string[] PhysXVehicleLibs = new string[] 
+				{
+					"PhysX3Vehicle",
+				};
+
+				foreach (var lib in PhysXVehicleLibs)
+				{
+					if (!lib.Contains("Cooking") || Target.IsCooked == false)
+					{
+						PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
+					}
+				}
+			}
+		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/PS4");

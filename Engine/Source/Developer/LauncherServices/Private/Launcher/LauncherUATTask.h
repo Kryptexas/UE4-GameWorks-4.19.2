@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FLauncherUATTask.h: Declares the FLauncherUATTask class.
-=============================================================================*/
-
 #pragma once
+
+#include "PlatformInfo.h"
 
 
 /**
@@ -29,10 +27,10 @@ public:
 		, TaskCommand(InCommand)
 		, TargetPlatform(InTargetPlatform)
 	{
-		NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+		NoCompile = TEXT(" -nocompile");
 	}
 
-
+	static bool FirstTimeCompile;
 protected:
 
 	/**
@@ -42,8 +40,14 @@ protected:
 	 *
 	 * @return true if the task completed successfully, false otherwise.
 	 */
-	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) OVERRIDE
+	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 	{
+		if (FirstTimeCompile)
+		{
+			NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+			FirstTimeCompile = false;
+		}
+
 		// spawn a UAT process to cook the data
 		// UAT executable
 		FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
@@ -53,28 +57,29 @@ protected:
 		FString Executable = TEXT("RunUAT.bat");
 #endif
 
+		const PlatformInfo::FPlatformInfo& PlatformInfo = TargetPlatform.GetPlatformInfo();
+
 		// switch server and no editor platforms to the proper type
-		FString Platform = TargetPlatform.PlatformName();
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
+		FName PlatformName = PlatformInfo.TargetPlatformName;
+		if (PlatformName == FName("LinuxServer") || PlatformName == FName("LinuxNoEditor"))
 		{
-			Platform = TEXT("Linux");
+			PlatformName = FName("Linux");
 		}
-		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		else if (PlatformName == FName("WindowsServer") || PlatformName == FName("WindowsNoEditor") || PlatformName == FName("Windows"))
 		{
-			Platform = TEXT("Win64");
+			PlatformName = FName("Win64");
 		}
-        else if (TargetPlatform.PlatformName() == TEXT("MacNoEditor"))
+        else if (PlatformName == FName("MacNoEditor"))
         {
-            Platform = TEXT("Mac");
+            PlatformName = FName("Mac");
         }
 
-		// for things like Android_ATC, pull it apart to be Android, with cook flavor ATC
-		FString CookFlavor;
-		int32 UnderscoreLoc;
-		if (Platform.FindChar(TEXT('_'), UnderscoreLoc))
+		// Append any extra UAT flags specified for this platform flavor
+		FString OptionalParams;
+		if (!PlatformInfo.UATCommandLine.IsEmpty())
 		{
-			CookFlavor = FString(TEXT(" -cookflavor=")) + Platform.Mid(UnderscoreLoc + 1);
-			Platform = Platform.Mid(0, UnderscoreLoc);
+			OptionalParams += TEXT(" ");
+			OptionalParams += PlatformInfo.UATCommandLine;
 		}
 
         // check for rocket
@@ -90,13 +95,13 @@ protected:
 		ProjectPath = FPaths::ConvertRelativePathToFull(ProjectPath);
 		CommandLine = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -noP4 -platform=%s -clientconfig=%s -serverconfig=%s"),
 			*ProjectPath,
-			*Platform,
+			*PlatformName.ToString(),
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()],
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()]);
 
 		CommandLine += NoCompile;
         CommandLine += Rocket;
-		CommandLine += CookFlavor;
+		CommandLine += OptionalParams;
 
 		// specialized command arguments for this particular task
 		CommandLine += TaskCommand->GetArguments(ChainState);
@@ -134,7 +139,6 @@ protected:
 
 		return (ReturnCode == 0);
 	}
-
 
 private:
 

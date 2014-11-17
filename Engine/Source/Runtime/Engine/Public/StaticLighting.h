@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "VertexFactory.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 // Forward declarations.
 class FStaticLightingTextureMapping;

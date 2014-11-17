@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundNodeDeprecated.h"
 #include "Slate.h"
 #include "AssetData.h"
 #include "GraphEditorActions.h"

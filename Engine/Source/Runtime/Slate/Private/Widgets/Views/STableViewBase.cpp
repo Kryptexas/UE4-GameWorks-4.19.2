@@ -3,8 +3,12 @@
 #include "SlatePrivatePCH.h"
 #include "SListPanel.h"
 
+namespace ListConstants
+{
+	static const float OvershootMax = 50.0f;
+	static const float OvershootBounceRate = 350.0f;
+}
 
-/** Create the child widgets that comprise the list */
 void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
 {
 	HeaderRow = InHeaderRow;
@@ -26,7 +30,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 			.FillWidth(1)
 			[
 				SAssignNew( ItemsPanel, SListPanel )
-				.ItemWidth(InItemWidth)
+				.ItemWidth( InItemWidth )
 				.ItemHeight( InItemHeight )
 				.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
 			]
@@ -45,7 +49,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 		: StaticCastSharedRef<SWidget>
 		(
 			SAssignNew( ItemsPanel, SListPanel )
-			.ItemWidth(InItemWidth)
+			.ItemWidth( InItemWidth )
 			.ItemHeight( InItemHeight )
 			.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
 		);
@@ -79,11 +83,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 	
 }
 
-/**
- * See SWidget::SupportsKeyboardFocus().
- *
- * @return  True if this widget can take keyboard focus
- */
+
 bool STableViewBase::SupportsKeyboardFocus() const
 {
 	// The ListView is focusable.
@@ -146,13 +146,7 @@ static FEndOfListResult ComputeOffsetForEndOfList( const FGeometry& ListPanelGeo
 	return FEndOfListResult( OffsetFromEndOfList, ItemsAboveView );
 }
 
-/**
- * See SWidget::Tick()
- *
- * @param  AllottedGeometry The space allotted for this widget
- * @param  InCurrentTime  Current absolute real time
- * @param  InDeltaTime  Real time passed since last tick
- */
+
 void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (ItemsPanel.IsValid())
@@ -160,11 +154,20 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 		if ( !IsRightClickScrolling() )
 		{
 			this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
-
 			const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
+
 			if ( ScrollVelocity != 0.f )
 			{
-				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime);
+				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, EAllowOverscroll::Yes);
+			}
+
+			Overscroll.UpdateOverscroll( InDeltaTime );
+
+			if (Overscroll.GetOverscroll() != 0.0f)
+			{
+				InertialScrollManager.ClearScrollVelocity();	
+				
+				this->RequestListRefresh();
 			}
 		}
 
@@ -181,7 +184,8 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 			const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 
-			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumWidgetsOnScreen >= NumItemsBeingObserved;
+			const int32 NumItemsWide = GetNumItemsWide();
+			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumRowsOnScreen >= (NumItemsBeingObserved / NumItemsWide);
 			if (bEnoughRoomForAllItems)
 			{
 				// We can show all the items, so make sure there is no scrolling.
@@ -192,8 +196,11 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 				ScrollOffset = ReGenerateResults.NewScrollOffset;
 			}
 			
+			
 			ScrollOffset = FMath::Max(0.0, ScrollOffset);
-			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) );
+			const float OverscrollAmount = Overscroll.GetOverscroll();
+			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) +  OverscrollAmount );
+			
 
 			UpdateSelectionSet();
 
@@ -201,14 +208,14 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			{
 				// The thumb size is whatever fraction of the items we are currently seeing (including partially seen items).
 				// e.g. if we are seeing 0.5 of the first generated widget and 0.75 of the last widget, that's 1.25 widgets.
-				const double ThumbSizeFraction = ReGenerateResults.ExactNumWidgetsOnScreen / NumItemsBeingObserved;
+				const double ThumbSizeFraction = ReGenerateResults.ExactNumRowsOnScreen / (NumItemsBeingObserved / NumItemsWide);
 				const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
 				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 			}
 
 			NotifyItemScrolledIntoView();
 
-			bWasAtEndOfList = ScrollBar->DistanceFromBottom() <= 0.f ? true : false;
+			bWasAtEndOfList = FMath::IsNearlyZero(ScrollBar->DistanceFromBottom()) ? true : false;
 
 			bItemsNeedRefresh = false;
 			ItemsPanel->SetRefreshPending(false);
@@ -216,25 +223,33 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 	}
 }
 
-/**
- * Invoked by the scrollbar when the user scrolls.
- *
- * @param InScrollOffsetFraction  The location to which the user scrolled as a fraction (between 0 and 1) of total height of the content.
- */
+
 void STableViewBase::ScrollBar_OnUserScrolled( float InScrollOffsetFraction )
 {
 	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( InScrollOffsetFraction, 0.0, 1.0 )* GetNumItemsBeingObserved();
 	ScrollTo( ClampedScrollOffsetInItems );
 }
 
-/**
- * See SWidget::OnMouseButtonDown()
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
+
+FReply STableViewBase::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (MouseEvent.IsTouchEvent())
+	{
+		// Clear any inertia 
+		this->InertialScrollManager.ClearScrollVelocity();
+		// We have started a new interaction; track how far the user has moved since they put their finger down.
+		AmountScrolledWhileRightMouseDown = 0;
+		// Someone put their finger down in this list, so they probably want to drag the list.
+		bStartedTouchInteraction = true;
+		return FReply::Unhandled();
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
+}
+
+
 FReply STableViewBase::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	// Zero the scroll velocity so the list stops immediately on mouse down, even if the user does not drag
@@ -251,17 +266,26 @@ FReply STableViewBase::OnMouseButtonDown( const FGeometry& MyGeometry, const FPo
 		// they reach our scroll threshold
 		return FReply::Handled();
 	}
+	else if ( this->HasMouseCapture() )
+	{
+		// Consume all mouse buttons while we are RMB-dragging.
+		return FReply::Handled();
+	}
 	return FReply::Unhandled();			
 }
 
-/**
- * See SWidget::OnMouseButtonUp()
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
+FReply STableViewBase::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+{
+	if ( this->HasMouseCapture() )
+	{
+		// Consume all other mouse buttons while we are RMB-dragging.
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();			
+
+}
+
+
 FReply STableViewBase::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
@@ -291,14 +315,6 @@ FReply STableViewBase::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoin
 }
 
 
-/**
- * See SWidget::OnMouseMove()
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
 FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {	
 	if( MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) )
@@ -313,11 +329,12 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		if( IsRightClickScrolling() )
 		{
 			this->InertialScrollManager.AddScrollSample(-ScrollByAmount, FPlatformTime::Seconds());
-			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount );
+			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
 			FReply Reply = FReply::Handled();
 
-			// Capture the mouse if we need to
+			// The mouse moved enough that we're now dragging the view. Capture the mouse
+			// so the user does not have to stay within the bounds of the list while dragging.
 			if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
 			{
 				Reply.CaptureMouse( AsShared() ).UseHighPrecisionMouseMovement( AsShared() );
@@ -341,6 +358,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 
 void STableViewBase::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	bStartedTouchInteraction = false;
 	if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
 	{
 		// No longer scrolling (unless we have mouse capture)
@@ -349,14 +367,6 @@ void STableViewBase::OnMouseLeave( const FPointerEvent& MouseEvent )
 }
 
 
-/**
- * See SWidget::OnMouseWheel()
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
 FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if( !MouseEvent.IsControlDown() )
@@ -364,7 +374,7 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		this->InertialScrollManager.ClearScrollVelocity();
 
-		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount );
+		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No );
 		if (FMath::Abs(AmountScrolledInItems) > 0.0f)
 		{
 			return FReply::Handled();
@@ -373,14 +383,7 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 	return FReply::Unhandled();
 }
 
-/**
- * See SWidget::OnKeyDown().
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param  InKeyboardEvent  Keyboard event
- *
- * @return  Returns whether the event was handled, along with other possible actions
- */
+
 FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	if ( InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() == EKeys::End )
@@ -396,7 +399,7 @@ FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 
 FCursorReply STableViewBase::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
 {
-	if ( IsRightClickScrolling() )
+	if ( IsRightClickScrolling() && CursorEvent.IsMouseButtonDown(EKeys::RightMouseButton) )
 	{
 		// We hide the native cursor as we'll be drawing the software EMouseCursor::GrabHandClosed cursor
 		return FCursorReply::Cursor( EMouseCursor::None );
@@ -407,8 +410,55 @@ FCursorReply STableViewBase::OnCursorQuery( const FGeometry& MyGeometry, const F
 	}
 }
 
+FReply STableViewBase::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
+{
+	// See OnPreviewMouseButtonDown()
+	//     if (MouseEvent.IsTouchEvent())
 
-/** @return The number of Widgets we currently have generated. */
+	return FReply::Unhandled();
+}
+
+FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
+{
+	if (bStartedTouchInteraction)
+	{
+		const float ScrollByAmount = InTouchEvent.GetCursorDelta().Y;
+		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
+
+		this->InertialScrollManager.AddScrollSample( ScrollByAmount, FPlatformTime::Seconds());
+		const float AmountScrolled = this->ScrollBy( MyGeometry, ScrollByAmount, EAllowOverscroll::Yes );
+
+		if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
+		{
+			// The user has moved the list some amount; they are probably
+			// trying to scroll. From now on, the list assumes the user is scrolling
+			// until they lift their finger.
+			return FReply::Handled().CaptureMouse( AsShared() );
+		}
+		return FReply::Handled();
+	}
+	else
+	{
+		return FReply::Handled();
+	}
+}
+
+FReply STableViewBase::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
+{
+	AmountScrolledWhileRightMouseDown = 0;
+	bStartedTouchInteraction = false;
+
+	if (HasMouseCapture())
+	{
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	else
+	{
+		return FReply::Handled();
+	}
+}
+
+
 int32 STableViewBase::GetNumGeneratedChildren() const
 {
 	return (ItemsPanel.IsValid())
@@ -468,27 +518,33 @@ int32 STableViewBase::OnPaint( const FGeometry& AllottedGeometry, const FSlateRe
 STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	: TableViewMode( InTableViewMode )
 	, ScrollOffset( 0 )
+	, bStartedTouchInteraction( false )
 	, AmountScrolledWhileRightMouseDown( 0 )
 	, LastGenerateResults( 0,0,0,false )
 	, bWasAtEndOfList(false)
 	, SelectionMode( ESelectionMode::Multi )
 	, SoftwareCursorPosition( ForceInitToZero )
 	, bShowSoftwareCursor( false )
-	, bItemsNeedRefresh( true )
+	, Overscroll( ListConstants::OvershootMax )
+	, bItemsNeedRefresh( true )	
 {
 }
 
-float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits )
+float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll )
 {
 	const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 	const float FractionalScrollOffsetInItems = (ScrollOffset + GetScrollRateInItems() * ScrollByAmountInSlateUnits) / NumItemsBeingObserved;
-	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems, 0.0, 1.0 ) * NumItemsBeingObserved;
+	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems*NumItemsBeingObserved, -10.0f, NumItemsBeingObserved+10.0f ) * NumItemsBeingObserved;
+	if (AllowOverscroll == EAllowOverscroll::Yes)
+	{
+		Overscroll.ScrollBy( ClampedScrollOffsetInItems - ScrollByAmountInSlateUnits );
+	}
 	return ScrollTo( ClampedScrollOffsetInItems );
 }
 
 float STableViewBase::ScrollTo( float InScrollOffset )
 {
-	const float NewScrollOffset = FMath::Clamp( InScrollOffset, 0.0f, (float)GetNumItemsBeingObserved() );
+	const float NewScrollOffset = FMath::Clamp( InScrollOffset, -10.0f, GetNumItemsBeingObserved()+10.0f );
 	float AmountScrolled = FMath::Abs( ScrollOffset - NewScrollOffset );
 	ScrollOffset = NewScrollOffset;
 
@@ -548,6 +604,16 @@ float STableViewBase::GetItemHeight() const
 	return ItemsPanel->GetItemHeight();
 }
 
+void STableViewBase::SetItemHeight(TAttribute<float> Height)
+{
+	ItemsPanel->SetItemHeight(Height);
+}
+
+void STableViewBase::SetItemWidth(TAttribute<float> Width)
+{
+	ItemsPanel->SetItemWidth(Width);
+}
+
 float STableViewBase::GetNumLiveWidgets() const
 {
 	return ItemsPanel->GetChildren()->Num();
@@ -580,9 +646,9 @@ void STableViewBase::OnRightMouseButtonUp(const FVector2D& SummonLocation)
 
 float STableViewBase::GetScrollRateInItems() const
 {
-	return ( LastGenerateResults.HeightOfGeneratedItems != 0 && LastGenerateResults.ExactNumWidgetsOnScreen != 0)
+	return (LastGenerateResults.HeightOfGeneratedItems != 0 && LastGenerateResults.ExactNumRowsOnScreen != 0)
 		// Approximate a consistent scrolling rate based on the average item height.
-		? LastGenerateResults.ExactNumWidgetsOnScreen / LastGenerateResults.HeightOfGeneratedItems
+		? LastGenerateResults.ExactNumRowsOnScreen / LastGenerateResults.HeightOfGeneratedItems
 		// Scroll 1/2 an item at a time as a default.
 		: 0.5f;
 }
@@ -600,4 +666,53 @@ FVector2D STableViewBase::GetScrollDistanceRemaining()
 TSharedRef<class SWidget> STableViewBase::GetScrollWidget()
 {
 	return SharedThis(this);
+}
+
+
+STableViewBase::FOverscroll::FOverscroll( const float InMaxOverscroll )
+: OverscrollAmount( 0.0f )
+, MaxOverscroll( InMaxOverscroll )
+{
+}
+
+float STableViewBase::FOverscroll::ScrollBy( float Delta )
+{
+	const float ValueBeforeDeltaApplied = OverscrollAmount;
+	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount + 1.0f;
+	const float EasedDelta = Delta / OverscrollMagnitude;
+	OverscrollAmount = FMath::Clamp(OverscrollAmount + EasedDelta, -ListConstants::OvershootMax, ListConstants::OvershootMax);
+
+	return ValueBeforeDeltaApplied - OverscrollAmount;
+}
+
+float STableViewBase::FOverscroll::GetOverscroll() const
+{
+	return OverscrollAmount;
+}
+
+void STableViewBase::FOverscroll::UpdateOverscroll( float InDeltaTime )
+{
+	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount;
+	const float PullForce = OverscrollMagnitude + 1.0f;
+	const float EasedDelta = ListConstants::OvershootBounceRate * InDeltaTime * PullForce;
+
+	if ( OverscrollAmount > 0 )
+	{
+		OverscrollAmount = FMath::Max( 0.0f, OverscrollAmount - EasedDelta * InDeltaTime );
+	}
+	else
+	{
+		OverscrollAmount = FMath::Min( 0.0f, OverscrollAmount +  EasedDelta * InDeltaTime );
+	}
+}
+
+bool STableViewBase::FOverscroll::ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const
+{
+	const bool bShouldApplyOverscroll =
+		// We can scroll past the edge of the list only if we are at the edge
+		(bIsAtStartOfList && ScrollDelta < 0) || (bIsAtEndOfList && ScrollDelta > 0) ||
+		// ... or if we are already past the edge and are scrolling in the opposite direction.
+		(OverscrollAmount > 0 && ScrollDelta < 0) || (OverscrollAmount < 0 && ScrollDelta > 0);
+
+	return bShouldApplyOverscroll;
 }

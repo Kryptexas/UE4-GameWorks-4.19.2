@@ -9,6 +9,6 @@ class ENGINE_API UInputVectorAxisDelegateBinding : public UInputAxisKeyDelegateB
 	GENERATED_UCLASS_BODY()
 
 	// Begin UInputDelegateBinding interface
-	virtual void BindToInputComponent(UInputComponent* InputComponent) const OVERRIDE;
+	virtual void BindToInputComponent(UInputComponent* InputComponent) const override;
 	// End UInputDelegateBinding interface
 };

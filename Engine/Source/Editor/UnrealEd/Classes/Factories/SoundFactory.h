@@ -38,7 +38,7 @@ class USoundFactory : public UFactory
 
 
 	// Begin UFactory Interface
-	virtual UObject* FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn ) OVERRIDE;
+	virtual UObject* FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn ) override;
 	// End UFactory Interface
 	
 	/** Suppresses the import overwrite dialog until one iteration of FactoryCreateBinary completes; this is primarily used for reimporting sounds */

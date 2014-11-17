@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Exporter.h: Lightmass solver exporter class.
-=============================================================================*/
-
 #pragma once
 
 #include "LMCore.h"
+
 
 namespace Lightmass
 {
@@ -51,7 +48,7 @@ namespace Lightmass
 			const TMap<FGuid,TArray<class FVolumeLightingSample> >& VolumeSamples) const;
 
 		/** Exports dominant shadow information to Unreal. */
-		void ExportDominantShadowInfo(const FGuid& LightGuid, const class FDominantLightShadowInfo& DominantLightShadowInfo) const;
+		void ExportStaticShadowDepthMap(const FGuid& LightGuid, const class FStaticShadowDepthMap& StaticShadowDepthMap) const;
 
 		/** 
 		 * Exports information about mesh area lights back to Unreal, 

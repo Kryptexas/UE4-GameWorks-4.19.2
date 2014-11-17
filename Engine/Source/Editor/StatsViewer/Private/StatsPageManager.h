@@ -9,6 +9,8 @@
 class FStatsPageManager
 {
 public:
+	virtual ~FStatsPageManager() {}
+
 	/** Gets the instance of this manager */
 	static FStatsPageManager& Get();
 

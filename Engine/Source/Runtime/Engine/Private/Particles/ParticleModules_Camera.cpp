@@ -7,6 +7,12 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Camera/ParticleModuleCameraOffset.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleCameraBase::UParticleModuleCameraBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

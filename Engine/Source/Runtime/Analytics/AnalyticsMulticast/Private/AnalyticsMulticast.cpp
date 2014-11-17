@@ -18,21 +18,21 @@ class FAnalyticsProviderMulticast : public IAnalyticsProvider
 public:
 	FAnalyticsProviderMulticast(const FAnalyticsMulticast::Config& ConfigValues, const FAnalytics::FProviderConfigurationDelegate& GetConfigValue);
 
-	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) OVERRIDE;
-	virtual void EndSession() OVERRIDE;
-	virtual void FlushEvents() OVERRIDE;
+	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override;
+	virtual void EndSession() override;
+	virtual void FlushEvents() override;
 
-	virtual void SetUserID(const FString& InUserID) OVERRIDE;
-	virtual FString GetUserID() const OVERRIDE;
+	virtual void SetUserID(const FString& InUserID) override;
+	virtual FString GetUserID() const override;
 
-	virtual FString GetSessionID() const OVERRIDE;
-	virtual bool SetSessionID(const FString& InSessionID) OVERRIDE;
+	virtual FString GetSessionID() const override;
+	virtual bool SetSessionID(const FString& InSessionID) override;
 
-	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) OVERRIDE;
-	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes) OVERRIDE;
-	virtual void RecordItemPurchase(const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity) OVERRIDE;
-	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const FString& RealCurrencyType, float RealMoneyCost, const FString& PaymentProvider) OVERRIDE;
-	virtual void RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount) OVERRIDE;
+	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
+	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes) override;
+	virtual void RecordItemPurchase(const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity) override;
+	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const FString& RealCurrencyType, float RealMoneyCost, const FString& PaymentProvider) override;
+	virtual void RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount) override;
 
 	virtual ~FAnalyticsProviderMulticast();
 

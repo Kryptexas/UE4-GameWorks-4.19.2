@@ -50,7 +50,7 @@ public:
 	TSharedPtr<FUICommandInfo> EditGlobalOptions;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 
 

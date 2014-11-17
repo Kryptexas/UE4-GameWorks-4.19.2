@@ -31,7 +31,6 @@ namespace iPhonePackager
 		private static string XcodeDeveloperDir = "";
 
 		private static string iPhone_SigningDevRootMac = "";
-		private static string iPhone_SigningDevRootWin = "";
 
 		/// <summary>
 		/// The file name (no path) of the temporary mobile provision that will be placed on the remote mac for use in makeapp
@@ -78,7 +77,7 @@ namespace iPhonePackager
 			// sign with the Distribution identity when packaging for distribution
 			if (!Config.bForDistribution)
 			{
-				CmdLine += String.Format(" CODE_SIGN_RESOURCE_RULES_PATH={0}/CustomResourceRules.plist", MacStagingRootDir);
+				CmdLine += String.Format(" CODE_SIGN_RESOURCE_RULES_PATH='{0}/CustomResourceRules.plist'", MacStagingRootDir);
 			}
 			CmdLine += String.Format(" CODE_SIGN_IDENTITY=\\\"{0}\\\"", Config.CodeSigningIdentity);
 
@@ -98,13 +97,12 @@ namespace iPhonePackager
 
 			// MacName=%ue4.iPhone_SigningServerName%
 			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable( "ue.IOSSigningServer", "a1487" );
-			iPhone_SigningDevRootWin = "\\\\" + MacName + "\\UE4\\Builds";
 			iPhone_SigningDevRootMac = "/UE4/Builds";
 
 			// get the path to mirror into on the Mac
 			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, @"..\.."));
 			string Root = Path.GetPathRoot(BinariesDir);
-			string BranchPath = MachineName + "/" + BinariesDir.Substring( Root.Length );
+			string BranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring( Root.Length );
 			BranchPath = BranchPath.Replace('\\', '/');
 
 			// similar for the game path (strip off the D:\ tpe root)
@@ -118,7 +116,7 @@ namespace iPhonePackager
 			}
 			else
 			{
-				GameBranchPath = MachineName + "/" + BinariesDir.Substring(Root.Length);
+				GameBranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring(Root.Length);
 				GameBranchPath = GameBranchPath.Replace('\\', '/');
 			}
 
@@ -126,8 +124,8 @@ namespace iPhonePackager
 
 			// generate the directories to recursively copy into later on
 			MacStagingRootDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
-			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, BranchPath);
-			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, BranchPath);
+			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, GameBranchPath);
 
 			MacMobileProvisionFilename = MachineName + "_UE4Temp.mobileprovision";
 
@@ -248,7 +246,7 @@ namespace iPhonePackager
 			case "deletemacstagingfiles":
 				Program.Log( " ... deleting staging files on the Mac" );
 				DisplayCommandLine = "rm -rf Payload";
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -257,7 +255,7 @@ namespace iPhonePackager
 
 				DisplayCommandLine = String.Format("mkdir -p ~/Library/MobileDevice/Provisioning\\ Profiles");
 
-				CommandLine = MacXcodeStagingDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
@@ -267,29 +265,29 @@ namespace iPhonePackager
 
 				DisplayCommandLine = String.Format("cp -f {0} ~/Library/MobileDevice/Provisioning\\ Profiles", MacMobileProvisionFilename);
 
-				CommandLine = MacXcodeStagingDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
 			case "removeprovision":
 				Program.Log(" ... removing .mobileprovision");
 				DisplayCommandLine = String.Format("rm -f ~/Library/MobileDevice/Provisioning\\ Profiles/{0}", MacMobileProvisionFilename);
-				CommandLine = MacXcodeStagingDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
 			case "setexec": 
 				// Note: The executable must have already been copied over
 				Program.Log(" ... setting executable bit");
-				DisplayCommandLine = "chmod a+x " + RemoteExecutablePath;
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				DisplayCommandLine = "chmod a+x \'" + RemoteExecutablePath + "\'";
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "prepackage":
 				Program.Log(" ... running prepackage script remotely ");
 				DisplayCommandLine = String.Format("sh prepackage.sh {0} IOS {1} {2}", Program.GameName, Program.GameConfiguration, Program.Architecture);
-				CommandLine = MacXcodeStagingDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
@@ -297,21 +295,21 @@ namespace iPhonePackager
 				Program.Log(" ... making application (codesign, etc...)");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
 				DisplayCommandLine = CurrentBaseXCodeCommandLine;
-				CommandLine = MacXcodeStagingDir + "/.. " + DisplayCommandLine;
-				WorkingFolder = MacXcodeStagingDir + "/..";
+				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				break;
 
 			case "validation":
 				Program.Log( " ... validating distribution package" );
 				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/Validation " + RemoteAppDirectory;
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "deleteipa":
 				Program.Log(" ... deleting IPA on Mac");
 				DisplayCommandLine = "rm -f " + Config.IPAFilenameOnMac;
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -324,15 +322,15 @@ namespace iPhonePackager
 
 			case "strip":
 				Program.Log( " ... stripping" );
-				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip " + RemoteExecutablePath;
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip '" + RemoteExecutablePath + "'";
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "resign":
 				Program.Log("... resigning");
 				DisplayCommandLine = "bash -c '" + "chmod a+x ResignScript" + ";" + "./ResignScript" + "'";
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -349,7 +347,7 @@ namespace iPhonePackager
 					Config.IPAFilenameOnMac,
 					dSYMName);
 
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -360,7 +358,7 @@ namespace iPhonePackager
 				string dSYMPath = Program.GameName + ".app.dSYM";
 				DisplayCommandLine = String.Format("dsymutil -o {0} {1}", dSYMPath, ExePath);
 
-				CommandLine = MacStagingRootDir + " " + DisplayCommandLine;
+				CommandLine = "\"" + MacStagingRootDir + "\"" + DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -371,6 +369,7 @@ namespace iPhonePackager
 
 			Program.Log( " ... working folder: " + WorkingFolder );
 			Program.Log( " ... " + DisplayCommandLine );
+			Program.Log(" ... full command: " +  MacName + " " + CommandLine);
 
 			Process RPCUtil = new Process();
 			RPCUtil.StartInfo.FileName = @"..\RPCUtility.exe";

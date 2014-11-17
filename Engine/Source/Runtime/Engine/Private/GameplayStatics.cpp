@@ -7,6 +7,10 @@
 #include "LatentActions.h"
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "GameFramework/Character.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundCue.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -289,7 +293,7 @@ AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& S
 {
 	if (Actor)
 	{
-		Actor->OnConstruction(SpawnTransform);
+		Actor->ExecuteConstruction(SpawnTransform, NULL);
 		Actor->PostActorConstruction();
 	}
 
@@ -320,15 +324,20 @@ void UGameplayStatics::UnloadStreamLevel(UObject* WorldContextObject, FName Leve
 
 ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject, FName InPackageName)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	
-	FString ShortPackageName = FStreamLevelAction::MakeSafeShortLevelName(InPackageName, World);
-
-	for (auto It = World->StreamingLevels.CreateConstIterator(); It; ++It)
+	if (InPackageName != NAME_None)
 	{
-		if (FPackageName::GetShortName((*It)->PackageName) == ShortPackageName)
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+
+		for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
 		{
-			return *It;
+			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
+			// Like Saved/Autosaves/PackageName
+			if (LevelStreaming && 
+				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+			{
+				return LevelStreaming;
+			}
 		}
 	}
 	
@@ -746,7 +755,7 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 	return AudioComponent;
 }
 
-void UGameplayStatics::PlaySound(UObject* WorldContextObject, class USoundCue* InSoundCue, class USceneComponent* AttachComponent, FName AttachName, bool bFollow, float VolumeMultiplier, float PitchMultiplier)
+void UGameplayStatics::PlaySound(UObject* WorldContextObject, USoundCue* InSoundCue, USceneComponent* AttachComponent, FName AttachName, bool bFollow, float VolumeMultiplier, float PitchMultiplier)
 {
 	if (bFollow)
 	{

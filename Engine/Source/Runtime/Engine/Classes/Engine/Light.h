@@ -54,7 +54,7 @@ class ENGINE_API ALight : public AActor
 public:
 #if WITH_EDITOR
 	// Begin AActor interface.
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 	// End AActor interface.
 #endif
 
@@ -68,7 +68,7 @@ public:
 
 	// Begin AActor interface.
 	void Destroyed();
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return false; }
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	// End AActor interface.
 };
 

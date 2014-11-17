@@ -21,7 +21,7 @@ class FCoreAudioDeviceModule : public IAudioDeviceModule
 public:
 
 	/** Creates a new instance of the audio device implemented by the module. */
-	virtual FAudioDevice* CreateAudioDevice() OVERRIDE
+	virtual FAudioDevice* CreateAudioDevice() override
 	{
 		return new FCoreAudioDevice;
 	}

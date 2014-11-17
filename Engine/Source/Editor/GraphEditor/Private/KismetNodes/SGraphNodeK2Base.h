@@ -7,18 +7,18 @@ class GRAPHEDITOR_API SGraphNodeK2Base : public SGraphNode
 public:
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
+	virtual void UpdateGraphNode() override;
 
 	// SNodePanel::SNode interface
-	virtual bool RequiresSecondPassLayout() const OVERRIDE;
-	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const OVERRIDE;
-	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const OVERRIDE;
-	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const OVERRIDE;
-	void PerformSecondPassLayout(const TMap< UObject*, TSharedRef<SNode> >& NodeToWidgetLookup) const OVERRIDE;
+	virtual bool RequiresSecondPassLayout() const override;
+	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const override;
+	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const override;
+	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
+	void PerformSecondPassLayout(const TMap< UObject*, TSharedRef<SNode> >& NodeToWidgetLookup) const override;
 
 protected :
 	// Begin SGraphNode interface
-	virtual TSharedPtr<SToolTip> GetComplexTooltip() OVERRIDE;
+	virtual TSharedPtr<SToolTip> GetComplexTooltip() override;
 	// End SGraphNode interface
 
 	/** Set up node in 'standard' mode */

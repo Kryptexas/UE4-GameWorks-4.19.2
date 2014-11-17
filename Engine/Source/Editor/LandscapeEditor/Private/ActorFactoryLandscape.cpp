@@ -15,9 +15,9 @@ UActorFactoryLandscape::UActorFactoryLandscape(const class FPostConstructInitial
 
 AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
 {
-	GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
+	GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
 
-	FEdModeLandscape* EdMode = (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 
 	EdMode->UISettings->NewLandscape_Location = Location;
 	EdMode->UISettings->NewLandscape_Rotation = Rotation;
@@ -66,9 +66,9 @@ bool ALandscapePlaceholder::TeleportTo(const FVector& DestLocation, const FRotat
 {
 	bool bResult = Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck);
 
-	GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
+	GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
 
-	FEdModeLandscape* EdMode = (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 
 	EdMode->UISettings->NewLandscape_Location = GetActorLocation();
 	EdMode->UISettings->NewLandscape_Rotation = GetActorRotation();

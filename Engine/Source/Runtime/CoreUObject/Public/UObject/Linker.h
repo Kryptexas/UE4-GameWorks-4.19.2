@@ -258,6 +258,14 @@ struct FObjectExport : public FObjectResource
 	uint32			PackageFlags;
 
 	/**
+	 * whether the export should be always loaded in editor game
+	 * False means that the object is necessary for editor game,
+	 * True doesn't means, that the object won't be loaded.
+	 * Serialized
+	 */
+	bool			bNotForEditorGame;
+
+	/**
 	 * Constructors
 	 */
 	COREUOBJECT_API FObjectExport();
@@ -1093,6 +1101,13 @@ class ULinker : public UObject, public FLinkerTables
 		{
 			return true;
 		}
+#if WITH_EDITOR
+		if (!Export.bNotForEditorGame)
+		{
+			ensure(true);
+			return false;
+		}
+#endif
 		if (FilterClientButNotServer && Export.bNotForServer) // "we are a dedicated server"
 		{
 			return true;
@@ -1310,7 +1325,7 @@ public:
 	/**
 	 * Add redirects to ULinkerLoad static map
 	 */
-	COREUOBJECT_API void CreateActiveRedirectsMap(const FString& GEngineIniName);
+	COREUOBJECT_API static void CreateActiveRedirectsMap(const FString& GEngineIniName);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map

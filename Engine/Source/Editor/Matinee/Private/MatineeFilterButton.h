@@ -35,7 +35,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	// SWidget interface
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 private:
 	/** Called when the checked state has changed */

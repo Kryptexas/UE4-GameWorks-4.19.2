@@ -23,7 +23,7 @@ public:
 	UNREALED_API void OnToolkitHostDestroyed( class IToolkitHost* HostBeingDestroyed );
 
 	/** Tries to find an open asset editor that's editing the specified asset, and returns the toolkit for that asset editor */
-	UNREALED_API TSharedPtr< IToolkit > FindEditorForAsset( UObject* Asset );
+	UNREALED_API TSharedPtr< IToolkit > FindEditorForAsset( const UObject* Asset );
 
 private:
 	// Buried constructor since the asset editor manager is a singleton

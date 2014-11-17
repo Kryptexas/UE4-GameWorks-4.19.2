@@ -33,22 +33,26 @@ namespace UnrealBuildTool
 		// If you are looking for where to change the remote compile server name, look in RemoteToolChain.cs
 
 		/** If this is set, then we don't do any post-compile steps except moving the executable into the proper spot on the Mac */
+		[XmlConfig]
 		public static bool bUseDangerouslyFastMode = false;
 
 		/** Which version of the iOS SDK to target at build time */
+		[XmlConfig]
 		public static string IOSSDKVersion = "latest";
+		public static float IOSSDKVersionFloat = 0.0f;
 
 		/** The architecture(s) to compile */
+		[XmlConfig]
 		public static string NonShippingArchitectures = "armv7";
+		[XmlConfig]
 		public static string ShippingArchitectures = "armv7";
 
-		// In case the SDK checking fails for some reason, use this version
-		private static string BackupVersion = "6.0";
-
 		/** Which version of the iOS to allow at run time */
+		[XmlConfig]
 		public static string IOSVersion = "6.0";
 
 		/** Which developer directory to root from */
+		[XmlConfig]
 		public static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
 
 		/** Location of the SDKs */
@@ -70,12 +74,10 @@ namespace UnrealBuildTool
 		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
 		/// <summary>
-		/// Function to call to reset default data.
+		/// Function to call to after reset default data.
 		/// </summary>
-		public static void Reset()
+		public static void PostReset()
 		{
-			XmlConfigLoader.Load(typeof(IOSToolChain));
-
 			/** Location of the SDKs */
 			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
@@ -143,32 +145,38 @@ namespace UnrealBuildTool
 						IOSSDKVersion = MaxSDKVersionString;
 					}
 				}
-				catch (Exception)
+				catch (Exception Ex)
 				{
 					// on any exception, just use the backup version
-					IOSSDKVersion = BackupVersion;
+					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app");
+					Log.TraceInformation("{0}", Ex.ToString());
 				}
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (IOSSDKVersion == "latest")
 				{
-					Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersion, RemoteServerName);
+					throw new BuildException("Unable to determine SDK version from Xcode, we cannot continue");
 				}
-				else
-				{
-					Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersion);
-				}
+			}
+
+			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
+
+			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
+			}
+			else
+			{
+				Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersionFloat);
 			}
 		}
 
 		static public void AddStubToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
-			// Daniel DON'T INTEGRATE TO MAIN removed this because the stub file isn't needed and causes errors when we try and check for it's existance due to the manifest including it
-			//  	Recommended by peter sauerbrie don't 
-			/*if (BuildConfiguration.bCreateStubIPA)
+			if (BuildConfiguration.bCreateStubIPA)
 			{
 				string StubFile = Path.Combine (Path.GetDirectoryName (Binary.Config.OutputFilePath), Path.GetFileNameWithoutExtension (Binary.Config.OutputFilePath) + ".stub");
 				Manifest.AddFileName (StubFile);
-			}*/
+			}
 		}
 
 		static bool bHasPrinted = false;
@@ -210,6 +218,10 @@ namespace UnrealBuildTool
 			Result += " -fno-rtti";
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
 
+// 			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+// 			{
+// 				Result += " -flto";
+// 			}
 
 			Result += " -Wall -Werror";
 
@@ -228,9 +240,9 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			// What architecture(s) to build for
-			Result += GetArchitectureArgument(CompileEnvironment.Config.TargetConfiguration, CompileEnvironment.Config.TargetArchitecture);
+			Result += GetArchitectureArgument(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
 
-			if (CompileEnvironment.Config.TargetArchitecture == "-simulator")
+			if (CompileEnvironment.Config.Target.Architecture == "-simulator")
 			{
 				Result += " -isysroot " + BaseSDKDirSim + "/iPhoneSimulator" + IOSSDKVersion + ".sdk";
 			}
@@ -242,9 +254,16 @@ namespace UnrealBuildTool
 			Result += " -miphoneos-version-min=" + IOSVersion;
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
-				Result += " -O3";
+				if (UEBuildConfiguration.bCompileForSize)
+				{
+					Result += " -Oz";
+				}
+				else
+				{
+					Result += " -O3";
+				}
 			}
 			else
 			{
@@ -310,12 +329,12 @@ namespace UnrealBuildTool
 
 		string GetLocalFrameworkZipPath( UEBuildFramework Framework )
 		{
-			if ( Framework.OwningModule != null )
+			if ( Framework.OwningModule == null )
 			{
-				// If we have a source module, assume that the path name is relative to that
-				return Path.GetFullPath( Framework.OwningModule.ModuleDirectory + "/" + Framework.FrameworkZipPath );
+				throw new BuildException( "GetLocalFrameworkZipPath: No owning module for framework {0}", Framework.FrameworkName );
 			}
-			return Path.GetFullPath( Framework.FrameworkZipPath );
+
+			return Path.GetFullPath( Framework.OwningModule.ModuleDirectory + "/" + Framework.FrameworkZipPath );
 		}
 
 		string GetRemoteFrameworkZipPath( UEBuildFramework Framework )
@@ -328,17 +347,59 @@ namespace UnrealBuildTool
 			return GetLocalFrameworkZipPath( Framework );
 		}
 
+		string GetRemoteIntermediateFrameworkZipPath( UEBuildFramework Framework )
+		{
+			if ( Framework.OwningModule == null )
+			{
+				throw new BuildException( "GetRemoteIntermediateFrameworkZipPath: No owning module for framework {0}", Framework.FrameworkName );
+			}
+
+			string IntermediatePath = Framework.OwningModule.Target.ProjectDirectory + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
+			IntermediatePath =  Path.GetFullPath( ( IntermediatePath + Framework.FrameworkZipPath ).Replace( ".zip", "" ) );
+
+			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			{
+				return ConvertPath( IntermediatePath );
+			}
+
+			return IntermediatePath;
+		}
+
+		void CleanIntermediateDirectory( string Path )
+		{
+			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			{
+				// Delete the intermediate directory on the mac
+				RPCUtilHelper.Command( "/", String.Format( "rm -rf {0}", Path ), "", null );
+
+				// Create a fresh intermediate after we delete it
+				RPCUtilHelper.Command( "/", String.Format( "mkdir -p {0}", Path ), "", null );
+			}
+			else
+			{
+				// Delete the local dest directory if it exists
+				if ( Directory.Exists( Path ) )
+				{
+					Directory.Delete( Path, true );
+				}
+
+				// Create the intermediate local directory
+				string ResultsText;
+				RunExecutableAndWait( "mkdir", String.Format( "-p {0}", Path ), out ResultsText );
+			}
+		}
+
 		string GetLinkArguments_Global( LinkEnvironment LinkEnvironment )
 		{
 			string Result = "";
-			if (LinkEnvironment.Config.TargetArchitecture == "-simulator")
+			if (LinkEnvironment.Config.Target.Architecture == "-simulator")
 			{
 				Result += " -arch i386";
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator" + IOSSDKVersion + ".sdk";
 			}
 			else
 			{
-				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.TargetConfiguration, LinkEnvironment.Config.TargetArchitecture);
+				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";
@@ -353,13 +414,10 @@ namespace UnrealBuildTool
 			}
 			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
-				if ( Framework.FrameworkZipPath != null )
+				if ( Framework.OwningModule != null && Framework.FrameworkZipPath != null && Framework.FrameworkZipPath != "" )
 				{
 					// If this framework has a zip specified, we'll need to setup the path as well
-					string FrameworkZipPath = GetRemoteFrameworkZipPath( Framework );
-
-					// Assume the path is the full name without the zip extension
-					Result += " -F " + FrameworkZipPath.Replace( ".zip", "" ); ;
+					Result += " -F " + GetRemoteIntermediateFrameworkZipPath( Framework );
 				}
 
 				Result += " -framework " + Framework.FrameworkName;
@@ -390,7 +448,8 @@ namespace UnrealBuildTool
 			{
 				// Add the precompiled header file's path to the include path so GCC can find it.
 				// This needs to be before the other include paths to ensure GCC uses it instead of the source header file.
-				PCHArguments += string.Format(" -include \"{0}\"", ConvertPath(CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(".gch", "")));
+				var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.IOS].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+				PCHArguments += string.Format(" -include \"{0}\"", ConvertPath(CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, "")));
 			}
 
 			// Add include paths to the argument list.
@@ -489,11 +548,12 @@ namespace UnrealBuildTool
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
+					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.IOS].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced item list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".gch"
+						Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
 							)
 						);
 
@@ -511,12 +571,12 @@ namespace UnrealBuildTool
 						CompileAction.bIsUsingPCH = true;
 						CompileAction.PrerequisiteItems.Add(CompileEnvironment.PrecompiledHeaderFile);
 					}
-
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.IOS].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
 					FileItem ObjectFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".o"
+							Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 							)
 						);
 
@@ -729,7 +789,9 @@ namespace UnrealBuildTool
 			{
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
-			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
+			
+			IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
+			GenDebugAction.WorkingDirectory = Toolchain.GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command
@@ -872,35 +934,26 @@ namespace UnrealBuildTool
 			// Unzip any third party frameworks that are stored as zips
 			foreach ( UEBuildFramework Framework in RememberedAdditionalFrameworks )
 			{
-				string LocalZipPath = GetLocalFrameworkZipPath( Framework );
+				string ZipSrcPath = GetRemoteFrameworkZipPath( Framework );
+				string ZipDstPath = GetRemoteIntermediateFrameworkZipPath( Framework );
 
-				FileItem FrameworkZipItem = FileItem.GetExistingItemByPath( LocalZipPath );
+				Log.TraceInformation( "Unzipping: {0} -> {1}", ZipSrcPath, ZipDstPath );
 
-				if ( FrameworkZipItem == null )
-				{
-					Log.TraceInformation( "FrameworkZipItem not found for {0}", LocalZipPath );
-					continue;
-				}
+				CleanIntermediateDirectory( ZipDstPath );
+
+				// Assume that there is another directory inside the zip with the same name as the zip
+				ZipDstPath = ZipDstPath.Substring( 0, ZipDstPath.LastIndexOf( '/' ) );
 
 				if ( ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac )
 				{
-					Log.TraceInformation( "Unzipping {0}", FrameworkZipItem.AbsolutePath );
-
 					// If we're on the mac, just unzip using the shell
 					string ResultsText;
-					string LocalUnzipZipPath = FrameworkZipItem.AbsolutePath.Substring( 0, FrameworkZipItem.AbsolutePath.LastIndexOf( '/' ) );
-					RunExecutableAndWait( "unzip", String.Format( "-o {0} -d {1}", FrameworkZipItem.AbsolutePath, LocalUnzipZipPath ), out ResultsText );
+					RunExecutableAndWait( "unzip", String.Format( "-o {0} -d {1}", ZipSrcPath, ZipDstPath ), out ResultsText );
 					continue;
 				}
 
-				// We copied using RPC utility, we need to unzip using RPC utility as well
-				FileItem RemoteShadowFile = LocalToRemoteFileItem( FrameworkZipItem, false );
-
-				string ZipPath = RemoteShadowFile.AbsolutePath.Substring( 0, RemoteShadowFile.AbsolutePath.LastIndexOf( '/' ) );
-
-				Log.TraceInformation( "Unzipping: {0}", RemoteShadowFile.AbsolutePath );
-
-				Hashtable Result = RPCUtilHelper.Command( "/", String.Format( "unzip -o {0} -d {1}", RemoteShadowFile.AbsolutePath, ZipPath ), "", null );
+				// Use RPC utility if the zip is on remote mac
+				Hashtable Result = RPCUtilHelper.Command( "/", String.Format( "unzip -o {0} -d {1}", ZipSrcPath, ZipDstPath ), "", null );
 
 				foreach ( DictionaryEntry Entry in Result )
 				{
@@ -964,7 +1017,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists (Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						UEBuildDeploy DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
+						var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
 						if (DeployHandler != null)
 						{
 							DeployHandler.PrepTargetForDeployment(Target);
@@ -1011,21 +1064,19 @@ namespace UnrealBuildTool
 					// Copy bundled assets from additional frameworks to the intermediate assets directory (so they can get picked up during staging)
 					String LocalFrameworkAssets = Path.GetFullPath( Target.ProjectDirectory + "/Intermediate/IOS/FrameworkAssets" );
 
-					// Delete the local dest directory if it exists
-					if ( Directory.Exists( LocalFrameworkAssets ) )
-					{
-						Directory.Delete( LocalFrameworkAssets, true );
-					}
-
-					// Create the intermediate local directory
-					string ResultsText;
-					RunExecutableAndWait( "mkdir", String.Format( "-p {0}", LocalFrameworkAssets ), out ResultsText );
+					// Clean the local dest directory if it exists
+					CleanIntermediateDirectory( LocalFrameworkAssets );
 
 					foreach ( UEBuildFramework Framework in RememberedAdditionalFrameworks )
 					{
 						if ( Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "" )
 						{
 							continue;		// Only care if we need to copy bundle assets
+						}
+
+						if ( Framework.OwningModule.Target != Target )
+						{
+							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
 						string LocalZipPath = GetLocalFrameworkZipPath( Framework );
@@ -1039,6 +1090,7 @@ namespace UnrealBuildTool
 
 						Log.TraceInformation( "Copying bundled asset... LocalSource: {0}, LocalDest: {1}", LocalSource, LocalDest );
 
+						string ResultsText;
 						RunExecutableAndWait( "cp", String.Format( "-R -L {0} {1}", LocalSource, LocalDest ), out ResultsText );
 					}
 				}
@@ -1144,7 +1196,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						StubGenerateProcess.StartInfo.Arguments = "PackageIPA " + PathToApp + " -createstub";
+						StubGenerateProcess.StartInfo.Arguments = "PackageIPA \"" + PathToApp + "\" -createstub";
 						// if we are making the dsym, then we can strip the debug info from the executable
 						if (BuildConfiguration.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping))
 						{
@@ -1153,7 +1205,7 @@ namespace UnrealBuildTool
 					}
 					StubGenerateProcess.StartInfo.Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
 
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					string Architecture = BuildPlatform.GetActiveArchitecture();
 					if (Architecture != "")
 					{
@@ -1192,11 +1244,7 @@ namespace UnrealBuildTool
 					String LocalFrameworkAssets = Path.GetFullPath( Target.ProjectDirectory + "/Intermediate/IOS/FrameworkAssets" );
 					String RemoteFrameworkAssets = ConvertPath( LocalFrameworkAssets );
 
-					// Delete the intermediate directory on the mac
-					RPCUtilHelper.Command( "/", String.Format( "rm -rf {0}", RemoteFrameworkAssets ), "", null );
-
-					// Create a fresh intermediate after we delete it
-					RPCUtilHelper.Command( "/", String.Format( "mkdir -p {0}", RemoteFrameworkAssets ), "", null );
+					CleanIntermediateDirectory( RemoteFrameworkAssets );
 
 					// Delete the local dest directory if it exists
 					if ( Directory.Exists( LocalFrameworkAssets ) )
@@ -1209,6 +1257,11 @@ namespace UnrealBuildTool
 						if ( Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "" )
 						{
 							continue;		// Only care if we need to copy bundle assets
+						}
+
+						if ( Framework.OwningModule.Target != Target )
+						{
+							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
 						string RemoteZipPath = GetRemoteFrameworkZipPath( Framework );

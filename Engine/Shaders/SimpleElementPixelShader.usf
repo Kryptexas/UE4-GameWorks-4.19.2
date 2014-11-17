@@ -71,7 +71,11 @@ void Main(
 #endif
 }
 
+#if METAL_PROFILE
+static const half Gamma = 1.0f;
+#else
 half Gamma;
+#endif
 
 void GammaMain(
 	in float2 TextureCoordinate : TEXCOORD0,

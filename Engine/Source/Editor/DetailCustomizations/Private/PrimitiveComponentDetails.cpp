@@ -156,6 +156,7 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			if (bDisplayMass)
 			{
 				PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+					.IsEnabled(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsBodyMassEnabled))
 					.NameContent()
 					[
 						SNew(STextBlock)

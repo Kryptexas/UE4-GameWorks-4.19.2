@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMThreading.h: Threading/process functionality
-=============================================================================*/
-
 #pragma once
 
 #if PLATFORM_USE_PTHREADS

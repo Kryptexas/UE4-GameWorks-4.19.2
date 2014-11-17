@@ -6,7 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 
-FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,FResourceArrayInterface* ResourceArray,uint32 InUsage)
+FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	// Explicitly check that the size is nonzero before allowing CreateVertexBuffer to opaquely fail.
 	check(Size > 0);
@@ -29,6 +29,11 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,FResourc
 		{
 			Desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 		}
+	}
+
+	if (InUsage & BUF_ByteAddressBuffer)
+	{
+		Desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 	}
 
 	if (InUsage & BUF_StreamOutput)
@@ -57,10 +62,10 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,FResourc
 	// If a resource array was provided for the resource, create the resource pre-populated
 	D3D11_SUBRESOURCE_DATA InitData;
 	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
-		InitData.pSysMem = ResourceArray->GetResourceData();
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		InitData.pSysMem = CreateInfo.ResourceArray->GetResourceData();
 		InitData.SysMemPitch = Size;
 		InitData.SysMemSlicePitch = 0;
 		pInitData = &InitData;
@@ -71,10 +76,10 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,FResourc
 
 	UpdateBufferStats(VertexBufferResource, true);
 
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
 		// Discard the resource array's contents.
-		ResourceArray->Discard();
+		CreateInfo.ResourceArray->Discard();
 	}
 
 	return new FD3D11VertexBuffer(VertexBufferResource,Size,InUsage);
@@ -85,6 +90,9 @@ void* FD3D11DynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffe
 	check(Size > 0);
 
 	DYNAMIC_CAST_D3D11RESOURCE(VertexBuffer,VertexBuffer);
+	
+	// If this resource is bound to the device, unbind it
+	ConditionalClearShaderResource(VertexBuffer);
 
 	// Determine whether the vertex buffer is dynamic or not.
 	D3D11_BUFFER_DESC Desc;

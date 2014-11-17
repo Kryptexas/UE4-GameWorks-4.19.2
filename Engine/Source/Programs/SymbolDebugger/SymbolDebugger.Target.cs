@@ -46,8 +46,6 @@ public class SymbolDebuggerTarget : TargetRules
 	{
 		OutCPPEnvironmentConfiguration.Definitions.Add("WITH_DATABASE_SUPPORT=1");
 
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
-
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
 		// Don't need editor

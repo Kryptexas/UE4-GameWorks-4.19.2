@@ -14,9 +14,9 @@ class UInterpTrackFloatParticleParam : public UInterpTrackFloatBase
 
 
 	// Begin UInterpTrack interface.
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
 	// End UInterpTrack interface.
 };
 

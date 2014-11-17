@@ -85,10 +85,10 @@ public:
 	{}
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) OVERRIDE;
-	virtual FCursorReply GetCursor() const OVERRIDE { return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight ); }
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
+	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight ); }
 private:
 	/** The section we are interacting with */
 	TWeakObjectPtr<UMovieSceneSection> Section;
@@ -108,10 +108,10 @@ public:
 	{}
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) OVERRIDE;
-	virtual FCursorReply GetCursor() const OVERRIDE { return FCursorReply::Cursor( EMouseCursor::CardinalCross ); }
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
+	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::CardinalCross ); }
 
 private:
 	/** Determines if the section, when moved to this the track index by a delta time, would still be valid */
@@ -136,9 +136,9 @@ public:
 	{}
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) OVERRIDE;
-	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) OVERRIDE;
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
 
 protected:	
 	/** Gets all potential snap times for this drag operation */

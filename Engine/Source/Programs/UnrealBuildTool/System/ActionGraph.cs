@@ -36,7 +36,8 @@ namespace UnrealBuildTool
 		/** Relative cost of producing items for this action. */
 		public long RelativeCost = 0;
 		public string WorkingDirectory = null;
-		public string CommandPath = null;
+        public bool bPrintDebugInfo = false;
+        public string CommandPath = null;
 		public string CommandArguments = null;
 		public string CommandDescription = null;
 		public string StatusDescription = "...";

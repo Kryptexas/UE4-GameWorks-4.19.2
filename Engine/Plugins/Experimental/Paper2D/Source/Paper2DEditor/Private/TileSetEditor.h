@@ -12,19 +12,19 @@ class FTileSetEditor : public FWorkflowCentricApplication, public FGCObject
 {
 public:
 	// IToolkit interface
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 
 	// FAssetEditorToolkit
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 	// End of FAssetEditorToolkit
 
 	// FSerializableObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject interface
 
 public:
@@ -51,7 +51,7 @@ public:
 	void ChangeTileSet(UPaperTileSet* InTileSet);
 protected:
 	// SPaperEditorViewport interface
-	virtual FText GetTitleText() const OVERRIDE;
+	virtual FText GetTitleText() const override;
 	// End of SPaperEditorViewport interface
 
 private:

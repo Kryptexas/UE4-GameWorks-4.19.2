@@ -211,6 +211,11 @@ bool FDesktopPlatformMac::OpenFileDialog(const void* ParentWindowHandle, const F
 	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
 }
 
+bool FDesktopPlatformMac::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
+{
+	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
+}
+
 bool FDesktopPlatformMac::SaveFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
 	return FileDialogShared(true, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
@@ -472,6 +477,7 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 	[AccessoryView AddAllowedFileTypes:AllowedFileTypes];
 
 	bool bSuccess = false;
+	NSWindow* FocusWindow = [[NSApplication sharedApplication] keyWindow];
 
 	{
 		FScopedSystemModalMode SystemModalScope;
@@ -511,6 +517,11 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 	[Panel close];
 
 	MacApplication->ResetModifierKeys();
+	
+	if(FocusWindow)
+	{
+		[FocusWindow makeKeyWindow];
+	}
 
 	return bSuccess;
 }
@@ -607,7 +618,7 @@ bool FDesktopPlatformMac::VerifyFileAssociations()
 		NSBundle* GlobalDefaultAppBundle = [NSBundle bundleWithURL:(__bridge NSURL*)GlobalDefaultAppURL];
 		CFRelease(GlobalDefaultAppURL);
 
-		if ([[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
+		if ([[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
 		{
 			return true;
 		}

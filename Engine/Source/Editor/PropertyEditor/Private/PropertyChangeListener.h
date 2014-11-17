@@ -9,10 +9,10 @@ class FPropertyChangeListener : public IPropertyChangeListener
 {
 public:
 	/** IPropertyChangeListener interface */
-	virtual void SetObject( UObject& Object, const FPropertyListenerSettings& InPropertyListenerSettings ) OVERRIDE;
-	virtual bool ScanForChanges( bool bRecacheNewValues = true ) OVERRIDE;
-	virtual void TriggerAllPropertiesChangedDelegate() OVERRIDE;
-	virtual FOnPropertyChanged& GetOnPropertyChangedDelegate() OVERRIDE { return OnPropertyChangedDelegate; }
+	virtual void SetObject( UObject& Object, const FPropertyListenerSettings& InPropertyListenerSettings ) override;
+	virtual bool ScanForChanges( bool bRecacheNewValues = true ) override;
+	virtual void TriggerAllPropertiesChangedDelegate() override;
+	virtual FOnPropertyChanged& GetOnPropertyChangedDelegate() override { return OnPropertyChangedDelegate; }
 private:
 	/**
 	 * Recursively creates a property value cache for each property node in the tree starting with the passed in property node

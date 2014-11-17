@@ -567,12 +567,25 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 		break;
 	};
 
-#if WITH_EDITOR
-	for( int32 i = 0; i < SPEAKER_COUNT; i++ )
+	for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 	{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		if ( !FMath::IsFinite(ChannelVolumes[i]) )
+		{
+			const FString NaNorINF = FMath::IsNaN(ChannelVolumes[i]) ? TEXT("NaN") : TEXT("INF");
+			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains %s in channel %d: %s"), *NaNorINF, i, *Describe_Internal(true, false));
+			ChannelVolumes[i] = 0;
+		}
+		// Detect and warn about unreasonable volumes. These are clamped anyway, but are good to know about.
+		else if ( ChannelVolumes[i] > FLT_MAX / 2.f || ChannelVolumes[i] < -FLT_MAX / 2.f )
+		{
+			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
+		}
+#endif
+
 		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * GVolumeMultiplier, 0.0f, MAX_VOLUME);
 	}
-#endif // WITH_EDITOR
 }
 
 /** 
@@ -837,6 +850,11 @@ void FXAudio2SoundSourceCallback::OnLoopEnd( void* BufferContext )
 
 FString FXAudio2SoundSource::Describe(bool bUseLongName)
 {
+	return Describe_Internal(bUseLongName, true);
+}
+
+FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeChannelVolumes)
+{
 	// look for a component and its owner
 	AActor* SoundOwner = NULL;
 
@@ -847,7 +865,7 @@ FString FXAudio2SoundSource::Describe(bool bUseLongName)
 	}
 
 	FString SpatializedVolumeInfo;
-	if (WaveInstance->bUseSpatialization)
+	if (bIncludeChannelVolumes && WaveInstance->bUseSpatialization)
 	{
 		float ChannelVolumes[CHANNELOUT_COUNT] = { 0.0f };
 		GetChannelVolumes( ChannelVolumes, WaveInstance->GetActualVolume() );
@@ -1208,6 +1226,154 @@ void FSpatializationHelper::Init()
 	DSPSettings.pMatrixCoefficients = MatrixCoefficients;
 }
 
+void FSpatializationHelper::DumpSpatializationState() const
+{
+	struct FLocal
+	{
+		static void DumpCone(const FString& Indent, const FString& ConeName, const X3DAUDIO_CONE* pCone)
+		{
+			if (pCone)
+			{
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s"), *Indent, *ConeName);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  InnerAngle: %f"), *Indent, pCone->InnerAngle);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  OuterAngle: %f"), *Indent, pCone->OuterAngle);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  InnerVolume: %f"), *Indent, pCone->InnerVolume);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  OuterVolume: %f"), *Indent, pCone->OuterVolume);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  InnerLPF: %f"), *Indent, pCone->InnerLPF);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  OuterLPF: %f"), *Indent, pCone->OuterLPF);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  InnerReverb: %f"), *Indent, pCone->InnerReverb);
+				UE_LOG(LogXAudio2, Log, TEXT("%s  OuterReverb: %f"), *Indent, pCone->OuterReverb);
+			}
+			else
+			{
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s: NULL"), *Indent, *ConeName);
+			}
+		}
+
+		static void DumpDistanceCurvePoint(const FString& Indent, const FString& PointName, uint32 Index, const X3DAUDIO_DISTANCE_CURVE_POINT& Point)
+		{
+			UE_LOG(LogXAudio2, Log, TEXT("%s%s[%u]: {%f,%f}"), *Indent, *PointName, Index, Point.Distance, Point.DSPSetting);
+		}
+
+		static void DumpDistanceCurve(const FString& Indent, const FString& CurveName, const X3DAUDIO_DISTANCE_CURVE* pCurve)
+		{
+			const uint32 MaxPointsToDump = 20;
+			if (pCurve)
+			{
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s: %u points"), *Indent, *CurveName, pCurve->PointCount);
+				for (uint32 PointIdx = 0; PointIdx < pCurve->PointCount && PointIdx < MaxPointsToDump; ++PointIdx)
+				{
+					const X3DAUDIO_DISTANCE_CURVE_POINT& CurPoint = pCurve->pPoints[PointIdx];
+					DumpDistanceCurvePoint(Indent + TEXT("  "), TEXT("pPoints"), PointIdx, CurPoint);
+				}
+			}
+			else
+			{
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s: NULL"), *Indent, *CurveName);
+			}
+		}
+	};
+
+	UE_LOG(LogXAudio2, Log, TEXT("Dumping all XAudio2 Spatialization"));
+	UE_LOG(LogXAudio2, Log, TEXT("==================================="));
+	
+	// X3DInstance
+	UE_LOG(LogXAudio2, Log, TEXT("  X3DInstance: %#010x"), X3DInstance);
+
+	// DSPSettings
+	UE_LOG(LogXAudio2, Log, TEXT("  DSPSettings"));
+	
+	if ( DSPSettings.pMatrixCoefficients )
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pMatrixCoefficients: {%f,%f,%f,%f,%f,%f}"), DSPSettings.pMatrixCoefficients[0], DSPSettings.pMatrixCoefficients[1], DSPSettings.pMatrixCoefficients[2], DSPSettings.pMatrixCoefficients[3], DSPSettings.pMatrixCoefficients[4], DSPSettings.pMatrixCoefficients[5]);
+	}
+	else
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pMatrixCoefficients: NULL"));
+	}
+
+	if (DSPSettings.pDelayTimes)
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pDelayTimes: {%f,%f,%f,%f,%f,%f}"), DSPSettings.pDelayTimes[0], DSPSettings.pDelayTimes[1], DSPSettings.pDelayTimes[2], DSPSettings.pDelayTimes[3], DSPSettings.pDelayTimes[4], DSPSettings.pDelayTimes[5]);
+	}
+	else
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pDelayTimes: NULL"));
+	}
+
+	UE_LOG(LogXAudio2, Log, TEXT("    SrcChannelCount: %u"), DSPSettings.SrcChannelCount);
+	UE_LOG(LogXAudio2, Log, TEXT("    DstChannelCount: %u"), DSPSettings.DstChannelCount);
+	UE_LOG(LogXAudio2, Log, TEXT("    LPFDirectCoefficient: %f"), DSPSettings.LPFDirectCoefficient);
+	UE_LOG(LogXAudio2, Log, TEXT("    LPFReverbCoefficient: %f"), DSPSettings.LPFReverbCoefficient);
+	UE_LOG(LogXAudio2, Log, TEXT("    ReverbLevel: %f"), DSPSettings.ReverbLevel);
+	UE_LOG(LogXAudio2, Log, TEXT("    DopplerFactor: %f"), DSPSettings.DopplerFactor);
+	UE_LOG(LogXAudio2, Log, TEXT("    EmitterToListenerAngle: %f"), DSPSettings.EmitterToListenerAngle);
+	UE_LOG(LogXAudio2, Log, TEXT("    EmitterToListenerDistance: %f"), DSPSettings.EmitterToListenerDistance);
+	UE_LOG(LogXAudio2, Log, TEXT("    EmitterVelocityComponent: %f"), DSPSettings.EmitterVelocityComponent);
+	UE_LOG(LogXAudio2, Log, TEXT("    ListenerVelocityComponent: %f"), DSPSettings.ListenerVelocityComponent);
+
+	// Listener
+	UE_LOG(LogXAudio2, Log, TEXT("  Listener"));
+	UE_LOG(LogXAudio2, Log, TEXT("    OrientFront: {%f,%f,%f}"), Listener.OrientFront.x, Listener.OrientFront.y, Listener.OrientFront.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    OrientTop: {%f,%f,%f}"), Listener.OrientTop.x, Listener.OrientTop.y, Listener.OrientTop.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    Position: {%f,%f,%f}"), Listener.Position.x, Listener.Position.y, Listener.Position.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    Velocity: {%f,%f,%f}"), Listener.Velocity.x, Listener.Velocity.y, Listener.Velocity.z);
+	FLocal::DumpCone(TEXT("    "), TEXT("pCone"), Listener.pCone);
+
+	// Emitter
+	UE_LOG(LogXAudio2, Log, TEXT("  Emitter"));
+	FLocal::DumpCone(TEXT("    "), TEXT("pCone"), Emitter.pCone);
+	UE_LOG(LogXAudio2, Log, TEXT("    OrientFront: {%f,%f,%f}"), Emitter.OrientFront.x, Emitter.OrientFront.y, Emitter.OrientFront.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    OrientTop: {%f,%f,%f}"), Emitter.OrientTop.x, Emitter.OrientTop.y, Emitter.OrientTop.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    Position: {%f,%f,%f}"), Emitter.Position.x, Emitter.Position.y, Emitter.Position.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    Velocity: {%f,%f,%f}"), Emitter.Velocity.x, Emitter.Velocity.y, Emitter.Velocity.z);
+	UE_LOG(LogXAudio2, Log, TEXT("    InnerRadius: %f"), Emitter.InnerRadius);
+	UE_LOG(LogXAudio2, Log, TEXT("    InnerRadiusAngle: %f"), Emitter.InnerRadiusAngle);
+	UE_LOG(LogXAudio2, Log, TEXT("    ChannelCount: %u"), Emitter.ChannelCount);
+	UE_LOG(LogXAudio2, Log, TEXT("    ChannelRadius: %f"), Emitter.ChannelRadius);
+
+	if ( Emitter.pChannelAzimuths )
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pChannelAzimuths: %f"), *Emitter.pChannelAzimuths);
+	}
+	else
+	{
+		UE_LOG(LogXAudio2, Log, TEXT("    pChannelAzimuths: NULL"));
+	}
+
+	FLocal::DumpDistanceCurve(TEXT("    "), TEXT("pVolumeCurve"), Emitter.pVolumeCurve);
+	FLocal::DumpDistanceCurve(TEXT("    "), TEXT("pLFECurve"), Emitter.pLFECurve);
+	FLocal::DumpDistanceCurve(TEXT("    "), TEXT("pLPFDirectCurve"), Emitter.pLPFDirectCurve);
+	FLocal::DumpDistanceCurve(TEXT("    "), TEXT("pLPFReverbCurve"), Emitter.pLPFReverbCurve);
+	FLocal::DumpDistanceCurve(TEXT("    "), TEXT("pReverbCurve"), Emitter.pReverbCurve);
+
+	UE_LOG(LogXAudio2, Log, TEXT("    CurveDistanceScaler: %f"), Emitter.CurveDistanceScaler);
+	UE_LOG(LogXAudio2, Log, TEXT("    DopplerScaler: %f"), Emitter.DopplerScaler);
+
+	// Cone
+	FLocal::DumpCone(TEXT("  "), TEXT("Cone"), &Cone);
+
+	// VolumeCurvePoint
+	FLocal::DumpDistanceCurvePoint(TEXT("  "), TEXT("VolumeCurvePoint"), 0, VolumeCurvePoint[0]);
+	FLocal::DumpDistanceCurvePoint(TEXT("  "), TEXT("VolumeCurvePoint"), 1, VolumeCurvePoint[1]);
+	
+	// VolumeCurve
+	FLocal::DumpDistanceCurve(TEXT("  "), TEXT("VolumeCurve"), &VolumeCurve);
+
+	// ReverbVolumeCurvePoint
+	FLocal::DumpDistanceCurvePoint(TEXT("  "), TEXT("ReverbVolumeCurvePoint"), 0, ReverbVolumeCurvePoint[0]);
+	FLocal::DumpDistanceCurvePoint(TEXT("  "), TEXT("ReverbVolumeCurvePoint"), 1, ReverbVolumeCurvePoint[1]);
+
+	// ReverbVolumeCurve
+	FLocal::DumpDistanceCurve(TEXT("  "), TEXT("ReverbVolumeCurve"), &ReverbVolumeCurve);
+	
+	// EmitterAzimuths
+	UE_LOG(LogXAudio2, Log, TEXT("  EmitterAzimuths: %f"), EmitterAzimuths);
+	
+	// MatrixCoefficients
+	UE_LOG(LogXAudio2, Log, TEXT("  MatrixCoefficients: {%f,%f,%f,%f,%f,%f}"), MatrixCoefficients[0], MatrixCoefficients[1], MatrixCoefficients[2], MatrixCoefficients[3], MatrixCoefficients[4], MatrixCoefficients[5]);
+}
+
 /**
  * Calculates the spatialized volumes for each channel.
  *
@@ -1238,6 +1404,17 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 	for( int32 SpeakerIndex = 0; SpeakerIndex < SPEAKER_COUNT; SpeakerIndex++ )
 	{
 		OutVolumes[SpeakerIndex] *= DSPSettings.pMatrixCoefficients[SpeakerIndex];
+
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]))
+		{
+			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
+			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
+				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
+			DumpSpatializationState();
+		}
+#endif
 	}
 
 	OutVolumes[CHANNELOUT_REVERB] *= DSPSettings.ReverbLevel;

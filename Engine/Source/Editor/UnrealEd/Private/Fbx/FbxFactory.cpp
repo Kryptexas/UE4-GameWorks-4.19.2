@@ -225,7 +225,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 		{
 			// Log the import message and import the mesh.
 			const TCHAR* errorMessage = FbxImporter->GetErrorMessage();
-			if (errorMessage[0] != NULL)
+			if (errorMessage[0] != '\0')
 			{
 				Warn->Log( errorMessage );
 			}
@@ -394,9 +394,16 @@ UObject* UFbxFactory::FactoryCreateBinary
 								USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewObject);
 								FName LODObjectName = NAME_None;
 								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh( GetTransientPackage(), SkelMeshNodeArray, LODObjectName, RF_NoFlags, ImportUI->SkeletalMeshImportData, FPaths::GetBaseFilename(Filename) );
-								FbxImporter->ImportSkeletalMeshLOD( LODObject, BaseSkeletalMesh, LODIndex);
+								bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex, false);
 
-								BaseSkeletalMesh->LODInfo[LODIndex].DisplayFactor = 1.0f / (MaxLODLevel * LODIndex);
+								if (bImportSucceeded)
+								{
+									BaseSkeletalMesh->LODInfo[LODIndex].DisplayFactor = 1.0f / (MaxLODLevel * LODIndex);
+								}
+								else
+								{
+									FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_SkeletalMeshLOD", "Failed to import Skeletal mesh LOD.")));
+								}
 							}
 						
 							// import morph target

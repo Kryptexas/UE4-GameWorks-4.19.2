@@ -7,6 +7,12 @@
 class SListPanel;
 class SHeaderRow;
 
+enum class EAllowOverscroll
+{
+	Yes,
+	No
+};
+
 /**
  * Contains ListView functionality that does not depend on the type of data being observed by the ListView.
  */
@@ -17,6 +23,12 @@ public:
 	/** Create the child widgets that comprise the list */
 	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
 
+	/** Sets the item height */
+	void SetItemHeight(TAttribute<float> Height);
+
+	/** Sets the item width */
+	void SetItemWidth(TAttribute<float> Width);
+
 	/**
 	 * Invoked by the scrollbar when the user scrolls.
 	 *
@@ -25,17 +37,22 @@ public:
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );
 
 	// SWidget interface
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void OnMouseCaptureLost() OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE;
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnMouseCaptureLost() override;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	// End of SWidget interface
 
 	/** @return The number of Widgets we currently have generated. */
@@ -60,9 +77,9 @@ public:
 	bool IsPendingRefresh() const;
 
 	// IScrollableWidget interface
-	virtual FVector2D GetScrollDistance() OVERRIDE;
-	virtual FVector2D GetScrollDistanceRemaining() OVERRIDE;
-	virtual TSharedRef<class SWidget> GetScrollWidget() OVERRIDE;
+	virtual FVector2D GetScrollDistance() override;
+	virtual FVector2D GetScrollDistanceRemaining() override;
+	virtual TSharedRef<class SWidget> GetScrollWidget() override;
 	// End of IScrollableWidget interface
 
 	virtual int32 OnPaint(
@@ -71,7 +88,7 @@ public:
 		FSlateWindowElementList& OutDrawElements,
 		int32 LayerId,
 		const FWidgetStyle& InWidgetStyle,
-		bool bParentEnabled) const OVERRIDE;
+		bool bParentEnabled) const override;
 
 	/** Is this list backing a tree or just a standalone list */
 	const ETableViewMode::Type TableViewMode;
@@ -85,10 +102,11 @@ protected:
 	 *
 	 * @param MyGeometry      The geometry of the ListView at the time
 	 * @param ScrollByAmount  The amount to scroll by in Slate Screen Units.
+	 * @param AllowOverscroll Should we allow scrolling past the beginning/end of the list?
 	 *
 	 * @return The amount actually scrolled in items
 	 */
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount );
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll AllowOverscroll );
 
 	/**
 	 * Scroll the view to an offset
@@ -151,7 +169,7 @@ protected:
 		FReGenerateResults( double InNewScrollOffset, double InHeightGenerated, double InItemsOnScreen, bool AtEndOfList )
 		: NewScrollOffset( InNewScrollOffset )
 		, HeightOfGeneratedItems( InHeightGenerated )
-		, ExactNumWidgetsOnScreen( InItemsOnScreen )
+		, ExactNumRowsOnScreen( InItemsOnScreen )
 		, bGeneratedPastLastItem( AtEndOfList )
 		{
 
@@ -163,8 +181,8 @@ protected:
 		/** The total height of the widgets that we have generated to represent the visible subset of the items*/
 		double HeightOfGeneratedItems;
 
-		/** How many items are fitting on the screen, including fractions */
-		double ExactNumWidgetsOnScreen;
+		/** How many rows are fitting on the screen, including fractions */
+		double ExactNumRowsOnScreen;
 
 		/** True when we have generated  */
 		bool bGeneratedPastLastItem;
@@ -198,6 +216,9 @@ protected:
 	/** Scroll offset from the beginning of the list in items */
 	double ScrollOffset;
 
+	/** Did the user start an interaction in this list? */
+	bool bStartedTouchInteraction;
+
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
 
@@ -227,6 +248,40 @@ protected:
 
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor;
+
+	struct SLATE_API FOverscroll
+	{
+	public:
+
+		FOverscroll( const float InMaxOverscroll );
+
+		/** @return The Amount actually scrolled */
+		float ScrollBy( float Delta );
+
+		/** How far the user scrolled above/below the beginning/end of the list. */
+		float GetOverscroll() const;
+
+		/** Ticks the overscroll manager so it can animate. */
+		void UpdateOverscroll( float InDeltaTime );
+
+		/**
+		 * Should ScrollDelta be applied to overscroll or to regular item scrolling.
+		 *
+		 * @param bIsAtStartOfList  Are we at the very beginning of the list (i.e. showing the first item at the top of the view)?
+		 * @param bIsAtEndOfList    Are we showing the last item on the screen completely?
+		 * @param ScrollDelta       How much the user is trying to scroll in Slate Units.
+		 *
+		 * @return true if the user's scrolling should be applied toward overscroll.
+		 */
+		bool ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const;
+
+	private:
+		/** How much we've over-scrolled above/below the beginning/end of the list. */
+		float OverscrollAmount;
+
+		/** The maximum amount that we can scroll past the edge. */
+		const float MaxOverscroll;
+	} Overscroll;
 
 private:
 	

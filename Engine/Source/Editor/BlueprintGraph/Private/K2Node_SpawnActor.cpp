@@ -73,7 +73,6 @@ void UK2Node_SpawnActor::CreatePinsForClass(UClass* InClass)
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);	
-			Pin->bDefaultValueIsIgnored = true;
 		}
 	}
 
@@ -247,28 +246,6 @@ FText UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ActorName"), SpawnString);
 	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
-}
-
-FString UK2Node_SpawnActor::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UEdGraphPin* BlueprintPin = GetBlueprintPin();
-
-	FString SpawnString = TEXT("NONE");
-	if(BlueprintPin != NULL)
-	{
-		if(BlueprintPin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = TEXT("");
-		}
-		else if(BlueprintPin->DefaultObject != NULL)
-		{
-			SpawnString = BlueprintPin->DefaultObject->GetName();
-		}
-	}
-
-	return FString::Printf(TEXT("SpawnActor %s"), *SpawnString);
 }
 
 bool UK2Node_SpawnActor::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
@@ -481,6 +458,16 @@ bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>
 		OptionalOutput->Add(SourceClass);
 	}
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+}
+
+void UK2Node_SpawnActor::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	UClass* ClassToSpawn = GetClassToSpawn();
+	const FString ClassToSpawnStr = ClassToSpawn ? ClassToSpawn->GetName() : TEXT( "InvalidClass" );
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "SpawnActor" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ActorClass" ), ClassToSpawnStr ));
 }
 
 bool UK2Node_SpawnActor::IsDeprecated() const

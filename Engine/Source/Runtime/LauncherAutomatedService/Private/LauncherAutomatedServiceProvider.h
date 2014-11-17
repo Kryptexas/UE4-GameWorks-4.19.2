@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherAutomatedServiceProvider.h: Declares the FLauncherAutomatedServiceProvider class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,36 +16,30 @@ public:
 	 */
 	FLauncherAutomatedServiceProvider( );
 
-
 public:
 
-	// Begin ILauncherAutomatedServiceProvider interface
+	// ILauncherAutomatedServiceProvider interface
 
-	virtual int32 GetExitCode( ) OVERRIDE
+	virtual int32 GetExitCode( ) override
 	{
 		return bHasErrors ? 1 : 0;
 	}
 
-	virtual bool IsRunning( ) OVERRIDE
+	virtual bool IsRunning( ) override
 	{
 		return bIsReadyToShutdown == false && bHasErrors == false;
 	}
 
-	virtual void Setup( const TCHAR* Params ) OVERRIDE;
-
-	virtual void Shutdown( ) OVERRIDE;
-
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-
-	// End ILauncherAutomatedServiceProvider interface
-
+	virtual void Setup( const TCHAR* Params ) override;
+	virtual void Shutdown( ) override;
+	virtual void Tick( float DeltaTime ) override;
 
 protected:
 
 	/*
-	 * Sets up the profile manager responsible for deploying the session
+	 * Sets up the profile manager responsible for deploying the session.
 	 *
-	 * @param Params - The settings required to determine the profile/device group to use.
+	 * @param Params The settings required to determine the profile/device group to use.
 	 */
 	void SetupProfileAndGroupSettings( const TCHAR* Params );
 
@@ -58,16 +48,14 @@ protected:
 	 */
 	void StartAutomationTests( );
 
-
 private:
 
 	/*
-	 * Handles devices being added to the proxy manager
+	 * Callback for devices being added to the proxy manager.
 	 *
-	 * @param AddedProxy - The newly added device proxy to the device proxy manager
+	 * @param AddedProxy The newly added device proxy to the device proxy manager.
 	 */
 	void HandleDeviceProxyManagerProxyAdded( const ITargetDeviceProxyRef& AddedProxy );
-
 
 private:
 

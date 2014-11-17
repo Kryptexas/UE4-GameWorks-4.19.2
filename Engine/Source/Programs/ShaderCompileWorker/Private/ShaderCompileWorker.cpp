@@ -13,7 +13,7 @@
 
 #define DEBUG_USING_CONSOLE	0
 
-const int32 ShaderCompileWorkerInputVersion = 1;
+const int32 ShaderCompileWorkerInputVersion = 2;
 const int32 ShaderCompileWorkerOutputVersion = 1;
 
 double LastCompileTime = 0.0;

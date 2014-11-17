@@ -3,7 +3,7 @@
 #include "LogVisualizerPCH.h"
 #include "CollisionDebugDrawingPublic.h"
 
-
+#if ENABLE_VISUAL_LOG
 //////////////////////////////////////////////////////////////////////////
 
 void FLogVisualizer::SummonUI(UWorld* InWorld) 
@@ -62,6 +62,16 @@ void FLogVisualizer::CloseUI(UWorld* InWorld)
 	}
 }
 
+bool FLogVisualizer::IsOpenUI(UWorld* InWorld)
+{
+	if (LogWindow.IsValid() && World.IsValid() && World == InWorld)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void FLogVisualizer::CleanUp()
 {
 	FVisualLog::Get()->ClearNewLogsObserver();
@@ -91,8 +101,21 @@ void FLogVisualizer::OnNewLog(const AActor* Actor, TSharedPtr<FActorsVisLog> Log
 
 void FLogVisualizer::AddLoadedLog(TSharedPtr<FActorsVisLog> Log)
 {
-	Logs.Add(Log);
-	LogAddedEvent.Broadcast();
+	for (int32 Index = 0; Index < Logs.Num(); ++Index)
+	{
+		if (Logs[Index]->Name == Log->Name)
+		{
+			Logs[Index]->Entries.Append(Log->Entries);
+			LogAddedEvent.Broadcast();
+			return;
+		}
+	}
+
+	if (Log.IsValid() && Log->Entries.Num() > 0)
+	{
+		Logs.Add(Log);
+		LogAddedEvent.Broadcast();
+	}
 }
 
 bool FLogVisualizer::IsRecording()
@@ -121,3 +144,5 @@ int32 FLogVisualizer::GetLogIndexForActor(const AActor* Actor)
 
 	return ResultIndex;
 }
+
+#endif //ENABLE_VISUAL_LOG

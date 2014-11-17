@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "Common.usf"
+
 float4 TransformLocalToTranslatedWorld(float3 LocalPosition)
 {
 	//expand the matrix multiply to avoid a code-gen bug on PS4.

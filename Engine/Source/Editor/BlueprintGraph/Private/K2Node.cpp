@@ -2,7 +2,11 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "Engine/Breakpoint.h"
+
+#include "K2Node.h"
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -186,6 +190,13 @@ void UK2Node::InsertNewNode(UEdGraphPin* FromPin, UEdGraphPin* NewLinkPin, TSet<
 		OutNodeList.Add(FromPin->GetOwningNode());
 		OutNodeList.Add(this);
 	}
+}
+
+void UK2Node::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "GraphNode" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
 }
 
 void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin) 
@@ -422,17 +433,78 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 		// try looking for a redirect if it's a K2 node
 		if (UK2Node* Node = Cast<UK2Node>(NewPin->GetOwningNode()))
 		{	
-			// if you don't have matching pin, now check if there is any redirect param set
-			TArray<FString> OldPinNames;
-			GetRedirectPinNames(*OldPin, OldPinNames);
-
-			FName NewPinName;
-			RedirectType = ShouldRedirectParam(OldPinNames, /*out*/ NewPinName, Node);
-
-			// make sure they match
-			if ((RedirectType != ERedirectType_None) && FCString::Stricmp(*(NewPin->PinName), *(NewPinName.ToString())) != 0)
+			if (OldPin->ParentPin == NULL)
 			{
-				RedirectType = ERedirectType_None;
+				// if you don't have matching pin, now check if there is any redirect param set
+				TArray<FString> OldPinNames;
+				GetRedirectPinNames(*OldPin, OldPinNames);
+
+				FName NewPinName;
+				RedirectType = ShouldRedirectParam(OldPinNames, /*out*/ NewPinName, Node);
+
+				// make sure they match
+				if ((RedirectType != ERedirectType_None) && FCString::Stricmp(*(NewPin->PinName), *(NewPinName.ToString())) != 0)
+				{
+					RedirectType = ERedirectType_None;
+				}
+			}
+			else
+			{
+				struct FPropertyDetails
+				{
+					const UEdGraphPin* Pin;
+					FString PropertyName;
+
+					FPropertyDetails(const UEdGraphPin* InPin, const FString& InPropertyName)
+						: Pin(InPin), PropertyName(InPropertyName)
+					{
+					}
+				};
+
+				TArray<FPropertyDetails> ParentHierarchy;
+				const UEdGraphPin* CurPin = OldPin;
+				do 
+				{
+					ParentHierarchy.Add(FPropertyDetails(CurPin, CurPin->PinName.RightChop(CurPin->ParentPin->PinName.Len() + 1)));
+					CurPin = CurPin->ParentPin;
+				} while (CurPin->ParentPin);
+
+				// if you don't have matching pin, now check if there is any redirect param set
+				TArray<FString> OldPinNames;
+				GetRedirectPinNames(*CurPin, OldPinNames);
+
+				FString NewPinNameStr;
+				FName NewPinName;
+				RedirectType = ShouldRedirectParam(OldPinNames, /*out*/ NewPinName, Node);
+
+				NewPinNameStr = (RedirectType == ERedirectType_None ? CurPin->PinName : NewPinName.ToString());
+
+				for (int32 ParentIndex = ParentHierarchy.Num() - 1; ParentIndex >= 0; --ParentIndex)
+				{
+					const UEdGraphPin* CurPin = ParentHierarchy[ParentIndex].Pin;
+					const UEdGraphPin* ParentPin = CurPin->ParentPin;
+
+					TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(ParentPin->PinType.PinSubCategoryObject->GetFName());
+					if (StructRedirects)
+					{
+						FName* PropertyRedirect = StructRedirects->Find(FName(*ParentHierarchy[ParentIndex].PropertyName));
+						if (PropertyRedirect)
+						{
+							NewPinNameStr += FString("_") + PropertyRedirect->ToString();
+						}
+						else
+						{
+							NewPinNameStr += FString("_") + ParentHierarchy[ParentIndex].PropertyName;
+						}
+					}
+					else
+					{
+						NewPinNameStr += FString("_") + ParentHierarchy[ParentIndex].PropertyName;
+					}
+				}
+
+				// make sure they match
+				RedirectType = ((FCString::Stricmp(*(NewPin->PinName), *NewPinNameStr) != 0) ? ERedirectType_None : ERedirectType_Name);
 			}
 		}
 	}
@@ -503,6 +575,65 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 	OldPin->Rename(NULL, GetTransientPackage(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
 }
 
+bool UK2Node::AllowSplitPins() const
+{
+	return GetDefault<UEditorExperimentalSettings>()->bAllowSplitStructPins;
+}
+
+void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
+{
+	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(CompilerContext ? CompilerContext->GetSchema() : SourceGraph->GetSchema());
+
+	UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
+
+	int32 SubPinIndex = 0;
+
+	for (int32 ExpandedPinIndex=0; ExpandedPinIndex < ExpandedNode->Pins.Num(); ++ExpandedPinIndex)
+	{
+		UEdGraphPin* ExpandedPin = ExpandedNode->Pins[ExpandedPinIndex];
+
+		if (!ExpandedPin->bHidden)
+		{
+			if (ExpandedPin->Direction == Pin->Direction)
+			{
+				UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
+				if (CompilerContext)
+				{
+					CompilerContext->MovePinLinksToIntermediate(*SubPin, *ExpandedPin);
+				}
+				else
+				{
+					Schema->MovePinLinks(*SubPin, *ExpandedPin);
+				}
+				Pins.Remove(SubPin);
+			}
+			else
+			{
+				Schema->TryCreateConnection(Pin, ExpandedPin);
+			}
+		}
+	}
+
+	Pin->SubPins.Empty();				
+}
+
+void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+{
+	if (CompilerContext.bIsFullCompile)
+	{
+		// We iterate the array in reverse so we can both remove the subpins safely after we've read them and
+		// so we have split nested structs we combine them back together in the right order
+		for (int32 PinIndex=Pins.Num() - 1; PinIndex >= 0; --PinIndex)
+		{
+			UEdGraphPin* Pin = Pins[PinIndex];
+			if (Pin->SubPins.Num() > 0)
+			{
+				ExpandSplitPin(&CompilerContext, SourceGraph, Pin);
+			}
+		}
+	}
+}
+
 bool UK2Node::HasValidBlueprint() const
 {
 	// Perform an unchecked search here, so we don't crash if this is a transient node from a list refresh without a valid outer blueprint
@@ -519,12 +650,10 @@ FLinearColor UK2Node::GetNodeTitleColor() const
 	// Different color for pure operations
 	if (IsNodePure())
 	{
-		return GEditor->AccessEditorUserSettings().PureFunctionCallNodeTitleColor;
+		return GetDefault<UGraphEditorSettings>()->PureFunctionCallNodeTitleColor;
 	}
-	else
-	{
-		return GEditor->AccessEditorUserSettings().FunctionCallNodeTitleColor;
-	}
+
+	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
 }
 
 
@@ -1089,6 +1218,7 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 	bSelfContext = false;
+	bWasDeprecated = false;
 }
 
 void FMemberReference::SetSelfMember(FName InMemberName)
@@ -1097,6 +1227,7 @@ void FMemberReference::SetSelfMember(FName InMemberName)
 	MemberParentClass = NULL;
 	MemberScope.Empty();
 	bSelfContext = true;
+	bWasDeprecated = false;
 }
 
 void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, bool bIsConsideredSelfContext)
@@ -1104,6 +1235,7 @@ void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberG
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
 	bSelfContext = bIsConsideredSelfContext;
+	bWasDeprecated = false;
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 }
@@ -1115,6 +1247,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 	bSelfContext = (SelfScope->IsChildOf(InMemberParentClass)) || (SelfScope->ClassGeneratedBy == InMemberParentClass->ClassGeneratedBy);
+	bWasDeprecated = false;
 
 	if (bSelfContext)
 	{

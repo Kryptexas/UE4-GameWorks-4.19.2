@@ -11,7 +11,7 @@ public:
 	void Construct(const FArguments& InArgs, class UMaterialGraphNode_Comment* InNode);
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) override;
 	// End of SNodePanel::SNode interface
 
 private:

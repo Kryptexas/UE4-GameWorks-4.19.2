@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "PhyaPluginPrivatePCH.h"
-
+#include "PhysicsPublic.h"
 #include "Phya.hpp"
 
 #define N_BODIES 5

@@ -12,6 +12,8 @@
 #include "AnimStateEntryNode.h"
 #include "AnimationGraphSchema.h"
 #include "AnimGraphNode_Base.h"
+#include "Sound/SoundNode.h"
+#include "K2Node_Knot.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 
@@ -528,10 +530,11 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements)
 	, GraphObj(InGraphObj)
 {
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
+	ArrowRadius = FVector2D::ZeroVector;
 
 	// But we do want to draw midpoint arrowheads
 	if (GetDefault<UEditorExperimentalSettings>()->bDrawMidpointArrowsInBlueprints)
@@ -541,22 +544,22 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	}
 
 	// Cache off the editor options
-	AttackColor = Options.TraceAttackColor;
-	SustainColor = Options.TraceSustainColor;
-	ReleaseColor = Options.TraceReleaseColor;
+	AttackColor = Settings->TraceAttackColor;
+	SustainColor = Settings->TraceSustainColor;
+	ReleaseColor = Settings->TraceReleaseColor;
 
-	AttackWireThickness = Options.TraceAttackWireThickness;
-	SustainWireThickness = Options.TraceSustainWireThickness;
-	ReleaseWireThickness = Options.TraceReleaseWireThickness;
+	AttackWireThickness = Settings->TraceAttackWireThickness;
+	SustainWireThickness = Settings->TraceSustainWireThickness;
+	ReleaseWireThickness = Settings->TraceReleaseWireThickness;
 
-	TracePositionBonusPeriod = Options.TracePositionBonusPeriod;
-	TracePositionExponent = Options.TracePositionExponent;
-	AttackHoldPeriod = Options.TraceAttackHoldPeriod;
-	DecayPeriod = Options.TraceDecayPeriod;
-	DecayExponent = Options.TraceDecayExponent;
-	SustainHoldPeriod = Options.TraceSustainHoldPeriod;
-	ReleasePeriod = Options.TraceReleasePeriod;
-	ReleaseExponent = Options.TraceReleaseExponent;
+	TracePositionBonusPeriod = Settings->TracePositionBonusPeriod;
+	TracePositionExponent = Settings->TracePositionExponent;
+	AttackHoldPeriod = Settings->TraceAttackHoldPeriod;
+	DecayPeriod = Settings->TraceDecayPeriod;
+	DecayExponent = Settings->TraceDecayExponent;
+	SustainHoldPeriod = Settings->TraceSustainHoldPeriod;
+	ReleasePeriod = Settings->TraceReleasePeriod;
+	ReleaseExponent = Settings->TraceReleaseExponent;
 
 	CurrentTime = 0.0;
 	LatestTimeDiscovered = 0.0;
@@ -829,6 +832,31 @@ void FKismetConnectionDrawingPolicy::DetermineStyleOfExecWire(float& Thickness, 
 	}
 }
 
+FKismetConnectionDrawingPolicy::FTimePair const* FKismetConnectionDrawingPolicy::BackTraceExecPath(UEdGraphPin const* const OutputPin, FExecPairingMap const* const NodeExecutionList)
+{
+	FTimePair const* FoundExecPath = nullptr;
+
+	UEdGraphNode const* const OwningNode = OutputPin->GetOwningNode();
+	if (UK2Node_Knot const* const KnotNode = Cast<UK2Node_Knot>(OwningNode))
+	{
+		UEdGraphPin const* const KnotInputPin = KnotNode->GetInputPin();
+		for (UEdGraphPin const* KnotInput : KnotInputPin->LinkedTo)
+		{
+			FoundExecPath = BackTraceExecPath(KnotInput, NodeExecutionList);
+			if (FoundExecPath != nullptr)
+			{
+				break;
+			}
+		}
+	}
+	else
+	{
+		FoundExecPath = NodeExecutionList->Find(OutputPin);
+	}
+
+	return FoundExecPath;
+}
+
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/bool& bBidirectional)
 {
@@ -849,15 +877,30 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 		{
 			if (CanBuildRoadmap())
 			{
+				UEdGraphNode* InputNode = InputPin->GetOwningNode();
+				// knot nodes are removed from the graph at compile time, so we 
+				// have to follow them until we find something that would have 
+				// actually executed
+				while (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(InputNode))
+				{
+					InputNode = nullptr;
+
+					UEdGraphPin* OutPin = KnotNode->GetOutputPin();
+					if (OutPin->LinkedTo.Num() > 0)
+					{
+						check(OutPin->LinkedTo.Num() == 1);
+						InputNode = OutPin->LinkedTo[0]->GetOwningNode();
+					}	
+				}
+
 				// track if this node connection was ran or not
 				bool bExecuted = false;
 
-				UEdGraphNode* InputNode = InputPin->GetOwningNode();
 				// if the node belonging to InputPin was actually executed
 				if (FExecPairingMap* ExecPaths = PredecessorPins.Find(InputNode))
 				{
 					// if the output pin is one of the pins that lead to InputNode being ran
-					if (FTimePair* ExecTiming = ExecPaths->Find(OutputPin))
+					if (FTimePair const* ExecTiming = BackTraceExecPath(OutputPin, ExecPaths))
 					{
 						bExecuted = true;
 						DetermineStyleOfExecWire(/*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, *ExecTiming);
@@ -1201,15 +1244,17 @@ FSoundCueGraphConnectionDrawingPolicy::FSoundCueGraphConnectionDrawingPolicy(int
 	, GraphObj(InGraphObj)
 {
 	// Cache off the editor options
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
-	ActiveColor = Options.TraceAttackColor;
-	InactiveColor = Options.TraceReleaseColor;
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
-	ActiveWireThickness = Options.TraceAttackWireThickness;
-	InactiveWireThickness = Options.TraceReleaseWireThickness;
+	ActiveColor = Settings->TraceAttackColor;
+	InactiveColor = Settings->TraceReleaseColor;
+
+	ActiveWireThickness = Settings->TraceAttackWireThickness;
+	InactiveWireThickness = Settings->TraceReleaseWireThickness;
 
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
+	ArrowRadius = FVector2D::ZeroVector;
 }
 
 void FSoundCueGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes)
@@ -1347,6 +1392,7 @@ FMaterialGraphConnectionDrawingPolicy::FMaterialGraphConnectionDrawingPolicy(int
 {
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
+	ArrowRadius = FVector2D::ZeroVector;
 }
 
 void FMaterialGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/ bool& bBidirectional)

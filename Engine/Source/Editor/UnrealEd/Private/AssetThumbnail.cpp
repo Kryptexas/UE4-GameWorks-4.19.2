@@ -17,9 +17,9 @@ public:
 		, _AllowFadeIn(false)
 		, _ForceGenericThumbnail(false)
 		, _AllowHintText(true)
-		, _HighlightedText( FText::GetEmpty() )
 		, _Label(EThumbnailLabel::ClassName)
-		, _HintColorAndOpacity( FLinearColor(0.0f, 0.0f, 0.0f, 0.0f) )
+		, _HighlightedText(FText::GetEmpty())
+		, _HintColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
 		, _ClassThumbnailBrushOverride(NAME_None)
 		, _ShowClassBackground( true )
 		{}
@@ -202,7 +202,7 @@ public:
 	}
 
 	// SWidget implementation
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
 
@@ -213,7 +213,7 @@ public:
 		}
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -551,10 +551,10 @@ private:
 
 
 FAssetThumbnail::FAssetThumbnail( UObject* InAsset, uint32 InWidth, uint32 InHeight, const TSharedPtr<class FAssetThumbnailPool>& InThumbnailPool )
-	: AssetData ( InAsset ? FAssetData(InAsset) : FAssetData() )
+	: ThumbnailPool(InThumbnailPool)
+	, AssetData(InAsset ? FAssetData(InAsset) : FAssetData())
 	, Width( InWidth )
 	, Height( InHeight )
-	, ThumbnailPool( InThumbnailPool )
 {
 	if ( InThumbnailPool.IsValid() )
 	{
@@ -563,10 +563,10 @@ FAssetThumbnail::FAssetThumbnail( UObject* InAsset, uint32 InWidth, uint32 InHei
 }
 
 FAssetThumbnail::FAssetThumbnail( const FAssetData& InAssetData , uint32 InWidth, uint32 InHeight, const TSharedPtr<class FAssetThumbnailPool>& InThumbnailPool )
-	: AssetData ( InAssetData )
+	: ThumbnailPool( InThumbnailPool )
+	, AssetData ( InAssetData )
 	, Width( InWidth )
 	, Height( InHeight )
-	, ThumbnailPool( InThumbnailPool )
 {
 	if ( InThumbnailPool.IsValid() )
 	{
@@ -680,10 +680,10 @@ void FAssetThumbnail::RefreshThumbnail()
 }
 
 FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<bool>& InAreRealTimeThumbnailsAllowed, double InMaxFrameTimeAllowance, uint32 InMaxRealTimeThumbnailsPerFrame )
-	: NumInPool( InNumInPool )
-	, AreRealTimeThumbnailsAllowed( InAreRealTimeThumbnailsAllowed )
-	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
+	: AreRealTimeThumbnailsAllowed( InAreRealTimeThumbnailsAllowed )
+	, NumInPool( InNumInPool )
 	, MaxRealTimeThumbnailsPerFrame( InMaxRealTimeThumbnailsPerFrame )
+	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
 {
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
 	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);

@@ -280,10 +280,10 @@
 	}
 
 	// FTickerObjectBase
-	bool Tick(float DeltaTime) OVERRIDE;
+	bool Tick(float DeltaTime) override;
 
 	// FSelfRegisteringExec
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	// FTestSessionInterface
 

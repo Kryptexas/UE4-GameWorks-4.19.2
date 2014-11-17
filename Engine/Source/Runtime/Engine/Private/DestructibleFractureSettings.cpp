@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
+#include "Engine/DestructibleFractureSettings.h"
 #include "PhysicsEngine/PhysXSupport.h"
 
 
@@ -190,15 +192,15 @@ class FProgressListener : public IProgressListener
 {
 public:
 	// Begin IProgressListener interface
-	virtual void	setProgress(int progress, const char* taskName = NULL) OVERRIDE {}
+	virtual void	setProgress(int progress, const char* taskName = NULL) override {}
 	// End IProgressListener interface
 };
 
 class FExplicitHierarchicalMeshEmbedding : public IExplicitHierarchicalMesh::IEmbedding
 {
 public:
-	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type) const OVERRIDE {}
-	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type, physx::PxU32 version) OVERRIDE {}
+	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type) const override {}
+	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type, physx::PxU32 version) override {}
 };
 
 #endif // WITH_APEX
@@ -408,7 +410,7 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<NxExplicitRenderTri
 	return Success;
 }
 
-bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDestructibleAsset& ApexDestructibleAsset, EImportOptions::Type Options)
+bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDestructibleAsset& ApexDestructibleAsset, EDestructibleImportOptions::Type Options)
 {
 	bool Success = false;
 
@@ -418,7 +420,7 @@ bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDes
 
 		IExplicitHierarchicalMesh& EHM = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 
-		if (!(Options & EImportOptions::PreserveSettings))
+		if (!(Options & EDestructibleImportOptions::PreserveSettings))
 		{
 			// Now apply the y -> -y and v -> 1-v transformation to all vertex data
 			for (PxU32 PartIndex = 0; PartIndex < EHM.partCount(); ++PartIndex)

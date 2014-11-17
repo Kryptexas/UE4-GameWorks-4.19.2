@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWidgetReflector.h: Declares the SWidgetReflector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,7 +22,6 @@ public:
 	SLATE_BEGIN_ARGS(SWidgetReflector) { }
 	SLATE_END_ARGS()
 
-	/** Create widgets that comprise this WidgetReflector implementation */
 	/**
 	 * Creates and initializes a new widget reflector widget.
 	 *
@@ -36,48 +31,43 @@ public:
 
 public:
 
-	// Begin SCompoundWidget overrides
+	// SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
-	// End SCompoundWidget overrides
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 public:
 
-	// Begin IWidgetReflector interface
+	// IWidgetReflector interface
 
-	virtual bool IsInPickingMode( ) const OVERRIDE
+	virtual bool IsInPickingMode( ) const override
 	{
 		return bIsPicking;
 	}
 
-	virtual bool IsShowingFocus( ) const OVERRIDE
+	virtual bool IsShowingFocus( ) const override
 	{
 		return bShowFocus;
 	}
 
-	virtual bool IsVisualizingLayoutUnderCursor( ) const OVERRIDE
+	virtual bool IsVisualizingLayoutUnderCursor( ) const override
 	{
 		return bIsPicking;
 	}
 
-	virtual void OnWidgetPicked( ) OVERRIDE
+	virtual void OnWidgetPicked( ) override
 	{
 		bIsPicking = false;
 	}
 
-	virtual bool ReflectorNeedsToDrawIn( TSharedRef<SWindow> ThisWindow ) const OVERRIDE;
+	virtual bool ReflectorNeedsToDrawIn( TSharedRef<SWindow> ThisWindow ) const override;
 
-	virtual void SetSourceAccessDelegate( FAccessSourceCode InDelegate ) OVERRIDE
+	virtual void SetSourceAccessDelegate( FAccessSourceCode InDelegate ) override
 	{
 		SourceAccessDelegate = InDelegate;
 	}
 
-	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) OVERRIDE;
-
-	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) OVERRIDE;
-
-	// End IWidgetReflector interface
+	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) override;
+	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) override;
 
 protected:
 
@@ -85,7 +75,6 @@ protected:
 	 * Generates a tool tip for the given reflector tree node.
 	 *
 	 * @param InReflectorNode The node to generate the tool tip for.
-	 *
 	 * @return The tool tip widget.
 	 */
 	TSharedRef<SToolTip> GenerateToolTipForReflectorNode( TSharedPtr<FReflectorNode> InReflectorNode );
@@ -103,7 +92,6 @@ protected:
 	 * @param InWidgetsToVisualize A widget path whose widgets' outlines to draw.
 	 * @param OutDrawElements A list of draw elements; we will add the output outlines into it.
 	 * @param LayerId The maximum layer achieved in OutDrawElements so far.
-	 *
 	 * @return The maximum layer ID we achieved while painting.
 	 */
 	int32 VisualizePickAsRectangles( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId );
@@ -115,7 +103,6 @@ protected:
 	 * @param WindowGeometry The geometry of the window in which to draw.
 	 * @param OutDrawElements A list of draw elements; we will add the output outlines into it.
 	 * @param LayerId the maximum layer achieved in OutDrawElements so far.
-	 *
 	 * @return The maximum layer ID we achieved while painting.
 	 */
 	int32 VisualizeSelectedNodesAsRectangles( const TArray<TSharedPtr<FReflectorNode>>& InNodesToDraw, const TSharedRef<SWindow>& VisualizeInWindow, FSlateWindowElementList& OutDrawElements, int32 LayerId );

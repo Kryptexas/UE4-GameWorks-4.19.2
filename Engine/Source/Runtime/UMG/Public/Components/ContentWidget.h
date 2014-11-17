@@ -5,25 +5,22 @@
 #include "ContentWidget.generated.h"
 
 UCLASS(Abstract)
-class UMG_API UContentWidget : public USlateNonLeafWidgetComponent
+class UMG_API UContentWidget : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION()
-	virtual USlateWrapperComponent* GetContent();
-	
-	UFUNCTION()
-	virtual void SetContent(USlateWrapperComponent* InContent);
-
-	// USlateNonLeafWidgetComponent
-	virtual int32 GetChildrenCount() const OVERRIDE;
-	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
-	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
-	virtual bool RemoveChild(USlateWrapperComponent* Child) OVERRIDE;
-	// End USlateNonLeafWidgetComponent
+	//UFUNCTION()
+	//virtual UWidget* GetContent();
+	//
+	//UFUNCTION()
+	//virtual void SetContent(UWidget* InContent);
 
 protected:
 
-	UPROPERTY()
-	USlateWrapperComponent* Content;
+	// UPanelWidget
+	virtual UClass* GetSlotClass() const override;
+	// End UPanelWidget
+
+protected:
+	UPanelSlot* GetContentSlot() const;
 };

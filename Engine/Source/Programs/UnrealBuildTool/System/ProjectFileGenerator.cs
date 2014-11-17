@@ -250,7 +250,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Arguments">Command-line arguments</param>
 		/// <param name="bSuccess">True if everything went OK</param>
-		public void GenerateProjectFiles( String[] Arguments, out bool bSuccess )
+		public virtual void GenerateProjectFiles( String[] Arguments, out bool bSuccess )
 		{
 			bSuccess = true;
 
@@ -575,6 +575,11 @@ namespace UnrealBuildTool
 		/// <param name="EngineProject">Engine project to add files to.</param>
 		private void AddUBTConfigFilesToEngineProject(ProjectFile EngineProject)
 		{
+			EngineProject.AddAliasedFileToProject(new AliasedFile(
+					XmlConfigLoader.GetXSDPath(),
+					Path.Combine("Programs", "UnrealBuildTool")
+				));
+
 			foreach(var BuildConfigurationPath in XmlConfigLoader.ConfigLocationHierarchy)
 			{
 				if(!BuildConfigurationPath.bExists)
@@ -847,10 +852,7 @@ namespace UnrealBuildTool
 				// Skip NoRedist files if necessary
 				if( bExcludeNoRedistFiles )
 				{
-					if( CleanBuildFileName.IndexOf( Path.DirectorySeparatorChar + "NoRedist" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) != -1 )
-					{
-						IncludeThisModule = false;
-					}
+					IncludeThisModule = !IsNoRedistModule(CleanBuildFileName);
 				}
 
 				if( IncludeThisModule )
@@ -861,6 +863,32 @@ namespace UnrealBuildTool
 			return AllModuleFiles;
 		}
 
+		/// <summary>
+		/// List of non-redistributable folders
+		/// </summary>
+		private static string[] NoRedistFolders = new string[]
+		{
+			Path.DirectorySeparatorChar + "NoRedist" + Path.DirectorySeparatorChar,
+			Path.DirectorySeparatorChar + "NotForLicensees" + Path.DirectorySeparatorChar
+		};
+
+		/// <summary>
+		/// Checks if a module is in a non-redistributable folder
+		/// </summary>
+		/// <param name="CleanBuildFileName"></param>
+		/// <param name="IncludeThisModule"></param>
+		/// <returns></returns>
+		private static bool IsNoRedistModule(string ModulePath)
+		{
+			foreach (var NoRedistFolderName in NoRedistFolders)
+			{
+				if (ModulePath.IndexOf(NoRedistFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 
 		/// <summary>
 		/// Finds all target files (filtering by platform)
@@ -893,10 +921,7 @@ namespace UnrealBuildTool
 				// Skip NoRedist files if necessary
 				if( bExcludeNoRedistFiles )
 				{
-					if( CleanTargetFileName.IndexOf( Path.DirectorySeparatorChar + "NoRedist" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) != -1 )
-					{
-						IncludeThisTarget = false;
-					}
+					IncludeThisTarget = !IsNoRedistModule(CleanTargetFileName);
 				}
 
 				if( IncludeThisTarget )
@@ -1000,54 +1025,62 @@ namespace UnrealBuildTool
 			Folder.SubFolders.AddRange( SubFoldersToAdd );
 
 			// After everything has been collapsed, do a bit of data validation
+			Validate(Folder, ParentMasterProjectFolderPath);
+		}
+
+		/// <summary>
+		/// Validate the specified Folder. Default implementation requires
+		/// for project file names to be unique!
+		/// </summary>
+		/// <param name="Folder">Folder.</param>
+		/// <param name="MasterProjectFolderPath">Parent master project folder path.</param>
+		protected virtual void Validate(MasterProjectFolder Folder, string MasterProjectFolderPath)
+		{
+			foreach (var CurChildProject in Folder.ChildProjects)
 			{
-				foreach( var CurChildProject in Folder.ChildProjects )
+				foreach (var OtherChildProject in Folder.ChildProjects)
 				{
-					foreach( var OtherChildProject in Folder.ChildProjects )
+					if (CurChildProject != OtherChildProject)
 					{
-						if( CurChildProject != OtherChildProject )
+						if (Utils.GetFilenameWithoutAnyExtensions(CurChildProject.ProjectFilePath).Equals(Utils.GetFilenameWithoutAnyExtensions(OtherChildProject.ProjectFilePath), StringComparison.InvariantCultureIgnoreCase))
 						{
-							if (Utils.GetFilenameWithoutAnyExtensions(CurChildProject.ProjectFilePath).Equals(Utils.GetFilenameWithoutAnyExtensions(OtherChildProject.ProjectFilePath), StringComparison.InvariantCultureIgnoreCase))
-							{
-								throw new BuildException( "Detected collision between two project files with the same path in the same master project folder, " + OtherChildProject.ProjectFilePath + " and " + CurChildProject.ProjectFilePath + " (master project folder: " + MasterProjectFolderPath + ")" );
-							}
+							throw new BuildException("Detected collision between two project files with the same path in the same master project folder, " + OtherChildProject.ProjectFilePath + " and " + CurChildProject.ProjectFilePath + " (master project folder: " + MasterProjectFolderPath + ")");
 						}
 					}
 				}
+			}
 
-				foreach( var SubFolder in Folder.SubFolders )
+			foreach (var SubFolder in Folder.SubFolders)
+			{
+				// If the parent folder already has a child project or file item with the same name as this sub-folder, then
+				// that's considered an error (it should never have been allowed to have a folder name that collided
+				// with project file names or file items, as that's not supported in Visual Studio.)
+				foreach (var CurChildProject in Folder.ChildProjects)
 				{
-					// If the parent folder already has a child project or file item with the same name as this sub-folder, then
-					// that's considered an error (it should never have been allowed to have a folder name that collided
-					// with project file names or file items, as that's not supported in Visual Studio.)
-					foreach( var CurChildProject in Folder.ChildProjects )
+					if (Utils.GetFilenameWithoutAnyExtensions(CurChildProject.ProjectFilePath).Equals(SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase))
 					{
-						if (Utils.GetFilenameWithoutAnyExtensions(CurChildProject.ProjectFilePath).Equals(SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase))
-						{
-							throw new BuildException( "Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a project within the outer folder " + CurChildProject.ProjectFilePath + " (master project folder: " + MasterProjectFolderPath + ")" );
-						}
+						throw new BuildException("Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a project within the outer folder " + CurChildProject.ProjectFilePath + " (master project folder: " + MasterProjectFolderPath + ")");
 					}
-					foreach( var CurFile in Folder.Files )
+				}
+				foreach (var CurFile in Folder.Files)
+				{
+					if (Path.GetFileName(CurFile).Equals(SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase))
 					{
-						if( Path.GetFileName( CurFile ).Equals( SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase ) )
-						{
-							throw new BuildException( "Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a file within the outer folder " + CurFile + " (master project folder: " + MasterProjectFolderPath + ")" );
-						}
+						throw new BuildException("Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a file within the outer folder " + CurFile + " (master project folder: " + MasterProjectFolderPath + ")");
 					}
-					foreach( var CurFolder in Folder.SubFolders )
+				}
+				foreach (var CurFolder in Folder.SubFolders)
+				{
+					if (CurFolder != SubFolder)
 					{
-						if( CurFolder != SubFolder )
+						if (CurFolder.FolderName.Equals(SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase))
 						{
-							if( CurFolder.FolderName.Equals( SubFolder.FolderName, StringComparison.InvariantCultureIgnoreCase ) )
-							{
-								throw new BuildException( "Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a sibling folder " + CurFolder.FolderName + " (master project folder: " + MasterProjectFolderPath + ")" );
-							}
+							throw new BuildException("Detected collision between a master project sub-folder " + SubFolder.FolderName + " and a sibling folder " + CurFolder.FolderName + " (master project folder: " + MasterProjectFolderPath + ")");
 						}
 					}
 				}
 			}
 		}
-
 
 		/// <summary>
 		/// Adds UnrealBuildTool to the master project
@@ -1274,7 +1307,7 @@ namespace UnrealBuildTool
 				if (bInProjectPlatformsList && (IncludeAllPlatforms || IsRequiredPlatform))
 				{
 					// If there is a build platform present, add it to the SupportedPlatforms list
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( Platform, true );
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform( Platform, true );
 					if( BuildPlatform != null )
 					{
 						if (UnrealBuildTool.IsValidPlatform(Platform))
@@ -1528,9 +1561,9 @@ namespace UnrealBuildTool
 				if (WantProjectFileForTarget)
 				{
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
-					// Just use Win64 or Mac as we only need to recover the target type and both should be supported for all targets...
+					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
-					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
+					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(ExternalExecution.GetRuntimePlatform(), UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))
@@ -1581,6 +1614,7 @@ namespace UnrealBuildTool
 
 						bool bProjectAlreadyExisted;
 						var ProjectFile = FindOrAddProject(ProjectFilePath, IncludeInGeneratedProjects: true, bAlreadyExisted: out bProjectAlreadyExisted);
+						ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath());
 						ProjectFile.IsGeneratedProject = true;
 						ProjectFile.IsStubProject = false;
 
@@ -1958,7 +1992,7 @@ namespace UnrealBuildTool
                     // TODO(sbc): See if we can just drop the Encoding.UTF8 argument on all
                     // platforms.  In this case UTF8 encoding will still be used but without the
                     // BOM, which is, AFAICT, desirable in almost all cases.
-                    if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+					if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
                         File.WriteAllText(FileName, NewFileContents);
                     else
                         File.WriteAllText(FileName, NewFileContents, Encoding.UTF8);

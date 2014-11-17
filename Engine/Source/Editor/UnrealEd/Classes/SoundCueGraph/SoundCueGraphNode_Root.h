@@ -9,16 +9,16 @@ class USoundCueGraphNode_Root : public USoundCueGraphNode_Base
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override { return false; }
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	// End of UEdGraphNode interface
 
 	// USoundCueGraphNode_Base interface
-	virtual void CreateInputPins() OVERRIDE;
-	virtual bool IsRootNode() const OVERRIDE {return true;}
+	virtual void CreateInputPins() override;
+	virtual bool IsRootNode() const override {return true;}
 	// End of USoundCueGraphNode_Base interface
 };

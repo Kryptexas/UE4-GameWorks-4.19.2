@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherValidation.h: Declares the SSessionLauncherValidation class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,8 +23,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel )
 	{
@@ -107,20 +103,19 @@ public:
 			+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is missing.").ToString(), ELauncherProfileValidationErrors::NoPlatformSDKInstalled)
+					MakeCallbackMessage(TEXT("Icons.Error"), ELauncherProfileValidationErrors::NoPlatformSDKInstalled)
 				]
 		];
 	}
-
 
 protected:
 
 	/**
 	 * Creates a widget for a validation message.
 	 *
-	 * @param IconName - The name of the message icon.
-	 * @param MessageText - The message text.
-	 * @param MessageType - The message type.
+	 * @param IconName The name of the message icon.
+	 * @param MessageText The message text.
+	 * @param MessageType The message type.
 	 */
 	TSharedRef<SWidget> MakeValidationMessage( const TCHAR* IconName, const FString& MessageText, ELauncherProfileValidationErrors::Type Message )
 	{
@@ -144,6 +139,33 @@ protected:
 			];
 	}
 
+	/**
+	 * Creates a widget for a validation message.
+	 *
+	 * @param IconName The name of the message icon.
+	 * @param MessageType The message type.
+	 */
+	TSharedRef<SWidget> MakeCallbackMessage( const TCHAR* IconName,ELauncherProfileValidationErrors::Type Message )
+	{
+		return SNew(SHorizontalBox)
+			.Visibility(this, &SSessionLauncherValidation::HandleValidationMessageVisibility, Message)
+
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0)
+			[
+				SNew(SImage)
+					.Image(FEditorStyle::GetBrush(IconName))
+			]
+
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+					.Text(this, &SSessionLauncherValidation::HandleValidationMessage, Message)
+			];
+	}
 
 private:
 
@@ -163,6 +185,20 @@ private:
 		return EVisibility::Collapsed;
 	}
 
+	FString	HandleValidationMessage( ELauncherProfileValidationErrors::Type Error ) const
+	{
+		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+		if (SelectedProfile.IsValid())
+		{
+			if (SelectedProfile->HasValidationError(Error))
+			{
+				return LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is mising: ").ToString() + SelectedProfile->GetInvalidPlatform();
+			}
+		}
+
+		return TEXT("");
+	}
 
 private:
 

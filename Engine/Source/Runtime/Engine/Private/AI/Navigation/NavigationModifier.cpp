@@ -1,13 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AI/NavigationModifier.h"
-#include "AI/NavigationOctree.h"
+#include "NavigationModifier.h"
+#include "NavigationOctree.h"
 #include "RecastHelpers.h"
 #include "ConvexHull2d.h"
 #if WITH_RECAST
 #include "PImplRecastNavMesh.h"
 #endif // WITH_RECAST
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavLinkTrivial.h"
+#include "AI/Navigation/NavAreas/NavAreaMeta.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull

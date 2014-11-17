@@ -315,6 +315,28 @@ public:
 
 #endif
 
+/**
+ * This function will look at the given command line and see if we have passed in a map to load.
+ * If we have then use that.
+ * If we have not then use the DefaultMap which is stored in the Engine.ini
+ * 
+ * @see UGameEngine::Init() for this method of getting the correct start up map
+ *
+ * @param CommandLine Commandline to use to get startup map (NULL or "" will return default startup map)
+ *
+ * @return Name of the startup map without an extension (so can be used as a package name)
+ */
+ENGINE_API FString appGetStartupMap(const TCHAR* CommandLine);
+
+/**
+ * Get a list of all packages that may be needed at startup, and could be
+ * loaded async in the background when doing seek free loading
+ *
+ * @param PackageNames The output list of package names
+ * @param EngineConfigFilename Optional engine config filename to use to lookup the package settings
+ */
+ENGINE_API void appGetAllPotentialStartupPackageNames(TArray<FString>& PackageNames, const FString& EngineConfigFilename, bool bIsCreatingHashes);
+
 // Calculate the average frame time by using the stats system.
 inline void CalculateFPSTimings()
 {

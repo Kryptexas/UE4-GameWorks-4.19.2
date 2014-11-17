@@ -22,7 +22,6 @@ ALevelBounds::ALevelBounds(const class FPostConstructInitializeProperties& PCIP)
 	BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	BoxComponent->InitBoxExtent(FVector(0.5f, 0.5f, 0.5f));
 	
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 	
 #if WITH_EDITOR

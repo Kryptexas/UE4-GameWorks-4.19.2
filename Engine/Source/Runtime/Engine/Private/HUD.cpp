@@ -5,10 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/HUD.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "DisplayDebugHelpers.h"
+#include "Slate.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -124,20 +126,19 @@ void AHUD::PostRender()
 	}
 	else if ( bShowHUD )
 	{
-		if (!bSuppressNativeHUD)
-		{
-			DrawHUD();
-		}
-
-		// Kismet draw
-		ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
+		DrawHUD();
 		
-		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
+		ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
 
 		if (LocalPlayer)
 		{
 			TArray<FVector2D> ContactPoints;
-			ContactPoints.Add(LocalPlayer->ViewportClient->GetMousePosition());
+
+			// TODO: This needs a check whether the platform has a mouse at all, but there is no way to currently do that
+			if (!FSlateApplication::Get().IsFakingTouchEvents())
+			{
+				ContactPoints.Add(LocalPlayer->ViewportClient->GetMousePosition());
+			}
 
 			for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)
 			{
@@ -158,7 +159,7 @@ void AHUD::PostRender()
 			{
 				for (FVector2D& ContactPoint : ContactPoints)
 				{
-					ContactPoint -= ContactPointOffset;
+					ContactPoint += ContactPointOffset;
 				}
 			}
 			UpdateHitBoxCandidates( ContactPoints );
@@ -324,6 +325,9 @@ void AHUD::DrawHUD()
 		PlayerOwner->GetPlayerViewPoint(ViewPoint, ViewRotation);
 		DrawActorOverlays(ViewPoint, ViewRotation);
 	}
+
+	// Blueprint draw
+	ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
 }
 
 
@@ -630,6 +634,76 @@ void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVect
 	}
 }
 
+
+void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed)
+{
+	//Create Selection Rectangle from Points
+	FBox2D SelectionRectangle;
+
+	//This method ensures that an appropriate rectangle is generated, 
+	//		no matter what the coordinates of first and second point actually are.
+	SelectionRectangle += FirstPoint;
+	SelectionRectangle += SecondPoint;
+
+
+	//The Actor Bounds Point Mapping
+	const FVector BoundsPointMapping[8] =
+	{
+		FVector(1, 1, 1),
+		FVector(1, 1, -1),
+		FVector(1, -1, 1),
+		FVector(1, -1, -1),
+		FVector(-1, 1, 1),
+		FVector(-1, 1, -1),
+		FVector(-1, -1, 1),
+		FVector(-1, -1, -1)
+	};
+
+	//~~~
+
+	//For Each Actor of the Class Filter Type
+	for (TActorIterator<AActor> Itr(GetWorld(), ClassFilter); Itr; ++Itr)
+	{
+		AActor* EachActor = *Itr;
+
+		//Get Actor Bounds				//casting to base class, checked by template in the .h
+		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(true); /* All Components */
+
+		//Center
+		const FVector BoxCenter = EachActorBounds.GetCenter();
+
+		//Extents
+		const FVector BoxExtents = EachActorBounds.GetExtent();
+
+		// Build 2D bounding box of actor in screen space
+		FBox2D ActorBox2D(0);
+		for (uint8 BoundsPointItr = 0; BoundsPointItr < 8; BoundsPointItr++)
+		{
+			// Project vert into screen space.
+			const FVector ProjectedWorldLocation = Project(BoxCenter + (BoundsPointMapping[BoundsPointItr] * BoxExtents));
+			// Add to 2D bounding box
+			ActorBox2D += FVector2D(ProjectedWorldLocation.X, ProjectedWorldLocation.Y);
+		}
+
+		//Selection Box must fully enclose the Projected Actor Bounds
+		if (bActorMustBeFullyEnclosed)
+		{
+			if(SelectionRectangle.IsInside(ActorBox2D))
+			{
+				OutActors.Add(Cast<AActor>(EachActor));
+			}
+		}
+		//Partial Intersection with Projected Actor Bounds
+		else
+		{
+			if (SelectionRectangle.Intersect(ActorBox2D))
+			{
+				OutActors.Add(Cast<AActor>(EachActor));
+			}
+		}
+	}
+}
+
 void AHUD::DrawRect(FLinearColor Color, float ScreenX, float ScreenY, float Width, float Height)
 {
 	if (IsCanvasValid_WarnIfNot())	
@@ -799,37 +873,52 @@ const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
 	return UIBlurOverrideRectangles;
 }
 
-bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bDispatchOverOutEvent)
+bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent)
 {
-	ClickLocation -= GetCoordinateOffset();
+	ClickLocation += GetCoordinateOffset();
 
+	const bool bIsClickEvent = (InEventType == IE_Pressed || InEventType == IE_DoubleClick);
 	bool bHit = false;
-	for (FHUDHitBox* HitBoxHit : HitBoxHits)
+
+	// If this is a touch event we likely don't have the hit box in the hit list yet so we need to check all HitBoxes
+	if (bIsTouchEvent && bIsClickEvent)
 	{
-		if (HitBoxHit->Contains(ClickLocation))
+		for (FHUDHitBox& HitBox : HitBoxMap)
 		{
-			bHit = true;
-
-			if (InEventType == IE_Pressed || InEventType == IE_DoubleClick)
+			if (HitBox.Contains(ClickLocation))
 			{
-				ReceiveHitBoxClick(HitBoxHit->GetName());
-				if (bDispatchOverOutEvent)
+				bHit = true;
+
+				ReceiveHitBoxClick(HitBox.GetName());
+
+				if (HitBox.ConsumesInput())
 				{
-					ReceiveHitBoxBeginCursorOver(HitBoxHit->GetName());
+					break;	//Early out if this box consumed the click
 				}
 			}
-			else if (InEventType == IE_Released)
+		}
+	}
+	else
+	{
+		for (FHUDHitBox* HitBoxHit : HitBoxHits)
+		{
+			if (HitBoxHit->Contains(ClickLocation))
 			{
-				ReceiveHitBoxRelease(HitBoxHit->GetName());
-				if (bDispatchOverOutEvent)
-				{
-					ReceiveHitBoxEndCursorOver(HitBoxHit->GetName());
-				}
-			}
+				bHit = true;
 
-			if (HitBoxHit->ConsumesInput() == true)
-			{
-				break;	//Early out if this box consumed the click
+				if (bIsClickEvent)
+				{
+					ReceiveHitBoxClick(HitBoxHit->GetName());
+				}
+				else if (InEventType == IE_Released)
+				{
+					ReceiveHitBoxRelease(HitBoxHit->GetName());
+				}
+
+				if (HitBoxHit->ConsumesInput() == true)
+				{
+					break;	//Early out if this box consumed the click
+				}
 			}
 		}
 	}

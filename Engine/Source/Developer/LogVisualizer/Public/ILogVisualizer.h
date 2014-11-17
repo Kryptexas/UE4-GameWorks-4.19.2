@@ -13,4 +13,7 @@ public:
 
 	/** closes LogVisualizer's UI */
 	virtual void CloseUI(UWorld* InWorld) = 0;
+
+	/** checks if we have LogVisualizer UI opened for given World */
+	virtual bool IsOpenUI(UWorld* InWorld) = 0;
 };

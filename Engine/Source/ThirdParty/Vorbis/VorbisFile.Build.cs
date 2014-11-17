@@ -7,7 +7,7 @@ public class VorbisFile : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string VorbisPath = UEBuildConfiguration.UEThirdPartyDirectory + "Vorbis/libvorbis-1.3.2/";
+		string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 		PublicIncludePaths.Add(VorbisPath + "include");
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
@@ -57,7 +57,7 @@ public class VorbisFile : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(VorbisPath + "lib/Linux/");
+			PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
 			PublicAdditionalLibraries.Add("vorbisfile");
 		}
     }

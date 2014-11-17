@@ -79,12 +79,12 @@ class UVectorFieldAnimated : public UVectorField
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface
 
 	// Begin UVectorField Interface
-	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) OVERRIDE;
+	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) override;
 	// End UVectorField Interface
 
 };

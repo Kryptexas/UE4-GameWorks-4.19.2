@@ -5,6 +5,7 @@
 #include "BlueprintGraphDefinitions.h"
 #include "AnimGraphNode_ModifyBone.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/BoneControllers/AnimNode_ModifyBone.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */
@@ -44,8 +45,8 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	int32 MontagePreviewStartSectionIdx;
 
 	// Begin UAnimInstance interface
-	virtual void NativeInitializeAnimation() OVERRIDE;
-	virtual bool NativeEvaluateAnimation(FPoseContext& Output) OVERRIDE;
+	virtual void NativeInitializeAnimation() override;
+	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 	// End UAnimInstance interface
 
 	/** Set SkeletalControl Alpha**/
@@ -54,7 +55,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	UAnimSequence* GetAnimSequence();
 
 	// Begin UAnimSingleNodeInstance interface
-	virtual void RestartMontage(UAnimMontage* Montage, FName FromSection = FName()) OVERRIDE;
+	virtual void RestartMontage(UAnimMontage* Montage, FName FromSection = FName()) override;
 	// End UAnimSingleNodeInstance interface
 
 	/** Montage preview functions */

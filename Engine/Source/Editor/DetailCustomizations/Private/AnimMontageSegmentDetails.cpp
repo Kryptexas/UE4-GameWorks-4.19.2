@@ -10,7 +10,7 @@
 
 /////////////////////////////////////////////////////////////////////////
 FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, FFXSystemInterface * FXSystem)
-	: FEditorViewportClient(&InPreviewScene)
+	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 {
 	SetViewMode(VMI_Lit);
 

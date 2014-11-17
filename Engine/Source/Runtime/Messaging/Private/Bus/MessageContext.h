@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageContext.h: Declares the FMessageContext class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -87,9 +83,9 @@ public:
 
 public:
 
-	// Begin IMessageContext interface
+	// IMessageContext interface
 
-	virtual IMessageAttachmentPtr GetAttachment( ) const OVERRIDE
+	virtual IMessageAttachmentPtr GetAttachment( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -99,7 +95,7 @@ public:
 		return Attachment;
 	}
 
-	virtual const FDateTime& GetExpiration( ) const OVERRIDE
+	virtual const FDateTime& GetExpiration( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -109,12 +105,12 @@ public:
 		return Expiration;
 	}
 
-	virtual const FMessageAddress& GetForwarder( ) const OVERRIDE
+	virtual const FMessageAddress& GetForwarder( ) const override
 	{
 		return Forwarder;
 	}
 
-	virtual const TMap<FName, FString>& GetHeaders( ) const OVERRIDE
+	virtual const TMap<FName, FString>& GetHeaders( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -124,7 +120,7 @@ public:
 		return Headers;
 	}
 
-	virtual const void* GetMessage( ) const OVERRIDE
+	virtual const void* GetMessage( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -134,7 +130,7 @@ public:
 		return Message;
 	}
 
-	virtual FName GetMessageType( ) const OVERRIDE
+	virtual FName GetMessageType( ) const override
 	{
 		if (IsValid())
 		{
@@ -144,7 +140,7 @@ public:
 		return NAME_None;
 	}
 
-	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo( ) const OVERRIDE
+	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -154,22 +150,22 @@ public:
 		return TypeInfo;
 	}
 
-	virtual IMessageContextPtr GetOriginalContext( ) const OVERRIDE
+	virtual IMessageContextPtr GetOriginalContext( ) const override
 	{
 		return OriginalContext;
 	}
 
-	virtual const TArray<FMessageAddress>& GetRecipients( ) const OVERRIDE
+	virtual const TArray<FMessageAddress>& GetRecipients( ) const override
 	{
 		return Recipients;
 	}
 
-	virtual EMessageScope::Type GetScope( ) const OVERRIDE
+	virtual EMessageScope::Type GetScope( ) const override
 	{
 		return Scope;
 	}
 
-	virtual const FMessageAddress& GetSender( ) const OVERRIDE
+	virtual const FMessageAddress& GetSender( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -179,17 +175,17 @@ public:
 		return Sender;
 	}
 
-	virtual ENamedThreads::Type GetSenderThread( ) const OVERRIDE
+	virtual ENamedThreads::Type GetSenderThread( ) const override
 	{
 		return SenderThread;
 	}
 
-	virtual const FDateTime& GetTimeForwarded( ) const OVERRIDE
+	virtual const FDateTime& GetTimeForwarded( ) const override
 	{
 		return TimeForwarded;
 	}
 
-	virtual const FDateTime& GetTimeSent( ) const OVERRIDE
+	virtual const FDateTime& GetTimeSent( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -199,12 +195,12 @@ public:
 		return TimeSent;
 	}
 
-	virtual bool IsForwarded( ) const OVERRIDE
+	virtual bool IsForwarded( ) const override
 	{
 		return OriginalContext.IsValid();
 	}
 
-	virtual bool IsValid( ) const OVERRIDE
+	virtual bool IsValid( ) const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -214,54 +210,50 @@ public:
 		return ((Message != nullptr) && TypeInfo.IsValid(false, true));
 	}
 
-	// End IMessageContext interface
-
 public:
 
-	// Begin IMutableMessageContext interface
+	// IMutableMessageContext interface
 
-	virtual void AddRecipient( const FMessageAddress& Recipient ) OVERRIDE
+	virtual void AddRecipient( const FMessageAddress& Recipient ) override
 	{
 		Recipients.Add(Recipient);
 	}
 
-	virtual void SetAttachment( const IMessageAttachmentPtr& InAttachment ) OVERRIDE
+	virtual void SetAttachment( const IMessageAttachmentPtr& InAttachment ) override
 	{
 		Attachment = InAttachment;
 	}
 
-	virtual void SetMessage( void* InMessage, UScriptStruct* InTypeInfo ) OVERRIDE
+	virtual void SetMessage( void* InMessage, UScriptStruct* InTypeInfo ) override
 	{
 		Message = InMessage;
 		TypeInfo = InTypeInfo;
 	}
 
-	virtual void SetExpiration( const FDateTime& InExpiration ) OVERRIDE
+	virtual void SetExpiration( const FDateTime& InExpiration ) override
 	{
 		Expiration = InExpiration;
 	}
 
-	virtual void SetHeader( const FName& Key, const FString& Value ) OVERRIDE
+	virtual void SetHeader( const FName& Key, const FString& Value ) override
 	{
 		Headers.Add(Key, Value);
 	}
 
-	virtual void SetScope( EMessageScope::Type InScope ) OVERRIDE
+	virtual void SetScope( EMessageScope::Type InScope ) override
 	{
 		Scope = InScope;
 	}
 
-	virtual void SetSender( const FMessageAddress& InSender ) OVERRIDE
+	virtual void SetSender( const FMessageAddress& InSender ) override
 	{
 		Sender = InSender;
 	}
 
-	virtual void SetTimeSent( const FDateTime& InTimeSent ) OVERRIDE
+	virtual void SetTimeSent( const FDateTime& InTimeSent ) override
 	{
 		TimeSent = InTimeSent;
 	}
-
-	// Begin IMutableMessageContext interface
 
 private:
 

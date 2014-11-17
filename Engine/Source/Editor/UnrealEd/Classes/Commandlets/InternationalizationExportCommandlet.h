@@ -2,6 +2,7 @@
 
 #pragma once 
 
+#include "Commandlets/Commandlet.h"
 #include "InternationalizationExportCommandlet.generated.h"
 
 class FCulture;
@@ -73,7 +74,7 @@ public:
 	/**
 	 * Retrieves the culture equivalent that matches the set language code.
 	 */
-	TSharedPtr< FCulture > GetCulture() const;
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> GetCulture() const;
 
 	/**
 	 * Retrieves the display name for the language.
@@ -96,7 +97,7 @@ private:
 	FString LanguageCode;
 	FString LanguagePluralForms;
 
-	TSharedPtr< FCulture > Culture;
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture;
 };
 
 
@@ -369,7 +370,7 @@ class UInternationalizationExportCommandlet : public UGatherTextCommandletBase
 
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 private:
 	bool DoExport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename);

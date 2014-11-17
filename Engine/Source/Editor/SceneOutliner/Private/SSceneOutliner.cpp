@@ -321,6 +321,9 @@ namespace SceneOutliner
 				// Called when an item is scrolled into view
 				.OnItemScrolledIntoView( this, &SSceneOutliner::OnOutlinerTreeItemScrolledIntoView )
 
+				// Called when an item is expanded or collapsed
+				.OnExpansionChanged(this, &SSceneOutliner::OnItemExpansionChanged)
+
 				// Called to child items for any given parent item
 				.OnGetChildren( this, &SSceneOutliner::OnGetChildrenForOutlinerTree )
 
@@ -459,9 +462,12 @@ namespace SceneOutliner
 
 		FCoreDelegates::OnActorLabelChanged.RemoveAll(this);
 
-		auto& Folders = FActorFolders::Get();
-		Folders.OnFolderCreate.RemoveAll(this);
-		Folders.OnFolderDelete.RemoveAll(this);
+		if (FActorFolders::IsAvailable())
+		{
+			auto& Folders = FActorFolders::Get();
+			Folders.OnFolderCreate.RemoveAll(this);
+			Folders.OnFolderDelete.RemoveAll(this);
+		}
 	}
 
 	TArray<FOutlinerTreeItemPtr> SSceneOutliner::GetSelectedItems()
@@ -588,7 +594,6 @@ namespace SceneOutliner
 			HideTemporaryActorsFilter = SceneOutlinerFilters::CreateHideTemporaryActorsFilter();
 		}
 
-		sizeof(TSharedPtr<TDelegateFilter<const AActor*const>>);
 		if ( bHideTemporaryActors )
 		{			
 			Filters->Add( HideTemporaryActorsFilter );
@@ -683,17 +688,16 @@ namespace SceneOutliner
 		TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
 	
 
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-		for (int32 WorldIndex=0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (WorldContexts[WorldIndex].WorldType == EWorldType::PIE)
+			if (Context.WorldType == EWorldType::PIE)
 			{
-				RepresentingWorld = WorldContexts[WorldIndex].World();
+				RepresentingWorld = Context.World();
 				break;
 			}
-			else if (WorldContexts[WorldIndex].WorldType == EWorldType::Editor)
+			else if (Context.WorldType == EWorldType::Editor)
 			{
-				RepresentingWorld = WorldContexts[WorldIndex].World();
+				RepresentingWorld = Context.World();
 			}
 		}
 		
@@ -910,11 +914,11 @@ namespace SceneOutliner
 			if (!IsShowingOnlySelected() && ShouldShowFolders())
 			{
 				// Add any folders which might match the current search terms
-				for (const auto& Path : FActorFolders::Get().GetFoldersForWorld(*World))
+				for (const auto& Pair : FActorFolders::Get().GetFolderPropertiesForWorld(*World))
 				{
-					if (!FolderToTreeItemMap.Find(Path))
+					if (!FolderToTreeItemMap.Find(Pair.Key))
 					{
-						TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(Path));
+						TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(Pair.Key));
 						if (!AddFolderToTree(NewFolderItem))
 						{
 							// If we didn't add that folder, attempt to add its parents too
@@ -1111,6 +1115,11 @@ namespace SceneOutliner
 		// Add the item to the map, making it available for display in the tree when its parent is looking for its children.
 		FolderToTreeItemMap.Add(InFolderItem->Path, InFolderItem);
 
+		if (FActorFolderProps* Props = FActorFolders::Get().GetFolderProperties(*RepresentingWorld, InFolderItem->Path))
+		{
+			OutlinerTreeView->SetItemExpansion(InFolderItem, Props->bIsExpanded);
+		}
+
 		NewItemActions.ItemHasBeenCreated(OutlinerTreeView.ToSharedRef(), InFolderItem);
 
 		return true;
@@ -1157,14 +1166,6 @@ namespace SceneOutliner
 				ExpansionStateInfo.CollapsedItems.Add(Item.Key.Get());
 			}
 		}
-
-		for (const auto& Item : FolderToTreeItemMap)
-		{
-			if (!OutlinerTreeView->IsItemExpanded(Item.Value))
-			{
-				ExpansionStateInfo.CollapsedFolders.Add(Item.Key);
-			}
-		}
 	}
 
 	void SSceneOutliner::SetParentsExpansionState(const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
@@ -1175,13 +1176,6 @@ namespace SceneOutliner
 			const auto& Item = ActorToTreeItemMap.FindChecked(Actor);
 			const bool bShouldExpand = !ExpansionStateInfo.CollapsedItems.Contains(Actor);
 			OutlinerTreeView->SetItemExpansion(Item, bShouldExpand);
-		}
-
-		for (const auto& Item : FolderToTreeItemMap)
-		{
-			// Expand folder according to the previous state
-			const bool bShouldExpand = !ExpansionStateInfo.CollapsedFolders.Contains(Item.Key);
-			OutlinerTreeView->SetItemExpansion(Item.Value, bShouldExpand);
 		}
 	}
 
@@ -1689,6 +1683,7 @@ namespace SceneOutliner
 		}
 
 		const FSlateIcon NewFolderIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon");
+		// We always create a section here, even if there is no parent so that clients can still extend the menu
 		MenuBuilder.BeginSection("FolderSection", LOCTEXT("ThisFolderSection", "This Folder"));
 		{
 			if (ParentFolder.IsValid())
@@ -1700,26 +1695,30 @@ namespace SceneOutliner
 		}
 		MenuBuilder.EndSection();
 
-		if (SelectedItems.Num() == 0)
+		// Don't add any of these menu items if we're not showing the parent tree
+		if (InitOptions.bShowParentTree)
 		{
-			MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder)));
-		}
-		else
-		{
-			MenuBuilder.BeginSection("SelectionSection", LOCTEXT("OutlinerSelection", "Current Outliner Selection"));
+			if (SelectedItems.Num() == 0)
 			{
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("MoveActorsToFolder", "Move To Folder"),
-					LOCTEXT("MoveActorsToFolder_Tooltip", "Move selection to a folder"),
-					FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
-
-				// If we've only got folders selected, show the selection sub menu
-				if (SelectedFolders.Num() == SelectedItems.Num())
+				MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder)));
+			}
+			else
+			{
+				MenuBuilder.BeginSection("SelectionSection", LOCTEXT("OutlinerSelection", "Current Outliner Selection"));
 				{
 					MenuBuilder.AddSubMenu(
-						LOCTEXT("SelectSubmenu", "Select"),
-						LOCTEXT("SelectSubmenu_Tooltip", "Select the contents of the current selection"),
-						FNewMenuDelegate::CreateSP(this, &SSceneOutliner::FillSelectionSubMenu));
+						LOCTEXT("MoveActorsToFolder", "Move To Folder"),
+						LOCTEXT("MoveActorsToFolder_Tooltip", "Move selection to a folder"),
+						FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
+
+					// If we've only got folders selected, show the selection sub menu
+					if (SelectedFolders.Num() == SelectedItems.Num())
+					{
+						MenuBuilder.AddSubMenu(
+							LOCTEXT("SelectSubmenu", "Select"),
+							LOCTEXT("SelectSubmenu_Tooltip", "Select the contents of the current selection"),
+							FNewMenuDelegate::CreateSP(this, &SSceneOutliner::FillSelectionSubMenu));
+					}
 				}
 			}
 		}
@@ -1744,17 +1743,17 @@ namespace SceneOutliner
 	void SSceneOutliner::AddMoveToFolderOutliner(FMenuBuilder& MenuBuilder) const
 	{
 		// We don't show this if there is no world (unusual) or if there aren't any folders in the world
-		const int32 NumFoldersInWorld = FActorFolders::Get().GetFoldersForWorld(*RepresentingWorld).Num();
+		const int32 NumFoldersInWorld = FActorFolders::Get().GetFolderPropertiesForWorld(*RepresentingWorld).Num();
 		if (!RepresentingWorld || !NumFoldersInWorld)
 		{
 			return;
 		}
 
 		// Add a mini scene outliner for choosing an existing folder
-		FSceneOutlinerInitializationOptions InitOptions;
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-		InitOptions.bOnlyShowFolders = true;
+		FSceneOutlinerInitializationOptions MiniSceneOutlinerInitOptions;
+		MiniSceneOutlinerInitOptions.bShowHeaderRow = false;
+		MiniSceneOutlinerInitOptions.bFocusSearchBoxWhenOpened = true;
+		MiniSceneOutlinerInitOptions.bOnlyShowFolders = true;
 			
 		{
 			// Don't show any folders that are a child of any of the selected folders
@@ -1780,8 +1779,8 @@ namespace SceneOutliner
 					}
 
 					auto HasSubFolders = [](TWeakPtr<TOutlinerTreeItem> WeakItem){
-						auto Item = WeakItem.Pin();
-						return Item.IsValid() && Item->Type == TOutlinerTreeItem::Folder;
+						auto TreeItem = WeakItem.Pin();
+						return TreeItem.IsValid() && TreeItem->Type == TOutlinerTreeItem::Folder;
 					};
 
 					auto* ParentFolder = FolderToTreeItemMap.Find(Folder);
@@ -1795,8 +1794,8 @@ namespace SceneOutliner
 			if (ExcludedParents->Num())
 			{
 				// Add a filter if necessary
-				auto FilterOutChildFolders = [](FName Path, TSharedRef<TSet<FName>> ExcludedParents){
-					for (const auto& Parent : *ExcludedParents)
+				auto FilterOutChildFolders = [](FName Path, TSharedRef<TSet<FName>> InExcludedParents){
+					for (const auto& Parent : *InExcludedParents)
 					{
 						if (Path == Parent || FActorFolders::PathIsChildOf(Path.ToString(), Parent.ToString()))
 						{
@@ -1807,7 +1806,7 @@ namespace SceneOutliner
 					return true;
 				};
 
-				InitOptions.Filters->AddFilterPredicate(SceneOutliner::FFolderFilterPredicate::CreateStatic(FilterOutChildFolders, ExcludedParents));
+				MiniSceneOutlinerInitOptions.Filters->AddFilterPredicate(SceneOutliner::FFolderFilterPredicate::CreateStatic(FilterOutChildFolders, ExcludedParents));
 			}
 
 			// Actor selector to allow the user to choose a folder
@@ -1817,7 +1816,7 @@ namespace SceneOutliner
 				+ SVerticalBox::Slot()
 				.MaxHeight(400.0f)
 				[
-					SNew(SceneOutliner::SSceneOutliner, InitOptions)
+					SNew(SceneOutliner::SSceneOutliner, MiniSceneOutlinerInitOptions)
 					.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 					.OnItemPickedDelegate(FOnSceneOutlinerItemPicked::CreateSP(this, &SSceneOutliner::MoveSelectionTo))
 				];
@@ -2041,7 +2040,7 @@ namespace SceneOutliner
 		NewItemActions.WhenCreated(NewFolderName, NewItemActuator::Select | NewItemActuator::Rename);
 	}
 
-	void SSceneOutliner::OnBroadcastFolderCreate(const UWorld& InWorld, FName NewPath)
+	void SSceneOutliner::OnBroadcastFolderCreate(UWorld& InWorld, FName NewPath)
 	{
 		if (!ShouldShowFolders() || &InWorld != RepresentingWorld)
 		{
@@ -2080,7 +2079,7 @@ namespace SceneOutliner
 		}
 	}
 
-	void SSceneOutliner::OnBroadcastFolderDelete(const UWorld& InWorld, FName Path)
+	void SSceneOutliner::OnBroadcastFolderDelete(UWorld& InWorld, FName Path)
 	{
 		if (&InWorld != RepresentingWorld)
 		{
@@ -2097,7 +2096,9 @@ namespace SceneOutliner
 
 	void SSceneOutliner::RenameFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
 	{
-		Folder->RenameRequestEvent.ExecuteIfBound();
+		// Ensure that the item we want to rename is visible in the tree
+		Folder->Flags.RenameWhenInView = true;
+		OutlinerTreeView->RequestScrollIntoView(Folder);
 	}
 
 	void SSceneOutliner::DeleteFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
@@ -2545,6 +2546,36 @@ namespace SceneOutliner
 			}
 		}
 	}
+	
+	void SSceneOutliner::OnItemExpansionChanged(FOutlinerTreeItemPtr TreeItem, bool bIsExpanded) const
+	{
+		if (RepresentingWorld && TreeItem->Type == TOutlinerTreeItem::Folder)
+		{
+			// Update the central store of folder properties with this folder's new expansion state
+
+			auto FolderItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
+
+			if (FActorFolderProps* Props = FActorFolders::Get().GetFolderProperties(*RepresentingWorld, FolderItem->Path))
+			{
+				Props->bIsExpanded = bIsExpanded;
+			}
+
+			// Expand any children that are also expanded
+			for (const auto& WeakChild : FolderItem->ChildItems)
+			{
+				auto Child = WeakChild.Pin();
+				if (Child.IsValid() && Child->Type == TOutlinerTreeItem::Folder)
+				{
+					auto ChildItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Child);
+					const FActorFolderProps* FolderPtr = FActorFolders::Get().GetFolderProperties(*RepresentingWorld, ChildItem->Path);
+					if (FolderPtr && FolderPtr->bIsExpanded)
+					{
+						OutlinerTreeView->SetItemExpansion(ChildItem, true);
+					}
+				}
+			}
+		}
+	}
 
 	void SSceneOutliner::OnLevelAdded(ULevel* InLevel, UWorld* InWorld)
 	{
@@ -2981,7 +3012,6 @@ namespace SceneOutliner
 				else
 				{
 					const FScopedTransaction Transaction( LOCTEXT("UndoAction_DeleteSelection", "Delete selection") );
-//					FActorFolders::Get().Modify(*GWorld);
 
 					// Delete selected folders too
 					auto SelectedItems = OutlinerTreeView->GetSelectedItems();
@@ -2999,7 +3029,7 @@ namespace SceneOutliner
 							auto* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get();
 							if (Actor)
 							{
-								GEditor->SelectActor(Actor, true, true);
+								GEditor->SelectActor(Actor, true, false);
 							}
 						}
 					}
@@ -3007,7 +3037,7 @@ namespace SceneOutliner
 					// Code from FLevelEditorActionCallbacks::Delete_CanExecute()
 					// Should this be just return FReply::Unhandled()?
 					TArray<FEdMode*> ActiveModes; 
-					GEditorModeTools().GetActiveModes( ActiveModes );
+					GLevelEditorModeTools().GetActiveModes( ActiveModes );
 					for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 					{
 						const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDelete();
@@ -3074,7 +3104,7 @@ namespace SceneOutliner
 		return SortMode;
 	}
 
-	void SSceneOutliner::OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode )
+	void SSceneOutliner::OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode )
 	{
 		if (CustomColumn.IsValid() && ColumnId == CustomColumn->GetColumnID() && !CustomColumn->SupportsSorting())
 		{

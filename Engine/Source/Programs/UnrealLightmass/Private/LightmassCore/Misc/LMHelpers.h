@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMHelpers.h: Mostly defines
-=============================================================================*/
-
 #pragma once
 
 namespace Lightmass
@@ -17,8 +13,8 @@ public:
 	~FLightmassLog();
 
 	// BEGIN FOutputDevice Interface 
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
-	virtual void Flush() OVERRIDE;
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
+	virtual void Flush() override;
 	// END FOutputDevice Interface
 
 	/**

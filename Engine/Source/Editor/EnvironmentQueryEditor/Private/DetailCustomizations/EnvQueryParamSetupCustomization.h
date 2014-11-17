@@ -1,20 +1,20 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 
-class FEnvQueryParamSetupCustomization : public IStructCustomization
+class FEnvQueryParamSetupCustomization : public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IStructCustomization interface
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	// End IStructCustomization interface
+	// Begin IPropertyTypeCustomization interface
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	// End IPropertyTypeCustomization interface
 
-	static TSharedRef<IStructCustomization> MakeInstance( );
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 
 protected:
 

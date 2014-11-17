@@ -1,11 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "ActorEditorUtils.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "LevelUtils.h"
 #include "MapErrors.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeComponent.h"
 
 #if WITH_EDITOR
 
@@ -80,7 +84,7 @@ void AActor::PostEditMove(bool bFinished)
 
 	if ( bFinished )
 	{
-		if ( GIsEditor && !GetWorld()->IsPlayInEditor() )
+		if ( GIsEditor && !GetWorld()->IsPlayInEditor() && !FLevelUtils::IsMovingLevel())
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(GetLevel());
 			if (IFA)
@@ -213,6 +217,75 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	}
 }
 
+AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor)
+	: ComponentInstanceData(Actor)
+{
+	USceneComponent* RootComponent = Actor->GetRootComponent();
+	if (RootComponent && RootComponent->bCreatedByConstructionScript)
+	{
+		bRootComponentDataCached = true;
+		RootComponentData.Transform = RootComponent->ComponentToWorld;
+		RootComponentData.Transform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
+
+		if (RootComponent->AttachParent)
+		{
+			RootComponentData.AttachedParentInfo.Actor = RootComponent->AttachParent->GetOwner();
+			RootComponentData.AttachedParentInfo.SocketName = RootComponent->AttachSocketName;
+			RootComponentData.AttachedParentInfo.RelativeTransform = RootComponent->GetRelativeTransform();
+		}
+
+		for (USceneComponent* AttachChild : RootComponent->AttachChildren)
+		{
+			AActor* ChildOwner = (AttachChild ? AttachChild->GetOwner() : NULL);
+			if (ChildOwner != Actor)
+			{
+				// Save info about actor to reattach
+				FActorRootComponentReconstructionData::FAttachedActorInfo Info;
+				Info.Actor = ChildOwner;
+				Info.SocketName = AttachChild->AttachSocketName;
+				Info.RelativeTransform = AttachChild->GetRelativeTransform();
+				RootComponentData.AttachedToInfo.Add(Info);
+			}
+		}
+	}
+	else
+	{
+		bRootComponentDataCached = false;
+	}
+}
+
+bool AActor::FActorTransactionAnnotation::HasInstanceData() const
+{
+	return (bRootComponentDataCached || ComponentInstanceData.HasInstanceData());
+}
+
+TSharedPtr<ITransactionObjectAnnotation> AActor::GetTransactionAnnotation() const
+{
+	TSharedPtr<FActorTransactionAnnotation> TransactionAnnotation = MakeShareable(new FActorTransactionAnnotation(this));
+
+	if (!TransactionAnnotation->HasInstanceData())
+	{
+		// If there is nothing in the annotation don't bother storing it.
+		TransactionAnnotation = NULL;
+	}
+
+	return TransactionAnnotation;
+}
+
+void AActor::PreEditUndo()
+{
+	// Since child actor components will rebuild themselves get rid of the Actor before we make changes
+	TArray<UChildActorComponent*> ChildActorComponents;
+	GetComponents(ChildActorComponents);
+
+	for (UChildActorComponent* ChildActorComponent : ChildActorComponents)
+	{
+		ChildActorComponent->DestroyChildActor();
+	}
+
+	Super::PreEditUndo();
+}
+
 void AActor::PostEditUndo()
 {
 	// Notify LevelBounds actor that level bounding box might be changed
@@ -222,6 +295,19 @@ void AActor::PostEditUndo()
 	}
 
 	Super::PostEditUndo();
+}
+
+void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
+
+	// Notify LevelBounds actor that level bounding box might be changed
+	if (!IsTemplate() && GetLevel()->LevelBoundsActor.IsValid())
+	{
+		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
+	}
+
+	Super::PostEditUndo(TransactionAnnotation);
 }
 
 // @todo: Remove this hack once we have decided on the scaling method to use.
@@ -358,6 +444,11 @@ bool AActor::IsEditable() const
 bool AActor::IsListedInSceneOutliner() const
 {
 	return bListedInSceneOutliner;
+}
+
+bool AActor::EditorCanAttachTo(const AActor* InParent, FText& OutReason) const
+{
+	return true;
 }
 
 const FString& AActor::GetActorLabel() const
@@ -596,30 +687,6 @@ void AActor::CheckForErrors()
 		if (ActorComponent->IsRegistered())
 		{
 			ActorComponent->CheckForErrors();
-
-			// add extra error message if they have WorldTrace blocked and not following components
-			// Blocking WorldTrace means it will be considered to be world geometry, so will give out warning about it
-			// Only allow, BrushComponent, StaticMeshComponent, LandscapeComponent, LandscapeHeightfieldCollisionComponent
-			UPrimitiveComponent * PrimComponent = Cast<UPrimitiveComponent>(ActorComponent);
-			if ( PrimComponent && PrimComponent->IsCollisionEnabled() )
-			{
-				// this is a bit difficult to do in Component CheckForError
-				// since parenting, and very specific children will need this check to be disabled
-				// without adding any new flag. So doing this here. 
-				if (PrimComponent->IsWorldGeometry() && 
-					(!PrimComponent->IsA(UBrushComponent::StaticClass())
-					&& !PrimComponent->IsA(UStaticMeshComponent::StaticClass())
-					&& !PrimComponent->IsA(ULandscapeComponent::StaticClass())
-					&& !PrimComponent->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())))
-				{
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-					FMessageLog("MapCheck").Error()
-						->AddToken(FUObjectToken::Create(this))
-						->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_WorldTraceBlocked", "{ActorName} has WorldTrace blocked. It will be considered to be world geometry." ), Arguments) ))
-						->AddToken(FMapErrorToken::Create(FMapErrors::InvalidTrace));
-				}
-			}
 		}
 	}
 }

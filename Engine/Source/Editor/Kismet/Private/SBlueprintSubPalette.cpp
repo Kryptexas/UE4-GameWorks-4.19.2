@@ -155,7 +155,7 @@ public:
 	/**
 	 * Registers context menu commands for the blueprint palette.
 	 */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(RefreshPalette, "Refresh List", "Refreshes the list of nodes.", EUserInterfaceActionType::Button, FInputGesture());
 	}
@@ -229,10 +229,22 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 	// has to come after GraphActionMenu has been set
 	BindCommands(CommandList);
 
-	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RefreshActionsList, true);
+	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
 	// Register with the Asset Registry to be informed when it is done loading up files.
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RefreshActionsList, true);
+	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
+}
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SGraphPalette::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(bNeedsRefresh)
+	{
+		bNeedsRefresh = false;
+		RefreshActionsList(true);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -346,6 +358,12 @@ void SBlueprintSubPalette::GenerateContextMenuEntries(FMenuBuilder& MenuBuilder)
 	MenuBuilder.AddMenuEntry(PaletteCommands.RefreshPalette);
 }
 
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::RequestRefreshActionsList()
+{
+	bNeedsRefresh = true;
+}
+
 /*******************************************************************************
 * Private SBlueprintSubPalette Methods
 *******************************************************************************/
@@ -356,44 +374,46 @@ TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrus
 	TSharedPtr<SToolTip> ToolTip;
 	SAssignNew(ToolTip, SToolTip).Text(ToolTipText);
 
-	FTextBlockStyle TitleStyle = FTextBlockStyle()
+	static FTextBlockStyle TitleStyle = FTextBlockStyle()
 		.SetFont(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10))
 		.SetColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f));
 
 	return SNew(SVerticalBox)
-			.ToolTip(ToolTip)
-			// so we still get tooltip text for an empty SHorizontalBox
-			.Visibility(EVisibility::Visible) 
-		+SVerticalBox::Slot()
-			.AutoHeight()
+		.ToolTip(ToolTip)
+		// so we still get tooltip text for an empty SHorizontalBox
+		.Visibility(EVisibility::Visible) 
+		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(2.f, 2.f)
+			
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2.f, 2.f)
 			[
 				SNew(SImage).Image(Icon)
 			]
 
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(2.f, 2.f)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2.f, 2.f)
 			[
 				SNew(STextBlock)
-					.Text(TitleText)
-					.TextStyle(&TitleStyle)
+				.Text(TitleText)
+				.TextStyle(&TitleStyle)
 			]
 		]
-		+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.f, 2.f, 0.f, 5.f)
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.f, 2.f, 0.f, 5.f)
 		[
 			SNew(SBorder)
-				// use the border's padding to actually create the horizontal line
-				.Padding(1.f)
-				.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Separator")))
+			// use the border's padding to actually create the horizontal line
+			.Padding(1.f)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Separator")))
 		];	
 }
 

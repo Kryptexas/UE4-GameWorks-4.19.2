@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerModule.cpp: Implements the FMessagingDebuggerModule class.
-=============================================================================*/
-
 #include "MessagingDebuggerPrivatePCH.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 
@@ -23,9 +19,9 @@ class FMessagingDebuggerModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 	
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		Style = MakeShareable(new FMessagingDebuggerStyle());
 
@@ -39,15 +35,12 @@ public:
 			.SetIcon(FSlateIcon(Style->GetStyleSetName(), "MessagingDebuggerTabIcon"));
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(MessagingDebuggerTabName);
 		IModularFeatures::Get().UnregisterModularFeature("MessagingDebugger", this);
 		FMessagingDebuggerCommands::Unregister();
 	}
-	
-	// End IModuleInterface interface
-
 
 private:
 

@@ -10,4 +10,7 @@
 #include "IDetailPropertyRow.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
+#include "IPropertyTypeCustomization.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailCustomization.h"
 #include "IDetailsView.h"

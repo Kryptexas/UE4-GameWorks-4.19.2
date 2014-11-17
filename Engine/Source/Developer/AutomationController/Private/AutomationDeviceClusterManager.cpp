@@ -12,21 +12,23 @@ void FAutomationDeviceClusterManager::Reset()
 }
 
 
-void FAutomationDeviceClusterManager::Add(const FMessageAddress& MessageAddress, const FString& DeviceTypeName, const FString& GameInstanceName)
+void FAutomationDeviceClusterManager::AddDeviceFromMessage(const FMessageAddress& MessageAddress, const FAutomationWorkerFindWorkersResponse& Message, const uint32 GroupFlags)
 {
 	int32 TestClusterIndex;
 	int32 TestDeviceIndex;
 	//if we don't already know about this device
 	if (!FindDevice(MessageAddress, TestClusterIndex, TestDeviceIndex))
 	{
+		FDeviceState NewDevice(MessageAddress, Message);
+		FString GroupName = GetGroupNameForDevice(NewDevice, GroupFlags);
 		//ensure the proper cluster exists
 		int32 ClusterIndex = 0;
 		for (; ClusterIndex < Clusters.Num(); ++ClusterIndex)
 		{
-			if (Clusters[ClusterIndex].DeviceTypeName == DeviceTypeName)
+			if (Clusters[ClusterIndex].ClusterName == GroupName)
 			{
 				//found the cluster, now just append the device
-				Clusters[ClusterIndex].Devices.Add(FDeviceState(MessageAddress, GameInstanceName));
+				Clusters[ClusterIndex].Devices.Add(NewDevice);
 				break;
 			}
 		}
@@ -34,8 +36,9 @@ void FAutomationDeviceClusterManager::Add(const FMessageAddress& MessageAddress,
 		if (ClusterIndex == Clusters.Num())
 		{
 			FDeviceCluster NewCluster;
-			NewCluster.DeviceTypeName = DeviceTypeName;
-			NewCluster.Devices.Add(FDeviceState(MessageAddress, GameInstanceName));
+			NewCluster.ClusterName = GroupName;
+			NewCluster.DeviceTypeName = Message.Platform;
+			NewCluster.Devices.Add(NewDevice);
 			Clusters.Add(NewCluster);
 		}
 	}
@@ -56,6 +59,98 @@ void FAutomationDeviceClusterManager::Remove(const FMessageAddress& MessageAddre
 	}
 }
 
+FString FAutomationDeviceClusterManager::GetGroupNameForDevice(const FDeviceState& DeviceState, const uint32 DeviceGroupFlags)
+{
+	FString OutGroupName;
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::MachineName)) > 0 )
+	{
+		OutGroupName += DeviceState.DeviceName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::Platform)) > 0 )
+	{
+		OutGroupName += DeviceState.PlatformName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::OSVersion)) > 0 )
+	{
+		OutGroupName += DeviceState.OSVersionName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::Model)) > 0 )
+	{
+		OutGroupName += DeviceState.ModelName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::GPU)) > 0 )
+	{
+		OutGroupName += DeviceState.GPUName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::CPUModel)) > 0 )
+	{
+		OutGroupName += DeviceState.CPUModelName + TEXT("-");
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::RamInGB)) > 0 )
+	{
+		OutGroupName += FString::Printf(TEXT("%uGB Ram-"),DeviceState.RAMInGB);
+	}
+
+	if( (DeviceGroupFlags & (1 << EAutomationDeviceGroupTypes::RenderMode)) > 0 )
+	{
+		OutGroupName += DeviceState.RenderModeName + TEXT("-");
+	}
+
+	if( OutGroupName.Len() > 0 )
+	{
+		//Get rid of the trailing '-'
+		OutGroupName = OutGroupName.LeftChop(1);
+	}
+
+	return OutGroupName;
+}
+
+void FAutomationDeviceClusterManager::ReGroupDevices( const uint32 GroupFlags )
+{
+	//Get all the devices
+	TArray< FDeviceState > AllDevices;
+	for(int32 i=0; i<GetNumClusters(); ++i)
+	{
+		AllDevices += Clusters[i].Devices;
+	}
+
+	//Clear out the clusters
+	Reset();
+
+	//Generate new group names based off the active flags and readd the devices
+	for(int32 i=0; i<AllDevices.Num(); ++i)
+	{
+		const FDeviceState* DeviceIt = &AllDevices[i];
+		FString GroupName = GetGroupNameForDevice(*DeviceIt, GroupFlags);
+		//ensure the proper cluster exists
+		int32 ClusterIndex = 0;
+		for (; ClusterIndex < Clusters.Num(); ++ClusterIndex)
+		{
+			if (Clusters[ClusterIndex].ClusterName == GroupName)
+			{
+				//found the cluster, now just append the device
+				Clusters[ClusterIndex].Devices.Add(*DeviceIt);
+				break;
+			}
+		}
+		// if we didn't find the device type yet, add a new cluster and add this device
+		if (ClusterIndex == Clusters.Num())
+		{
+			FDeviceCluster NewCluster;
+			NewCluster.ClusterName = GroupName;
+			NewCluster.DeviceTypeName = DeviceIt->PlatformName;
+			NewCluster.Devices.Add(*DeviceIt);
+			Clusters.Add(NewCluster);
+		}
+	}
+}
 
 int32 FAutomationDeviceClusterManager::GetNumClusters() const
 {
@@ -92,6 +187,12 @@ int32 FAutomationDeviceClusterManager::GetNumActiveDevicesInCluster(const int32 
 		}
 	}
 	return ActiveDevices;
+}
+
+FString FAutomationDeviceClusterManager::GetClusterGroupName(const int32 ClusterIndex) const
+{
+	check((ClusterIndex >= 0) && (ClusterIndex < Clusters.Num()));
+	return Clusters[ClusterIndex].ClusterName;
 }
 
 FString FAutomationDeviceClusterManager::GetClusterDeviceType(const int32 ClusterIndex) const

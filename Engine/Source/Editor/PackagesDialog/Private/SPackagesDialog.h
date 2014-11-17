@@ -357,7 +357,7 @@ public:
 private:
 
 	// Begin SWidget Interface
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	// End SWidget Interface
 
 	/**
@@ -424,7 +424,7 @@ private:
 	 * @param	ColumnId	The new column to sort by
 	 * @param	InSortMode	The sort mode (ascending or descending)
 	 */
-	void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+	void OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode );
 
 	/**
 	 * Requests that the source list data be sorted according to the current sort column and mode,
@@ -496,7 +496,7 @@ public:
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView );
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the list row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 
 private:

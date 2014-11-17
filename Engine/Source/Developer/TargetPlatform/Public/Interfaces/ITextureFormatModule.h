@@ -18,10 +18,12 @@ public:
 	/**
 	 * Gets the texture format.
 	 */
-	virtual ITextureFormat* GetTextureFormat() = 0;
+	virtual ITextureFormat* GetTextureFormat( ) = 0;
 
+public:
 
-protected:
-
-	ITextureFormatModule() { }
+	/**
+	 * Virtual destructor.
+	 */
+	~ITextureFormatModule() { }
 };

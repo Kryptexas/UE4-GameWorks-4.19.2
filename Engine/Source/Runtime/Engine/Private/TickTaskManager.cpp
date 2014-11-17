@@ -7,10 +7,6 @@
 #include "EnginePrivate.h"
 #include "TickTaskManagerInterface.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
-
 DEFINE_LOG_CATEGORY_STATIC(LogTick, Log, All);
 
 DECLARE_CYCLE_STAT(TEXT("Queue Ticks"),STAT_QueueTicks,STATGROUP_Game);
@@ -25,7 +21,7 @@ static TAutoConsoleVariable<int32> CVarLogTicks(
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncComponentTicks(
 	TEXT("AllowAsyncComponentTicks"),
-	EXPERIMENTAL_PARALLEL_CODE ? 1  : 0,
+	0,
 	TEXT("Used to control async component ticks."));
 
 struct FTickContext
@@ -549,13 +545,13 @@ public:
 	}
 
 	/** Allocate a new ticking structure for a ULevel **/
-	virtual FTickTaskLevel* AllocateTickTaskLevel() OVERRIDE
+	virtual FTickTaskLevel* AllocateTickTaskLevel() override
 	{
 		return new FTickTaskLevel;
 	}
 
 	/** Free a ticking structure for a ULevel **/
-	virtual void FreeTickTaskLevel(FTickTaskLevel* TickTaskLevel) OVERRIDE
+	virtual void FreeTickTaskLevel(FTickTaskLevel* TickTaskLevel) override
 	{
 		delete TickTaskLevel;
 	}
@@ -568,7 +564,7 @@ public:
 	 * @param DeltaSeconds - time in seconds since last tick
 	 * @param TickType - type of tick (viewports only, time only, etc)
 	 */
-	virtual void StartFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) OVERRIDE
+	virtual void StartFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_QueueTicks);
 		World = InWorld;
@@ -673,7 +669,7 @@ public:
 	 * @param DeltaSeconds - time in seconds since last tick
 	 * @param TickType - type of tick (viewports only, time only, etc)
 	 */
-	virtual void RunPauseFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) OVERRIDE
+	virtual void RunPauseFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) override
 	{
 		bTickNewlySpawned = true; // we don't support new spawns, but lets at least catch them.
 		Context.TickGroup = TG_PrePhysics; // reset this to the start tick group
@@ -695,7 +691,7 @@ public:
 		* @param Group - Ticking group to run
 		* @param bBlockTillComplete - if true, do not return until all ticks are complete
 	*/
-	virtual void RunTickGroup(ETickingGroup Group, bool bBlockTillComplete ) OVERRIDE
+	virtual void RunTickGroup(ETickingGroup Group, bool bBlockTillComplete ) override
 	{
 		if (QueueTickTasks.Num())
 		{
@@ -741,7 +737,7 @@ public:
 	}
 
 	/** Finish a frame of ticks **/
-	virtual void EndFrame() OVERRIDE
+	virtual void EndFrame() override
 	{
 		TickTaskSequencer.EndFrame();
 		bTickNewlySpawned = false;

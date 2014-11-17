@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "Slate.h"
-#include "SVirtualJoystick.h"
 #include "TouchInterface.generated.h"
+
+class SVirtualJoystick;
 
 USTRUCT()
 struct FTouchInputControl

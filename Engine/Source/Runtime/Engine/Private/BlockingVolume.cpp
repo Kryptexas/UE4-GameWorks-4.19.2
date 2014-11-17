@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/BlockingVolume.h"
 
 static FName InvisibleWall_NAME(TEXT("InvisibleWall"));
 
@@ -9,8 +10,6 @@ ABlockingVolume::ABlockingVolume(const class FPostConstructInitializeProperties&
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	BrushComponent->SetCollisionProfileName(InvisibleWall_NAME);
-
-	bWantsInitialize = false;
 }
 
 bool ABlockingVolume::UpdateNavigationRelevancy() 

@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavAreas/NavArea.h"
+#include "Tickable.h"
+#include "AI/Navigation/NavigationData.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */
@@ -29,6 +32,13 @@
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
 
+class FNavDataGenerator;
+class FPImplRecastNavMesh;
+class FRecastQueryFilter;
+class INavLinkCustomInterface;
+class UNavArea;
+class UNavigationSystem;
+
 UENUM()
 namespace ERecastPartitioning
 {
@@ -39,6 +49,15 @@ namespace ERecastPartitioning
 		Watershed,
 		ChunkyMonotone,
 	};
+}
+
+namespace ERecastPathFlags
+{
+	/** if set, path won't be post processed */
+	const int32 SkipStringPulling = (1 << 0);
+
+	/** if set, path will contain navigation corridor */
+	const int32 GenerateCorridor = (1 << 1);
 }
 
 /** helper to translate FNavPathPoint.Flags */
@@ -68,16 +87,18 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
 	
-	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
+	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
 	FORCEINLINE void SetPathCorridorEdges(const TArray<FNavigationPortalEdge>& InPathCorridorEdges) { PathCorridorEdges = InPathCorridorEdges; bCorridorEdgesGenerated = true; }
 
 	FORCEINLINE void OnPathCorridorUpdated() { bCorridorEdgesGenerated = false; }
 
-	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const OVERRIDE;
+	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const override;
 	
 	bool ContainsWithSameEnd(const FNavMeshPath* Other) const;
 	
 	void OffsetFromCorners(float Distance);
+
+	void ApplyFlags(int32 NavDataFlags);
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -112,6 +133,13 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
+	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const override;
+
+#if ENABLE_VISUAL_LOG
+	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const override;
+	virtual FString GetDescription() const override;
+#endif // ENABLE_VISUAL_LOG
+
 protected:
 	/** calculates total length of string pulled path. Does not generate string pulled 
 	 *	path if it's not already generated (see bWantsStringPulling and bStrigPulled)
@@ -123,7 +151,10 @@ protected:
 	 *	Internal use only */
 	float GetPathCorridorLength(const int32 StartingEdge) const;
 
-	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges();
+	/** it's only const to be callable in const environment. It's not supposed to be called directly externally anyway,
+	 *	just as part of retrieving corridor on demand or generating it in internal processes. It fills a mutable
+	 *	array. */
+	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges() const;
 
 public:
 	
@@ -137,10 +168,10 @@ private:
 	/** sequence of FVector pairs where each pair represents navmesh portal edge between two polygons navigation corridor.
 	 *	Note, that it should always be accessed via GetPathCorridorEdges() since PathCorridorEdges content is generated
 	 *	on first access */
-	TArray<FNavigationPortalEdge> PathCorridorEdges;
+	mutable TArray<FNavigationPortalEdge> PathCorridorEdges;
 
 	/** transient variable indicating whether PathCorridorEdges contains up to date information */
-	uint32 bCorridorEdgesGenerated : 1;
+	mutable uint32 bCorridorEdgesGenerated : 1;
 
 public:
 	/** is this path generated on dynamic navmesh (i.e. one attached to moving surface) */
@@ -248,7 +279,7 @@ struct FRecastDebugGeometry
 	FRecastDebugGeometry() : bGatherPolyEdges(false), bGatherNavMeshEdges(false)
 	{}
 
-	uint32 GetAllocatedSize() const;
+	uint32 ENGINE_API GetAllocatedSize() const;
 };
 
 struct FNavPoly
@@ -363,6 +394,7 @@ struct FTileSetItem
 	}
 };
 
+DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
 
 UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication))
 class ENGINE_API ARecastNavMesh : public ANavigationData
@@ -371,7 +403,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 
 	typedef uint16 FNavPolyFlags;
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	/** should we draw edges of every navmesh's triangle */
 	UPROPERTY(EditAnywhere, Category=Display)
@@ -570,10 +602,15 @@ public:
 	UPROPERTY(EditAnywhere, Category=Pathfinding, config, meta=(ClampMin = "0.1"))
 	float HeuristicScale;
 
+	/** broadcast for navmesh updates */
+	FOnNavMeshUpdate OnNavMeshUpdate;
+
 	FORCEINLINE static void SetDrawDistance(float NewDistance) { DrawDistanceSq = NewDistance * NewDistance; }
 	FORCEINLINE static float GetDrawDistanceSq() { return DrawDistanceSq; }
 
 	//////////////////////////////////////////////////////////////////////////
+
+	bool HasValidNavmesh() const;
 
 #if WITH_RECAST
 private:
@@ -587,11 +624,11 @@ public:
 	virtual ~ARecastNavMesh();
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;	
+	virtual void PostInitProperties() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -600,39 +637,39 @@ public:
 
 #if WITH_EDITOR
 	/** RecastNavMesh instances are dynamically spawned and should not be coppied */
-	virtual bool ShouldExport() OVERRIDE { return false; }
+	virtual bool ShouldExport() override { return false; }
 #endif
 
 	/** called by TickHelper, works in game AND in editor */
 	void TickMe(float DeltaTime);
 
-	virtual void CleanUp() OVERRIDE;
+	virtual void CleanUp() override;
 
 	// Begin ANavigationData Interface
-	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
+	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 
-	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	
-	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
+	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
+	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
 
-	virtual UPrimitiveComponent* ConstructRenderingComponent() OVERRIDE;
+	virtual UPrimitiveComponent* ConstructRenderingComponent() override;
 	/** Returns bounding box for the navmesh. */
-	virtual FBox GetBounds() const OVERRIDE { return GetNavMeshBounds(); }
+	virtual FBox GetBounds() const override { return GetNavMeshBounds(); }
 	/** Called on world origin changes **/
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 
 protected:
 #if WITH_NAVIGATION_GENERATOR
-	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) override;
 	virtual void SortNavigationTiles();
 #endif // WITH_NAVIGATION_GENERATOR
 	// End ANavigationData Interface
 
 	/** Serialization helper. */
-	void SerializeRecastNavMesh(FArchive& Ar, class FPImplRecastNavMesh*& NavMesh);
+	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
 
 public:
 	/** Returns bounding box for the whole navmesh. */
@@ -653,7 +690,7 @@ public:
 	/** Retrieves number of tiles in this navmesh */
 	int32 GetNavMeshTilesCount() const;
 
-	void GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<struct FNavigationPortalEdge>* PathCorridorEdges) const;
+	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<struct FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	// @todo docuement
 	//void SetRecastNavMesh(class FPImplRecastNavMesh* RecastMesh);
@@ -663,9 +700,9 @@ public:
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
 	void RequestDrawingUpdate();
 
-	virtual void SetConfig(const FNavDataConfig& Src) OVERRIDE;
+	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
-	virtual void FillConfig(FNavDataConfig& Dest) OVERRIDE;
+	virtual void FillConfig(FNavDataConfig& Dest) override;
 
 	FORCEINLINE const FNavigationQueryFilter& GetRightFilterRef(TSharedPtr<const FNavigationQueryFilter> Filter) const 
 	{
@@ -688,7 +725,7 @@ public:
 	void DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 NumPathPolys, bool bPersistent=true) const;
 
 #if !UE_BUILD_SHIPPING
-	virtual uint32 LogMemUsed() const OVERRIDE;
+	virtual uint32 LogMemUsed() const override;
 #endif // !UE_BUILD_SHIPPING
 
 	void UpdateNavMeshDrawing();
@@ -696,26 +733,29 @@ public:
 	//----------------------------------------------------------------------//
 	// Utilities
 	//----------------------------------------------------------------------//
-	virtual void OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex) OVERRIDE;
-	virtual int32 GetNewAreaID(const UClass* AreaClass) const OVERRIDE;
-	virtual int32 GetMaxSupportedAreas() const OVERRIDE { return RECAST_MAX_AREAS; }
+	virtual void OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex) override;
+	virtual int32 GetNewAreaID(const UClass* AreaClass) const override;
+	virtual int32 GetMaxSupportedAreas() const override { return RECAST_MAX_AREAS; }
 	
 	/** Get forbidden area flags from default query filter */
 	uint16 GetDefaultForbiddenFlags() const;
 	/** Change forbidden area flags in default query filter */
 	void SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags);
 
+	/** Area sort function */
+	virtual void SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const;
+
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateSmartLink(class USmartNavLinkComponent* LinkComp) OVERRIDE;
+	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink) override;
 
 	/** update area class and poly flags for all offmesh links with given UserId */
-	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const;
+	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;
 
 	/** update area class and poly flags for all offmesh segment links with given UserId */
-	void UpdateSegmentLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const;
+	void UpdateSegmentLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;
 
 	//----------------------------------------------------------------------//
 	// Batch processing (important with async rebuilding)
@@ -745,6 +785,15 @@ public:
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
 
+	/** Retrieves poly and area flags for specified polygon */
+	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
+
+	/** Decode poly ID into tile index and poly index */
+	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
+
+	/** Retrieves start and end point of offmesh link */
+	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
+
 	/** Retrieves center of cluster (either middle of center poly, or calculated from all vertices). Returns false on error. */
 	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
 
@@ -767,7 +816,7 @@ public:
 	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundClusters, bool bBackTracking = false) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
-	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
+	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
 
 	/** Get all polys from tile */
 	bool GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) const;
@@ -795,9 +844,9 @@ public:
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
 
 	/** Checks whether this instance of navmesh supports given Agent type */
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const OVERRIDE;
+	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const override;
 
-	static const class FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
+	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
 	
 	/** initialize tiles set with given size */
@@ -809,7 +858,7 @@ public:
 	const FTileSetItem* GetTileSet() const { return TileSet.GetTypedData(); }
 	FTileSetItem* GetTileSet() { return TileSet.GetTypedData(); }
 	
-	virtual bool NeedsRebuild() OVERRIDE;
+	virtual bool NeedsRebuild() override;
 
 	/** update offset for navmesh in recast library, to current one */
 	/** @param Offset - current offset */
@@ -819,13 +868,15 @@ protected:
 	// @todo docuement
 	UPrimitiveComponent* ConstructRenderingComponentImpl();
 
-	virtual void DestroyGenerator() OVERRIDE;
+	virtual void DestroyGenerator() override;
 
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);
 
 private:
 	friend class FRecastNavMeshGenerator;
+	friend class FPImplRecastNavMesh;
+	friend class UCrowdManager;
 	// retrieves RecastNavMeshImpl
 	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
 	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
@@ -833,6 +884,7 @@ private:
 	void DestroyRecastPImpl();
 	// @todo docuement
 	void UpdateNavVersion();
+	void UpdateNavObject();
 
 protected:
 	TArray<FTileSetItem> TileSet;
@@ -851,7 +903,7 @@ private:
 	 *	@NOTE: if we switch over to C++11 this should be unique_ptr
 	 *	@TODO since it's no secret we're using recast there's no point in having separate implementation class. FPImplRecastNavMesh should be merged into ARecastNavMesh
 	 */
-	class FPImplRecastNavMesh* RecastNavMeshImpl;
+	FPImplRecastNavMesh* RecastNavMeshImpl;
 
 	/** array containing tile references of all navmesh tiles recently rebuild. Handled and cleared in Tick function */
 	TArray<uint32> FreshTiles;

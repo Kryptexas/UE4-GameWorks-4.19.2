@@ -22,6 +22,10 @@
 
 #include "EnginePrivate.h"
 #include "SkeletalRenderCPUSkin.h"
+#include "Animation/VertexAnim/VertexAnimBase.h"
+
+struct FVertexAnimDelta;
+struct FVertexAnimEvalStateBase;
 
 template<typename BaseVertexType, typename VertexType>
 static void SkinVertices( FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveVertexAnim>& ActiveVertexAnims  );
@@ -71,7 +75,8 @@ void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 	// Create the buffer rendering resource
 	uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
 
-	VertexBufferRHI = RHICreateVertexBuffer(Size,NULL,BUF_Dynamic);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Dynamic, CreateInfo);
 
 	// Lock the buffer.
 	void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
@@ -174,7 +179,7 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 		FDynamicSkelMeshObjectData*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(NewDynamicData);
+		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData);
 	}
 	);
 
@@ -186,7 +191,7 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMeshObjectData* InDynamicData)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;

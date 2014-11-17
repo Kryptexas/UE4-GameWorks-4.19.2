@@ -24,10 +24,9 @@ public:
 
 	/**
 	 * Commence upload when ready
-	 * @param ReportDirectoryName Leaf name of the directory containing the report
 	 * @param PlatformErrorReport Error report to upload files from
 	 */
-	void BeginUpload(const FString& ReportDirectoryName, const FPlatformErrorReport& PlatformErrorReport);
+	void BeginUpload(const FPlatformErrorReport& PlatformErrorReport);
 
 	/**
 	 * Provide progress or error information for the UI
@@ -39,6 +38,14 @@ public:
 	 * @param DiagnosticsFile Full path to the diagnostics file to upload on success, or an empty string
 	 */
 	void LocalDiagnosisComplete(const FString& DiagnosticsFile);
+
+	/**
+	 * Inform uploader that no local diagnosis is happening
+	 */
+	void LocalDiagnosisSkipped()
+	{
+		LocalDiagnosisComplete("");
+	}
 
 	/**
 	 * Determine whether the upload has finished (successfully or otherwise)
@@ -178,9 +185,6 @@ private:
 
 	/** Flag to record if a diagnostics report text file has been sent */
 	bool bDiagnosticsFileSent;
-
-	/** Leaf name of the report directory */
-	FString ReportDirectoryName;
 
 	/** Full paths of files still to be uploaded */
 	TArray<FString> PendingFiles;

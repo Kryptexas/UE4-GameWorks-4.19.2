@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingEndpointsFilterBar.h: Declares the SMessagingEndpointsFilterBar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,8 +22,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InFilter - The filter model.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InFilter The filter model.
 	 */
 	void Construct( const FArguments& InArgs, FMessagingDebuggerEndpointFilterRef InFilter )
 	{

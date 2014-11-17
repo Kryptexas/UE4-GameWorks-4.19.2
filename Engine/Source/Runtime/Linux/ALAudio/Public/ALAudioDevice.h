@@ -57,15 +57,14 @@ public:
 	 */
 	static FALSoundBuffer* Init(  FALAudioDevice* ,USoundWave* );
 
-		/**
+	/**
 	 * Static function used to create a IOSAudio buffer and upload decompressed ogg vorbis data to.
 	 *
 	 * @param Wave			USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
 	 * @return FIOSAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
-	static FALSoundBuffer* CreateNativeBuffer(FALAudioDevice* , USoundWave* );
-
+	static FALSoundBuffer* CreateNativeBuffer(FALAudioDevice* AudioDevice, USoundWave* InWave);
 
 	/**
 	 * Returns the size of this buffer in bytes.
@@ -77,29 +76,15 @@ public:
 		return( BufferSize ); 
 	}
 
-	/** 
-	 * Returns the number of channels for this buffer
-	 */
-	int GetNumChannels( void ) 
-	{ 
-		return( NumChannels ); 
-	}
-		
 	/** Audio device this buffer is attached to */
 	FALAudioDevice*			AudioDevice;
 	/** Array of buffer ids used to reference the data stored in AL. */
 	ALuint					BufferIds[2];
-	/** Resource ID of associated USoundeWave */
-	int						ResourceID;
-	/** Human readable name of resource, most likely name of UObject associated during caching. */
-	FString					ResourceName;
 	/** Format of the data internal to OpenAL */
 	ALuint					InternalFormat;
 
 	/** Number of bytes stored in OpenAL, or the size of the ogg vorbis data */
 	int						BufferSize;
-	/** The number of channels in this sound buffer - should be directly related to InternalFormat */
-	int						NumChannels;
 	/** Sample rate of the ogg vorbis data - typically 44100 or 22050 */
 	int						SampleRate;
 };
@@ -196,20 +181,20 @@ public:
 	FALAudioDevice() {} 
 	virtual ~FALAudioDevice() {} 
 
-	virtual FName GetRuntimeFormat() OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}
 
 	/** Starts up any platform specific hardware/APIs */
-	virtual bool InitializeHardware() OVERRIDE;
+	virtual bool InitializeHardware() override;
  
 	/**
 	 * Tears down audio device by stopping all sounds, removing all buffers,  destroying all sources, ... Called by both Destroy and ShutdownAfterError
 	 * to perform the actual tear down.
 	 */
-	virtual void TeardownHardware() OVERRIDE;
+	virtual void TeardownHardware() override;
 
 	/**
 	 * Update the audio device and calculates the cached inverse transform later
@@ -219,21 +204,9 @@ public:
 	 */
 	virtual void Update( bool bGameTicking );
 
-	/** 
-	 * Lists all the loaded sounds and their memory footprint
-	 */
-	virtual void ListSounds( const TCHAR* Cmd, FOutputDevice& Ar );
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
-	/**
-	 * Frees the bulk resource data associated with this SoundNodeWave.
-	 *
-	 * @param	SoundNodeWave	wave object to free associated bulk data
-	 */
-	virtual void FreeResource( USoundWave* SoundWave );
-
-	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
-
-	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
 
 	void FindProcs( bool AllowExt );
 
@@ -242,7 +215,7 @@ public:
 
 protected:
 
-	virtual FSoundSource* CreateSoundSource() OVERRIDE; 
+	virtual FSoundSource* CreateSoundSource() override; 
 	/** Returns the enum for the internal format for playing a sound with this number of channels. */
 	ALuint GetInternalFormat( int NumChannels );
 
@@ -252,13 +225,6 @@ protected:
 
 
 	// Variables.
-
-	/** All loaded resident buffers */
-	TArray<FALSoundBuffer*>						Buffers;
-	/** Map from resource ID to sound buffer */
-	TMap<int, FALSoundBuffer*>					WaveBufferMap;
-	/** Next resource ID value used for registering USoundWave objects */
-	int											NextResourceID;
 
 	// AL specific
 

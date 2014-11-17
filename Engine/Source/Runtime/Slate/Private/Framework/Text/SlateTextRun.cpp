@@ -20,6 +20,11 @@ FTextRange FSlateTextRun::GetTextRange() const
 	return Range;
 }
 
+void FSlateTextRun::SetTextRange( const FTextRange& Value )
+{
+	Range = Value;
+}
+
 int16 FSlateTextRun::GetBaseLine( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
@@ -43,7 +48,7 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale 
 	return FontMeasure->Measure( **Text, BeginIndex, EndIndex, Style.Font, true, Scale );
 }
 
-uint8 FSlateTextRun::GetKerning( int32 CurrentIndex, float Scale ) const 
+int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale) const
 {
 	const int32 PreviousIndex = CurrentIndex - 1;
 	if ( PreviousIndex < 0 )
@@ -113,7 +118,75 @@ void FSlateTextRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, co
 	// no widgets
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) : Text( InText )
+int32 FSlateTextRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const
+{
+	const FVector2D& BlockOffset = Block->GetLocationOffset();
+	const FVector2D& BlockSize = Block->GetSize();
+
+	const float Left = BlockOffset.X;
+	const float Top = BlockOffset.Y;
+	const float Right = BlockOffset.X + BlockSize.X;
+	const float Bottom = BlockOffset.Y + BlockSize.Y;
+
+	const bool ContainsPoint = Location.X >= Left && Location.X < Right && Location.Y >= Top && Location.Y < Bottom;
+
+	if ( !ContainsPoint )
+	{
+		return INDEX_NONE;
+	}
+
+	const FTextRange BlockRange = Block->GetTextRange();
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+
+	return FontMeasure->FindCharacterIndexAtOffset( Text.Get(), BlockRange.BeginIndex, BlockRange.EndIndex, Style.Font, Location.X - BlockOffset.X, true, Scale );
+}
+
+FVector2D FSlateTextRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
+{
+	const FVector2D& BlockOffset = Block->GetLocationOffset();
+	const FTextRange& BlockRange = Block->GetTextRange();
+
+	if (BlockRange.BeginIndex + Offset == BlockRange.EndIndex)
+	{
+		return BlockOffset + Block->GetSize();
+	}
+
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const FVector2D OffsetLocation = FontMeasure->Measure( Text.Get(), BlockRange.BeginIndex, BlockRange.BeginIndex + Offset, Style.Font, true, Scale );
+
+	return BlockOffset + OffsetLocation;
+}
+
+void FSlateTextRun::Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange)
+{
+	Text = NewText;
+	Range = NewRange;
+
+#if TEXT_LAYOUT_DEBUG
+	DebugSlice = FString( InRange.EndIndex - InRange.BeginIndex, (**Text) + InRange.BeginIndex );
+#endif
+}
+
+TSharedRef<IRun> FSlateTextRun::Clone() const
+{
+	return FSlateTextRun::Create(Text, Style, Range);
+}
+
+void FSlateTextRun::AppendText(FString& AppendToText) const
+{
+	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
+}
+
+void FSlateTextRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+{
+	check(Range.BeginIndex <= PartialRange.BeginIndex);
+	check(Range.EndIndex >= PartialRange.EndIndex);
+
+	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
+}
+
+FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
+	: Text( InText )
 	, Style( InStyle )
 	, Range( 0, Text->Len() )
 #if TEXT_LAYOUT_DEBUG
@@ -123,7 +196,8 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) : Text( InText )
+FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) 
+	: Text( InText )
 	, Style( InStyle )
 	, Range( InRange )
 #if TEXT_LAYOUT_DEBUG
@@ -133,7 +207,8 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 
 }
 
-FSlateTextRun::FSlateTextRun( const FSlateTextRun& Run ) : Text( Run.Text )
+FSlateTextRun::FSlateTextRun( const FSlateTextRun& Run ) 
+	: Text( Run.Text )
 	, Style( Run.Style )
 	, Range( Run.Range )
 #if TEXT_LAYOUT_DEBUG

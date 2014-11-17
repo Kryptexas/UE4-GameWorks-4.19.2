@@ -165,3 +165,18 @@ FReply SEditableTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 
 	return FReply::Unhandled();
 }
+
+void SEditableTextBox::SetHintText(const TAttribute< FText >& InHintText)
+{
+	EditableText->SetHintText(InHintText);
+}
+
+void SEditableTextBox::SetIsReadOnly(TAttribute< bool > InIsReadOnly)
+{
+	EditableText->SetIsReadOnly(InIsReadOnly);
+}
+
+void SEditableTextBox::SetIsPassword(TAttribute< bool > InIsPassword)
+{
+	EditableText->SetIsPassword(InIsPassword);
+}

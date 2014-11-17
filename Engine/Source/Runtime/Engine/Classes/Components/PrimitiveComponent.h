@@ -2,13 +2,19 @@
 
 #pragma once
 
-#include "Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h"
-#include "PrimitiveSceneProxy.h"
 #include "StaticArray.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
+#include "Components/LightComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "SceneTypes.h"
+#include "CollisionQueryParams.h"
+#include "Engine/Scene.h"
+#include "Engine/EngineTypes.h"
 
 #include "PrimitiveComponent.generated.h"
 
+class FPrimitiveSceneProxy;
 
 /** Information about a vertex of a primitive's triangle. */
 struct FPrimitiveTriangleVertex
@@ -50,11 +56,11 @@ enum ERadialImpulseFalloff
 UENUM()
 enum ECanBeCharacterBase
 {
-	// can never be base for character to stand on
+	// Character cannot step up onto this Component.
 	ECB_No,
-	// can always be character base
+	// Character can step up onto this Component.
 	ECB_Yes,
-	// owning acter determines whether can be character base
+	// Owning actor determines whether character can step up onto this Component (default true unless overridden in code).
 	ECB_Owner,
 	ECB_MAX,
 };
@@ -75,76 +81,7 @@ namespace EHasCustomNavigableGeometry
 	};
 };
 
-/** Mirrored from Scene.h */
-USTRUCT()
-struct FMaterialRelevance
-{
-	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	uint32 bOpaque:1;
-
-	UPROPERTY()
-	uint32 bMasked:1;
-
-	UPROPERTY()
-	uint32 bDistortion:1;
-
-	UPROPERTY()
-	uint32 bUsesSceneColor:1;
-
-	UPROPERTY()
-	uint32 bSeparateTranslucency:1;
-
-	UPROPERTY()
-	uint32 bNormalTranslucency:1;
-
-	UPROPERTY()
-	uint32 bDisableDepthTest:1;
-
-	/** Default constructor. */
-	FMaterialRelevance()
-		:	bOpaque(false)
-		,	bMasked(false)
-		,	bDistortion(false)
-		,	bUsesSceneColor(false)
-		,	bSeparateTranslucency(false)
-		,	bNormalTranslucency(false)
-		,	bDisableDepthTest(false)
-		{}
-
-		/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
-		FMaterialRelevance& operator|=(const FMaterialRelevance& B)
-		{
-			bOpaque |= B.bOpaque;
-			bMasked |= B.bMasked;
-			bDistortion |= B.bDistortion;
-			bUsesSceneColor |= B.bUsesSceneColor;
-			bSeparateTranslucency |= B.bSeparateTranslucency;
-			bNormalTranslucency |= B.bNormalTranslucency;
-			bDisableDepthTest |= B.bDisableDepthTest;
-			return *this;
-		}
-	
-		/** Binary bitwise OR operator. */
-		friend FMaterialRelevance operator|(const FMaterialRelevance& A,const FMaterialRelevance& B)
-		{
-			FMaterialRelevance Result(A);
-			Result |= B;
-			return Result;
-		}
-
-		/** Copies the material's relevance flags to a primitive's view relevance flags. */
-		void SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const
-		{
-			OutViewRelevance.bOpaqueRelevance = bOpaque;
-			OutViewRelevance.bMaskedRelevance = bMasked;
-			OutViewRelevance.bDistortionRelevance = bDistortion;
-			OutViewRelevance.bSceneColorRelevance = bUsesSceneColor;
-			OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
-			OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
-		}
-};
 
 /** Information about the sprite category */
 USTRUCT()
@@ -170,9 +107,9 @@ struct FSpriteCategoryInfo
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentHitSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, FVector, NormalImpulse, const FHitResult&, Hit );
 /** Delegate for notification of start of overlap of a specific component */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
 /** Delegate for notification of end of overlap of a specific component */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentEndCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -183,7 +120,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentOnInputTouchEndSignature
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentBeginTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 
-UCLASS(dependson=(UScene, ULightComponent, UEngineTypes), abstract, HideCategories=(Mobility))
+UCLASS(abstract, HideCategories=(Mobility))
 class ENGINE_API UPrimitiveComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -528,8 +465,16 @@ public:
 	UPROPERTY(transient)
 	float LastRenderTime;
 
+private:
+	UPROPERTY()
+	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
+
+public:
+	/**
+	 * Determine whether a Character can step up onto this component.
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Base)
-	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase;
+	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
 	/** Set of actors to ignore during component sweeps in MoveComponent() */
 	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
@@ -595,14 +540,14 @@ public:
 	 * @param OverlapsAtEndLocation		If non-null, the given list of overlaps will be used as the overlaps for this component at the current location, rather than checking for them separately.
 	 *									Generally this should only be used if this component is the RootComponent of the owning actor and overlaps with other descendant components have been verified.
 	 */
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) OVERRIDE;
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 
 	/** Tells this component to ignore collision with the specified actor when being moved. */
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
 
 	/** Overridden to use the overlaps to find the physics volume. */
-	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) OVERRIDE;
+	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) override;
 
 	/**
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps
@@ -877,12 +822,12 @@ public:
 	virtual void SetCollisionEnabled(ECollisionEnabled::Type NewType);
 
 	/**  
-	* Set Collision Profile Name
-	* This function is called by constructors when they set ProfileName
-	* This will change current CollisionProfileName to be this, and overwrite Collision Setting
-	* 
-	* @param InCollisionProfileName : New Profile Name
-	*/
+	 * Set Collision Profile Name
+	 * This function is called by constructors when they set ProfileName
+	 * This will change current CollisionProfileName to be this, and overwrite Collision Setting
+	 * 
+	 * @param InCollisionProfileName : New Profile Name
+	 */
 	UFUNCTION(BlueprintCallable, Category="Collision")	
 	virtual void SetCollisionProfileName(FName InCollisionProfileName);
 
@@ -916,14 +861,11 @@ public:
 #endif
 
 	// Begin UActorComponent Interface
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
-	virtual bool IsEditorOnly() const OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
+	virtual bool IsEditorOnly() const override;
+	virtual bool ShouldCreatePhysicsState() const override;
+	virtual bool HasValidPhysicsState() const override;
 	// End UActorComponent Interface
-
-	/** @return true if this should create physics state */
-	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
-
-	virtual bool HasValidPhysicsState() const OVERRIDE;
 
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;
@@ -1093,37 +1035,43 @@ protected:
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
 	// Begin USceneComponent Interface
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 
 	/** Called when AttachParent changes, to allow the scene to update its attachment state. */
-	virtual void OnAttachmentChanged() OVERRIDE;
+	virtual void OnAttachmentChanged() override;
 
 	/**
 	* Called after a child is attached to this component.
 	* Note: Do not change the attachment state of the child during this call.
 	*/
-	virtual void OnChildAttached(USceneComponent* ChildComponent) OVERRIDE;
+	virtual void OnChildAttached(USceneComponent* ChildComponent) override;
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const 
+	{
+		return false;
+	}
 
 public:
-	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const OVERRIDE;
+	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
 
 	// End USceneComponentInterface
 
 
 	// Begin UActorComponent Interface
 protected:
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void OnRegister()  OVERRIDE;
-	virtual void OnUnregister()  OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void DestroyPhysicsState() OVERRIDE;
-	virtual void OnActorEnableCollisionChanged() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void OnRegister()  override;
+	virtual void OnUnregister()  override;
+	virtual void DestroyRenderState_Concurrent() override;
+	virtual void CreatePhysicsState() override;
+	virtual void DestroyPhysicsState() override;
+	virtual void OnActorEnableCollisionChanged() override;
 public:
-	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR	
 	// End UActorComponent Interface
 
@@ -1138,16 +1086,16 @@ protected:
 public:
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void UpdateCollisionProfile();
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 #if WITH_EDITOR
 	/**
@@ -1158,23 +1106,31 @@ public:
 	virtual void PostEditImport();
 #endif
 
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual void SetRelativeScale3D(FVector NewScale3D) OVERRIDE FINAL;
-	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) OVERRIDE;
-	virtual bool IsWorldGeometry() const OVERRIDE;
-	virtual ECollisionEnabled::Type GetCollisionEnabled() const OVERRIDE;
-	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const OVERRIDE;
-	virtual ECollisionChannel GetCollisionObjectType() const OVERRIDE;
-	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const OVERRIDE;
-	virtual FVector GetComponentVelocity() const OVERRIDE;
+	virtual void SetRelativeScale3D(FVector NewScale3D) override final;
+	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
+	virtual bool IsWorldGeometry() const override;
+	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
+	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
+	virtual ECollisionChannel GetCollisionObjectType() const override;
+	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
+	virtual FVector GetComponentVelocity() const override;
 	//End USceneComponent Interface
+
+	/**
+	 * Dispatch notifications for the given HitResult.
+	 *
+	 * @param Owner: AActor that owns this component
+	 * @param BlockingHit: FHitResult that generated the blocking hit.
+	 */
+	void DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit);
 
 	/**
 	 * Set collision params on OutParams (such as CollisionResponse, bTraceAsyncScene) to match the settings on this PrimitiveComponent.
@@ -1447,11 +1403,20 @@ public:
 	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot);
 	
 	/**
-	 * Called from the Pawn's BaseChanged() event.
-	 * @param APawn is the pawn that wants to be based on this actor
-	 * @return true if we don't want the pawn to bounce off
+	 * Return true if the given Pawn can step up onto this component.
+	 * @param APawn is the pawn that wants to step onto this component.
 	 */
-	virtual bool CanBeBaseForCharacter(class APawn* APawn) const;
+	DEPRECATED(4.3, "UPrimitiveComponent::CanBeBaseForCharacter() is deprecated, use CanCharacterStepUp() instead.")
+	virtual bool CanBeBaseForCharacter(class APawn* Pawn) const
+	{
+		return CanCharacterStepUp(Pawn);
+	}
+
+	/**
+	 * Return true if the given Pawn can step up onto this component.
+	 * @param Pawn is the Pawn that wants to step onto this component.
+	 */
+	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
 
 	/** 
 	 *	Indicates whether this actor is to be considered by navigation system a valid actor
@@ -1483,4 +1448,3 @@ public:
 	void DispatchOnInputTouchBegin(const ETouchIndex::Type Key);
 	void DispatchOnInputTouchEnd(const ETouchIndex::Type Key);
 };
-

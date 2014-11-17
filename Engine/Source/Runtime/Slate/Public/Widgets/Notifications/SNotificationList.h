@@ -23,6 +23,9 @@ public:
 	/** Sets the text and delegate for the hyperlink */
 	virtual void SetHyperlink( const FSimpleDelegate& InHyperlink, const TAttribute< FText >& InHyperlinkText = TAttribute< FText >() ) = 0;
 
+	/** Sets the ExpireDuration */
+	virtual void SetExpireDuration(float ExpireDuration) = 0;
+
 	/** Gets the visibility state of the throbber, success, and fail images */
 	virtual ECompletionState GetCompletionState() const = 0;
 

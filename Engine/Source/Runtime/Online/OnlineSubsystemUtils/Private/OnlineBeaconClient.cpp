@@ -13,12 +13,12 @@ AOnlineBeaconClient::AOnlineBeaconClient(const class FPostConstructInitializePro
 	bOnlyRelevantToOwner = true;
 }
 
-AOnlineBeaconHost* AOnlineBeaconClient::GetBeaconOwner() const
+AOnlineBeaconHostObject* AOnlineBeaconClient::GetBeaconOwner() const
 {
 	return BeaconOwner;
 }
 
-void AOnlineBeaconClient::SetBeaconOwner(AOnlineBeaconHost* InBeaconOwner)
+void AOnlineBeaconClient::SetBeaconOwner(AOnlineBeaconHostObject* InBeaconOwner)
 {
 	BeaconOwner = InBeaconOwner;
 }
@@ -89,7 +89,7 @@ void AOnlineBeaconClient::DestroyBeacon()
 
 void AOnlineBeaconClient::OnNetCleanup(UNetConnection* Connection)
 {
-	AOnlineBeaconHost* BeaconHost = Cast<AOnlineBeaconHost>(GetBeaconOwner());
+	AOnlineBeaconHostObject* BeaconHost = GetBeaconOwner();
 	if (BeaconHost)
 	{
 		BeaconHost->RemoveClientActor(this);
@@ -133,7 +133,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				FNetControlMessage<NMT_BeaconAssignGUID>::Receive(Bunch, NetGUID);
 				if (NetGUID.IsValid())
 				{
-					Connection->PackageMap->AssignNetGUID(this, NetGUID);
+					Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, this );
 
 					FString BeaconType = GetBeaconType();
 					FNetControlMessage<NMT_BeaconNetGUIDAck>::Send(Connection, BeaconType);

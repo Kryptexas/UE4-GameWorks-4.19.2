@@ -12,6 +12,7 @@
 #include "UObjectToken.h"
 #include "Net/UnrealNetwork.h"
 #include "MapErrors.h"
+#include "ComponentInstanceDataCache.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
@@ -19,7 +20,8 @@ void FSkyTextureCubeResource::InitRHI()
 {
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
-		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);
 		TextureRHI = TextureCubeRHI;
 
 		// Create the sampler state RHI resource.
@@ -70,6 +72,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, ProcessedTexture(InLightComponent->ProcessedSkyTexture)
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
+	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
 	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
@@ -93,6 +96,7 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 
 	Brightness_DEPRECATED = 1;
 	Intensity = 1;
+	IndirectLightingIntensity = 1.0f;
 	SkyDistanceThreshold = 150000;
 	Mobility = EComponentMobility::Stationary;
 	bCaptureDirty = false;
@@ -197,12 +201,6 @@ void USkyLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
 
-	// Movable not supported yet
-	if (Mobility == EComponentMobility::Movable)
-	{
-		Mobility = EComponentMobility::Stationary;
-	}
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	SetCaptureIsDirty();
@@ -291,17 +289,9 @@ bool USkyLightComponent::IsReadyForFinishDestroy()
 class FPrecomputedSkyLightInstanceData : public FComponentInstanceDataBase
 {
 public:
-	static const FName PrecomputedSkyLightInstanceDataTypeName;
-
-	virtual ~FPrecomputedSkyLightInstanceData()
+	FPrecomputedSkyLightInstanceData(const USkyLightComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
 	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return PrecomputedSkyLightInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
 
 	FGuid LightGuid;
 	bool bPrecomputedLightingIsValid;
@@ -311,53 +301,48 @@ public:
 };
 
 // Init type name static
-const FName FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName(TEXT("PrecomputedSkyLightInstanceData"));
-
-void USkyLightComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName USkyLightComponent::GetComponentInstanceDataType() const
 {
-	// Allocate new struct for holding light map data
-	TSharedRef<FPrecomputedSkyLightInstanceData> LightMapData = MakeShareable(new FPrecomputedSkyLightInstanceData());
-
-	// Fill in info
-	LightMapData->LightGuid = LightGuid;
-	LightMapData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
-	LightMapData->ProcessedSkyTexture = ProcessedSkyTexture;
-	LightMapData->IrradianceEnvironmentMap = IrradianceEnvironmentMap;
-
-	// Add to cache
-	Cache.AddInstanceData(LightMapData);
+	static const FName PrecomputedSkyLightInstanceDataTypeName(TEXT("PrecomputedSkyLightInstanceData"));
+	return PrecomputedSkyLightInstanceDataTypeName;
 }
 
-void USkyLightComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> USkyLightComponent::GetComponentInstanceData() const
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName, CachedData);
+	TSharedRef<FPrecomputedSkyLightInstanceData> InstanceData = MakeShareable(new FPrecomputedSkyLightInstanceData(this));
+	InstanceData->LightGuid = LightGuid;
+	InstanceData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
+	InstanceData->ProcessedSkyTexture = ProcessedSkyTexture;
+	InstanceData->IrradianceEnvironmentMap = IrradianceEnvironmentMap;
 
-	for (int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++)
+	return InstanceData;
+}
+
+void USkyLightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	check(ComponentInstanceData.IsValid());
+	TSharedPtr<FPrecomputedSkyLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedSkyLightInstanceData>(ComponentInstanceData);
+
+	LightGuid = LightMapData->LightGuid;
+	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
+	ProcessedSkyTexture = LightMapData->ProcessedSkyTexture;
+	IrradianceEnvironmentMap = LightMapData->IrradianceEnvironmentMap;
+
+	if (ProcessedSkyTexture && bSavedConstructionScriptValuesValid)
 	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName);
-		TSharedPtr<FPrecomputedSkyLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedSkyLightInstanceData>(CachedData[DataIdx]);
-
-		LightGuid = LightMapData->LightGuid;
-		bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
-		ProcessedSkyTexture = LightMapData->ProcessedSkyTexture;
-		IrradianceEnvironmentMap = LightMapData->IrradianceEnvironmentMap;
-
-		if (ProcessedSkyTexture && bSavedConstructionScriptValuesValid)
-		{
-			// We have valid capture state, remove the queued update
-			bCaptureDirty = false;
-			SkyCapturesToUpdate.Remove(this);
-		}
-
-		MarkRenderStateDirty();
+		// We have valid capture state, remove the queued update
+		bCaptureDirty = false;
+		SkyCapturesToUpdate.Remove(this);
 	}
+
+	MarkRenderStateDirty();
 }
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 {
-	if (WorldToUpdate->Scene)
+	if (WorldToUpdate->Scene
+		// Don't process any sky capture requests until async shader compiling completes
+		&& (GShaderCompilingManager == NULL || !GShaderCompilingManager->IsCompiling()))
 	{
 		// Iterate backwards so we can remove elements without changing the index
 		for (int32 CaptureIndex = SkyCapturesToUpdate.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
@@ -378,6 +363,7 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
+					//@todo - defer this until shader compilation is finished, just like reflection captures, otherwise we will capture an incomplete scene.
 					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
 
 					CaptureComponent->MarkRenderStateDirty();

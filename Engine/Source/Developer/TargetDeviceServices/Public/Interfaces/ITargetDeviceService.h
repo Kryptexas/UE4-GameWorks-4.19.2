@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetDeviceService.h: Declares the ITargetDeviceService interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ITargetDeviceService.
- */
+/** Type definition for shared pointers to instances of ITargetDeviceService. */
 typedef TSharedPtr<class ITargetDeviceService, ESPMode::ThreadSafe> ITargetDeviceServicePtr;
 
-/**
- * Type definition for shared references to instances of ITargetDeviceService.
- */
+/** Type definition for shared references to instances of ITargetDeviceService. */
 typedef TSharedRef<class ITargetDeviceService, ESPMode::ThreadSafe> ITargetDeviceServiceRef;
 
 
@@ -90,7 +82,6 @@ public:
 	 * can discover and use the device.
 	 *
 	 * @return true if the device is shared, false otherwise.
-	 *
 	 * @see SetShared
 	 */
 	virtual bool IsShared( ) const = 0;
@@ -103,8 +94,7 @@ public:
 	 * If a device is shared, the device proxies of all users on the network
 	 * can discover and use the device.
 	 *
-	 * @param InShared - Indicates whether device sharing is enabled.
-	 *
+	 * @param InShared Indicates whether device sharing is enabled.
 	 * @see IsShared
 	 */
 	virtual void SetShared( bool InShared ) = 0;
@@ -113,7 +103,6 @@ public:
 	 * Starts the service.
 	 *
 	 * @return true if the service has been started, false otherwise.
-	 *
 	 * @see IsRunning
 	 * @see Stop
 	 */

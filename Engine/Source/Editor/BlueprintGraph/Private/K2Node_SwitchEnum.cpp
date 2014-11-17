@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "K2Node_SwitchEnum.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -34,7 +35,7 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 				FString const EnumValueName = Enum->GetEnumName(EnumIndex);
 				EnumEntries.Add( FName(*EnumValueName) );
 
-				FString EnumFriendlyName = Enum->GetDisplayNameText(EnumIndex).ToString();
+				FString EnumFriendlyName = Enum->GetEnumText(EnumIndex).ToString();
 				if (EnumFriendlyName.Len() == 0)
 				{
 					EnumFriendlyName = EnumValueName;
@@ -53,15 +54,6 @@ FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	Args.Add(TEXT("EnumName"), EnumName);
 
 	return FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
-}
-
-FString UK2Node_SwitchEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const 
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
-
-	return FString::Printf(TEXT("Switch on %s"), *EnumName);
 }
 
 FString UK2Node_SwitchEnum::GetTooltip() const

@@ -3,8 +3,8 @@
 #include "ScriptAsset.generated.h"
 
 /** Definition of a specific ability that is applied to a character. Exists as part of a Trait. */
-UCLASS(BlueprintType, MinimalAPI)
-class UScriptAsset : public UDataAsset
+UCLASS(BlueprintType)
+class SCRIPTPLUGIN_API UScriptAsset : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
@@ -25,7 +25,7 @@ class UScriptAsset : public UDataAsset
 	FString SourceCode;
 
 	// UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);

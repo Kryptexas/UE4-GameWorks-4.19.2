@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
+#include "Engine/WorldComposition.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "FileHelpers.h"
@@ -9,6 +10,7 @@
 #include "MaterialExportUtils.h"
 #include "MeshUtilities.h"
 #include "RawMesh.h"
+#include "LandscapeEdMode.h"
 
 #include "WorldTileDetails.h"
 #include "WorldTileDetailsCustomization.h"
@@ -16,6 +18,10 @@
 #include "STiledLandscapeImportDlg.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
+
+
+static const FName HeightmapLayerName = FName("__Heightmap__");
+
 
 FWorldTileCollectionModel::FWorldTileCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor)
 	: FLevelCollectionModel(InEditor)
@@ -108,7 +114,7 @@ void FWorldTileCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 			FLevelModelList& DirtyHierarchy;
 			FHierachyCollector(FLevelModelList& LevelToUnload) : DirtyHierarchy(LevelToUnload) {}
 
-			virtual void Visit(FLevelModel& Item) OVERRIDE
+			virtual void Visit(FLevelModel& Item) override
 			{
 				DirtyHierarchy.AddUnique(Item.AsShared());
 			}
@@ -270,7 +276,7 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 	
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	
-	if (!AreAnyLevelsSelected())
+	if (!AreAnyLevelsSelected() && GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		MenuBuilder.AddMenuEntry(Commands.ResetWorldOrigin);
 		return;
@@ -300,21 +306,11 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 		}
 		MenuBuilder.EndSection();
 
-		MenuBuilder.BeginSection("WorldGridItemsWorldOrigin");
+		if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 		{
-			MenuBuilder.AddMenuEntry(Commands.MoveWorldOrigin);
-		}
-		MenuBuilder.EndSection();
-
-		// Landscape specific commands
-		if (StaticCastSharedPtr<FWorldTileModel>(SelectedLevelsList[0])->IsLandscapeBased())
-		{
-			MenuBuilder.BeginSection("Menu_AddLandscape");
+			MenuBuilder.BeginSection("WorldGridItemsWorldOrigin");
 			{
-				MenuBuilder.AddSubMenu( 
-					LOCTEXT("AddLandscapeLevel", "Add Adjacent Landscape Level"),
-					FText::GetEmpty(),
-					FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildAdjacentLandscapeMenu));
+				MenuBuilder.AddMenuEntry(Commands.MoveWorldOrigin);
 			}
 			MenuBuilder.EndSection();
 		}
@@ -325,6 +321,34 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 		{
 			MenuBuilder.AddMenuEntry(Commands.World_MergeSelectedLevels);
 		}
+		MenuBuilder.EndSection();
+	}
+
+	// Landscape specific stuff
+	const bool bCanReimportTiledLandscape = CanReimportTiledlandscape();
+	const bool bCanAddAdjacentLandscape = CanAddLandscapeProxy(FWorldTileModel::EWorldDirections::Any);
+	if (bCanReimportTiledLandscape || bCanAddAdjacentLandscape)
+	{
+		MenuBuilder.BeginSection("Menu_LandscapeSection", LOCTEXT("Menu_LandscapeSectionTitle", "Landscape"));
+		
+		// Adjacent landscape
+		if (bCanAddAdjacentLandscape)
+		{
+			MenuBuilder.AddSubMenu( 
+				LOCTEXT("AddLandscapeLevel", "Add Adjacent Landscape Level"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildAdjacentLandscapeMenu));
+		}
+
+		// Tiled landscape
+		if (bCanReimportTiledLandscape)
+		{
+			MenuBuilder.AddSubMenu( 
+				LOCTEXT("ReimportTiledLandscape", "Reimport Tiled Landscape"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu));
+		}
+		
 		MenuBuilder.EndSection();
 	}
 
@@ -417,6 +441,68 @@ void FWorldTileCollectionModel::BuildAdjacentLandscapeMenu(FMenuBuilder& MenuBui
 	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYPositive"));
 }
 
+void FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu(FMenuBuilder& InMenuBuilder) const
+{
+	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
+
+	// Add "Heightmap" menu entry
+	InMenuBuilder.AddMenuEntry(
+			LOCTEXT("Menu_HeightmapTitle", "Heightmap"), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, HeightmapLayerName
+				)
+			)
+		);
+
+	// Weightmaps	
+	InMenuBuilder.AddSubMenu( 
+				LOCTEXT("Menu_WeightmapsTitle", "Weightmaps"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildWeightmapsMenu)
+			);
+}
+
+void FWorldTileCollectionModel::BuildWeightmapsMenu(FMenuBuilder& InMenuBuilder) const
+{
+	// Add "All Weighmaps" menu entry
+	InMenuBuilder.AddMenuEntry(
+			LOCTEXT("Menu_AllWeightmapsTitle", "All Weightmaps"), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, FName(NAME_None)
+				)
+			)
+		);
+	
+	TArray<FName> LayerNames;
+	// Get list of the landscape layers
+	for (const auto& LevelModel : SelectedLevelsList)
+	{
+		auto TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		if (TileModel->IsTiledLandscapeBased())
+		{
+			TArray<FName> Layers = ALandscapeProxy::GetLayersFromMaterial(TileModel->GetLandscape()->LandscapeMaterial);
+			for (FName LayerName : Layers)
+			{
+				LayerNames.AddUnique(LayerName);
+			}
+		}
+	}
+
+	for (FName LayerName : LayerNames)
+	{
+		InMenuBuilder.AddMenuEntry(
+			FText::FromName(LayerName), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, LayerName
+				)
+			)
+		);
+	}
+}
+
 void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const
 {
 	FLevelCollectionModel::CustomizeFileMainMenu(InMenuBuilder);
@@ -425,22 +511,22 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 		
 	InMenuBuilder.BeginSection("LevelsAddLevel");
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
-		InMenuBuilder.AddMenuEntry( Commands.ImportTiledLandscape );
+		InMenuBuilder.AddMenuEntry(Commands.World_CreateEmptyLevel);
+		InMenuBuilder.AddMenuEntry(Commands.ImportTiledLandscape);
 	}
 	InMenuBuilder.EndSection();
 }
 
-FVector FWorldTileCollectionModel::GetObserverPosition() const
+FMatrix FWorldTileCollectionModel::GetObserverViewMatrix() const
 {
 	UWorld*	SimulationWorld = GetSimulationWorld();
 	if (SimulationWorld && SimulationWorld->WorldComposition)
 	{
-		return SimulationWorld->WorldComposition->LastViewLocation;
+		return SimulationWorld->WorldComposition->LastWorldToViewMatrix;
 	}
 	else
 	{
-		return FVector::ZeroVector;
+		return FMatrix::Identity;
 	}
 }
 
@@ -473,12 +559,12 @@ void FWorldTileCollectionModel::RegisterDetailsCustomization(FPropertyEditorModu
 	TSharedRef<FWorldTileCollectionModel> WorldModel = StaticCastSharedRef<FWorldTileCollectionModel>(this->AsShared());
 	
 	// Register our struct customizations
-	InPropertyModule.RegisterStructPropertyLayout("TileStreamingLevelDetails", 
-		FOnGetStructCustomizationInstance::CreateStatic(&FStreamingLevelDetailsCustomization::MakeInstance, WorldModel)
+	InPropertyModule.RegisterCustomPropertyTypeLayout("TileStreamingLevelDetails", 
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStreamingLevelDetailsCustomization::MakeInstance, WorldModel)
 		);
 
-	InPropertyModule.RegisterStructPropertyLayout("TileLODEntryDetails", 
-		FOnGetStructCustomizationInstance::CreateStatic(&FTileLODEntryDetailsCustomization::MakeInstance,  WorldModel)
+	InPropertyModule.RegisterCustomPropertyTypeLayout("TileLODEntryDetails", 
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTileLODEntryDetailsCustomization::MakeInstance,  WorldModel)
 		);
 
 	InDetailsView->RegisterInstancedCustomPropertyLayout(UWorldTileDetails::StaticClass(), 
@@ -489,8 +575,8 @@ void FWorldTileCollectionModel::RegisterDetailsCustomization(FPropertyEditorModu
 void FWorldTileCollectionModel::UnregisterDetailsCustomization(FPropertyEditorModule& InPropertyModule,
 															   TSharedPtr<IDetailsView> InDetailsView)
 {
-	InPropertyModule.UnregisterStructPropertyLayout("TileStreamingLevelDetails");
-	InPropertyModule.UnregisterStructPropertyLayout("TileLODEntryDetails");
+	InPropertyModule.UnregisterCustomPropertyTypeLayout("TileStreamingLevelDetails");
+	InPropertyModule.UnregisterCustomPropertyTypeLayout("TileLODEntryDetails");
 	InDetailsView->UnregisterInstancedCustomPropertyLayout(UWorldTileDetails::StaticClass());
 }
 
@@ -554,7 +640,7 @@ void FWorldTileCollectionModel::BindCommands()
 	// Landscape operations
 	ActionList.MapAction(Commands.ImportTiledLandscape,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::ImportTiledLandscape_Executed));
-
+		
 	ActionList.MapAction(Commands.AddLandscapeLevelXNegative,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::XNegative),
 		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::XNegative));
@@ -581,7 +667,7 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 	if (WorldComposition)
 	{
 		// Force rescanning world composition tiles
-		WorldComposition->OpenWorldRoot(WorldComposition->GetWorldRoot());
+		WorldComposition->Rescan();
 		
 		// Initialize root level
 		TSharedPtr<FWorldTileModel> Item = AddLevelFromTile(INDEX_NONE);
@@ -803,8 +889,7 @@ TSharedPtr<FLevelModel> FWorldTileCollectionModel::CreateNewEmptyLevel()
 		return NewLevelModel;
 	}
 	
-	// Editor modes cannot be active when any level saving occurs.
-	GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+	GLevelEditorModeTools().ActivateDefaultMode();
 
 	// Save new level to the same directory where selected level/folder is
 	FString Directory = FPaths::GetPath(GetWorldRootModel()->GetPackageFileName());
@@ -842,7 +927,7 @@ TSharedPtr<FLevelModel> FWorldTileCollectionModel::CreateNewEmptyLevel()
 
 void FWorldTileCollectionModel::Focus(FBox InArea, FocusStrategy InStrategy)
 {
-	if (IsReadOnly() || !InArea.IsValid)
+	if (IsReadOnly() || !InArea.IsValid || !GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		return;
 	}
@@ -1081,7 +1166,7 @@ FVector2D FWorldTileCollectionModel::SnapTranslationDeltaLandscape(const TShared
 																	FVector2D InAbsoluteDelta, 
 																	float SnappingDistance)
 {
-	ALandscapeProxy* Landscape = LandscapeTile->GetLandcape();
+	ALandscapeProxy* Landscape = LandscapeTile->GetLandscape();
 	FVector ComponentScale = Landscape->GetRootComponent()->RelativeScale3D*Landscape->ComponentSizeQuads;
 	
 	return FVector2D(	FMath::GridSnap(InAbsoluteDelta.X, ComponentScale.X),
@@ -1200,6 +1285,19 @@ bool FWorldTileCollectionModel::CanAddLandscapeProxy(FWorldTileModel::EWorldDire
 	return false;
 }
 
+bool FWorldTileCollectionModel::CanReimportTiledlandscape() const
+{
+	for (const auto& LevelModel : SelectedLevelsList)
+	{
+		if (LevelModel->IsEditable() && StaticCastSharedPtr<FWorldTileModel>(LevelModel)->IsTiledLandscapeBased())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWorldDirections InWhere)
 {
 	if (IsReadOnly() || !IsOneLevelSelected())
@@ -1225,10 +1323,10 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 		FLevelModelList Levels; 
 		Levels.Add(NewLevelModel);
 
-		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandcape();
+		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandscape();
 		FIntPoint SourceTileOffset = LandscapeTileModel->GetAbsoluteLevelPosition();
 
-		NewLevelModel->Shelve();
+		NewLevelModel->SetVisible(false);
 		NewLevelModel->CreateAdjacentLandscapeProxy(SourceLandscape, SourceTileOffset, InWhere);
 		ShowLevels(Levels);
 	}
@@ -1273,6 +1371,7 @@ static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FS
 	if (LayerInfo == nullptr)
 	{
 		LayerInfo = ConstructObject<ULandscapeLayerInfoObject>(ULandscapeLayerInfoObject::StaticClass(), Package, FName(*LayerObjectName), RF_Public | RF_Standalone | RF_Transactional);
+		LayerInfo->LayerName = LayerName;
 		// Notify the asset registry
 		FAssetRegistryModule::AssetCreated(LayerInfo);
 		// Mark the package dirty...
@@ -1283,7 +1382,6 @@ static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FS
 		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
 	}
 		
-	LayerInfo->LayerName = LayerName;
 	return LayerInfo;
 }
 
@@ -1291,7 +1389,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 {
 	/** Create the window to host widget */
 	TSharedRef<SWindow> ImportWidnow = SNew(SWindow)
-											.Title(LOCTEXT("TiledLandcapeImport_DialogTitle", "Import Tiled Heightmap"))
+											.Title(LOCTEXT("TiledLandcapeImport_DialogTitle", "Import Tiled Landscape"))
 											.SizingRule( ESizingRule::Autosized )
 											.SupportsMinimize(false) 
 											.SupportsMaximize(false);
@@ -1302,11 +1400,11 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 	/** Show the dialog window as a modal window */
 	Editor->EditorAddModalWindow(ImportWidnow);
-
-	const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
 		
-	if (ImportSettings.HeightmapFileList.Num())
+	if (ImportDialog->ShouldImport() && ImportDialog->GetImportSettings().HeightmapFileList.Num())
 	{
+		const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
+
 		// Default path for imported landscape tiles
 		// Use tile prefix as a folder name under world root
 		FString WorldRootPath = FPackageName::LongPackageNameToFilename(GetWorld()->WorldComposition->GetWorldRoot());
@@ -1343,19 +1441,22 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
 			// Setup weightmaps for each layer
-			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerNameList.Num(); ++LayerIdx)
+			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerSettingsList.Num(); ++LayerIdx)
 			{
-				FName LayerName = ImportSettings.LandscapeLayerNameList[LayerIdx];
+				FName LayerName = ImportSettings.LandscapeLayerSettingsList[LayerIdx].Name;
 				
 				TileImportSettings.ImportLayers.Add(FLandscapeImportLayerInfo(LayerName));
 				FLandscapeImportLayerInfo& LayerImportInfo = TileImportSettings.ImportLayers.Last();
-
-				if (ImportSettings.WeightmapFileList[LayerIdx].IsValidIndex(TileIndex))
+				
+				// Do we have a weightmap for this tile?
+				FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex];
+				const FString* WeightmapFile = ImportSettings.LandscapeLayerSettingsList[LayerIdx].WeightmapFiles.Find(TileCoordinates);
+				if (WeightmapFile)
 				{
-					LayerImportInfo.SourceFilePath = ImportSettings.WeightmapFileList[LayerIdx][TileIndex];
+					LayerImportInfo.SourceFilePath = *WeightmapFile;
 					ReadRawFile(LayerImportInfo.LayerData, *LayerImportInfo.SourceFilePath, FILEREAD_Silent);
 					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
-					LayerImportInfo.LayerInfo->bNoWeightBlend = false; //option ?
+					LayerImportInfo.LayerInfo->bNoWeightBlend = ImportSettings.LandscapeLayerSettingsList[LayerIdx].bNoBlendWeight;
 				}
 			}
 						
@@ -1373,7 +1474,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 					PopulateLevelsList();
 					TSharedPtr<FWorldTileModel> NewTileModel = StaticCastSharedPtr<FWorldTileModel>(FindLevelModel(NewWorld->GetOutermost()->GetFName()));
 					// Hide level, so we do not depend on a current world origin
-					NewTileModel->Shelve();
+					NewTileModel->SetVisible(false);
 					
 					// Create landscape (actor/proxy) in a new level
 					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscape(TileImportSettings);
@@ -1436,6 +1537,94 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 	}
 }
 
+void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLayer)
+{
+	// Collect selected landscape tiles
+	TArray<TSharedPtr<FWorldTileModel>> TargetLandscapeTiles;
+	for (auto LevelModel : SelectedLevelsList)
+	{
+		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		if (TileModel->IsEditable() && TileModel->IsTiledLandscapeBased())
+		{
+			TargetLandscapeTiles.Add(TileModel);
+		}
+	}
+
+	if (TargetLandscapeTiles.Num() == 0)
+	{
+		return;
+	}
+			
+	TArray<bool> AllLevelsVisibilityState;
+	// Hide all visible levels
+	for (auto LevelModel : AllLevelsList)
+	{
+		AllLevelsVisibilityState.Add(LevelModel->IsVisible());
+		if (!LevelModel->IsPersistent())
+		{
+			LevelModel->SetVisible(false);
+		}
+	}
+
+	// Disable world origin tracking, so we can show, hide levels without offseting them
+	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
+		
+	// Reimport data for each selected landscape tile
+	for (auto TileModel : TargetLandscapeTiles)
+	{
+		TileModel->SetVisible(true);
+			
+		ALandscapeProxy* Landscape = TileModel->GetLandscape();
+
+		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::DataLayer;
+	
+		if (TargetLayer == HeightmapLayerName) // Heightmap
+		{
+			if (!Landscape->ReimportHeightmapFilePath.IsEmpty())
+			{
+				TArray<uint16> RawData;
+				ReadRawFile(RawData, *Landscape->ReimportHeightmapFilePath, FILEREAD_Silent);
+				LandscapeEditorUtils::SetHeightmapData(Landscape, RawData);
+			}
+		}
+		else // Weightmap
+		{
+			for (FLandscapeEditorLayerSettings& LayerSettings : Landscape->EditorLayerSettings)
+			{
+				if (LayerSettings.LayerInfoObj && (LayerSettings.LayerInfoObj->LayerName == TargetLayer || TargetLayer == NAME_None))
+				{
+					if (!LayerSettings.ReimportLayerFilePath.IsEmpty())
+					{
+						TArray<uint8> RawData;
+						ReadRawFile(RawData, *LayerSettings.ReimportLayerFilePath, FILEREAD_Silent);
+						LandscapeEditorUtils::SetWeightmapData(Landscape, LayerSettings.LayerInfoObj, RawData);
+
+						if (TargetLayer != NAME_None)
+						{
+							// Importing one specific layer
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		TileModel->SetVisible(false);
+	}
+
+	// Restore world origin tracking
+	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
+			
+	// Restore levels visibility
+	for (int32 LevelIdx = 0; LevelIdx < AllLevelsList.Num(); ++LevelIdx)
+	{
+		if (AllLevelsVisibilityState[LevelIdx])
+		{
+			AllLevelsList[LevelIdx]->SetVisible(true);
+		}
+	}
+}
+
 void FWorldTileCollectionModel::PostUndo(bool bSuccess)
 {
 	if (!bIsSavingLevel)
@@ -1457,7 +1646,7 @@ void FWorldTileCollectionModel::MoveWorldOrigin(const FIntPoint& InOrigin)
 
 void FWorldTileCollectionModel::MoveWorldOrigin_Executed()
 {
-	if (!IsOneLevelSelected())
+	if (!IsOneLevelSelected() || !GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		return;
 	}
@@ -1468,10 +1657,13 @@ void FWorldTileCollectionModel::MoveWorldOrigin_Executed()
 
 void FWorldTileCollectionModel::ResetWorldOrigin_Executed()
 {
-	FBox OriginArea = EditableWorldArea().ShiftBy(FVector(GetWorld()->GlobalOriginOffset, 0));
-	Focus(OriginArea, OriginAtCenter);
+	if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	{
+		FBox OriginArea = EditableWorldArea().ShiftBy(FVector(GetWorld()->GlobalOriginOffset, 0));
+		Focus(OriginArea, OriginAtCenter);
 	
-	MoveWorldOrigin(FIntPoint::ZeroValue);
+		MoveWorldOrigin(FIntPoint::ZeroValue);
+	}
 }
 
 void FWorldTileCollectionModel::ResetLevelOrigin_Executed()
@@ -1520,23 +1712,9 @@ bool FWorldTileCollectionModel::HasGenerateLODLevelSupport() const
 	return bMeshProxyAvailable;
 }
 
-bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevelModel, int32 TargetLODIndex)
+bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, int32 TargetLODIndex)
 {
 	if (!HasGenerateLODLevelSupport())
-	{
-		return false;
-	}
-	
-	ULevel* SourceLevel = InLevelModel->GetLevelObject();
-	if (SourceLevel == nullptr)
-	{
-		return false;
-	}
-
-	TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(InLevelModel);
-	FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
-
-	if (!TileInfo.LODList.IsValidIndex(TargetLODIndex))
 	{
 		return false;
 	}
@@ -1545,209 +1723,236 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 	IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
 	check(MeshMerging);
 
-	GWarn->BeginSlowTask(LOCTEXT("GenerateLODLevel", "Generating LOD Level"), true);
+	// Select tiles that can be processed
+	TArray<TSharedPtr<FWorldTileModel>> TilesToProcess;
+	TArray<FString>						LODPackageNames;
+	for (TSharedPtr<FLevelModel> LevelModel : InLevelList)
+	{
+		ULevel* SourceLevel = LevelModel->GetLevelObject();
+		if (SourceLevel == nullptr)
+		{
+			continue;
+		}
+
+		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
+		if (!TileInfo.LODList.IsValidIndex(TargetLODIndex))
+		{
+			continue;
+		}
+
+		TilesToProcess.Add(TileModel);
+	}
+
+	// TODO: Need to check out all LOD maps here
+	
+	GWarn->BeginSlowTask(LOCTEXT("GenerateLODLevel", "Generating LOD Levels"), true);
+	// Generate LOD maps for each tile
+	for (TSharedPtr<FWorldTileModel> TileModel : TilesToProcess)
+	{
+		// We have to make original level visible, to correctly export it
+		const bool bVisibleLevel = TileModel->IsVisible();
+		if (!bVisibleLevel)
+		{
+			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
+			TileModel->SetVisible(true);
+		}
+				
+		FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
+		FWorldTileLODInfo LODInfo = TileModel->TileDetails->GetInfo().LODList[TargetLODIndex];
+		
+		// Source level package name
+		FString SourceLongPackageName = TileModel->TileDetails->PackageName.ToString();
+		FString SourceShortPackageName = FPackageName::GetShortName(SourceLongPackageName);
+		// Target PackageName for generated level: /LongPackageName+LOD/ShortPackageName_LOD[LODIndex]
+		const FString LODLevelPackageName = FString::Printf(TEXT("%sLOD/%s_LOD%d"),	*SourceLongPackageName, *SourceShortPackageName, TargetLODIndex+1);
+		// Target level filename
+		const FString LODLevelFileName = FPackageName::LongPackageNameToFilename(LODLevelPackageName) + FPackageName::GetMapPackageExtension();
+
+		// Create a package for a LOD level
+		UPackage* LODPackage = CreatePackage(NULL, *LODLevelPackageName);
+		LODPackage->FullyLoad();
+		LODPackage->Modify();
+		// This is a hack to avoid save file dialog when we will be saving LOD map package
+		LODPackage->FileName = FName(*LODLevelFileName);
+				
+		// This is current actors offset from their original position
+		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
+		if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
+		{
+			ActorsOffset = FVector::ZeroVector;
+		}
+	
+		TArray<UStaticMesh*>		AssetsToSpawn;
+		TArray<FTransform>			AssetsToSpawnTransform;
+		TArray<AActor*>				Actors;
+		TArray<ALandscapeProxy*>	LandscapeActors;
+		// Separate flies from cutlets
+		for (AActor* Actor : TileModel->GetLevelObject()->Actors)
+		{
+			if (Actor)
+			{
+				ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
+				if (LandscapeProxy)
+				{
+					LandscapeActors.Add(LandscapeProxy);
+				}
+				else
+				{
+					Actors.Add(Actor);
+				}
+			}
+		}
+	
+		// Generate Proxy LOD mesh for all actors excluding landscapes
+		if (Actors.Num())
+		{
+			GWarn->StatusUpdate(0, 10, LOCTEXT("GeneratingProxyMesh", "Generating Proxy Mesh"));
+
+			FMeshProxySettings ProxySettings;
+			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(LODInfo.GenDetailsPercentage/100.f);
+			TArray<UObject*> OutAssets;
+			FVector OutProxyLocation;
+			FString ProxyPackageName = TEXT("PROXY_") + FPackageName::GetShortName(TileModel->TileDetails->PackageName);
+			// Generate proxy mesh and proxy material assets
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, LODPackage, ProxyPackageName, OutAssets, OutProxyLocation);
+		
+			if (OutAssets.Num())
+			{
+				UStaticMesh* ProxyMesh = nullptr;
+				if (OutAssets.FindItemByClass(&ProxyMesh))
+				{
+					AssetsToSpawn.Add(ProxyMesh);
+					AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
+				}
+			}
+		}
+
+		using namespace MaterialExportUtils;
+
+		// Convert landscape actors into static meshes and apply mesh reduction 
+		int32 LandscapeActorIndex = 0;
+		for (ALandscapeProxy* Landscape : LandscapeActors)
+		{
+			GWarn->StatusUpdate(LandscapeActorIndex, LandscapeActors.Num(), LOCTEXT("ExportingLandscape", "Exporting Landscape Actors"));
+		
+			FRawMesh LandscapeRawMesh;
+			FFlattenMaterial LandscapeFlattenMaterial;
+			FVector LandscapeWorldLocation = Landscape->GetActorLocation();
+		
+			Landscape->ExportToRawMesh(MAX_int32, LandscapeRawMesh);
+		
+			for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
+			{
+				VertexPos-= LandscapeWorldLocation;
+			}
+								
+			// This is texture resolution for a landscape, probably need to be calculated using landscape size
+			LandscapeFlattenMaterial.DiffuseSize	= FIntPoint(1024, 1024);
+			LandscapeFlattenMaterial.NormalSize		= FIntPoint(1024, 1024);
+			ExportMaterial(Landscape, LandscapeFlattenMaterial);
+		
+			// TODO: Disabled landscape mesh simplification, does not really needed since exporting highest landscape LOD already provide low triangle count
+			// Reduce landscape mesh
+			//if (LODInfo.GenDetailsPercentage != 100.f)
+			//{
+			//	FMeshReductionSettings Settings;
+			//	Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
+			//	float OutMaxDeviation = 0.f;
+			//	FRawMesh LandscapeReducedMesh;
+
+			//	MeshUtilities.GetMeshReductionInterface()->Reduce(
+			//		LandscapeReducedMesh,
+			//		OutMaxDeviation,
+			//		LandscapeRawMesh,
+			//		Settings);
+
+			//	LandscapeRawMesh = LandscapeReducedMesh;
+			//}
+
+			FString LandscapeBaseAssetName = Landscape->GetName();
+			// Construct landscape material
+			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
+				LandscapeFlattenMaterial, LODPackage, *LandscapeBaseAssetName, RF_Public|RF_Standalone);
+			// Currently landscape exports world space normal map
+			StaticLandscapeMaterial->bTangentSpaceNormal = false;
+			StaticLandscapeMaterial->PostEditChange();
+	
+			// Construct landscape static mesh
+			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
+			UStaticMesh* StaticMesh = new(LODPackage, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+			StaticMesh->InitResources();
+			{
+				FString OutputPath = StaticMesh->GetPathName();
+
+				// make sure it has a new lighting guid
+				StaticMesh->LightingGuid = FGuid::NewGuid();
+
+				// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
+				StaticMesh->LightMapResolution = 128;
+				StaticMesh->LightMapCoordinateIndex = 1;
+
+				FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
+				/*Don't allow the engine to recalculate normals*/
+				SrcModel->BuildSettings.bRecomputeNormals = false;
+				SrcModel->BuildSettings.bRecomputeTangents = false;
+				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
+				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
+
+				//Assign the proxy material to the static mesh
+				StaticMesh->Materials.Add(StaticLandscapeMaterial);
+
+				StaticMesh->Build();
+				StaticMesh->PostEditChange();
+			}
+
+			AssetsToSpawn.Add(StaticMesh);
+			AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
+
+			LandscapeActorIndex++;
+		}
+
+		// Restore level original visibility
+		if (!bVisibleLevel)
+		{
+			TileModel->SetVisible(false);
+			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
+		}
+	
+		// Create new level and spawn generated assets in it
+		if (AssetsToSpawn.Num())
+		{
+			// Create a new world
+			UWorld* LODWorld = UWorld::CreateWorld(EWorldType::None, false, FPackageName::GetShortFName(LODPackage->GetFName()), LODPackage);
+			LODWorld->SetFlags(RF_Standalone);
+
+			for (int32 AssetIdx = 0; AssetIdx < AssetsToSpawn.Num(); ++AssetIdx)
+			{
+				FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
+				FRotator Rotation(ForceInit);
+				AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
+				MeshActor->StaticMeshComponent->StaticMesh = AssetsToSpawn[AssetIdx];
+				MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
+			}
+		
+			// Save generated level
+			if (FEditorFileUtils::PromptToCheckoutLevels(false, LODWorld->PersistentLevel))
+			{
+				FEditorFileUtils::SaveLevel(LODWorld->PersistentLevel, *LODLevelFileName);
+			}
 			
-	FWorldTileLODInfo LODInfo = TileModel->TileDetails->GetInfo().LODList[TargetLODIndex];
-			
-	// Target folder to save generated assets: /Content/LevelsLOD/PackageName/LODIndex/
-	const FString LODContentDir =
-		FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) +
-		FString::Printf(TEXT("MapsLOD/%s/%d/"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
-
-	// Target filename for generated level: /LongPackageName+LOD/PackageName_LOD[LodIndex].umap
-	const FString LODLevelFilename =
-		FPackageName::LongPackageNameToFilename(
-			FString::Printf(
-				TEXT("%sLOD/%s_LOD%d"),	
-				*TileModel->TileDetails->PackageName.ToString(), 
-				*FPackageName::GetShortName(TileModel->TileDetails->PackageName), 
-				TargetLODIndex+1)) +
-		FPackageName::GetMapPackageExtension();
-		
-	// This is current actors offset from their original position
-	FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
-	
-	TArray<UObject*>			GeneratedAssets;
-	TArray<UStaticMesh*>		AssetsToSpawn;
-	TArray<FTransform>			AssetsToSpawnTransform;
-	TArray<AActor*>				Actors;
-	TArray<ALandscapeProxy*>	LandscapeActors;
-	// Separate flies from cutlets
-	for (AActor* Actor : SourceLevel->Actors)
-	{
-		if (Actor)
-		{
-			ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
-			if (LandscapeProxy)
-			{
-				LandscapeActors.Add(LandscapeProxy);
-			}
-			else
-			{
-				Actors.Add(Actor);
-			}
-		}
-	}
-	
-	// Generate Proxy LOD mesh for all actors excluding landscapes
-	if (Actors.Num())
-	{
-		FMeshProxySettings ProxySettings;
-		ProxySettings.ScreenSize = ProxySettings.ScreenSize*(LODInfo.GenDetailsPercentage/100.f);
-		TArray<UObject*> OutAssets;
-		FVector OutProxyLocation;
-		FString ProxyPackageName = LODContentDir + TEXT("ProxyMesh");
-		ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
-
-		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, ProxyPackageName, OutAssets, OutProxyLocation);
-		
-		if (OutAssets.Num())
-		{
-			GeneratedAssets.Append(OutAssets);
-			UStaticMesh* ProxyMesh = nullptr;
-			if (OutAssets.FindItemByClass(&ProxyMesh))
-			{
-				AssetsToSpawn.Add(ProxyMesh);
-				AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
-			}
+			// Destroy the new world we created and collect the garbage
+			LODWorld->ClearFlags(RF_Standalone);
+			LODWorld->DestroyWorld(false);
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
 	}
 
-	using namespace MaterialExportUtils;
-
-	// Convert landscape actors into static meshes and apply mesh reduction 
-	int32 LandscapeActorIndex = 0;
-	for (ALandscapeProxy* Landscape : LandscapeActors)
-	{
-		GWarn->StatusUpdate(LandscapeActorIndex, LandscapeActors.Num(), LOCTEXT("ExportingLandscape", "Exporting Landscape Actors"));
-		
-		FRawMesh LandscapeRawMesh;
-		FFlattenMaterial LandscapeFlattenMaterial;
-		
-		FVector LandscapeWorldLocation = Landscape->GetActorLocation();
-		Landscape->ExportToRawMesh(LandscapeRawMesh);
-		for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
-		{
-			VertexPos-= LandscapeWorldLocation;
-		}
-					
-		// This is texture resolution for a landscape, probably need to be calculated using landscape size
-		LandscapeFlattenMaterial.DiffuseSize = FIntPoint(1024, 1024);
-		ExportMaterial(Landscape, LandscapeFlattenMaterial);
-		
-		// Reduce landscape mesh
-		FMeshReductionSettings Settings;
-		Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
-		float OutMaxDeviation = 0.f;
-		FRawMesh LandscapeReducedMesh = LandscapeRawMesh;
-
-		MeshUtilities.GetMeshReductionInterface()->Reduce(
-			LandscapeReducedMesh,
-			OutMaxDeviation,
-			LandscapeRawMesh,
-			Settings);
-
-		FString PackageName = LODContentDir + TEXT("LandscapeStatic");
-		PackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *PackageName).ToString();
-		
-		UPackage* Package = CreatePackage(NULL, *PackageName);
-		Package->FullyLoad();
-		Package->Modify();
-
-		// Construct landscape material
-		UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
-			LandscapeFlattenMaterial, Package, TEXT("FlattenLandscapeMaterial"), RF_Public|RF_Standalone);
-	
-		// Construct landscape static mesh
-		FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), TEXT("LandscapeStaticMesh"));
-		UStaticMesh* StaticMesh = new(Package, StaticMeshName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
-		StaticMesh->InitResources();
-		{
-			FString OutputPath = StaticMesh->GetPathName();
-
-			// make sure it has a new lighting guid
-			StaticMesh->LightingGuid = FGuid::NewGuid();
-
-			// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-			StaticMesh->LightMapResolution = 128;
-			StaticMesh->LightMapCoordinateIndex = 1;
-
-			FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
-			/*Don't allow the engine to recalculate normals*/
-			SrcModel->BuildSettings.bRecomputeNormals = false;
-			SrcModel->BuildSettings.bRecomputeTangents = false;
-			SrcModel->BuildSettings.bRemoveDegenerates = false;
-			SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
-			SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeReducedMesh);
-
-			//Assign the proxy material to the static mesh
-			StaticMesh->Materials.Add(StaticLandscapeMaterial);
-
-			StaticMesh->Build();
-			StaticMesh->PostEditChange();
-		}
-
-		AssetsToSpawn.Add(StaticMesh);
-		AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
-
-		GeneratedAssets.Add(StaticMesh);
-		GeneratedAssets.Add(StaticLandscapeMaterial);
-		LandscapeActorIndex++;
-	}
-
-	// Save generated assets
-	TArray<UPackage*> AssetsPackagesToSave;
-	for (UObject* Asset : GeneratedAssets)
-	{
-		if (Asset->IsAsset())
-		{
-			AssetsPackagesToSave.AddUnique(Asset->GetOutermost());
-		}
-	}
-	
-	FEditorFileUtils::PromptForCheckoutAndSave(AssetsPackagesToSave, false, false);
-
-	// Create new level and spawn generated assets in it
-	if (AssetsToSpawn.Num())
-	{
-		// Create a new world - so we can 'borrow' its level
-		UWorld* LODWorld = UWorld::CreateWorld(EWorldType::None, false);
-
-		for (int32 AssetIdx = 0; AssetIdx < AssetsToSpawn.Num(); ++AssetIdx)
-		{
-			FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
-			FRotator Rotation(ForceInit);
-			AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
-			MeshActor->StaticMeshComponent->StaticMesh = AssetsToSpawn[AssetIdx];
-			MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
-		}
-
-		FEditorFileUtils::SaveLevel(LODWorld->PersistentLevel, LODLevelFilename);
-		// Destroy the new world we created and collect the garbage
-		LODWorld->DestroyWorld(false);
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-	}
-
-	//Update the asset registry that a new static mash and material has been created
-	if (GeneratedAssets.Num())
-	{
-		FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		int32 AssetCount = GeneratedAssets.Num();
-		for (int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++)
-		{
-			AssetRegistry.AssetCreated(GeneratedAssets[AssetIndex]);
-			GEditor->BroadcastObjectReimported(GeneratedAssets[AssetIndex]);
-		}
-
-		//Also notify the content browser that the new assets exists
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().SyncBrowserToAssets(GeneratedAssets, true);
-	}
-	
 	// Rescan world root
 	PopulateLevelsList();
-
 	GWarn->EndSlowTask();	
+	
 	return true;
 }
 

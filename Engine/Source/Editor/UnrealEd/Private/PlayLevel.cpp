@@ -26,6 +26,9 @@
 #include "TargetDeviceServices.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
+#include "PhysicsPublic.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 #include "Online.h"
 
@@ -36,10 +39,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 void UEditorEngine::EndPlayMap()
 {
 	// Matinee must be closed before PIE can stop - matinee during PIE will be editing a PIE-world actor
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "PIENeedsToCloseMatineeMessage", "Closing 'Play in Editor' must close UnrealMatinee.") );
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
 	EndPlayOnLocalPc();
@@ -121,7 +124,6 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// Clean up each world individually
-	bool bSupportsOnlinePIE = SupportsOnlinePIE();
 	TArray<FName> OnlineIdentifiers;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
@@ -129,21 +131,31 @@ void UEditorEngine::EndPlayMap()
 		if (ThisContext.WorldType == EWorldType::PIE)
 		{
 			TeardownPlaySession(ThisContext);
-			WorldList.RemoveAt(WorldIdx);
-
-			if (bSupportsOnlinePIE)
+			
+			// Cleanup online subsystems instantiated during PIE
+			FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+			if (IOnlineSubsystem::DoesInstanceExist(OnlineIdentifier))
 			{
-				FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+				IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
+				if (OnlineSub)
+				{
+					// Stop ticking and clean up, but do not destroy as we may be in a failed online delegate
+					OnlineSub->Shutdown();
+				}
 				OnlineIdentifiers.Add(OnlineIdentifier);
 			}
+		
+			// Remove world list after online has shutdown in case any async actions require the world context
+			WorldList.RemoveAt(WorldIdx);
 		}
 	}
 
 	if (OnlineIdentifiers.Num())
 	{
-        // Cleanup online subsystem shortly as we might be in a failed delegate 
-        // have to do this in batch because timer delegate doesn't recognize bound data 
-        // as a different delegate
+		UE_LOG(LogPlayLevel, Display, TEXT("Shutting down PIE online subsystems"));
+		// Cleanup online subsystem shortly as we might be in a failed delegate 
+		// have to do this in batch because timer delegate doesn't recognize bound data 
+		// as a different delegate
 		FTimerDelegate DestroyTimer;
 		DestroyTimer.BindUObject(this, &UEditorEngine::CleanupPIEOnlineSessions, OnlineIdentifiers);
 		GetTimerManager()->SetTimer(DestroyTimer, 0.1f, false);
@@ -265,9 +277,12 @@ void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
 {
 	for (FName& OnlineIdentifier : OnlineIdentifiers)
 	{
+		UE_LOG(LogPlayLevel, Display, TEXT("Destroying online subsystem %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem::Destroy(OnlineIdentifier);
 		NumOnlinePIEInstances--;
 	}
+
+	NumOnlinePIEInstances = 0;
 }
 
 void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
@@ -622,56 +637,59 @@ void UEditorEngine::PlaySessionSingleStepped()
 	FEditorDelegates::SingleStepPIE.Broadcast(bIsSimulatingInEditor);
 }
 
-void AdvanceWindowPositionsForNextPIEWindow(int32 &WinX, int32 &WinY, int32 Width, int32 Height)
+void AdvanceWindowPositionsForNextPIEWindow(int32 &WinX, int32 &WinY, FIntPoint WinSize)
 {
-	const FIntPoint WindowPadding(0, 0);//(15, 32);
+	const FIntPoint WindowPadding(16, 16);
 
-	WinX += Width + WindowPadding.X;
+	WinX += WinSize.X + WindowPadding.X;
 
-	FSlateRect PreferredWorkArea = FSlateApplication::Get().GetPreferredWorkArea();
-	
+	FDisplayMetrics DisplayMetrics;
+	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+	FSlateRect PreferredWorkArea(DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top, DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
 	// if no more windows fit horizontally, place them in a new row
-	if ((WinX + WindowPadding.X + Width) > PreferredWorkArea.Right)
+	if ((WinX + WindowPadding.X + WinSize.X) > PreferredWorkArea.Right)
 	{
-		WinX = 0;
-		WinY += Height + WindowPadding.X;
+		WinX = PreferredWorkArea.Left + WindowPadding.X;
+		WinY += WindowPadding.Y;
 	}
 
 	// if no more rows fit vertically, stack windows on top of each other
-	if (WinY + WindowPadding.Y + Height >= PreferredWorkArea.Bottom)
+	if (WinY + WindowPadding.Y + WinSize.Y >= PreferredWorkArea.Bottom)
 	{
 		WinX += WindowPadding.X;
-		WinY = WindowPadding.Y;
+		WinY = PreferredWorkArea.Top + WindowPadding.Y;
 	}
 }
 
-void GetMultipleInstancePositions(int32 index, int32 &LastX, int32 &LastY)
+/* returns the size of the window depending of the net mode. */
+void GetWindowSizeForInstanceType(FIntPoint &WindowSize, const ULevelEditorPlaySettings* PlayInSettings)
 {
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-
-	if (PlayInSettings->MultipleInstancePositions.IsValidIndex(index) &&
-		(PlayInSettings->MultipleInstanceLastHeight == PlayInSettings->NewWindowHeight) &&
-		(PlayInSettings->MultipleInstanceLastWidth == PlayInSettings->NewWindowWidth))
+	if (PlayInSettings->PlayNetMode == PIE_Standalone)
 	{
-		PlayInSettings->NewWindowPosition =	PlayInSettings->MultipleInstancePositions[index];
-
-		LastX = PlayInSettings->NewWindowPosition.X;
-		LastY = PlayInSettings->NewWindowPosition.Y;
+		WindowSize.X = PlayInSettings->StandaloneWindowWidth;
+		WindowSize.Y = PlayInSettings->StandaloneWindowHeight;
 	}
 	else
 	{
-		PlayInSettings->NewWindowPosition = FIntPoint(LastX, LastY);
+		WindowSize.X = PlayInSettings->ClientWindowWidth;
+		WindowSize.Y = PlayInSettings->ClientWindowHeight;
 	}
-
-	AdvanceWindowPositionsForNextPIEWindow(LastX, LastY, PlayInSettings->NewWindowWidth, PlayInSettings->NewWindowHeight);
 }
 
+/* 
+ * Generate the command line for pie instance. Window position, size etc. 
+ *
+ * @param	WinX			Window X position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
+ * @param	WinY			Window Y position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
+ * @param	InstanceNum		PIE instance index.
+ * @param	IsServer		Is this instance a dedicated server. true if so else false.
+ */
 FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &InstanceNum, bool IsServer)
 {
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	// Get GameSettings INI override
 	FString GameUserSettingsOverride = GGameUserSettingsIni.Replace(TEXT("GameUserSettings"), *FString::Printf(TEXT("PIEGameUserSettings%d"), InstanceNum++));
-	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-
+	
 	// Construct parms:
 	//	-Override GameUserSettings.ini
 	//	-Force no steam
@@ -685,54 +703,78 @@ FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &Insta
 	}
 	else
 	{
-		// hack: fudge window by WindowBorderSize, so it doesn't appear off-screen
-		FMargin WindowBorderSize(8.0f, 32.0f);
-		TSharedPtr<SWindow> SomeWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+		// Adjust window by WindowBorderSize and title bar so it doesn't appear off-screen
+		FMargin WindowBorderSize(16.0f, 80.0f);
+		TSharedPtr<SWindow> TopLevelWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 
-		if (SomeWindow.IsValid())
+		if (TopLevelWindow.IsValid())
 		{
-			WindowBorderSize = SomeWindow->GetWindowBorderSize();
+			WindowBorderSize = TopLevelWindow->GetWindowBorderSize();
 		}
 
 		// Listen server or clients: specify default win position and SAVEWINPOS so the final positions are saved
 		// in order to preserve PIE networking window setup
-		CmdLine += FString::Printf(TEXT("WinX=%d WinY=%d SAVEWINPOS=1 "), WinX + WindowBorderSize.Left, WinY + WindowBorderSize.Top);
+		int32 WindowXPos = WinX + WindowBorderSize.Left;
+		int32 WindowYPos = WinY + WindowBorderSize.Top;
+		CmdLine += FString::Printf(TEXT("WinX=%d WinY=%d SAVEWINPOS=1"), WindowXPos, WindowYPos);
+
+		// Get the size of the window based on the type
+		FIntPoint WinSize(0,0);
+		GetWindowSizeForInstanceType(WinSize, PlayInSettings);
 
 		// Advance window
-		AdvanceWindowPositionsForNextPIEWindow(WinX, WinY, PlayInSettings->NewWindowWidth, PlayInSettings->NewWindowHeight );
+		AdvanceWindowPositionsForNextPIEWindow(WinX, WinY, WinSize);
 	}
 	
 	return CmdLine;
+}
+
+void GetMultipleInstancePositions(int32 index, int32 &LastX, int32 &LastY)
+{
+	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
+
+	if (PlayInSettings->MultipleInstancePositions.IsValidIndex(index) &&
+		(PlayInSettings->MultipleInstanceLastHeight == PlayInSettings->NewWindowHeight) &&
+		(PlayInSettings->MultipleInstanceLastWidth == PlayInSettings->NewWindowWidth))
+	{
+		PlayInSettings->NewWindowPosition = PlayInSettings->MultipleInstancePositions[index];
+
+		LastX = PlayInSettings->NewWindowPosition.X;
+		LastY = PlayInSettings->NewWindowPosition.Y;
+	}
+	else
+	{
+		PlayInSettings->NewWindowPosition = FIntPoint(LastX, LastY);
+	}
+
+	FIntPoint WinSize(0, 0);
+	GetWindowSizeForInstanceType(WinSize, PlayInSettings);
+	AdvanceWindowPositionsForNextPIEWindow(LastX, LastY, WinSize);
 }
 
 void UEditorEngine::StartQueuedPlayMapRequest()
 {
 	const bool bWantSimulateInEditor = bIsSimulateInEditorQueued;
 
-	//ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
-	//PlaySettings->LastExecutedPlayModeType = PlayMode;
-
 	EndPlayOnLocalPc();
 
-	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-	
-	// Launch multiplayer instances if necessary
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	// Launch multi-player instances if necessary
 	// (note that if you have 'RunUnderOneProcess' checked and do a bPlayOnLocalPcSession (standalone) - play standalone 'wins' - multiple instances will be launched for multiplayer)
 	if (PlayInSettings->PlayNetMode != PIE_Standalone && (!PlayInSettings->RunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
 	{
-		// Launch multiple instances for pie networking here
-		int32 WinX=0;
-		int32 WinY=0;
-		int32 PIENum = 0;
 		int32 NumClients = 0;
+
+		// If we start to the right of the editor work area, call advance it will find the next place we can place a new instance window
+		FSlateRect PreferredWorkArea = FSlateApplication::Get().GetPreferredWorkArea();		
+		FIntPoint WinPosition((int32)PreferredWorkArea.Right, (int32)PreferredWorkArea.Top);
+		AdvanceWindowPositionsForNextPIEWindow(WinPosition.X, WinPosition.Y, FIntPoint(0,0));
 
 		// Do we need to spawn a server?
 		if (PlayInSettings->PlayNetMode == PIE_Client)
-		{
-			FString CmdLine = GenerateCmdLineForNextPieInstance(WinX, WinY, PIENum, true);
-			FString URLOptions = TEXT("?Listen");
-			PlayOnLocalPc(TEXT(""), URLOptions, CmdLine, PlayInSettings->ClientWindowWidth, PlayInSettings->ClientWindowHeight);
-
+		{			
+			PlayStandaloneLocalPc(TEXT(""), &WinPosition, NumClients, true);
+			
 			if (!PlayInSettings->PlayNetDedicated)
 			{
 				// Listen server counts as a client
@@ -740,37 +782,31 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			}
 		}
 		
-		if(!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
+		if (!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
 		{
 			// Editor counts as a client
 			NumClients++;
 		}
 
-		// Spawn number of clients
-		for (int32 i=NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
-		{
-			FString CmdLine = GenerateCmdLineForNextPieInstance(WinX, WinY, PIENum, false);
-			PlayOnLocalPc(TEXT("127.0.0.1"), TEXT(""), CmdLine, PlayInSettings->ClientWindowWidth, PlayInSettings->ClientWindowHeight );
-		}
-
-		// Launch the local PIE session
 		if (bPlayOnLocalPcSession)
 		{
-			FString CmdLine = GenerateCmdLineForNextPieInstance(WinX, WinY, PIENum, PlayInSettings->PlayNetMode == PIE_ListenServer);
-
-			PlayOnLocalPc(
-				PlayInSettings->PlayNetMode == PIE_Client ? TEXT("127.0.0.1") : TEXT(""),
-				PlayInSettings->PlayNetMode == PIE_ListenServer ? TEXT("?Listen") : TEXT(""),
-				CmdLine);
+			// Spawn number of clients
+			for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
+			{
+				PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, NumClients + 1, false);
+			}
 		}
-		else if (bStartMovieCapture)
+		else 
 		{
-			// @todo Fix for UE4.  This is a temp workaround. 
-			PlayForMovieCapture();
-		}
-		else
-		{
-			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
+			if (bStartMovieCapture)
+			{
+				// @todo Fix for UE4.  This is a temp workaround. 
+				PlayForMovieCapture();
+			}
+			else
+			{
+				PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
+			}
 		}
 	}
 	else
@@ -778,7 +814,7 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		// Launch standalone PIE session
 		if (bPlayOnLocalPcSession)
 		{
-			PlayOnLocalPc();
+			PlayStandaloneLocalPc();
 		}
 		else if (bPlayUsingLauncher)
 		{
@@ -935,8 +971,22 @@ void UEditorEngine::EndPlayOnLocalPc( )
 }
 
 // @todo gmp: temp hack for Rocket demo
-void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FString CmdLineParms, int32 ResX, int32 ResY)
+void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* WindowPos, int32 PIENum, bool bIsServer)
 {
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	//const ULevelEditorPlaySettings* PlayInSettings = InPlaySettings != NULL ? InPlaySettings : GetDefault<ULevelEditorPlaySettings>();
+	FString CmdLine;
+	if (WindowPos != NULL)
+	{
+		CmdLine = GenerateCmdLineForNextPieInstance(WindowPos->X, WindowPos->Y, PIENum, bIsServer);
+	}
+	
+	FString URLParms;		
+	if (bIsServer == true)
+	{
+		URLParms = bIsServer == true ? TEXT("?Listen") : FString();
+	}
+	
 	// select map to play
 	TArray<FString> SavedMapNames;
 	if (MapNameOverride.IsEmpty())
@@ -946,7 +996,6 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		{
 			// Open world composition from original folder
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			MapName += TEXT("?worldcomposition");
 			SavedMapNames.Add(MapName);
 		}
 		else
@@ -984,8 +1033,6 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 	}
 
 	// apply additional settings
-	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-
 	if (bPlayUsingMobilePreview)
 	{
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
@@ -1002,14 +1049,17 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		AdditionalParameters += PlayInSettings->AdditionalLaunchParameters;
 	}
 
+	FIntPoint WinSize(0, 0);
+	GetWindowSizeForInstanceType(WinSize, PlayInSettings);
+	
 	FString Params = FString::Printf(TEXT("%s %s -game -PIEVIACONSOLE -ResX=%d -ResY=%d %s%s %s"),
 		*GameNameOrProjectFile,
 		*BuildPlayWorldURL(*SavedMapNames[0], false, URLParms),
-		(ResX > 0 ? ResX : PlayInSettings->StandaloneWindowWidth),
-		(ResY > 0 ? ResY : PlayInSettings->StandaloneWindowHeight),
+		WinSize.X,
+		WinSize.Y,
 		*FCommandLine::GetSubprocessCommandline(),
 		*AdditionalParameters,
-		*CmdLineParms
+		*CmdLine
 	);
 
 	// launch the game process
@@ -1085,14 +1135,14 @@ private:
 };
 
 
-static void HandleStageStarted(const FString& InStage, FString DeviceName, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("StageName"), FText::FromString(InStage));
-	Arguments.Add(TEXT("DeviceName"), FText::FromString(DeviceName));
+	Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
 
 	FText NotificationText;
-	if(DeviceName.Len() == 0)
+	if(PlayUsingLauncherDeviceName.Len() == 0)
 	{
 		NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "{StageName} for launch..."), Arguments);
 	}
@@ -1103,7 +1153,24 @@ static void HandleStageStarted(const FString& InStage, FString DeviceName, TWeak
 	NotificationItemPtr.Pin()->SetText(NotificationText);
 }
 
-static void HandleLaunchCanceled(bool* bPlayUsingLauncher, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
+{
+	// analytics for launch on
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), StageTime));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("StageName"), InStage));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.StageComplete" ), ParamArray );
+	}
+}
+
+void UEditorEngine::HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 		NotificationItemPtr,
@@ -1111,28 +1178,90 @@ static void HandleLaunchCanceled(bool* bPlayUsingLauncher, TWeakPtr<SNotificatio
 		LOCTEXT("LaunchtaskFailedNotification", "Launch canceled!")
 	);
 
-	*bPlayUsingLauncher = false;	
+	// analytics for launch on
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Canceled" ), ParamArray );
+	}
+
+	bPlayUsingLauncher = false;	
 }
 
-static void HandleLaunchCompleted(bool Succeeded, bool* bPlayUsingLauncher, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	if (Succeeded)
 	{
+		FText CompletionMsg;
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Deployment complete!! Open the app on your device to launch.");
+			TSharedPtr<SNotificationItem> NotificationItem = NotificationItemPtr.Pin();
+//			NotificationItem->SetExpireDuration(30.0f);
+		}
+		else
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Launch complete!!");
+		}
+
 		TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 			NotificationItemPtr,
 			SNotificationItem::CS_Success,
-			LOCTEXT("LauncherTaskCompleted", "Launch complete!!")
+			CompletionMsg
 		);
+
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Completed" ), ParamArray );
+		}
 	}
 	else
 	{
+		FText CompletionMsg;
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskFailed", "Deployment failed!!");
+		}
+		else
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskFailed", "Launch failed!!");
+		}
 		TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 			NotificationItemPtr,
 			SNotificationItem::CS_Fail,
-			LOCTEXT("LauncherTaskFailed", "Launch failed!!")
+			CompletionMsg
 			);
+
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Failed" ), ParamArray );
+		}
 	}
-	*bPlayUsingLauncher = false;
+	bPlayUsingLauncher = false;
 }
 
 static void HandleHyperlinkNavigate()
@@ -1162,10 +1291,16 @@ void UEditorEngine::PlayUsingLauncher()
 			bPlayUsingLauncher = false;
 			return;
 		}
+		if (FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+			bPlayUsingLauncher = false;
+			return;
+		}
 #endif
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame((bHasCode && FSourceCodeNavigation::IsCompilerAvailable()) || !FRocketSupport::IsRocket());
+		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
 		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetForceClose(true);
@@ -1188,7 +1323,11 @@ void UEditorEngine::PlayUsingLauncher()
 		LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::CopyToDevice);
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetHideFileServerWindow(false);
-		LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
+		}
 
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
@@ -1196,8 +1335,6 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			// Open world composition from original folder
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			MapName += TEXT("?worldcomposition");
-
 			MapNames.Add(MapName);
 		}
 		else
@@ -1233,8 +1370,9 @@ void UEditorEngine::PlayUsingLauncher()
 
 		Info.Image = FEditorStyle::GetBrush(TEXT("MainFrame.CookContent"));
 		Info.bFireAndForget = false;
-		Info.ExpireDuration = 3.0f;
+		Info.ExpireDuration = 10.0f;
 		Info.Hyperlink = FSimpleDelegate::CreateStatic(HandleHyperlinkNavigate);
+		Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
 		Info.ButtonDetails.Add(
 			FNotificationButtonInfo(
 				LOCTEXT("LauncherTaskCancel", "Cancel"),
@@ -1250,6 +1388,18 @@ void UEditorEngine::PlayUsingLauncher()
 			return;
 		}
 
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Started" ), ParamArray );
+		}
+
 		NotificationItem->SetCompletionState(SNotificationItem::CS_Pending);
 
 		TWeakPtr<SNotificationItem> NotificationItemPtr(NotificationItem);
@@ -1257,9 +1407,10 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/Notifications/CompileStart_Cue.CompileStart_Cue"));
 			LauncherWorker->OnOutputReceived().AddStatic(HandleOutputReceived);
-			LauncherWorker->OnStageStarted().AddStatic(HandleStageStarted, PlayUsingLauncherDeviceName, NotificationItemPtr);
-			LauncherWorker->OnCompleted().AddStatic(HandleLaunchCompleted, &bPlayUsingLauncher, NotificationItemPtr);
-			LauncherWorker->OnCanceled().AddStatic(HandleLaunchCanceled, &bPlayUsingLauncher, NotificationItemPtr);
+			LauncherWorker->OnStageStarted().AddUObject(this, &UEditorEngine::HandleStageStarted, NotificationItemPtr);
+			LauncherWorker->OnStageCompleted().AddUObject(this, &UEditorEngine::HandleStageCompleted, bHasCode, NotificationItemPtr);
+			LauncherWorker->OnCompleted().AddUObject(this, &UEditorEngine::HandleLaunchCompleted, bHasCode, NotificationItemPtr);
+			LauncherWorker->OnCanceled().AddUObject(this, &UEditorEngine::HandleLaunchCanceled, bHasCode, NotificationItemPtr);
 		}
 		else
 		{
@@ -1270,6 +1421,19 @@ void UEditorEngine::PlayUsingLauncher()
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->ExpireAndFadeout();
 			bPlayUsingLauncher = false;
+
+			// analytics for launch on
+			if( FEngineAnalytics::IsAvailable() )
+			{
+				const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+				TArray<FAnalyticsEventAttribute> ParamArray;
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0f));
+
+				FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Failed" ), ParamArray );
+			}
 		}
 	}
 }
@@ -1287,6 +1451,18 @@ void UEditorEngine::PlayForMovieCapture()
 	// this parameter tells UE4Editor to run in game mode
 	FString EditorCommandLine = SavedMapNames[0];
 	EditorCommandLine += TEXT(" -game");
+
+	// renderer overrides - hack
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("d3d11"))		?	TEXT(" -d3d11")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("sm5"))		?	TEXT(" -sm5")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("dx11"))		?	TEXT(" -dx11")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("d3d10"))		?	TEXT(" -d3d10")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("sm4"))		?	TEXT(" -sm4")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("dx10"))		?	TEXT(" -dx10")		: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("opengl"))		?	TEXT(" -opengl")	: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("opengl3"))	?	TEXT(" -opengl3")	: TEXT("");
+	EditorCommandLine += FParse::Param(FCommandLine::Get(), TEXT("opengl4"))	?	TEXT(" -opengl4")	: TEXT("");
+
 
 	// this parameter tells UGameEngine to add the auto-save dir to the paths array and repopulate the package file cache
 	// this is needed in order to support streaming levels as the streaming level packages will be loaded only when needed (thus
@@ -1509,14 +1685,14 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	double PIEStartTime = FPlatformTime::Seconds();
 
 	// Prompt the user that Matinee must be closed before PIE can occur.
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
 		const bool bContinuePIE = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "PIENeedsToCloseMatineeQ", "'Play in Editor' must close UnrealMatinee.  Continue?") );
 		if ( !bContinuePIE )
 		{
 			return;
 		}
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();
@@ -1828,7 +2004,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
 		if (!bHasRequiredLogins)
 		{
-			UE_LOG(LogOnline, Verbose, TEXT("Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins"));
+			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
+			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
+			FMessageLog("PIE").Warning(ErrorMsg);
 		}
 
 		if (SupportsOnlinePIE() && bHasRequiredLogins)
@@ -1990,6 +2168,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 		// Always get the interface (it will create the subsystem regardless)
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for server %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
 		check(IdentityInt.IsValid());
@@ -2021,6 +2200,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 			// Dedicated servers don't use a login
 			OnlineSub->SetForceDedicated(true);
 			CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct);
+			FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
 		}
 	}
 
@@ -2041,6 +2221,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.bIsServer = false;
 
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
 		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 		check(IdentityInt.IsValid());
 		NumOnlinePIEInstances++;
@@ -2077,6 +2258,30 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 
 	// Create the new world
 	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
+
+	// Logging after the create so a new MessageLog Page is created
+	if (bWasSuccessful)
+	{
+		if (DataStruct.bIsServer)
+		{
+			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+		}
+		else
+		{
+			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
+		}
+	}
+	else
+	{
+		if (DataStruct.bIsServer)
+		{
+			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+		}
+		else
+		{
+			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+		}
+	}
 }
 
 UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime)
@@ -2441,7 +2646,8 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 		PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 	}
 	
-	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? NavigationSystem::PIEMode : NavigationSystem::SimulationMode);
+	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
+	PlayWorld->CreateAISystem();
 
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
@@ -2610,11 +2816,14 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 				OnSwitchWorldsForPIE(true);
 
 				UWorld* World = GameViewport->GetWorld();
-				if (World->GetAuthGameMode())	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
+				AGameMode* AuthGameMode = World->GetAuthGameMode();
+				if (AuthGameMode)	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
 				{
 					APlayerController* PC = World->GetFirstPlayerController();
+					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
 					PC->PlayerState->bOnlySpectator = false;
-					World->GetAuthGameMode()->RestartPlayer(PC);
+					AuthGameMode->NumPlayers++;
+					AuthGameMode->RestartPlayer(PC);
 				}
 
 				OnSwitchWorldsForPIE(false);

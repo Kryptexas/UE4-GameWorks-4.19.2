@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "Animation/BoneControllers/AnimNode_Fabrik.h"
 #include "AnimGraphNode_Fabrik.generated.h"
 
 // Editor node for FABRIK IK skeletal controller
@@ -15,11 +16,11 @@ class UAnimGraphNode_Fabrik : public UAnimGraphNode_SkeletalControlBase
 
 public:
 	// UEdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
 protected:
 	// UAnimGraphNode_SkeletalControlBase interface
-	virtual FText GetControllerDescription() const OVERRIDE;
+	virtual FText GetControllerDescription() const override;
 	// End of UAnimGraphNode_SkeletalControlBase interface
 };

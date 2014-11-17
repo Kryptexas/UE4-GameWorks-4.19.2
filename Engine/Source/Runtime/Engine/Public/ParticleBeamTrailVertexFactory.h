@@ -45,7 +45,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * Set the uniform buffer for this vertex factory.

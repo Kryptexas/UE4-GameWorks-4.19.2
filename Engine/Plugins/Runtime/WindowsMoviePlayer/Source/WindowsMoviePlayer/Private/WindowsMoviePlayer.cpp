@@ -14,28 +14,28 @@ TSharedPtr<FMediaFoundationMovieStreamer> MovieStreamer;
 class FWindowsMoviePlayerModule : public IModuleInterface
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		bool bLoadSuccessful = true;
 		// now attempt to load the delay loaded DLLs
 		if (LoadLibraryW(TEXT("shlwapi.dll")) == NULL)
 		{
-			UE_LOG( LogWindowsMoviePlayer, Error, TEXT("Could not load shlwapi.dll") );
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load shlwapi.dll") );
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mf.dll")) == NULL)
 		{
-			UE_LOG( LogWindowsMoviePlayer, Error, TEXT("Could not load mf.dll") );
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mf.dll"));
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mfplat.dll")) == NULL)
 		{
-			UE_LOG( LogWindowsMoviePlayer, Error, TEXT("Could not load mfplat.dll") );
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplat.dll"));
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mfplay.dll")) == NULL)
 		{
-			UE_LOG( LogWindowsMoviePlayer, Error, TEXT("Could not load mfplay.dll") );
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplay.dll"));
 			bLoadSuccessful = false;
 		}
 
@@ -49,7 +49,7 @@ class FWindowsMoviePlayerModule : public IModuleInterface
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if( MovieStreamer.IsValid() )
 		{

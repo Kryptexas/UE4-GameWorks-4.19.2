@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionRotator.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)
@@ -29,9 +30,9 @@ class UMaterialExpressionRotator : public UMaterialExpression
 	uint32 ConstCoordinate;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool NeedsRealtimePreview() OVERRIDE { return Time.Expression==NULL && Speed != 0.f; }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool NeedsRealtimePreview() override { return Time.Expression==NULL && Speed != 0.f; }
 	// End UMaterialExpression Interface
 
 };

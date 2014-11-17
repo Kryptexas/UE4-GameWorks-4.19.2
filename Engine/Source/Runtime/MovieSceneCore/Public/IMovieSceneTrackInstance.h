@@ -24,5 +24,5 @@ public:
 	/**
 	 * Refreshes the current instance
 	 */
-	virtual void RefreshInstance( class IMovieScenePlayer& Player ) = 0;
+	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) = 0;
 };

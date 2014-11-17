@@ -7,17 +7,21 @@
 
 #pragma once 
 
+#include "BlendSpace.h"
+#include "AnimInstance.h"
+
 #include "AimOffsetBlendSpace.generated.h"
 
+struct FBlendSample;
 
-UCLASS(config=Engine, hidecategories=Object, dependson=UAnimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UAimOffsetBlendSpace : public UBlendSpace
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual bool IsValidAdditive() const OVERRIDE;
+	virtual bool IsValidAdditive() const override;
 
 	/** Validate sample input. Return true if it's all good to go **/
-	virtual bool ValidateSampleInput(FBlendSample & BlendSample, int32 OriginalIndex=INDEX_NONE) const OVERRIDE;
+	virtual bool ValidateSampleInput(FBlendSample & BlendSample, int32 OriginalIndex=INDEX_NONE) const override;
 };
 

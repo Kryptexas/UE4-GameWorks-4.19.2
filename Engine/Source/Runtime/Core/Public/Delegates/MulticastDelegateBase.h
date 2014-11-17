@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MulticastDelegateBase.h: Declares the FMulticastDelegateBase class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -34,7 +30,14 @@ public:
 	 */
 	inline bool IsBound( ) const
 	{
-		return (InvocationList.Num() > 0);
+		for (IDelegateInstance* DelegateInstance : InvocationList)
+		{
+			if (DelegateInstance != nullptr)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** 

@@ -1,18 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Settings.cpp: Implements the constructors for the various settings classes.
-=============================================================================*/
-
 #include "InternationalizationSettingsModulePrivatePCH.h"
+
 
 /* UInternationalizationSettingsModel interface
  *****************************************************************************/
 
 UInternationalizationSettingsModel::UInternationalizationSettingsModel( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
-{
-}
+{ }
+
 
 void UInternationalizationSettingsModel::SaveDefaults()
 {
@@ -24,6 +21,7 @@ void UInternationalizationSettingsModel::SaveDefaults()
 	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni );
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
 }
+
 
 void UInternationalizationSettingsModel::ResetToDefault()
 {
@@ -38,6 +36,7 @@ void UInternationalizationSettingsModel::ResetToDefault()
 	SettingChangedEvent.Broadcast();
 }
 
+
 FString UInternationalizationSettingsModel::GetCultureName() const
 {
 	FString SavedCultureName;
@@ -47,6 +46,7 @@ FString UInternationalizationSettingsModel::GetCultureName() const
 	}
 	return SavedCultureName;
 }
+
 
 void UInternationalizationSettingsModel::SetCultureName(const FString& CultureName)
 {
@@ -64,6 +64,7 @@ bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() cons
 	}
 	return bShouldLoadLocalizedPropertyNames;
 }
+
 
 void UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames(const bool Value)
 {

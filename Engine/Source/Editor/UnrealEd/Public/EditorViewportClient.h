@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "EditorViewportClient.h"
+#include "UnrealWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "Layout/SlateRect.h"
+#include "EditorComponents.h"
+
 class FEditorCameraController;
 class FCameraControllerUserImpulseData;
 class FMouseDeltaTracker;
@@ -9,6 +15,7 @@ class FWidget;
 class FCameraControllerConfig;
 class FCachedJoystickState;
 class FPreviewScene;
+class FEditorModeTools;
 
 /** Delegate called by FEditorViewportClient to check its visibility */
 DECLARE_DELEGATE_RetVal( bool, FViewportStateGetter );
@@ -37,7 +44,7 @@ public:
 	/**
 	* Initialize commands
 	*/
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 
 	TSharedPtr< FUICommandInfo > Forward;
@@ -138,6 +145,19 @@ private:
 };
 
 
+struct FDropQuery
+{
+	FDropQuery()
+		: bCanDrop(false)
+	{}
+
+	/** True if it's valid to drop the object at the location queried */
+	bool bCanDrop;
+
+	/** Optional hint text that may be returned to the user. */
+	FText HintText;
+};
+
 /** 
  * Stores the transformation data for the viewport camera
  */
@@ -221,7 +241,7 @@ class UNREALED_API FEditorViewportClient : public FCommonViewportClient, public 
 public:
 	friend class FMouseDeltaTracker;
 
-	FEditorViewportClient(class FPreviewScene* InPreviewScene = NULL);
+	FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene = nullptr);
 	virtual ~FEditorViewportClient();
 
 	/**
@@ -388,7 +408,7 @@ public:
 
 	void SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
 
-	virtual void ProcessScreenShots(FViewport* Viewport) OVERRIDE;
+	virtual void ProcessScreenShots(FViewport* Viewport) override;
 
 	void TakeHighResScreenShot();
 
@@ -396,28 +416,28 @@ public:
 	void OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering);
 
 	/** FViewElementDrawer interface */
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
+	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 
 	/** FViewportClient interface */
-	virtual void RedrawRequested(FViewport* Viewport) OVERRIDE;
-	virtual void RequestInvalidateHitProxy(FViewport* Viewport) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) OVERRIDE;
-	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  OVERRIDE;
-	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
-	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
-	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
-	virtual bool IsOrtho() const OVERRIDE;
-	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
+	virtual void RedrawRequested(FViewport* Viewport) override;
+	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
+	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  override;
+	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
+	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
+	virtual void MouseLeave( FViewport* Viewport ) override;
+	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
+	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual bool IsOrtho() const override;
+	virtual void LostFocus(FViewport* Viewport) override;
 
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/**
 	 * Called when the user clicks in the viewport
@@ -525,6 +545,11 @@ public:
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) {};
 
 	/**
+	 * Render the drag tool in the viewport
+	 */
+	void RenderDragTool(const FSceneView* View, FCanvas* Canvas);
+
+	/**
 	 * Configures the specified FSceneView object with the view and projection matrices for this viewport.
 	 * @param	View		The view to be configured.  Must be valid.
 	 * @return	A pointer to the view within the view family which represents the viewport's primary view.
@@ -570,7 +595,7 @@ public:
 	*
 	* @return 		A valid pointer to the viewports world scene.
 	*/
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 
 	/** If true, this is a level editor viewport */
 	virtual bool IsLevelEditorClient() const { return false; }
@@ -602,6 +627,64 @@ public:
 	 */
 	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy );
 
+	/** Returns true if a placement dragging actor exists */
+	virtual bool HasDropPreviewActors() const { return false; }
+
+	/**
+	 * If dragging an actor for placement, this function updates its position.
+	 *
+	 * @param MouseX						The position of the mouse's X coordinate
+	 * @param MouseY						The position of the mouse's Y coordinate
+	 * @param DroppedObjects				The Objects that were used to create preview objects
+	 * @param out_bDroppedObjectsVisible	Output, returns if preview objects are visible or not
+	 *
+	 * Returns true if preview actors were updated
+	 */
+	virtual bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL) { return false; }
+
+	/**
+	 * If dragging an actor for placement, this function destroys the actor.
+	 */
+	virtual void DestroyDropPreviewActors() {}
+
+	/**
+	 * Checks the viewport to see if the given object can be dropped using the given mouse coordinates local to this viewport
+	 *
+	 * @param MouseX			The position of the mouse's X coordinate
+	 * @param MouseY			The position of the mouse's Y coordinate
+	 * @param AssetInfo			Asset in question to be dropped
+	 */
+	virtual FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo) { return FDropQuery(); }
+
+	/**
+	 * Attempts to intelligently drop the given objects in the viewport, using the given mouse coordinates local to this viewport
+	 *
+	 * @param MouseX			 The position of the mouse's X coordinate
+	 * @param MouseY			 The position of the mouse's Y coordinate
+	 * @param DroppedObjects	 The Objects to be placed into the editor via this viewport
+	 * @param OutNewActors		 The new actor objects that were created
+	 * @param bOnlyDropOnTarget  Flag that when True, will only attempt a drop on the actor targeted by the Mouse position. Defaults to false.
+	 * @param bCreateDropPreview If true, a drop preview actor will be spawned instead of a normal actor.
+	 * @param bSelectActors		 If true, select the newly dropped actors (defaults: true)
+	 * @param FactoryToUse		 The preferred actor factory to use (optional)
+	 */
+	virtual bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL ) { return false; }
+
+	/** Returns true if the viewport is allowed to be possessed by Matinee for previewing sequences */
+	bool AllowMatineePreview() const { return bAllowMatineePreview; }
+
+	/** Sets whether or not this viewport is allowed to be possessed by Matinee */
+	void SetAllowMatineePreview(const bool bInAllowMatineePreview)
+	{
+		bAllowMatineePreview = bInAllowMatineePreview;
+	}
+
+protected:
+
+	/** true if this window is allowed to be possessed by Matinee for previewing sequences in real-time */
+	bool bAllowMatineePreview;
+
+public:
 	/** True if the window is maximized or floating */
 	bool IsVisible() const;
 
@@ -787,6 +870,12 @@ public:
 
 	bool IsForcedRealtimeAudio() const { return bForceAudioRealtime; }
 
+	/** true to force realtime audio to be true, false to stop forcing it */
+	void SetForcedAudioRealtime(bool bShouldForceAudioRealtime)
+	{
+		bForceAudioRealtime = bShouldForceAudioRealtime;
+	}
+
 	/** @return true if a mouse button is down and it's movement being tracked for operations inside the viewport */
 	bool IsTracking() const { return bIsTracking; }
 
@@ -827,13 +916,26 @@ protected:
 public:
 
 	void DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const FSceneView* InView, const FViewport* InViewport, const FLinearColor& InColor, const bool bInDrawBracket, const FString &InLabelText) ;
+	
+	/**
+	 * Draws a screen space bounding box around the specified actor
+	 *
+	 * @param	InCanvas		Canvas to draw on
+	 * @param	InView			View to render
+	 * @param	InViewport		Viewport we're rendering into
+	 * @param	InActor			Actor to draw a bounding box for
+	 * @param	InColor			Color of bounding box
+	 * @param	bInDrawBracket	True to draw a bracket, otherwise a box will be rendered
+	 * @param	bInLabelText	Optional label text to draw
+	 */
+	void DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText = TEXT( "" ) );
 
 	void SetGameView(bool bGameViewEnable);
 
 	/** 
 	 * Returns true if this viewport is excluding non-game elements from its display
 	 */
-	virtual bool IsInGameView() const OVERRIDE { return bInGameViewMode; }
+	virtual bool IsInGameView() const override { return bInGameViewMode; }
 
 	/**
 	 * Aspect ratio bar display settings
@@ -1128,7 +1230,13 @@ public:
 	// Override the LOD of landscape in this viewport
 	int8 LandscapeLODOverride;
 
+	/** If true, draw vertices for selected BSP brushes and static meshes if the large vertices show flag is set. */
+	bool bDrawVertices;
+
 protected:
+
+	/** Editor mode tools provided to this instance. Assumed to be managed externally */
+	FEditorModeTools*		ModeTools;
 
 	FWidget*				Widget;
 
@@ -1185,7 +1293,9 @@ protected:
 	/** Cumulative camera drag and rotation deltas from trackpad gesture in current Tick */
 	FVector CurrentGestureDragDelta;
 	FRotator CurrentGestureRotDelta;
-	
+
+	float GestureMoveForwardBackwardImpulse;
+
 	/** If true, force this viewport to use real time audio regardless of other settings */
 	bool bForceAudioRealtime;
 

@@ -58,9 +58,9 @@ public:
 	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) = 0;
 
 	/**
-	 * @todo slate: Remove this method or make it private.
-	 * Searches for the specified widget and generates a full path to it.  Note that this is
-	 * a relatively slow operation!
+	 * Searches for the specified widget and generates a full path to it.
+	 *
+	 * Note: this is a relatively slow operation!
 	 * 
 	 * @param  InWidget       Widget to generate a path to
 	 * @param  OutWidgetPath  The generated widget path
@@ -68,7 +68,7 @@ public:
 	 *
 	 * @return	True if the widget path was found
 	 */
-	virtual bool FindPathToWidgetVirtual( const TArray<TSharedRef<SWindow>> WindowsToSearch, TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
+	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
 
 	/**
 	 * Gets the active top-level window.
@@ -129,11 +129,22 @@ public:
 	 */
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
-	/** Gets the Widget that currently captures the mouse.
+	/**
+	 * Gets the Widget that currently captures the mouse.
 	 *
 	 * @return The captor widget, or nullptr if no widget captured the mouse.
 	 */
 	virtual TSharedPtr< SWidget > GetMouseCaptor( ) const = 0;
+
+	/**
+	 * Gets the platform application.
+	 *
+	 * @return Platform application.
+	 */
+	virtual const TSharedPtr<GenericApplication> GetPlatformApplication ( ) const
+	{
+		return PlatformApplication;
+	}
 
 	/**
 	 * Gets the rectangle of the current preferred work area.
@@ -266,4 +277,7 @@ protected:
 
 	// Holds a pointer to the current application.
 	static TSharedPtr<FSlateApplicationBase> CurrentBaseApplication;
+
+	// Holds a pointer to the platform application.
+	static TSharedPtr<class GenericApplication> PlatformApplication;
 };

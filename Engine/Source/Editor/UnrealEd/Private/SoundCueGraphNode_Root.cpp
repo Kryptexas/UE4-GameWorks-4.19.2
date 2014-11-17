@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "GraphEditorSettings.h"
 #include "SoundCueGraphEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode_Root"
@@ -19,7 +20,7 @@ USoundCueGraphNode_Root::USoundCueGraphNode_Root(const class FPostConstructIniti
 
 FLinearColor USoundCueGraphNode_Root::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
 FText USoundCueGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -41,23 +41,23 @@ class CanConvertPointerFromTo_Unrelated
 {
 };
 
-checkAtCompileTime((CanConvertPointerFromTo<bool, bool>::Result), Platform_failed__CanConvertPointerFromTo1);
-checkAtCompileTime((CanConvertPointerFromTo<void, void>::Result), Platform_failed__CanConvertPointerFromTo2);
-checkAtCompileTime((CanConvertPointerFromTo<bool, void>::Result), Platform_failed__CanConvertPointerFromTo2b);
-checkAtCompileTime((CanConvertPointerFromTo<const bool, void>::Result), Platform_failed__CanConvertPointerFromTo3);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo4);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo5);
-checkAtCompileTime((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo6);
-checkAtCompileTime((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo7);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo8);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, void>::Result), Platform_failed__CanConvertPointerFromTo9);
+static_assert((CanConvertPointerFromTo<bool, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<void, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<bool, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const bool, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, void>::Result), "Platform CanConvertPointerFromTo test failed.");
 
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestDerived>::Result), Platform_failed__CanConvertPointerFromTo10);
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_Unrelated, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo10b);
-checkAtCompileTime(!(CanConvertPointerFromTo<bool, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo11);
-checkAtCompileTime(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo12);
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), Platform_failed__CanConvertPointerFromTo13);
-checkAtCompileTime(!(CanConvertPointerFromTo<void, bool>::Result), Platform_failed__CanConvertPointerFromTo14);
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestDerived>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_Unrelated, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<bool, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<void, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
 
 #endif
 
@@ -84,16 +84,6 @@ template< class T > inline T Align( const T Ptr, int32 Alignment )
 template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 {
 	return (T) ( ( ((UPTRINT)Ptr + Alignment - 1) / Alignment ) * Alignment );
-}
-template< class T > inline void Swap( T& A, T& B )
-{
-	const T Temp = A;
-	A = B;
-	B = Temp;
-}
-template< class T > inline void Exchange( T& A, T& B )
-{
-	Swap(A, B);
 }
 
 /**
@@ -162,7 +152,7 @@ template <typename T, uint32 N>
 char (&ArrayCountHelper(const T (&)[N]))[N];
 
 // Number of elements in an array.
-#define ARRAY_COUNT( array ) sizeof(ArrayCountHelper(array))
+#define ARRAY_COUNT( array ) (sizeof(ArrayCountHelper(array))+0)
 
 // Offset of a struct member.
 #define STRUCT_OFFSET( struc, member )	offsetof(struc, member)
@@ -418,6 +408,20 @@ FORCEINLINE T&& Forward(typename TRemoveReference<T>::Type&& Obj)
 }
 
 /**
+ * Swap two values, using moves if possible
+ */
+template< class T > inline void Swap(T& A, T& B)
+{
+	T Temp = MoveTemp(A);
+	A = MoveTemp(B);
+	B = MoveTemp(Temp);
+}
+template< class T > inline void Exchange(T& A, T& B)
+{
+	Swap(A, B);
+}
+
+/**
  * This exists to avoid a Visual Studio bug where using a cast to forward an rvalue reference array argument
  * to a pointer parameter will cause bad code generation.  Wrapping the cast in a function causes the correct
  * code to be generated.
@@ -427,6 +431,16 @@ FORCEINLINE T StaticCast(ArgType&& Arg)
 {
 	return static_cast<T>(Arg);
 }
+
+/*
+ * TRemoveCV<type> will remove any const/volatile qualifiers from a type.
+ * (based on std::remove_cv<>
+ * note: won't remove the const from "const int*", as the pointer is not const
+ */
+template <typename T> struct TRemoveCV                   { typedef T Type; };
+template <typename T> struct TRemoveCV<const T>          { typedef T Type; };
+template <typename T> struct TRemoveCV<volatile T>       { typedef T Type; };
+template <typename T> struct TRemoveCV<const volatile T> { typedef T Type; };
 
 /**
  * TRValueToLValueReference converts any rvalue reference type into the equivalent lvalue reference, otherwise returns the same type.
@@ -466,6 +480,16 @@ struct TForceInitAtBoot
 	{
 		T::Get();
 	}
+};
+
+/** Used to avoid cluttering code with ifdefs. */
+struct FNoopStruct
+{
+	FNoopStruct()
+	{}
+
+	~FNoopStruct()
+	{}
 };
 
 /**

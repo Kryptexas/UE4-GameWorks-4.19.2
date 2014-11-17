@@ -14,6 +14,8 @@ namespace AutomationTool
 
 	public class LogUtils
 	{
+		private static AutomationFileTraceListener FileLog;
+
 		/// <summary>
 		/// Initializes trace logging.
 		/// </summary>
@@ -23,11 +25,26 @@ namespace AutomationTool
 			var VerbosityLevel = CommandUtils.ParseParam(CommandLine, "-Verbose") ? TraceEventType.Verbose : TraceEventType.Information;
 			var Filter = new VerbosityFilter(VerbosityLevel);
 			Trace.Listeners.Add(new AutomationConsoleTraceListener());
-			Trace.Listeners.Add(new AutomationFileTraceListener());
+			FileLog = new AutomationFileTraceListener();
+			Trace.Listeners.Add(FileLog);
 			Trace.Listeners.Add(new AutomationMemoryLogListener());
 			foreach (TraceListener Listener in Trace.Listeners)
 			{
 				Listener.Filter = Filter;
+			}
+		}
+
+		/// <summary>
+		/// Closes logging system
+		/// </summary>
+		public static void CloseFileLogging()
+		{
+			if (FileLog != null)
+			{
+				Trace.Listeners.Remove(FileLog);
+				FileLog.Close();
+				FileLog.Dispose();
+				FileLog = null;
 			}
 		}
 
@@ -406,25 +423,24 @@ namespace AutomationTool
 					LogFile.Close();
 					LogFile.Dispose();
 					LogFile = null;
-
-					try
-					{
-						// Try to copy the log file to the log folder. The reason why it's done here is that
-						// at the time the log file is being initialized the env var may not yet be set (this 
-						// applies to local log folder in particular)
-						var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
-						if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
-								!String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
-						{
-							var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
-							SafeCopyLogFile(LogFilename, DestFilename);
-						}
-					}
-					catch (Exception)
-					{
-						// Silently ignore, logging is pointless because eveything is shut down at this point
-					}
 				}
+			}
+			try
+			{
+				// Try to copy the log file to the log folder. The reason why it's done here is that
+				// at the time the log file is being initialized the env var may not yet be set (this 
+				// applies to local log folder in particular)
+				var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
+				if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
+						!String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
+				{
+					var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
+					SafeCopyLogFile(LogFilename, DestFilename);
+				}
+			}
+			catch (Exception)
+			{
+				// Silently ignore, logging is pointless because eveything is shut down at this point
 			}
 			base.Close();
 		}

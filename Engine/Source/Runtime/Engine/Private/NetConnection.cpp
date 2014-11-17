@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
+#include "Net/DataReplication.h"
+#include "Engine/ActorChannel.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -112,8 +114,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	//PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, NULL /*Driver->MasterMap->GetNetGUIDCache() */);
-	PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, Driver->MasterMap->GetNetGUIDCache() );
+	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -160,7 +161,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	}
 
 	// Create package map.
-	PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, Driver->MasterMap->GetNetGUIDCache() );
+	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -831,16 +832,17 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		{
 			// Parse the incoming data.
 			FInBunch Bunch( this );
-			int32 IncomingStartPos = Reader.GetPosBits();
-			uint8 bControl      = Reader.ReadBit();
-			Bunch.PacketId     = PacketId;
-			Bunch.bOpen        = bControl ? Reader.ReadBit() : 0;
-			Bunch.bClose       = bControl ? Reader.ReadBit() : 0;
-			Bunch.bDormant	   = Bunch.bClose ? Reader.ReadBit() : 0;
-			Bunch.bReliable    = Reader.ReadBit();
-			Bunch.ChIndex      = Reader.ReadInt( MAX_CHANNELS );
-			Bunch.bHasGUIDs	   = Reader.ReadBit();
-			Bunch.bPartial	   = Reader.ReadBit();
+			int32 IncomingStartPos		= Reader.GetPosBits();
+			uint8 bControl				= Reader.ReadBit();
+			Bunch.PacketId				= PacketId;
+			Bunch.bOpen					= bControl ? Reader.ReadBit() : 0;
+			Bunch.bClose				= bControl ? Reader.ReadBit() : 0;
+			Bunch.bDormant				= Bunch.bClose ? Reader.ReadBit() : 0;
+			Bunch.bReliable				= Reader.ReadBit();
+			Bunch.ChIndex				= Reader.ReadInt( MAX_CHANNELS );
+			Bunch.bHasGUIDs				= Reader.ReadBit();
+			Bunch.bHasMustBeMappedGUIDs	= Reader.ReadBit();
+			Bunch.bPartial				= Reader.ReadBit();
 
 			if ( Bunch.bReliable )
 			{
@@ -883,7 +885,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Received: %s"), *Bunch.ToString());
 			}
 
-			int32 HeaderPos      = Reader.GetPosBits();
+			const int32 HeaderPos = Reader.GetPosBits();
+
 			if( Reader.IsError() )
 			{
 				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch header overflowed" ) );
@@ -1187,6 +1190,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteBit( Bunch.bReliable );
 	Header.WriteIntWrapped(Bunch.ChIndex, MAX_CHANNELS);
 	Header.WriteBit( Bunch.bHasGUIDs );
+	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
 	if (Bunch.bReliable || Bunch.bPartial)
 	{
@@ -1502,7 +1506,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		if (LevelStreaming != NULL)
 		{
 			const ULevel* Level = LevelStreaming->GetLoadedLevel();
-			if ( Level != NULL && Level->bIsVisible )
+			if ( Level != NULL && Level->bIsVisible && !Level->bClientOnlyVisible )
 			{
 				// Remap packagename for PIE networking before sending out to server
 				FName PackageName = Level->GetOutermost()->GetFName();
@@ -1653,11 +1657,6 @@ bool UNetConnection::ActorIsAvailableOnClient(const AActor* ThisActor)
 void UNetConnection::ResetGameWorldState()
 {
 	//Clear out references and do whatever else so that nothing holds onto references that it doesn't need to.
-	if (PackageMap)
-	{
-		PackageMap->ClearClassNetCache();	// Clear the cache net: it will recreate itself after seamless travel
-	}
-
 	DestroyedStartupOrDormantActors.Empty();
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
@@ -1809,9 +1808,9 @@ bool UNetConnection::TrackLogsPerSecond()
 	LogCallCount++;
 
 	static const double LOG_AVG_THRESHOLD				= 0.5;		// Frequency to check threshold
-	static const double	MAX_LOGS_PER_SECOND_INSTANT		= 30;		// If they hit this limit, they will instantly get disconnected
+	static const double	MAX_LOGS_PER_SECOND_INSTANT		= 60;		// If they hit this limit, they will instantly get disconnected
 	static const double	MAX_LOGS_PER_SECOND_SUSTAINED	= 5;		// If they sustain this logs/second for a certain count, they get disconnected
-	static const double	MAX_SUSTAINED_COUNT				= 5;		// If they sustain MAX_LOGS_PER_SECOND_SUSTAINED for this count, they get disconnected
+	static const double	MAX_SUSTAINED_COUNT				= 10;		// If they sustain MAX_LOGS_PER_SECOND_SUSTAINED for this count, they get disconnected (5 seconds currently)
 
 	if ( LogCallTotalTime > LOG_AVG_THRESHOLD )
 	{

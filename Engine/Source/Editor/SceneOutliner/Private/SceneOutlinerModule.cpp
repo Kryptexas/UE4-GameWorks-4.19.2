@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SceneOutlinerModule.cpp: Implements the FSceneOutlinerModule class.
-=============================================================================*/
-
 #include "SceneOutlinerPrivatePCH.h"
 #include "SceneOutlinerTreeItems.h"
 #include "ModuleManager.h"
@@ -33,6 +29,7 @@ TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FS
 	auto OnItemPicked = FOnSceneOutlinerItemPicked::CreateStatic( &SceneOutliner::OnSceneOutlinerItemClicked, OnActorPickedDelegate );
 	return CreateSceneOutliner(InitOptions, OnItemPicked);
 }
+
 
 TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const
 {

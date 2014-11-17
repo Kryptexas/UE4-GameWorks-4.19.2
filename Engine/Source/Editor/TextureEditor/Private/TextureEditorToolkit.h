@@ -39,10 +39,10 @@ public:
 
 	// Begin FAssetEditorToolkit interface
 
-	virtual void RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) OVERRIDE;
-	virtual void UnregisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) OVERRIDE;
+	virtual void RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) override;
+	virtual void UnregisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) override;
 
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Engine/Content/Types/Textures/Properties/Interface"));
 	}
@@ -53,21 +53,21 @@ public:
 
 	// Begin ITextureEditorToolkit interface
 
-	virtual void CalculateTextureDimensions( uint32& Width, uint32& Height ) const OVERRIDE;
+	virtual void CalculateTextureDimensions( uint32& Width, uint32& Height ) const override;
 
-	virtual ESimpleElementBlendMode GetColourChannelBlendMode( ) const OVERRIDE;
+	virtual ESimpleElementBlendMode GetColourChannelBlendMode( ) const override;
 
-	virtual int32 GetMipLevel( ) const OVERRIDE
+	virtual int32 GetMipLevel( ) const override
 	{
 		return GetUseSpecifiedMip() ? SpecifiedMipLevel : 0;
 	}
 
-	virtual UTexture* GetTexture( ) const OVERRIDE
+	virtual UTexture* GetTexture( ) const override
 	{
 		return Texture;
 	}
 
-	virtual void PopulateQuickInfo( ) OVERRIDE;
+	virtual void PopulateQuickInfo( ) override;
 	
 	// End ITextureEditorToolkit interface
 
@@ -75,28 +75,28 @@ public:
 
 	// Begin IToolkit interface
 
-	virtual FText GetBaseToolkitName( ) const OVERRIDE;
+	virtual FText GetBaseToolkitName( ) const override;
 
-	virtual FName GetToolkitFName( ) const OVERRIDE
+	virtual FName GetToolkitFName( ) const override
 	{
 		return FName("TextureEditor");
 	}
 
-	virtual FLinearColor GetWorldCentricTabColorScale( ) const OVERRIDE
+	virtual FLinearColor GetWorldCentricTabColorScale( ) const override
 	{
 		return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 	}
 
-	virtual bool GetUseSpecifiedMip( ) const OVERRIDE;
+	virtual bool GetUseSpecifiedMip( ) const override;
 
-	virtual FString GetWorldCentricTabPrefix( ) const OVERRIDE;
+	virtual FString GetWorldCentricTabPrefix( ) const override;
 
-	virtual double GetZoom( ) const OVERRIDE;
-	virtual void SetZoom( double ZoomValue ) OVERRIDE;
-	virtual void ZoomIn( ) OVERRIDE;
-	virtual void ZoomOut( ) OVERRIDE;
-	virtual bool GetFitToViewport( ) const OVERRIDE;
-	virtual void SetFitToViewport( const bool bFitToViewport ) OVERRIDE;
+	virtual double GetZoom( ) const override;
+	virtual void SetZoom( double ZoomValue ) override;
+	virtual void ZoomIn( ) override;
+	virtual void ZoomOut( ) override;
+	virtual bool GetFitToViewport( ) const override;
+	virtual void SetFitToViewport( const bool bFitToViewport ) override;
 
 	// End IToolkit interface
 
@@ -104,7 +104,7 @@ public:
 
 	// Begin FGCObject interface
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	// End FGCObject interface
 	
@@ -112,9 +112,9 @@ protected:
 
 	// Begin FEditorUndoClient interface
 
-	virtual void PostUndo(bool bSuccess) OVERRIDE { }
+	virtual void PostUndo(bool bSuccess) override { }
 
-	virtual void PostRedo(bool bSuccess) OVERRIDE
+	virtual void PostRedo(bool bSuccess) override
 	{
 		PostUndo(bSuccess);
 	}

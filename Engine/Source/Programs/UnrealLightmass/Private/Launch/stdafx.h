@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Scene.cpp: PCH master include file.
-=============================================================================*/
-
 #pragma once
 
 // basic stuff needed by everybody
 #pragma warning( disable: 4799 )		// function '...' has no EMMS instruction)
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 inline unsigned long long __rdtsc()
 {
 	unsigned long long Low, High;

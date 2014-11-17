@@ -165,7 +165,7 @@ class ENGINE_API FAudioDevice : public FExec
 public:
 
 	//Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) override;
 	//End FExec Interface
 
 #if !UE_BUILD_SHIPPING
@@ -261,10 +261,15 @@ public:
 	 */
 	void Flush( class UWorld* WorldToFlush, bool bClearActivatedReverb = true );
 
-#if WITH_EDITOR
-	/* Stop any playing sounds so that we can reimport a specific sound wave */
-	void StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart);
+	/**
+	 * Stop any playing sounds that are using a particular SoundWave
+	 *
+	 * @param SoundWave					Resource to stop any sounds that are using it
+	 * @param[out] StoppedComponents	List of Audio Components that were stopped
+	 */
+	void StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioComponent*>& StoppedComponents);
 
+#if WITH_EDITOR
 	/** Deals with anything audio related that should happen when PIE starts */
 	void OnBeginPIE(const bool bIsSimulating);
 
@@ -471,10 +476,16 @@ public:
 	 */
 	void DeactivateReverbEffect(FName TagName);
 
-	virtual FName GetRuntimeFormat() PURE_VIRTUAL(FAudioDevice::GetRuntimeFormat,return NAME_None;);
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) PURE_VIRTUAL(FAudioDevice::GetRuntimeFormat,return NAME_None;);
 
 	/** Whether this SoundWave has an associated info class to decompress it */
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) { return false; }
+
+	/** Whether this device supports realtime decompression of sound waves (i.e. DTYPE_RealTime) */
+	virtual bool SupportsRealtimeDecompression() const
+	{ 
+		return false;	// assume no support by default
+	}
 
 	/** Creates a Compressed audio info class suitable for decompressing this SoundWave */
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) { return NULL; }
@@ -721,7 +732,7 @@ public:
 	uint64 CurrentTick;
 
 	/** An AudioComponent to play test sounds on */
-	class UAudioComponent* TestAudioComponent;
+	TWeakObjectPtr<class UAudioComponent> TestAudioComponent;
 
 	/** The debug state of the audio device */
 	TEnumAsByte<enum EDebugState> DebugState;

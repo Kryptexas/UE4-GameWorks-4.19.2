@@ -30,36 +30,66 @@ UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-
-	SEditableText::FArguments Defaults;
-
-	return SNew(SEditableText)
-		.Text(Text)
-		//.Style(Style ? Style->TextBlockStyle : Defaults._Style)
-		.HintText(HintText)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
-		.ColorAndOpacity(ColorAndOpacity)
-		.IsReadOnly(IsReadOnly)
-		.IsPassword(IsPassword)
-		.MinDesiredWidth(MinimumDesiredWidth)
-		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
-		.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
-		.RevertTextOnEscape(RevertTextOnEscape)
-		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
-		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
-		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		;
-}
-
-#if WITH_EDITOR
-
-void UEditableText::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
 	
+	SEditableText::FArguments Defaults;
+	
+	const FEditableTextStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		StylePtr = Defaults._Style;
+	}
+	
+	MyEditableText = SNew(SEditableText)
+	.Style(StylePtr)
+	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.MinDesiredWidth(MinimumDesiredWidth)
+	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
+	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
+	.RevertTextOnEscape(RevertTextOnEscape)
+	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
+	.SelectAllTextOnCommit(SelectAllTextOnCommit)
+	.BackgroundImageSelected(BackgroundImageSelected ? TAttribute<const FSlateBrush*>(&BackgroundImageSelected->Brush) : TAttribute<const FSlateBrush*>())
+	.BackgroundImageSelectionTarget(BackgroundImageSelectionTarget ? TAttribute<const FSlateBrush*>(&BackgroundImageSelectionTarget->Brush) : TAttribute<const FSlateBrush*>())
+	.BackgroundImageComposing(BackgroundImageComposing ? TAttribute<const FSlateBrush*>(&BackgroundImageComposing->Brush) : TAttribute<const FSlateBrush*>())
+	.CaretImage(CaretImage ? TAttribute<const FSlateBrush*>(&CaretImage->Brush) : TAttribute<const FSlateBrush*>())
+	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
+	;
+	
+	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
 
-#endif
+void UEditableText::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyEditableText->SetText(Text);
+	MyEditableText->SetHintText(HintText);
+	MyEditableText->SetIsReadOnly(IsReadOnly);
+	MyEditableText->SetIsPassword(IsPassword);
+	MyEditableText->SetColorAndOpacity(ColorAndOpacity);
+
+	// TODO UMG Complete making all properties settable on SEditableText
+}
+
+FText UEditableText::GetText() const
+{
+	if ( MyEditableText.IsValid() )
+	{
+		return MyEditableText->GetText();
+	}
+
+	return Text;
+}
+
+void UEditableText::SetText(FText InText)
+{
+	Text = InText;
+	if ( MyEditableText.IsValid() )
+	{
+		MyEditableText->SetText(Text);
+	}
+}
 
 void UEditableText::HandleOnTextChanged(const FText& Text)
 {
@@ -70,6 +100,15 @@ void UEditableText::HandleOnTextCommitted(const FText& Text, ETextCommit::Type C
 {
 	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UEditableText::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.EditableText");
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 

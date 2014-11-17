@@ -18,6 +18,8 @@
 // Define that controls showing chart of distance factors for skel meshes during entire run of the game on exit.
 #define CHART_DISTANCE_FACTORS 0
 
+typedef uint16 FBoneIndexType;
+
 class FRawStaticIndexBuffer16or32Interface;
 
 /** 
@@ -111,18 +113,30 @@ struct FMeshBoneInfo
 {
 	// Bone's name.
 	FName Name;			
-	// 0/NULL if this is the root bone.  
+
+#if WITH_EDITORONLY_DATA
+	// Name used for export (this should be exact as FName may mess with case) 
+	FString ExportName;
+#endif
+
+	// 0/NULL if this is the root bone. 
 	int32 ParentIndex;	
 
 	FMeshBoneInfo() : Name(NAME_None), ParentIndex(INDEX_NONE) {}
 
-	FMeshBoneInfo(const FName & InName, int32 InParentIndex)
+	FMeshBoneInfo(const FName & InName, const FString& InExportName, int32 InParentIndex)
 	:	Name(InName)
+#if WITH_EDITORONLY_DATA
+	, ExportName(InExportName)
+#endif
 	,	ParentIndex(InParentIndex)
 	{}
 
 	FMeshBoneInfo(const FMeshBoneInfo & Other)
 		:	Name(Other.Name)
+#if WITH_EDITORONLY_DATA
+		, ExportName(Other.ExportName)
+#endif
 		,	ParentIndex(Other.ParentIndex)
 	{}
 
@@ -630,8 +644,12 @@ struct FApexClothCollisionVolumeData
 	*/
 
 	int32	BoneIndex;
+	// for convexes
 	uint32	ConvexVerticesCount;
 	uint32	ConvexVerticesStart;
+	TArray<FVector> BoneVertices;
+	TArray<FPlane>  BonePlanes;
+	// for capsules
 	float	CapsuleRadius;
 	float	CapsuleHeight;
 	FMatrix LocalPose;
@@ -644,9 +662,9 @@ struct FApexClothCollisionVolumeData
 		CapsuleRadius = 0.0f;
 		CapsuleHeight = 0.0f;
 		LocalPose.SetIdentity();
-	};
+	}
 
-	bool IsCapsule()
+	bool IsCapsule() const
 	{
 		return (ConvexVerticesCount == 0);
 	}
@@ -708,8 +726,8 @@ struct FSkelMeshChunk
 		, NumRigidVertices(0)
 		, NumSoftVertices(0)
 		, MaxBoneInfluences(4)
-		, CorrespondClothAssetIndex(-1)
-		, ClothAssetSubmeshIndex(-1)
+		, CorrespondClothAssetIndex(INDEX_NONE)
+		, ClothAssetSubmeshIndex(INDEX_NONE)
 	{}
 
 	FSkelMeshChunk(const FSkelMeshChunk& Other)
@@ -853,7 +871,8 @@ struct FSkelMeshSection
 	int16 CorrespondClothSectionIndex;
 
 	/** Decide whether enabling clothing LOD for this section or not, just using skelmesh LOD_0's one to decide */
-	uint8 bEnableClothLOD;
+	/** no need anymore because each clothing LOD will be assigned to each mesh LOD  */
+	uint8 bEnableClothLOD_DEPRECATED;
 
 	FSkelMeshSection()
 		: MaterialIndex(0)
@@ -864,7 +883,6 @@ struct FSkelMeshSection
 		, bSelected(false)
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
-		, bEnableClothLOD(true)
 	{}
 
 	// Serialization.
@@ -1158,7 +1176,7 @@ public:
 	/**
 	* Initialize the RHI resource for this vertex buffer
 	*/
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	* @return text description for the resource type
@@ -1525,7 +1543,7 @@ public:
 	/**
 	 * Initialize the RHI resource for this vertex buffer
 	 */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * @return text description for the resource type
@@ -1638,7 +1656,7 @@ public:
 	/**
 	 * Initialize the RHI resource for this vertex buffer
 	 */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * @return text description for the resource type
@@ -2129,12 +2147,12 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 #if WITH_EDITOR
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE;
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual bool CanBeOccluded() const override;
+	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 	
 	/**
 	* Draw only the section of the material ID given of the scene proxy as a dynamic element

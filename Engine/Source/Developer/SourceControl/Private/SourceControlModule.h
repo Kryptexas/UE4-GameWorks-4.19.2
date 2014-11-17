@@ -18,22 +18,22 @@ public:
 	FSourceControlModule();
 
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** ISourceControlModule implementation */
-	virtual void Tick() OVERRIDE;
-	virtual void QueueStatusUpdate(const TArray<UPackage*>& InPackages) OVERRIDE;
-	virtual void QueueStatusUpdate(const TArray<FString>& InFilenames) OVERRIDE;
-	virtual void QueueStatusUpdate(UPackage* InPackage) OVERRIDE;
-	virtual void QueueStatusUpdate(const FString& InFilename) OVERRIDE;
-	virtual bool IsEnabled() const OVERRIDE;
-	virtual ISourceControlProvider& GetProvider() const OVERRIDE;
-	virtual void SetProvider( const FName& InName ) OVERRIDE;
-	virtual void ShowLoginDialog(const FSourceControlLoginClosed& InOnSourceControlLoginClosed, ELoginWindowMode::Type InLoginWindowMode, EOnLoginWindowStartup::Type InOnLoginWindowStartup = EOnLoginWindowStartup::ResetProviderToNone) OVERRIDE;
-	virtual TSharedPtr<class SWidget> CreateStatusWidget() const OVERRIDE;
-	virtual bool GetUseGlobalSettings() const OVERRIDE;
-	virtual void SetUseGlobalSettings(bool bIsUseGlobalSettings) OVERRIDE;
+	virtual void Tick() override;
+	virtual void QueueStatusUpdate(const TArray<UPackage*>& InPackages) override;
+	virtual void QueueStatusUpdate(const TArray<FString>& InFilenames) override;
+	virtual void QueueStatusUpdate(UPackage* InPackage) override;
+	virtual void QueueStatusUpdate(const FString& InFilename) override;
+	virtual bool IsEnabled() const override;
+	virtual ISourceControlProvider& GetProvider() const override;
+	virtual void SetProvider( const FName& InName ) override;
+	virtual void ShowLoginDialog(const FSourceControlLoginClosed& InOnSourceControlLoginClosed, ELoginWindowMode::Type InLoginWindowMode, EOnLoginWindowStartup::Type InOnLoginWindowStartup = EOnLoginWindowStartup::ResetProviderToNone) override;
+	virtual TSharedPtr<class SWidget> CreateStatusWidget() const override;
+	virtual bool GetUseGlobalSettings() const override;
+	virtual void SetUseGlobalSettings(bool bIsUseGlobalSettings) override;
 
 	/** Save the settings to the ini file */
 	void SaveSettings();

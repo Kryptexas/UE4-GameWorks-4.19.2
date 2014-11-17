@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMCore.h: Some implementation of LMCore functionality
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LMCore.h"
 

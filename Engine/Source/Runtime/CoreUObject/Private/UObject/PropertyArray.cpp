@@ -88,7 +88,7 @@ void UArrayProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Inner;
-	checkSlow(Inner||HasAnyFlags(RF_ClassDefaultObject));
+	checkSlow(Inner || HasAnyFlags(RF_ClassDefaultObject | RF_PendingKill));
 }
 void UArrayProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -167,9 +167,10 @@ void UArrayProperty::ExportTextItem( FString& ValueStr, const void* PropertyValu
 		}
 
 		uint8* PropData = ArrayHelper.GetRawPtr(i);
-		uint8* PropDefault = (DefaultValue && DefaultArrayHelper.Num() > i)
-			? DefaultArrayHelper.GetRawPtr(i)
-			: StructDefaults;
+
+		// Always use struct defaults if the inner is a struct, for symmetry with the import of array inner struct defaults
+		uint8* PropDefault = ( StructProperty != NULL ) ? StructDefaults :
+			( ( DefaultValue && DefaultArrayHelper.Num() > i ) ? DefaultArrayHelper.GetRawPtr(i) : NULL );
 
 		// Do not re-export duplicate data from superclass when exporting to .int file
 		if ( (PortFlags & PPF_LocalizedOnly) != 0 && Inner->Identical(PropData, PropDefault) )
@@ -212,7 +213,11 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 
 	int32 Index = 0;
 
-	ArrayHelper.ExpandForIndex(0);
+	const bool bEmptyArray = *Buffer == TCHAR(')');
+	if (!bEmptyArray)
+	{
+		ArrayHelper.ExpandForIndex(0);
+	}
 	while ((Buffer != NULL) && (*Buffer != TCHAR(')')))
 	{
 		SkipWhitespace(Buffer);
@@ -244,6 +249,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	}
 
 	// Make sure we ended on a )
+	CA_SUPPRESS(6011)
 	if (*Buffer++ != TCHAR(')'))
 	{
 		return NULL;
@@ -345,10 +351,10 @@ bool UArrayProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UArrayProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UArrayProperty, Inner ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UArrayProperty, Inner), TEXT("Inner"));
 
 		// Ensure that TArray and FScriptArray are interchangeable, as FScriptArray will be used to access a native array property
 		// from script that is declared as a TArray in C++.
-		checkAtCompileTime(sizeof(FScriptArray) == sizeof(TArray<uint8>),FScriptArrayAndTArrayMustBeInterchangable);
+		static_assert(sizeof(FScriptArray) == sizeof(TArray<uint8>), "FScriptArray and TArray<uint8> must be interchangable.");
 	}
 );

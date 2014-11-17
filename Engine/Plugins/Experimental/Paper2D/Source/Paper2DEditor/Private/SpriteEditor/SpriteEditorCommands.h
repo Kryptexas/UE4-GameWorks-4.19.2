@@ -16,7 +16,7 @@ public:
 	}
 
 	// TCommand<> interface
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	// End of TCommand<> interface
 
 public:
@@ -30,9 +30,11 @@ public:
 
 	TSharedPtr<FUICommandInfo> SetShowNormals;
 	TSharedPtr<FUICommandInfo> SetShowPivot;
+	TSharedPtr<FUICommandInfo> SetShowMeshEdges;
 
 	// Editing modes
 	TSharedPtr<FUICommandInfo> EnterViewMode;
+	TSharedPtr<FUICommandInfo> EnterSourceRegionEditMode;
 	TSharedPtr<FUICommandInfo> EnterCollisionEditMode;
 	TSharedPtr<FUICommandInfo> EnterRenderingEditMode;
 	TSharedPtr<FUICommandInfo> EnterAddSpriteMode;

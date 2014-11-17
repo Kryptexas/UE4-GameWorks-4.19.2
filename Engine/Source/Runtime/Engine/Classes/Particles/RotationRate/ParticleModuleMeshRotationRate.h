@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/RotationRate/ParticleModuleRotationRateBase.h"
 #include "ParticleModuleMeshRotationRate.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Init Mesh Rotation Rate"))
@@ -17,14 +18,14 @@ class UParticleModuleMeshRotationRate : public UParticleModuleRotationRateBase
 	struct FRawDistributionVector StartRotationRate;
 
 	//Begin UObject Interface
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostInitProperties() override;
+	virtual void	Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
-	virtual bool	TouchesMeshRotation() const OVERRIDE { return true; }
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
+	virtual bool	TouchesMeshRotation() const override { return true; }
 	// End UParticleModule Interface
 
 	/**

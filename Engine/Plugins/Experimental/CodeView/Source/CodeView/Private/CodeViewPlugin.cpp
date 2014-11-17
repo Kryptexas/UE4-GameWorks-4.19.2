@@ -7,12 +7,12 @@ class FCodeViewPlugin : public IModuleInterface
 {
 public:
 	// IModuleInterface implementation
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		OnExtendActorDetails.AddRaw(this, &FCodeViewPlugin::AddCodeViewCategory);
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		OnExtendActorDetails.RemoveAll(this);
 	}

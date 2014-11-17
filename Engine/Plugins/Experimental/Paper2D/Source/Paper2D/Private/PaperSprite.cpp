@@ -7,146 +7,11 @@
 
 #if WITH_EDITORONLY_DATA
 
+#include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
-
-//////////////////////////////////////////////////////////////////////////
-// FTextureReader
-
-struct FTextureReader
-{
-	FTextureReader(UTexture2D* SourceTexture)
-		: Width(0)
-		, Height(0)
-		, BytesPerPixel(0)
-		, TransparentBlack(0,0,0,0)
-		, AlphaThreshold(0)
-		, X0(0)
-		, Y0(0)
-		, X1(0)
-		, Y1(0)
-	{
-		// use the source art if it exists
-		FTextureSource* TextureSource = NULL;
-		if ((SourceTexture != NULL) && SourceTexture->Source.IsValid())
-		{
-			switch (SourceTexture->Source.GetFormat())
-			{
-			case TSF_G8:
-			case TSF_BGRA8:
-				TextureSource = &(SourceTexture->Source);
-				break;
-			default:
-				break;
-			};
-		}
-
-		if (TextureSource != NULL)
-		{
-			TextureSource->GetMipData(RawData, 0);
-			Width = TextureSource->GetSizeX();
-			Height = TextureSource->GetSizeY();
-			BytesPerPixel = TextureSource->GetBytesPerPixel();
-			PixelFormat = TextureSource->GetFormat();
-
-			X0 = 0;
-			Y0 = 0;
-			X1 = Width-1;
-			Y1 = Height-1;
-		}
-	}
-
-	void SetBounds(int32 NewX0, int32 NewY0, int32 NewX1, int32 NewY1)
-	{
-		X0 = NewX0;
-		Y0 = NewY0;
-		X1 = NewX1;
-		Y1 = NewY1;
-	}
-
-	bool IsValid() const
-	{
-		return (Source != NULL);
-	}
-
-	FColor GetColor(int32 X, int32 Y) const
-	{
-		if ((X < 0) || (Y < 0) || (X >= Width) || (Y >= Height))
-		{
-			return TransparentBlack;
-		}
-
-		int32 PixelByteOffset = (X + Y * Width) * BytesPerPixel;
-		const uint8* PixelPtr = RawData.GetTypedData() + PixelByteOffset;
-
-		if (PixelFormat == TSF_BGRA8)
-		{
-			return *((FColor*)PixelPtr);
-		}
-		else
-		{
-			checkSlow(PixelFormat == TSF_G8);
-			const uint8 Intensity = *PixelPtr;
-			return FColor(Intensity, Intensity, Intensity, Intensity);
-		}
-	}
-
-	bool PixelPassesThreshold(int32 X, int32 Y) const
-	{
-		return GetColor(X, Y).A > AlphaThreshold;
-	}
-
-	bool PixelPassesThreshold(int32 X, int32 Y, bool bOutOfBoundsValue) const
-	{
-		if ((X < X0) || (Y < Y0) || (X > X1) || (Y >= Y1))
-		{
-			return bOutOfBoundsValue;
-		}
-		else
-		{
-			return GetColor(X, Y).A > AlphaThreshold;
-		}
-	}
-public:
-	FTextureSource* Source;
-	TArray<uint8> RawData;
-	int32 Width;
-	int32 Height;
-	int32 BytesPerPixel;
-	ETextureSourceFormat PixelFormat;
-	FColor TransparentBlack;
-	int32 AlphaThreshold;
-
-	// Bounds for the second form of PixelPassesThreshold
-	int32 X0;
-	int32 Y0;
-	int32 X1;
-	int32 Y1;
-};
-
-bool IsClearRow(FTextureReader& Reader, int32 X0, int32 X1, int32 Y)
-{
-	for (int32 X = X0; X <= X1; ++X)
-	{
-		if (Reader.PixelPassesThreshold(X, Y))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool IsClearColumn(FTextureReader& Reader, int32 X, int32 Y0, int32 Y1)
-{
-	for (int32 Y = Y0; Y <= Y1; ++Y)
-	{
-		if (Reader.PixelPassesThreshold(X, Y))
-		{
-			return false;
-		}
-	}
-	return true;
-}
+#include "BitmapUtils.h"
+#include "ComponentReregisterContext.h"
 
 //////////////////////////////////////////////////////////////////////////
 // maf
@@ -342,14 +207,36 @@ struct FBoundaryImage
 	}
 };
 
+void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePoint)
+{
+	FIntPoint SourceIntPoint(FMath::RoundToInt(SourcePoint.X), FMath::RoundToInt(SourcePoint.Y));
+	FIntPoint ClosestValidPoint;
+
+	FBitmap Bitmap(SourceTexture, 0, 0);
+	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ClosestValidPoint))
+	{
+		FIntPoint Origin;
+		FIntPoint Dimension;
+		if (Bitmap.HasConnectedRect(ClosestValidPoint.X, ClosestValidPoint.Y, false, /*out*/ Origin, /*out*/ Dimension))
+		{
+			if (Dimension.X > 0 && Dimension.Y > 0)
+			{
+				SourceUV = FVector2D(Origin.X, Origin.Y);
+				SourceDimension = FVector2D(Dimension.X, Dimension.Y);
+				PostEditChange();
+			}
+		}
+	}
+}
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 // FSpriteDrawCallRecord
 
-void FSpriteDrawCallRecord::BuildFromSprite(class UPaperSprite* Sprite)
+void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 {
-	if (Sprite != NULL)
+	if (Sprite != nullptr)
 	{
 		Destination = FVector::ZeroVector;
 		Texture = Sprite->GetBakedTexture();
@@ -373,6 +260,8 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
+
+	PixelsPerUnrealUnit = 2.56f;
 #endif
 
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
@@ -382,9 +271,17 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	//@TODO: Determine when these are really needed!
-	TComponentReregisterContext<UPaperRenderComponent> ReregisterStaticComponents;
-	TComponentReregisterContext<UPaperAnimatedRenderComponent> ReregisterAnimatedComponents;
+	if (PixelsPerUnrealUnit <= 0.0f)
+	{
+		PixelsPerUnrealUnit = 1.0f;
+	}
+
+	SourceDimension.X = FMath::Max(SourceDimension.X, 0.0f);
+	SourceDimension.Y = FMath::Max(SourceDimension.Y, 0.0f);
+
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
+	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
 
 	// Update the pivot
 	if (PivotMode != ESpritePivotMode::Custom)
@@ -401,7 +298,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	bool bBothModified = false;
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SpriteCollisionDomain)) ||
-		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup3D)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionGeometry)) )
 	{
 		bCollisionDataModified = true;
@@ -422,10 +319,20 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceUV)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceDimension)) ||
-		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceTexture)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, CustomPivotPoint)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, PivotMode)) )
 	{
+		bBothModified = true;
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceTexture))
+	{
+		// If this is a brand new sprite that didn't have a texture set previously, act like we were factoried with the texture
+		if ((SourceTexture != nullptr) && SourceDimension.IsNearlyZero())
+		{
+			SourceUV = FVector2D::ZeroVector;
+			SourceDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
+		}
 		bBothModified = true;
 	}
 
@@ -448,22 +355,28 @@ void UPaperSprite::RebuildCollisionData()
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
-		if (BodySetup3D == NULL)
+		BodySetup = nullptr;
+		if (BodySetup == nullptr)
 		{
-			BodySetup3D = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+			BodySetup = NewObject<UBodySetup>(this);
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup3D = NULL;
+		BodySetup = nullptr;
+		if (BodySetup == nullptr)
+		{
+			BodySetup = NewObject<UBodySetup2D>(this);
+		}
 		break;
 	case ESpriteCollisionMode::None:
-		BodySetup3D = NULL;
+		BodySetup = nullptr;
 		CollisionGeometry.Reset();
 		break;
 	}
 
 	if (SpriteCollisionDomain != ESpriteCollisionMode::None)
 	{
+		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		switch (CollisionGeometry.GeometryType)
 		{
 		case ESpritePolygonMode::SourceBoundingBox:
@@ -494,26 +407,29 @@ void UPaperSprite::BuildCustomCollisionData()
 	TArray<FVector2D> CollisionData;
 	Triangulate(CollisionGeometry, CollisionData);
 
-	// Adjust the collision data to be relative to the pivot
-	for (int32 PointIndex = 0; PointIndex < CollisionData.Num(); ++PointIndex)
+
+	// Adjust the collision data to be relative to the pivot and scaled from pixels to uu
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
+	for (FVector2D& Point : CollisionData)
 	{
-		FVector2D& Point = CollisionData[PointIndex];
-		Point = ConvertTextureSpaceToPivotSpace(Point);
+		Point = ConvertTextureSpaceToPivotSpace(Point) * UnitsPerPixel;
 	}
+
+	//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
+	//@TODO: Use this guy instead: DecomposeMeshToHulls
+	//@TODO: Merge triangles that are convex together!
 
 	// Bake it to the runtime structure
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
-			check(BodySetup3D);
+			checkSlow(BodySetup);
+			UBodySetup* BodySetup3D = BodySetup;
 			BodySetup3D->AggGeom.EmptyElements();
 
-			//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
-
 			const FVector HalfThicknessVector = PaperAxisZ * 0.5f * CollisionThickness;
-			//@TODO: Use this guy instead: DecomposeMeshToHulls
-			//@TODO: Merge triangles that are convex together!
+
 			int32 RunningIndex = 0;
 			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
 			{
@@ -523,7 +439,7 @@ void UPaperSprite::BuildCustomCollisionData()
 				{
 					const FVector2D& Pos2D = CollisionData[RunningIndex++];
 					
-					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.X);
+					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.Y);
 
 					new (ConvexTri.VertexData) FVector(Pos3D - HalfThicknessVector);
 					new (ConvexTri.VertexData) FVector(Pos3D + HalfThicknessVector);
@@ -536,6 +452,25 @@ void UPaperSprite::BuildCustomCollisionData()
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
+		{
+			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
+			BodySetup2D->AggGeom2D.EmptyElements();
+
+			int32 RunningIndex = 0;
+			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
+			{
+				FConvexElement2D& ConvexTri = *new (BodySetup2D->AggGeom2D.ConvexElements) FConvexElement2D();
+				ConvexTri.VertexData.Empty(3);
+				for (int32 Index = 0; Index < 3; ++Index)
+				{
+					const FVector2D& Pos2D = CollisionData[RunningIndex++];
+					new (ConvexTri.VertexData) FVector2D(Pos2D);
+				}
+			}
+
+			BodySetup2D->InvalidatePhysicsData();
+			BodySetup2D->CreatePhysicsMeshes();
+		}
 		break;
 	default:
 		check(false);
@@ -549,32 +484,62 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 	CreatePolygonFromBoundingBox(CollisionGeometry, bUseTightBounds);
 
 	// Bake it to the runtime structure
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
+
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
 			// Store the bounding box as an actual box for 3D physics
-			check(BodySetup3D);
+			checkSlow(BodySetup);
+			UBodySetup* BodySetup3D = BodySetup;
 			BodySetup3D->AggGeom.EmptyElements();
 
-			// Determine the box center in pivot space
-			const FVector2D& BoxSize2D = CollisionGeometry.Polygons[0].BoxSize;
+			// Determine the box size and center in pivot space
+			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
 			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2D * 0.5f);
+			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
+
+			// Convert from pixels to uu
+			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
 			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
 			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
-			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
+			Box.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y);
 
 			BodySetup3D->InvalidatePhysicsData();
 			BodySetup3D->CreatePhysicsMeshes();
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		//@TODO:!!!
+		{
+			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
+			BodySetup2D->AggGeom2D.EmptyElements();
+
+			// Determine the box center in pivot space
+			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
+			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
+			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
+			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
+
+			// Convert from pixels to uu
+			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
+
+			// Create a new box primitive
+			FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
+			Box.Width = FMath::Abs(BoxSize2D.X);
+			Box.Height = FMath::Abs(BoxSize2D.Y);
+			Box.Center.X = CenterInScaledSpace.X;
+			Box.Center.Y = CenterInScaledSpace.Y;
+
+			BodySetup2D->InvalidatePhysicsData();
+			BodySetup2D->CreatePhysicsMeshes();
+		}
 		break;
 	default:
 		check(false);
@@ -609,23 +574,35 @@ void UPaperSprite::RebuildRenderData()
 	TArray<FVector2D> TriangluatedPoints;
 	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
 
-	// Adjust for the pivot and store in the baked geometry buffer
+	// Determine the texture size
 	UTexture2D* EffectiveTexture = GetBakedTexture();
 
-	const float InverseWidth = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeX()) : 1.0f;
-	const float InverseHeight = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeY()) : 1.0f;
+	FVector2D TextureSize(1.0f, 1.0f);
+	if (EffectiveTexture)
+	{
+		EffectiveTexture->FinishCachePlatformData();
+		const int32 TextureWidth = EffectiveTexture->GetSizeX();
+		const int32 TextureHeight = EffectiveTexture->GetSizeY();
+		check((TextureWidth > 0) && (TextureHeight > 0));
+		TextureSize = FVector2D(TextureWidth, TextureHeight);
+	}
+	const float InverseWidth = 1.0f / TextureSize.X;
+	const float InverseHeight = 1.0f / TextureSize.Y;
 
+	// Adjust for the pivot and store in the baked geometry buffer
 	const FVector2D DeltaUV((BakedSourceTexture != nullptr) ? (BakedSourceUV - SourceUV) : FVector2D::ZeroVector);
 
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
 	{
 		const FVector2D& SourcePos = TriangluatedPoints[PointIndex];
+
 		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(SourcePos);
 		const FVector2D UV(SourcePos + DeltaUV);
 
-		new (BakedRenderData) FVector4(PivotSpacePos.X, PivotSpacePos.Y, UV.X * InverseWidth, UV.Y * InverseHeight);
+		new (BakedRenderData) FVector4(PivotSpacePos.X * UnitsPerPixel, PivotSpacePos.Y * UnitsPerPixel, UV.X * InverseWidth, UV.Y * InverseHeight);
 	}
 	check((BakedRenderData.Num() % 3) == 0);
 }
@@ -640,37 +617,36 @@ void UPaperSprite::FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2
 	int32 BottomBound = (int32)(SourceUV.Y + SourceDimension.Y - 1);
 
 
-	FTextureReader Reader(SourceTexture);
-	if (Reader.IsValid())
+	int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+	FBitmap SourceBitmap(SourceTexture, AlphaThresholdInt);
+	if (SourceBitmap.IsValid())
 	{
-		Reader.AlphaThreshold = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
-
 		// Make sure the initial bounds starts in the texture
-		LeftBound = FMath::Clamp(LeftBound, 0, Reader.Width-1);
-		RightBound = FMath::Clamp(RightBound, 0, Reader.Width-1);
-		TopBound = FMath::Clamp(TopBound, 0, Reader.Height-1);
-		BottomBound = FMath::Clamp(BottomBound, 0, Reader.Height-1);
+		LeftBound = FMath::Clamp(LeftBound, 0, SourceBitmap.Width-1);
+		RightBound = FMath::Clamp(RightBound, 0, SourceBitmap.Width-1);
+		TopBound = FMath::Clamp(TopBound, 0, SourceBitmap.Height-1);
+		BottomBound = FMath::Clamp(BottomBound, 0, SourceBitmap.Height-1);
 
 		// Pull it in from the top
-		while ((TopBound < BottomBound) && IsClearRow(Reader, LeftBound, RightBound, TopBound))
+		while ((TopBound < BottomBound) && SourceBitmap.IsRowEmpty(LeftBound, RightBound, TopBound))
 		{
 			++TopBound;
 		}
 
 		// Pull it in from the bottom
-		while ((BottomBound > TopBound) && IsClearRow(Reader, LeftBound, RightBound, BottomBound))
+		while ((BottomBound > TopBound) && SourceBitmap.IsRowEmpty(LeftBound, RightBound, BottomBound))
 		{
 			--BottomBound;
 		}
 
 		// Pull it in from the left
-		while ((LeftBound < RightBound) && IsClearColumn(Reader, LeftBound, TopBound, BottomBound))
+		while ((LeftBound < RightBound) && SourceBitmap.IsColumnEmpty(LeftBound, TopBound, BottomBound))
 		{
 			++LeftBound;
 		}
 
 		// Pull it in from the right
-		while ((RightBound > LeftBound) && IsClearColumn(Reader, RightBound, TopBound, BottomBound))
+		while ((RightBound > LeftBound) && SourceBitmap.IsColumnEmpty(RightBound, TopBound, BottomBound))
 		{
 			--RightBound;
 		}
@@ -755,13 +731,11 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 		4, //from7
 	};
 
-	FTextureReader Reader(Texture);
-	if (Reader.IsValid())
+	int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+	FBitmap SourceBitmap(Texture, AlphaThresholdInt);
+	if (SourceBitmap.IsValid())
 	{
-		checkSlow((LeftBound >= 0) && (TopBound >= 0) && (RightBound < Reader.Width) && (BottomBound < Reader.Height));
-		Reader.SetBounds(LeftBound, TopBound, RightBound, BottomBound);
-
-		Reader.AlphaThreshold = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+		checkSlow((LeftBound >= 0) && (TopBound >= 0) && (RightBound < SourceBitmap.Width) && (BottomBound < SourceBitmap.Height));
 
 		// Create the 'output' boundary image
 		FBoundaryImage BoundaryImage(ScanPos, ScanSize);
@@ -773,7 +747,8 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 			for (int32 X = LeftBound - 1; X < RightBound + 2; ++X)
 			{
 				const bool bAlreadyTaggedAsBoundary = BoundaryImage.GetPixel(X, Y) > 0;
-				const bool bIsFilledPixel = Reader.PixelPassesThreshold(X, Y, false);
+				const bool bPixelInsideBounds = (X >= LeftBound && X <= RightBound && Y >= TopBound && Y <= BottomBound);
+				const bool bIsFilledPixel = bPixelInsideBounds && SourceBitmap.GetPixel(X, Y) != 0;
 
 				if (bInsideBoundary)
 				{
@@ -812,7 +787,8 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 							// Test pixel (clockwise from the current pixel)
 							const int32 CX = PX + NeighborX[NeighborPhase];
 							const int32 CY = PY + NeighborY[NeighborPhase];
-							const bool bTestPixelPasses = Reader.PixelPassesThreshold(CX, CY, false);
+							const bool bTestPixelInsideBounds = (CX >= LeftBound && CX <= RightBound && CY >= TopBound && CY <= BottomBound);
+							const bool bTestPixelPasses = bTestPixelInsideBounds && SourceBitmap.GetPixel(CX, CY) != 0;
 
 							UE_LOG(LogPaper2D, Log, TEXT("Outer P(%d,%d), C(%d,%d) Ph%d %s"),
 								PX, PY, CX, CY, NeighborPhase, bTestPixelPasses ? TEXT("[BORDER]") : TEXT("[]"));
@@ -917,7 +893,7 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 
 			// Attempt to triangulate this polygon
 			TArray<FClipSMTriangle> GeneratedTriangles;
-			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon))
+			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon, Source.bAvoidVertexMerging))
 			{
 				// Convert the triangles back to our 2D data structure
 				for (int32 TriangleIndex = 0; TriangleIndex < GeneratedTriangles.Num(); ++TriangleIndex)
@@ -933,26 +909,43 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 	}
 }
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture)
+void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects)
+{
+	FBitmap SpriteTextureBitmap(Texture, 0, 0);
+	SpriteTextureBitmap.ExtractRects(/*out*/ OutRects);
+}
+
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit)
 {
 	if (Texture != NULL)
 	{
 		const FVector2D Dimension(Texture->GetSizeX(), Texture->GetSizeY());
-		InitializeSprite(Texture, FVector2D::ZeroVector, Dimension);
+		InitializeSprite(Texture, FVector2D::ZeroVector, Dimension, InPixelsPerUnrealUnit);
 	}
 	else
 	{
-		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D(1.0f, 1.0f));
+		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D::ZeroVector, InPixelsPerUnrealUnit);
 	}
 }
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
+void UPaperSprite::InitializeSprite(UTexture2D* Texture)
 {
+	InitializeSprite(Texture, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
+}
+
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnrealUnit)
+{
+	PixelsPerUnrealUnit = InPixelsPerUnrealUnit;
 	SourceTexture = Texture;
 	SourceUV = Offset;
 	SourceDimension = Dimension;
 	RebuildCollisionData();
 	RebuildRenderData();
+}
+
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
+{
+	InitializeSprite(Texture, Offset, Dimension, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 }
 
 FVector2D UPaperSprite::ConvertTextureSpaceToPivotSpace(FVector2D Input) const
@@ -997,22 +990,30 @@ FVector UPaperSprite::ConvertPivotSpaceToTextureSpace(FVector Input) const
 
 FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
 {
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-	return (PaperAxisX * SourcePoint.X) + (PaperAxisY * (SourceDims.Y - SourcePoint.Y));
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
+
+	const FVector2D SourcePointInUU = SourcePoint * UnitsPerPixel;
+
+	const FVector2D SourceDimsInPixels = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+	const FVector2D SourceDimsInUU = SourceDimsInPixels * UnitsPerPixel;
+
+	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * (SourceDimsInUU.Y - SourcePointInUU.Y));
 }
 
-// FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector& SourcePoint) const
-// {
-// 	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-// 	return FVector(SourcePoint.X, SourcePoint.Y, SourceDims.Y - SourcePoint.Z);
-// }
+FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const
+{
+	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+	const FVector ProjectionX = WorldPoint.ProjectOnTo(PaperAxisX);
+	const FVector ProjectionY = WorldPoint.ProjectOnTo(PaperAxisY);
+	return FVector2D(FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size(), SourceDims.Y - FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size());		
+}
 
 FTransform UPaperSprite::GetPivotToWorld() const
 {
 	const FVector2D Pivot = GetPivotPosition();
 	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 
-	const FVector Translation((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY));
+	const FVector Translation(((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY)) * GetUnrealUnitsPerPixel());
 	return FTransform(Translation);
 }
 
@@ -1083,8 +1084,8 @@ FBoxSphereBounds UPaperSprite::GetRenderBounds() const
 	
 	// Make the whole thing a single unit 'deep'
 	const FVector HalfThicknessVector = 0.5f * PaperAxisZ;
-	BoundingBox.Min -= HalfThicknessVector;
-	BoundingBox.Max += HalfThicknessVector;
+	BoundingBox += -HalfThicknessVector;
+	BoundingBox += HalfThicknessVector;
 
 	return FBoxSphereBounds(BoundingBox);
 }
@@ -1125,9 +1126,35 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::FixedNegativeVolume)
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	bool bRebuildCollision = false;
+	bool bRebuildRenderData = false;
+
+	if (PaperVer < FPaperCustomVersion::AddTransactionalToClasses)
+	{
+		SetFlags(RF_Transactional);
+	}
+
+	if (PaperVer < FPaperCustomVersion::AddPixelsPerUnrealUnit)
+	{
+		PixelsPerUnrealUnit = 1.0f;
+		bRebuildCollision = true;
+		bRebuildRenderData = true;
+	}
+	else if (PaperVer < FPaperCustomVersion::FixTypoIn3DConvexHullCollisionGeneration)
+	{
+		bRebuildCollision = true;
+	}
+
+	if (bRebuildCollision)
 	{
 		RebuildCollisionData();
+	}
+
+	if (bRebuildRenderData)
+	{
+		RebuildRenderData();
 	}
 #endif
 }

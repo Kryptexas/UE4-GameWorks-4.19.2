@@ -111,6 +111,11 @@ IOnlinePresencePtr FOnlineSubsystemFacebook::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlinePartyPtr FOnlineSubsystemFacebook::GetPartyInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemFacebook::Init() 
 {
 	bool bSuccessfullyStartedUp = true;

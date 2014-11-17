@@ -16,9 +16,9 @@ public:
 	 *
 	 *	@return	bool				true if successful, false if not
 	 */
-	virtual bool ParseCrashDump(const FString& InCrashDumpName, FCrashDebugInfo& OutCrashDebugInfo) OVERRIDE;
+	virtual bool ParseCrashDump(const FString& InCrashDumpName, FCrashDebugInfo& OutCrashDebugInfo) override;
 
-	virtual bool SyncAndDebugCrashDump(const FString& InCrashDumpName) OVERRIDE;
+	virtual bool SyncAndDebugCrashDump(const FString& InCrashDumpName) override;
 
 	/**
 	 *	Parse the given crash dump, and generate a report. 
@@ -27,7 +27,7 @@ public:
 	 *
 	 *	@return	bool				true if successful, false if not
 	 */
-	virtual bool CreateMinidumpDiagnosticReport( const FString& InCrashDumpName ) OVERRIDE;
+	virtual bool CreateMinidumpDiagnosticReport( const FString& InCrashDumpName ) override;
 protected:
 	/**
 	 *	Process the given crash dump file

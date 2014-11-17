@@ -106,6 +106,10 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return bSupportsShaderTextureCubeLod; }
 	static FORCEINLINE bool SupportsCopyTextureLevels()					{ return bSupportsCopyTextureLevels; }
 
+	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
+	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
+
+
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
 	// is the slow path (they both hit GPU sync and data cache flush in driver according to profiling in driver symbols).
 	// Turning this to false reverts back to not using vertex and index buffers 
@@ -113,7 +117,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsFastBufferData()					{ return false; }
 
 	// ES 2 will not work with non-power of two textures with non-clamp mode
-	static FORCEINLINE bool HasSamplerRestrictions()					{ return true; }
+	static FORCEINLINE bool SupportsTextureNPOT()						{ return bSupportsTextureNPOT; }
 
 	// Optional
 	static FORCEINLINE void BeginQuery(GLenum QueryType, GLuint QueryId)
@@ -415,8 +419,19 @@ protected:
 	/** GL_APPLE_copy_texture_levels */
 	static bool bSupportsCopyTextureLevels;
 
+	/** GL_OES_texture_npot */
+	static bool bSupportsTextureNPOT;
+
 	/** GL_EXT_texture_storage */
 	static bool bSupportsTextureStorageEXT;
+
+public:
+	/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */
+	static bool bRequiresDontEmitPrecisionForTextureSamplers;
+
+	/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
+	static bool bRequiresTextureCubeLodEXTToTextureCubeLodDefine;
+
 };
 
 

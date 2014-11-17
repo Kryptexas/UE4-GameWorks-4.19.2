@@ -4,6 +4,7 @@
 #include "ScopedTransaction.h"
 #include "SGraphEditorActionMenu_BehaviorTree.h"
 #include "BlueprintNodeHelpers.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
@@ -41,7 +42,7 @@ void UBehaviorTreeGraphNode::AllocateDefaultPins()
 
 void UBehaviorTreeGraphNode::PostPlacedNewNode()
 {
-	UClass* NodeClass = ClassData.GetClass();
+	UClass* NodeClass = ClassData.GetClass(true);
 	if (NodeClass)
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
@@ -72,6 +73,7 @@ void UBehaviorTreeGraphNode::PrepareForCopying()
 		NodeInstance->Rename(NULL, this, REN_DontCreateRedirectors | REN_DoNotDirty );
 	}
 }
+#if WITH_EDITOR
 
 void UBehaviorTreeGraphNode::PostEditImport()
 {
@@ -85,6 +87,13 @@ void UBehaviorTreeGraphNode::PostEditImport()
 		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
 	}
 }
+
+void UBehaviorTreeGraphNode::PostEditUndo()
+{
+	ResetNodeOwner();
+}
+
+#endif
 
 void UBehaviorTreeGraphNode::PostCopyNode()
 {
@@ -107,12 +116,17 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 		return Node->GetStaticDescription();
 	}
 
-	return FString();
+	FString StoredClassName = ClassData.GetClassName();
+	StoredClassName.RemoveFromEnd(TEXT("_C"));
+
+	return FString::Printf(TEXT("%s: %s"), *StoredClassName,
+		*LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString());
 }
 
 FString UBehaviorTreeGraphNode::GetTooltip() const
 {
-	FString TooltipDesc = bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
+	FString TooltipDesc = !NodeInstance ? LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString() :
+		bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
 		(DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : ErrorMessage;
 
 	if (bInjectedNode)
@@ -387,7 +401,39 @@ void UBehaviorTreeGraphNode::ClearDebuggerState()
 
 FName UBehaviorTreeGraphNode::GetNameIcon() const
 {
-	return FName("BTEditor.Graph.BTNode.Icon");
+	UBTNode* BTNodeInstance = Cast<UBTNode>(NodeInstance);
+	return BTNodeInstance != nullptr ? BTNodeInstance->GetNodeIconName() : FName("BTEditor.Graph.BTNode.Icon");
 }
+
+bool UBehaviorTreeGraphNode::UsesBlueprint() const
+{
+	UBTNode* BTNodeInstance = Cast<UBTNode>(NodeInstance);
+	return BTNodeInstance != nullptr ? BTNodeInstance->UsesBlueprint() : false;
+}
+
+bool UBehaviorTreeGraphNode::RefreshNodeClass()
+{
+	bool bUpdated = false;
+	if (NodeInstance == NULL)
+	{
+		if (FClassBrowseHelper::IsClassKnown(ClassData))
+		{
+			PostPlacedNewNode();
+			bUpdated = (NodeInstance != NULL);
+		}
+		else
+		{
+			FClassBrowseHelper::AddUnknownClass(ClassData);
+		}
+	}
+
+	return bUpdated;
+}
+
+bool UBehaviorTreeGraphNode::HasErrors() const
+{
+	return bHasObserverError || ErrorMessage.Len() > 0 || NodeInstance == NULL;
+}
+
 
 #undef LOCTEXT_NAMESPACE

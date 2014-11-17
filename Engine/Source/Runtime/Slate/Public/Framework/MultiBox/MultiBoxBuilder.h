@@ -157,7 +157,7 @@ public:
 	 */
 	void AddMenuEntry( const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, FName InExtensionHook = NAME_None, const EUserInterfaceActionType::Type UserInterfaceActionType = EUserInterfaceActionType::Button );
 
-	void AddMenuEntry( const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FName& InExtensionHook = NAME_None, const EUserInterfaceActionType::Type UserInterfaceActionType = EUserInterfaceActionType::Button );
+	void AddMenuEntry( const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FName& InExtensionHook = NAME_None, const TAttribute<FText>& InToolTip = TAttribute<FText>(), const EUserInterfaceActionType::Type UserInterfaceActionType = EUserInterfaceActionType::Button );
 
 protected:
 	/** True if clicking on a menu entry closes itself only and its children and not the entire stack */
@@ -233,8 +233,8 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
-	virtual void ApplySectionBeginning() OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
+	virtual void ApplySectionBeginning() override;
 
 public:
 	// These classes need access to the AddWrapperSubMenu() methods
@@ -302,7 +302,7 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
 };
 
 
@@ -402,8 +402,8 @@ public:
 
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
-	virtual void ApplySectionBeginning() OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
+	virtual void ApplySectionBeginning() override;
 
 private:
 	/** Current extension hook name for sections to determine where sections begin and end */
@@ -462,5 +462,5 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE {}
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override {}
 };

@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FCrashDebugHelperModule;
+
 /**
  * Helper that works with Windows Error Reports
  */
@@ -22,6 +24,20 @@ public:
 	explicit FGenericErrorReport(const FString& Directory);
 
 	/**
+	 * One-time initialisation: does nothing by default
+	 */
+	static void Init()
+	{
+	}
+
+	/**
+	 * One-time clean-up: does nothing by default
+	 */
+	static void ShutDown()
+	{
+	}
+
+	/**
 	 * Write the provided comment into the error report
 	 * @param UserComment Information provided by the user to add to the report
 	 * @return Whether the comment was successfully written to the report
@@ -38,16 +54,41 @@ public:
 	 * Load the WER XML file for this report
 	 * @note This is Windows specific and so shouldn't really be part of the public interface, but currently the server
 	 * is Windows-specific in its checking of reports, so this is needed.
-	 * @param OutBuffer Buffer to load the file into
+	 * @param OutString String to load the file into
 	 * @return Whether finding and loading the file succeeded
 	 */
-	bool LoadWindowsReportXmlFile(TArray<uint8>& OutBuffer) const;
+	bool LoadWindowsReportXmlFile( FString& OutString ) const;
 
 	/**
 	 * @param Description (exception and callstack) to fill in if succesful
 	 * @return Whether the file was found and succesfully read
 	 */
 	bool TryReadDiagnosticsFile(FText& OutReportDescription);
+
+	/**
+	 * Provide the full path of the error report directory
+	 */
+	FString GetReportDirectory() const
+	{
+		return ReportDirectory;
+	}
+
+	/**
+	 * Provide the name of the error report directory
+	 */
+	FString GetReportDirectoryLeafName() const
+	{
+		// Using GetCleanFilename to actually get directory name
+		return FPaths::GetCleanFilename(ReportDirectory);
+	}
+
+	/**
+	 * Is there anything to upload?
+	 */
+	bool HasFilesToUpload() const
+	{
+		return ReportFilenames.Num() != 0;
+	}
 
 protected:
 	/**
@@ -59,6 +100,7 @@ protected:
 	/** Full path to the directory the report files are in */
 	FString ReportDirectory;
 
+private:
 	/** List of leaf filenames of all the files in the report folder */
 	TArray<FString> ReportFilenames;
 };

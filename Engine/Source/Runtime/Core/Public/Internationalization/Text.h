@@ -41,6 +41,7 @@ namespace EDateTimeStyle
 		Medium,
 		Long,
 		Full
+		// Add new enum types at the end only! They are serialized by index.
 	};
 }
 
@@ -53,6 +54,7 @@ namespace EFormatArgumentType
 		Float,
 		Double,
 		Text
+		// Add new enum types at the end only! They are serialized by index.
 	};
 }
 
@@ -78,6 +80,9 @@ enum ERoundingMode
 	ToNegativeInfinity,
 	/** Rounds to the value which is more positive: 0.1 becomes 1, -0.1 becomes 0 */
 	ToPositiveInfinity,
+
+
+	// Add new enum types at the end only! They are serialized by index.
 };
 
 struct CORE_API FNumberFormattingOptions
@@ -90,6 +95,8 @@ struct CORE_API FNumberFormattingOptions
 	int32 MaximumIntegralDigits;
 	int32 MinimumFractionalDigits;
 	int32 MaximumFractionalDigits;
+
+	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
 };
 
 class FCulture;
@@ -108,55 +115,59 @@ public:
 
 	FText();
 	FText( const FText& Source );
+	FText(FText&& Source);
+
+	FText& operator=(const FText& Source);
+	FText& operator=(FText&& Source);
 
 	/**
 	 * Generate an FText that represents the passed number in the current culture
 	 */
-	static FText AsNumber(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(int8 Val,		const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(int16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(int32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(int64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(uint8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(uint16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(uint32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(uint64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsNumber(long Val,		const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
+	static FText AsNumber(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(int8 Val,		const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(int16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(int32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(int64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(uint8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(uint16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(uint32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(uint64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsNumber(long Val,		const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
 	/**
 	 * Generate an FText that represents the passed number as currency in the current culture
 	 */
-	static FText AsCurrency(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(int8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(int16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(int32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(int64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(uint8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(uint16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(uint32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(uint64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsCurrency(long Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
+	static FText AsCurrency(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(int8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(int16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(int32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(int64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(uint8 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(uint16 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(uint32 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(uint64 Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsCurrency(long Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
 	/**
 	 * Generate an FText that represents the passed number as a percentage in the current culture
 	 */
-	static FText AsPercent(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsPercent(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
+	static FText AsPercent(float Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsPercent(double Val,	const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
 	/**
 	 * Generate an FText that represents the passed number as a date and/or time in the current culture
 	 */
-	static FText AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	static FText AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const TSharedPtr<FCulture>& TargetCulture = NULL);
+	static FText AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	static FText AsTimespan(const FTimespan& Time, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
 	/**
 	 * Generate an FText that represents the passed number as a memory size in the current culture
 	 */
-	static FText AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
+	static FText AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
 	/**
 	 * Attempts to find an existing FText using the representation found in the loc tables for the specified namespace and key
@@ -175,6 +186,9 @@ public:
 	static FText FromString( FString String );
 
 	const FString& ToString() const;
+
+	/** Deep build of the source string for this FText, climbing the history hierarchy */
+	FString BuildSourceString() const;
 
 	bool IsNumeric() const
 	{
@@ -221,7 +235,13 @@ public:
 	 */
 	static FText TrimPrecedingAndTrailing( const FText& );
 
+	/**
+	 * Check to see if the given character is considered whitespace by the current culture
+	 */
+	static bool IsWhitespace( const TCHAR Char );
+
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
+
 	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
 	static FText Format(const FText& Pattern, const FFormatOrderedArguments& Arguments);
 	static FText Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments);
@@ -265,21 +285,36 @@ private:
 	 */
 	static FText CreateChronologicalText(FString InSourceString);
 
-private:
-	template<typename T1, typename T2>
-	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	template<typename T1, typename T2>
-	static FText AsCurrencyTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
-	template<typename T1, typename T2>
-	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
+	/** Returns the source string of the FText */
+	TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;
+
+	/** Rebuilds the FText under the current culture if needed */
+	void Rebuild() const;
+
+	static FText FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
 
 private:
+	template<typename T1, typename T2>
+	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	template<typename T1, typename T2>
+	static FText AsCurrencyTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
+	template<typename T1, typename T2>
+	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
 
-	TSharedPtr<FString> SourceString;
-	TSharedRef<FString> DisplayString;
-	TSharedPtr<FString> Namespace;
-	TSharedPtr<FString> Key;
+private:
+	/** The visible display string for this FText */
+	TSharedRef<FString, ESPMode::ThreadSafe> DisplayString;
+
+	/** The FText's history, to allow it to rebuild under a new culture */
+	TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> History;
+
+	/** Flags with various information on what sort of FText this is */
 	int32 Flags;
+
+	/** Revision index of this FText, rebuilds when it is out of sync with the FTextLocalizationManager */
+	mutable int32 Revision;
 
 	static bool bEnableErrorCheckingResults;
 	static bool bSuppressWarnings;
@@ -302,6 +337,9 @@ public:
 	friend class UGatherTextFromAssetsCommandlet;
 	friend class UEdGraphSchema;
 	friend class UEdGraphSchema_K2;
+	friend class FTextHistory_NamedFormat;
+	friend class FTextHistory_ArgumentDataFormat;
+	friend class FTextHistory_OrderedFormat;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -324,29 +362,37 @@ public:
 
 struct CORE_API FFormatArgumentValue
 {
-	const EFormatArgumentType::Type Type;
+	EFormatArgumentType::Type Type;
 	union
 	{
-		int IntValue;
-		unsigned int UIntValue;
+		int64 IntValue;
+		uint64 UIntValue;
 		float FloatValue;
 		double DoubleValue;
 		FText* TextValue;
 	};
 
+	FFormatArgumentValue();
+
 	FFormatArgumentValue(const int Value);
 	FFormatArgumentValue(const unsigned int Value);
+	FFormatArgumentValue(const int64 Value);
+	FFormatArgumentValue(const uint64 Value);
 	FFormatArgumentValue(const float Value);
 	FFormatArgumentValue(const double Value);
 	FFormatArgumentValue(const FText& Value);
 	FFormatArgumentValue(const FFormatArgumentValue& Source);
 	~FFormatArgumentValue();
+
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value );
 };
 
 struct FFormatArgumentData
 {
 	FText ArgumentName;
 	FText ArgumentValue;
+
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value );
 };
 
 class CORE_API FTextBuilder

@@ -35,7 +35,7 @@ public:
 		: Socket(InSocket)
 		, ReceiveDelegate(InReceiveDelegate)
 	{
-		Thread = FRunnableThread::Create(this,TEXT("FMultichannelTCPReceiver"), true, true, 8 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, TEXT("FMultichannelTCPReceiver"), 8 * 1024, TPri_AboveNormal);
 	}
 
 	/**
@@ -43,11 +43,11 @@ public:
 	 */
 	~FMultichannelTcpReceiver()
 	{
-		Thread->Kill(true);
-		delete Thread;
-
-		Socket = NULL;
-		Thread = NULL;
+		if (Thread)
+		{
+			Thread->Kill(true);
+			delete Thread;
+		}
 	}
 
 

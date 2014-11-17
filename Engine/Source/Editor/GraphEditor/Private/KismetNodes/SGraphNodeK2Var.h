@@ -15,7 +15,7 @@ public:
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const;
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
+	virtual void UpdateGraphNode() override;
 	// End of SGraphNode interface
 
 protected:

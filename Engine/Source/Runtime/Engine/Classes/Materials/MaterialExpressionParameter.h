@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
@@ -22,10 +23,15 @@ class UMaterialExpressionParameter : public UMaterialExpression
 	FName Group;
 
 	// Begin UMaterialExpression Interface
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
+#if WITH_EDITOR
+	virtual bool CanRenameNode() const override { return true; }
+	virtual FString GetEditableName() const override;
+	virtual void SetEditableName(const FString& NewName) override;
+#endif
 	// End UMaterialExpression Interface
 
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}

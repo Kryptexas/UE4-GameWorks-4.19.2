@@ -4,6 +4,7 @@
 #define __ComponentVisualizersPrivatePCH_h__
 
 #include "UnrealEd.h"
+#include "Slate.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 
 #endif // __ComponentVisualizersPrivatePCH_h__

@@ -18,6 +18,18 @@
 FString GSavedCommandLine;
 FLaunchDaemonMessageHandler GCommandSystem;
 
+void FAppEntry::Suspend()
+{
+}
+
+void FAppEntry::Resume()
+{
+}
+
+void FAppEntry::SuspendTick()
+{
+}
+
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 {
 	Application.idleTimerDisabled = YES;
@@ -124,7 +136,7 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += ANSI_TO_TCHAR(argv[Option]);
 	}
 
-	FIOSCommandLineHelper::InitCommandArgs(FString());
+	FIOSCommandLineHelper::InitCommandArgs(TEXT("-messaging"));
 
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([IOSAppDelegate class]));

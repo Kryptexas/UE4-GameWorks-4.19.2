@@ -17,17 +17,6 @@ public:
 
 public:
 
-	// Begin FImageWrapper Interface
-
-	virtual void Compress( int32 Quality ) OVERRIDE;
-
-	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) OVERRIDE;
-	
-	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) OVERRIDE;
-
-	// End FImageWrapper Interface
-
-
 	/** Helper function used to uncompress BMP data from a buffer */
 	void UncompressBMPData( const ERGBFormat::Type InFormat, const int32 InBitDepth );
 
@@ -45,7 +34,16 @@ public:
 	 */
 	bool LoadBMPInfoHeader();
 
+public:
+
+	// FImageWrapper Interface
+
+	virtual void Compress( int32 Quality ) override;
+	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
+	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
+
 private:
+
 	/** Whether this file has a BMP file header */
 	bool bHasHeader;
 

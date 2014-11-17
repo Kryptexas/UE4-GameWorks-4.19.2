@@ -48,6 +48,12 @@ void FManifestUpdateHelper::WriteError(FText NewError)
 	UE_LOG(LogInit, Warning, TEXT("Error during platform manifest modification: %s"), *NewError.ToString());
 }
 
+bool FManifestUpdateHelper::HasKey(const FString& MatchPrefix)
+{
+	const int32 PrefixPos = ManifestString.Find(MatchPrefix, ESearchCase::CaseSensitive);
+	return (PrefixPos != INDEX_NONE);
+}
+
 void FManifestUpdateHelper::ReplaceKey(const FString& MatchPrefix, const FString& MatchSuffix, const FString& NewInfix)
 {
 	if (ReplaceStringPortion(ManifestString, MatchPrefix, MatchSuffix, NewInfix))

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "GameFramework/PhysicsVolume.h"
 
 APhysicsVolume::APhysicsVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -10,7 +11,7 @@ APhysicsVolume::APhysicsVolume(const class FPostConstructInitializeProperties& P
 	BrushComponent->SetCollisionProfileName(CollisionProfileName);
 
 	FluidFriction = 0.3f;
-	TerminalVelocity = 4000.0f;
+	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
 	bAlwaysRelevant = true;
 	NetUpdateFrequency = 0.1f;
 	bReplicateMovement = false;

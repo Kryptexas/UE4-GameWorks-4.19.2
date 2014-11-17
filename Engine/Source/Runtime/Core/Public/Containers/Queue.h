@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Queue.h: Declares the TQueue class template.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,14 +10,10 @@ namespace EQueueMode
 	 */
 	enum Type
 	{
-		/**
-		 * Multiple-producers, single-consumer queue.
-		 */
+		/** Multiple-producers, single-consumer queue. */
 		Mpsc,
 
-		/**
-		 * Single-producer, single-consumer queue.
-		 */
+		/** Single-producer, single-consumer queue. */
 		Spsc
 	};
 }
@@ -38,10 +30,9 @@ namespace EQueueMode
  * writing it in a way that does not depend on possible instruction reordering on the CPU.
  * The Enqueue() method uses an atomic compare-and-swap in multiple-producers scenarios.
  *
- * @param ItemType - The type of items stored in the queue.
- * @param Mode - The queue mode (single-producer, single-consumer by default).
- *
- * @todo gmp: Implement node pooling.
+ * @param ItemType The type of items stored in the queue.
+ * @param Mode The queue mode (single-producer, single-consumer by default).
+  * @todo gmp: Implement node pooling.
  */
 template<typename ItemType, EQueueMode::Type Mode = EQueueMode::Spsc>
 class TQueue
@@ -75,8 +66,7 @@ public:
 	/**
 	 * Removes and returns the item from the tail of the queue.
 	 *
-	 * @param OutValue - Will hold the returned value.
-	 *
+	 * @param OutValue Will hold the returned value.
 	 * @return true if a value was returned, false if the queue was empty.
 	 */
 	bool Dequeue( ItemType& OutItem )
@@ -103,8 +93,7 @@ public:
 	/**
 	 * Adds an item to the head of the queue.
 	 *
-	 * @param Item - The item to add.
-	 *
+	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
 	 */
 	bool Enqueue( const ItemType& Item )
@@ -146,8 +135,7 @@ public:
 	/**
 	 * Peeks at the queue's tail item without removing it.
 	 *
-	 * @param OutItem - Will hold the peeked at item.
-	 *
+	 * @param OutItem Will hold the peeked at item.
 	 * @return true if an item was returned, false if the queue was empty.
 	 */
 	bool Peek( ItemType& OutItem )

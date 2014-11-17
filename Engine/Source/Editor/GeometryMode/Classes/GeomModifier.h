@@ -39,16 +39,16 @@ public:
 	const FText& GetModifierDescription() const;
 
 	/** @return		true if the key was handled by this editor mode tool. */
-	virtual bool InputKey(class FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
+	virtual bool InputKey(class FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
 
 	/** @return		true if the delta was handled by this editor mode tool. */
-	virtual bool InputDelta(class FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale);
+	virtual bool InputDelta(class FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale);
 
 	/*
 	 * Drawing functions to allow modifiers to have better control over the screen.
 	 */
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
 
 	/**
 	 * Applies the modifier.  Does nothing if the editor is not in geometry mode.
@@ -95,7 +95,7 @@ public:
 	 */
 	void StoreAllCurrentGeomSelections();
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) {}
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) {}
 
 	/**
 	 * Gives the modifier a chance to initialize it's internal state when activated.

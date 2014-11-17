@@ -133,7 +133,7 @@ public:
 	static FORCEINLINE bool SupportsVertexAttribBinding()				{ return false; }
 	static FORCEINLINE bool SupportsBufferStorage()						{ return false; }
 	static FORCEINLINE bool SupportsDepthBoundsTest()					{ return false; }
-	static FORCEINLINE bool HasSamplerRestrictions()					{ return false; }
+	static FORCEINLINE bool SupportsTextureNPOT()						{ return true; }
 	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval()			{ return false; }
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }

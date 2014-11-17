@@ -18,7 +18,7 @@ class UInterpTrackInstEvent : public UInterpTrackInst
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void InitTrackInst(UInterpTrack* Track) OVERRIDE;
+	virtual void InitTrackInst(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

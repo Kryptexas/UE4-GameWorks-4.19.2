@@ -2,10 +2,17 @@
 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
+	#include "PhysXSupport.h"
+	#include "../Vehicles/PhysXVehicleManager.h"
+	#include "PhysXSupport.h"
+#if WITH_VEHICLE
+	#include "../Vehicles/PhysXVehicleManager.h"
 #include "PhysXSupport.h"
 #include "../Vehicles/PhysXVehicleManager.h"
+#endif
 #endif
 
 #include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
@@ -16,6 +23,13 @@
 
 static int32 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
+
+// Cvars
+static TAutoConsoleVariable<float> CVarBounceThresholdVelocity(
+	TEXT("p.BounceThresholdVelocity"),
+	200.f,
+	TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
+	ECVF_Default);
 
 FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
 {
@@ -51,7 +65,9 @@ FPhysScene::FPhysScene()
 	LineBatcher = NULL;
 	OwningWorld = NULL;
 #if WITH_PHYSX
+#if WITH_VEHICLE
 	VehicleManager = NULL;
+#endif
 	PhysxUserData = FPhysxUserData(this);
 
 	// Create dispatcher for tasks
@@ -150,6 +166,36 @@ bool UseSyncTime(uint32 SceneType)
 	return (FrameLagAsync() && SceneType == PST_Async);
 }
 
+}
+
+bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const
+{
+#if WITH_PHYSX
+	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	{
+#if WITH_SUBSTEPPING
+		if (IsSubstepping())
+		{
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			return PhysSubStepper->GetKinematicTarget(BodyInstance, OutTM);
+		}
+		else
+#endif
+		{
+
+			SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+			PxTransform POutTM;
+			bool validTM = PRigidDynamic->getKinematicTarget(POutTM);
+			if (validTM)
+			{
+				OutTM = P2UTransform(POutTM);
+				return true;
+			}
+		}
+	}
+#endif
+
+	return false;
 }
 
 void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform, bool bAllowSubstepping)
@@ -415,6 +461,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 #if WITH_PHYSX
 
+#if WITH_VEHICLE
 	if (VehicleManager && SceneType == PST_Sync)
 	{
 		float TickTime = AveragedFrameTime[SceneType];
@@ -432,6 +479,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			VehicleManager->Update(AveragedFrameTime[SceneType]);
 		}
 	}
+#endif
 
 #if !WITH_APEX
 	PxScene* PScene = GetPhysXScene(SceneType);
@@ -535,7 +583,7 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 
 	if (FrameLagAsync())
 	{
-		checkAtCompileTime(PST_MAX == 3, Assumtiopns_about_physics_scenes); // Here we assume the PST_Sync is the master and never fame lagged
+		static_assert(PST_MAX == 3, "Physics scene static test failed."); // Here we assume the PST_Sync is the master and never fame lagged
 		if (SceneType == PST_Sync)
 		{
 			// the one frame lagged one should be done by now.
@@ -643,7 +691,12 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 					const physx::PxTransform Transform(ChunkPoseRT);
 					if (UDestructibleComponent * DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
 					{
-						DestructibleComponent->SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
+						// if this component was already unregistered, transform data were deallocated
+						// transform data become empty when a piece of destructible actor goes out from a streaming volume
+						if (DestructibleComponent->IsRegistered())
+						{
+							DestructibleComponent->SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
+						}
 					}
 				}
 			}
@@ -701,13 +754,13 @@ void FPhysScene::DispatchPhysNotifications()
 			FCollisionNotifyInfo& NotifyInfo = PendingCollisionNotifies[i];
 			if (NotifyInfo.RigidCollisionData.ContactInfos.Num() > 0)
 			{
-				if (NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify())
+				if (NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify() && NotifyInfo.Info0.Actor.IsValid())
 				{
 					NotifyInfo.Info0.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info0, NotifyInfo.Info1, NotifyInfo.RigidCollisionData);
 				}
 
 				// Need to check IsValidForNotify again in case first call broke something.
-				if (NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify())
+				if (NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify() && NotifyInfo.Info1.Actor.IsValid())
 				{
 					NotifyInfo.RigidCollisionData.SwapContactOrders();
 					NotifyInfo.Info1.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info1, NotifyInfo.Info0, NotifyInfo.RigidCollisionData);
@@ -899,10 +952,12 @@ PxScene* FPhysScene::GetPhysXScene(uint32 SceneType)
 	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 
+#if WITH_VEHICLE
 FPhysXVehicleManager* FPhysScene::GetVehicleManager()
 {
 	return VehicleManager;
 }
+#endif
 
 #if WITH_APEX
 NxApexScene* FPhysScene::GetApexScene(uint32 SceneType)
@@ -1035,8 +1090,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;
 
 	// Set bounce threshold
-	static const auto CVarBounceThresholdVelocity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.BounceThresholdVelocity"));
-	PSceneDesc.bounceThresholdVelocity = CVarBounceThresholdVelocity->GetValueOnGameThread();
+	PSceneDesc.bounceThresholdVelocity = CVarBounceThresholdVelocity.GetValueOnGameThread();
 
 	// Possibly set flags in async scene for better behavior with piles
 #if USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE
@@ -1129,12 +1183,14 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Increment scene count
 	PhysXSceneCount++;
 
+#if WITH_VEHICLE
 	// Only create PhysXVehicleManager in the sync scene
 	if (SceneType == PST_Sync)
 	{
 		check(VehicleManager == NULL);
 		VehicleManager = new FPhysXVehicleManager(PScene);
 	}
+#endif
 
 #if WITH_SUBSTEPPING
 	//Initialize substeppers
@@ -1146,11 +1202,13 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
 #endif
 #endif
+#if WITH_VEHICLE
 	if (SceneType == PST_Sync)
 	{
 		PhysSubSteppers[SceneType]->SetVehicleManager(VehicleManager);
 	}
-
+#endif
+	
 #endif
 
 #endif // WITH_PHYSX
@@ -1172,11 +1230,13 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		}
 #endif // #if WITH_APEX
 
+#if WITH_VEHICLE
 		if (SceneType == PST_Sync && VehicleManager != NULL)
 		{
 			delete VehicleManager;
 			VehicleManager = NULL;
 		}
+#endif
 
 #if WITH_SUBSTEPPING
 

@@ -18,11 +18,13 @@ protected:
 	FString RootLocalPath;
 	/** Build root path - may be different to RootBuildPath if we're building remotely. **/
 	FString RootBuildPath;
+	/** Base include directory */
+	FString IncludeBase;
 	/** Set of all exported class names */
 	TSet<FName> ExportedClasses;
 
 	/** Default ctor */
-	FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& OutputDirectory);
+	FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& OutputDirectory, const FString& InIncludeBase);
 
 	/** Saves generated script glue heade to a temporary file if its contents is different from the eexisting one. */
 	bool SaveHeaderIfChanged(const FString& HeaderPath, const FString& NewHeaderContents);

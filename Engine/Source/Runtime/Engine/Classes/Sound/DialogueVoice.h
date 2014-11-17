@@ -6,9 +6,11 @@
  * Playable sound object for spoken dialogue 
  */
 
+#include "DialogueTypes.h"
+
 #include "DialogueVoice.generated.h"
 
-UCLASS(DependsOn=UDialogueTypes, hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueVoice : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -24,10 +26,10 @@ class UDialogueVoice : public UObject
 
 public:
 	// Begin UObject interface. 
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual FName GetExporterName() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual FName GetExporterName() override;
+	virtual FString GetDesc() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	virtual void PostDuplicate(bool bDuplicateForPIE);
 	// End UObject interface. 

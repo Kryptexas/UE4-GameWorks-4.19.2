@@ -6,7 +6,7 @@
  * Reverts any animation compression, restoring the animation to the raw data.
  *
  */
-
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_LeastDestructive.generated.h"
 
 UCLASS()
@@ -17,7 +17,7 @@ class UAnimCompress_LeastDestructive : public UAnimCompress
 
 protected:
 	// Begin UAnimCompress Interface
-	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) OVERRIDE;
+	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	// Begin UAnimCompress Interface
 };
 

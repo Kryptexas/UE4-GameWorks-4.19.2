@@ -10,7 +10,8 @@ public class MacTargetPlatform : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AVIHandler.cpp: Implements the AVI handling functions.
-=============================================================================*/
-
 #include "CrashTrackerPrivatePCH.h"
 
 

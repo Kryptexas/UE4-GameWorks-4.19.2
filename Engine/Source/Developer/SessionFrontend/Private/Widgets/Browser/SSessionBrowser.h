@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionBrowser.h: Declares the SSessionBrowser class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,8 +26,8 @@ public:
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InSessionManager - The session manager to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InSessionManager The session manager to use.
 	 */
 	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
 
@@ -45,8 +41,7 @@ protected:
 	/**
 	 * Gets the display name of the specified session.
 	 *
-	 * @param SessionInfo - The session to get the name for.
-	 *
+	 * @param SessionInfo The session to get the name for.
 	 * @param Session name.
 	 */
 	FText GetSessionName( const ISessionInfoPtr& SessionInfo ) const;
@@ -94,7 +89,7 @@ private:
 	TSharedPtr<SSessionInstanceList> InstanceListView;
 
 	// Holds the session combo box.
-	TSharedPtr<SComboBox<ISessionInfoPtr> > SessionComboBox;
+	TSharedPtr<SComboBox<ISessionInfoPtr>> SessionComboBox;
 
 	// Holds the filtered list of sessions to be displayed.
 	TArray<ISessionInfoPtr> SessionList;
@@ -111,5 +106,5 @@ private:
 	void HandleSessionListViewSelectionChanged( ISessionInfoPtr Item, ESelectInfo::Type SelectInfo );
 
 	// Holds the session list view.
-	TSharedPtr<SListView<ISessionInfoPtr> > SessionListView;
+	TSharedPtr<SListView<ISessionInfoPtr>> SessionListView;
 };

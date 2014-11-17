@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherDeployCommands.h: Declares the FLauncherDeployCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,20 +16,19 @@ public:
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
 		, LauncherCommandLine(InCmdLine)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString StagePath;
@@ -60,7 +55,13 @@ public:
 			*StagePath,
 			*InitialMap,
 			*TargetPlatform.PlatformName());
-		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+		
+#if !PLATFORM_MAC
+		if (TargetPlatform.PlatformName() != TEXT("IOS"))
+#endif
+		{
+			CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+		}
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
@@ -68,28 +69,29 @@ public:
 		CommandLine += FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 			*InitialMap);
 
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s%s\""),
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT("-pak") : TEXT(""),
-			*LauncherCommandLine);
+			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""),
+			*(TEXT(" ") + LauncherCommandLine));
 
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
 		return true;
 	}
 
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
@@ -122,25 +124,25 @@ class FLauncherDeployServerToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployServerToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString StagePath = FPaths::ConvertRelativePathToFull(ChainState.Profile->GetProjectBasePath() + FString(TEXT("StagedBuilds")));
@@ -182,15 +184,16 @@ public:
 		CommandLine += FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 			*InitialMap);
 
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT("-pak") : TEXT(""));
+			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;
 	}
@@ -218,26 +221,26 @@ class FLauncherDeployGamePackageToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployGamePackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
 		, LauncherCommandLine(InCmdLine)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString CommandLine;
@@ -260,27 +263,28 @@ public:
 		CommandLine += FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 			*InitialMap);
 
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s%s\""),
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT("-pak") : TEXT(""),
-			*LauncherCommandLine);
+			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""),
+			*(TEXT(" ") + LauncherCommandLine));
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
 		return true;
 	}
 
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
@@ -313,25 +317,25 @@ class FLauncherDeployServerPackageToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployServerPackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString CommandLine;
@@ -370,15 +374,16 @@ public:
 		CommandLine += FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 			*InitialMap);
 
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT("-pak") : TEXT(""));
+			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;
 	}

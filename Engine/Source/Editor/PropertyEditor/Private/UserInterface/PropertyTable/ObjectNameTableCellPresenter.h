@@ -16,7 +16,7 @@ public:
 
 	}
 
-	virtual TSharedRef< class SWidget > ConstructDisplayWidget() OVERRIDE
+	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override
 	{
 		return SNew( SBox )
 			.VAlign( VAlign_Center)
@@ -30,9 +30,9 @@ public:
 			);
 	}
 
-	virtual bool RequiresDropDown() OVERRIDE { return false; }
+	virtual bool RequiresDropDown() override { return false; }
 
-	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() OVERRIDE 
+	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() override 
 	{
 		TSharedPtr< SEditableTextBox > NewFocusWidget;
 		TSharedRef< class SWidget > Result = 
@@ -51,15 +51,15 @@ public:
 		return Result;
 	}
 
-	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() OVERRIDE { return SNullWidget::NullWidget; }
+	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() override { return SNullWidget::NullWidget; }
 
-	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() OVERRIDE { return FocusWidget.Pin().ToSharedRef(); }
+	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() override { return FocusWidget.Pin().ToSharedRef(); }
 
-	virtual FString GetValueAsString() OVERRIDE { return Cell->GetValueAsString(); }
+	virtual FString GetValueAsString() override { return Cell->GetValueAsString(); }
 
-	virtual FText GetValueAsText() OVERRIDE { return Cell->GetValueAsText(); }
+	virtual FText GetValueAsText() override { return Cell->GetValueAsText(); }
 
-	virtual bool HasReadOnlyEditMode() OVERRIDE { return true; }
+	virtual bool HasReadOnlyEditMode() override { return true; }
 
 
 private:

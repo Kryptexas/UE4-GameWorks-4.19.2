@@ -70,21 +70,21 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		FSamplerStateRHIRef SamplerStateRHIRef = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		PostProcessParameters.SetPS(ShaderRHI, Context, SamplerStateRHIRef);
 		if(MSAASampleCount > 1)
 		{
-			SetTextureParameter( ShaderRHI, EditorPrimitivesColor, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture );
-			SetTextureParameter( ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture );
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture);
 		}
 		else
 		{
-			SetTextureParameter( ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture );
-			SetTextureParameter( ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture );
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture);
 		}
 
 		{
@@ -104,13 +104,14 @@ public:
 				Value.G = 0;
 			}
 
-			SetShaderValue(ShaderRHI, EditorRenderParams, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EditorRenderParams, Value);
 		}
 
 		if(FilteredSceneDepthTexture.IsBound())
 		{
 			const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
 			SetTextureParameter(
+				Context.RHICmdList,
 				ShaderRHI,
 				FilteredSceneDepthTexture,
 				FilteredSceneDepthTextureSampler,
@@ -167,8 +168,9 @@ static void SetCompositePrimitivesShaderTempl(const FRenderingCompositePassConte
 	TShaderMapRef<FPostProcessCompositeEditorPrimitivesPS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context);
@@ -202,7 +204,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	const uint32 MSAASampleCount = GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples;
 
 	{
-		RHISetRenderTarget( ColorTarget, DepthTarget );
+		SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget);
 		Context.SetViewportAndCallRHI(DestRect);
 
 		if(bClearIsNeeded)
@@ -210,32 +212,32 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 			SCOPED_DRAW_EVENT(ClearViewEditorPrimitives, DEC_SCENE_ITEMS);
 			// Clear color and depth
 			// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-			RHIClear(true, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
+			Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 		}
 
 		SCOPED_DRAW_EVENT(RenderEditorPrimitives, DEC_SCENE_ITEMS);
 
-		RHISetRasterizerState( View.bReverseCulling?TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() );
+		Context.RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 
-		RenderPrimitivesToComposite(View);
+		RenderPrimitivesToComposite(Context.RHICmdList, View);
 
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.EditorPrimitivesColor);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.EditorPrimitivesColor);
 	}
 
-//	RHICopyToResolveTarget(GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	//	Context.RHICmdList.CopyToResolveTarget(GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	const FTexture2DRHIRef& DestRenderTargetSurface = (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture;
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTargetSurface, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTargetSurface, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	if(MSAASampleCount == 1)
 	{
@@ -263,6 +265,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 
 	// Draw a quad mapping our render targets to the view's render target
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
@@ -272,7 +275,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTargetSurface, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTargetSurface, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Clean up targets
 	GSceneRenderTargets.CleanUpEditorPrimitiveTargets();
@@ -288,12 +291,13 @@ FPooledRenderTargetDesc FRCPassPostProcessCompositeEditorPrimitives::ComputeOutp
 	return Ret;
 }
 
-void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(const FViewInfo& View)
+void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
+
 	// Always depth test against other editor primitives
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI() );
-	RHISetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
 
 	// most objects should be occluded by the existing scene so we do a manual depth test in the shader
 	bool bDepthTest = true;
@@ -303,8 +307,12 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(co
 	if( View.VisibleEditorPrimitives.Num() > 0 )
 	{
 		// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
+		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> DepthTestDrawer(
 			&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures),true,false,false,bDepthTest);
+
+		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> NoDepthTestDrawer(
+			&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(!bDepthTest, ESceneRenderTargetsMode::SetTextures),true,false,false,!bDepthTest);
+
 		for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleEditorPrimitives.Num();PrimitiveIndex++)
 		{
 			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleEditorPrimitives[PrimitiveIndex];
@@ -316,13 +324,25 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(co
 			// Only draw the primitive if it's visible
 			if( bVisible && 
 				// only draw opaque and masked primitives if wireframe is disabled
-				(PrimitiveViewRelevance.bOpaqueRelevance || View.Family->EngineShowFlags.Wireframe) )
+				(PrimitiveViewRelevance.bOpaqueRelevance || View.Family->EngineShowFlags.Wireframe))
 			{
-				Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-					&Drawer,
-					&View			
-					);
+				// Distinguish between depth tested & non-depth tested primitives
+				if(PrimitiveViewRelevance.bEditorNoDepthTestPrimitiveRelevance)
+				{
+					NoDepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+						&NoDepthTestDrawer,
+						&View			
+						);
+				}
+				else
+				{
+					DepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+						&DepthTestDrawer,
+						&View			
+						);
+				}
 			}
 		}
 	}
@@ -333,24 +353,24 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(co
 	DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_World, false);
 
 	// Draw the view's batched simple elements(lines, sprites, etc).
-	View.BatchedViewElements.Draw(bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false, 1.0f, &View, SceneDepth );
+	View.BatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false, 1.0f, &View, SceneDepth);
 
 	// Draw foreground objects. Draw twice, once without depth testing to bring them into the foreground and again to depth test against themselves
 	{
 		// Do not test against non-composited objects
 		bDepthTest = false;
 
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI() );
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 		DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_Foreground, false);
 
-		View.TopBatchedViewElements.Draw(bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
+		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
 
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI() );
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 
-		DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_Foreground, false);
+		DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_Foreground, false);
 
-		View.TopBatchedViewElements.Draw(bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
+		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
 	}
 }

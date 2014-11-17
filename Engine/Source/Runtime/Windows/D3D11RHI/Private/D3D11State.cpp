@@ -264,7 +264,7 @@ FBlendStateRHIRef FD3D11DynamicRHI::RHICreateBlendState(const FBlendStateInitial
 	BlendDesc.AlphaToCoverageEnable = false;
 	BlendDesc.IndependentBlendEnable = Initializer.bUseIndependentRenderTargetBlendStates;
 
-	checkAtCompileTime(MaxSimultaneousRenderTargets <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT,TooManyMRTs);
+	static_assert(MaxSimultaneousRenderTargets <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, "Too many MRTs.");
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets;++RenderTargetIndex)
 	{
 		const FBlendStateInitializerRHI::FRenderTarget& RenderTargetInitializer = Initializer.RenderTargets[RenderTargetIndex];

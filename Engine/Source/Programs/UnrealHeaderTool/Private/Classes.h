@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Classes.h: Container structure for all the Classes.
-=============================================================================*/
-
 #pragma once
 
 #include "ClassTree.h"
@@ -37,6 +33,8 @@ public:
 	FClass* FindClass(const TCHAR* ClassName) const;
 
 	TArray<FClass*> GetDerivedClasses(FClass* Parent) const;
+
+	FClass* FindAnyClass(const TCHAR* ClassName) const;
 
 	/** 
 	 * Attempts to find a script class based on the given name. Will attempt to strip
@@ -88,6 +86,8 @@ public:
 	 */
 	void ChangeParentClass(FClass* Class);
 
+	bool ContainsClass(const FClass* Class) const;
+
 	/**
 	 * Validates the state of the tree (shouldn't be needed once this class has well-defined invariants).
 	 */
@@ -103,6 +103,12 @@ public:
 private:
 	FClass*     UObjectClass;
 	FClassTree  ClassTree;
+
+	/**
+	* Determines whether the class hierarchy rooted at Suspect is dependent on the hierarchy rooted at Source.
+	* Used by the public overload of IsDependentOn to recursively track dependencies and handle circular references
+	*/
+	bool IsDependentOn(const FClass* Suspect, const FClass* Source, TSet<const FClass*>& VisitedDpendencies) const;
 
 	friend auto begin(const FClasses& Classes) -> decltype(begin(TObjectRange<FClass>())) { return begin(TObjectRange<FClass>()); }
 	friend auto end  (const FClasses& Classes) -> decltype(end  (TObjectRange<FClass>())) { return end  (TObjectRange<FClass>()); }

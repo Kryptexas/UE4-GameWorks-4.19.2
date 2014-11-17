@@ -15,7 +15,7 @@ public:
 	{
 	}
 
-	virtual void RegisterCommands() OVERRIDE;	
+	virtual void RegisterCommands() override;	
 
 	TSharedPtr<FUICommandInfo> Cut;
 	TSharedPtr<FUICommandInfo> Copy;

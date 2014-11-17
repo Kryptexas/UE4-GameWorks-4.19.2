@@ -7,6 +7,16 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Collision/ParticleModuleCollision.h"
+#include "Particles/Collision/ParticleModuleCollisionBase.h"
+#include "Particles/Collision/ParticleModuleCollisionGPU.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleCollisionBase::UParticleModuleCollisionBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

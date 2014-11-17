@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateEditorStyle.h: Implements the FSlateEditorStyle class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -79,12 +75,14 @@ public:
 		void SetupMatineeStyle();
 		void SetupSourceControlStyles();
 		void SetupAutomationStyles();
+		void SetupUMGEditorStyles();
 
 		void SettingsChanged( UObject* ChangedObject, FPropertyChangedEvent& PropertyChangedEvent );
 		void SyncSettings();
 
 		const FVector2D Icon7x16;
 		const FVector2D Icon8x4;
+		const FVector2D Icon16x4;
 		const FVector2D Icon8x8;
 		const FVector2D Icon10x10;
 		const FVector2D Icon12x12;
@@ -108,6 +106,7 @@ public:
 		const TSharedRef< FLinearColor > InvertedForeground_LinearRef;
 		const TSharedRef< FLinearColor > SelectorColor_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_LinearRef;
+		const TSharedRef< FLinearColor > SelectionColor_Subdued_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_Inactive_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_Pressed_LinearRef;
 
@@ -116,6 +115,7 @@ public:
 		const FSlateColor InvertedForeground;
 		const FSlateColor SelectorColor;
 		const FSlateColor SelectionColor;
+		const FSlateColor SelectionColor_Subdued;
 		const FSlateColor SelectionColor_Inactive;
 		const FSlateColor SelectionColor_Pressed;
 

@@ -94,11 +94,6 @@ bool FStreamingLevelModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) 
 	return false;
 }
 
-void FStreamingLevelModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const
-{
-
-}
-
 //bool FStreamingLevelModel::IsReadOnly() const
 //{
 //	ULevel* Level = GetLevelObject();

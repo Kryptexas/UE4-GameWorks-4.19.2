@@ -257,16 +257,16 @@ public:
 	virtual ~FSignedArchiveReader();
 
 	// Begin FArchive interface
-	virtual void Serialize(void* Data, int64 Length) OVERRIDE;
-	virtual int64 Tell() OVERRIDE
+	virtual void Serialize(void* Data, int64 Length) override;
+	virtual int64 Tell() override
 	{
 		return PakOffset;
 	}
-	virtual int64 TotalSize() OVERRIDE
+	virtual int64 TotalSize() override
 	{
 		return PakSize;
 	}
-	virtual void Seek(int64 InPos) OVERRIDE
+	virtual void Seek(int64 InPos) override
 	{
 		PakOffset = InPos;
 	}

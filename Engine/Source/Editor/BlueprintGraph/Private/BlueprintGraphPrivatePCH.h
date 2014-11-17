@@ -4,6 +4,7 @@
 #define __BlueprintGraphPrivatePCH_h__
 
 #include "Engine.h"
+#include "GraphEditorSettings.h"
 #include "BlueprintGraphDefinitions.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"

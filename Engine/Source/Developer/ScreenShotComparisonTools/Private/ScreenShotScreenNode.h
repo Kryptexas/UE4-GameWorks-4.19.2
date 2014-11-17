@@ -24,7 +24,7 @@ public:
 
 	// Begin IScreenShotData interface
 
-	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) OVERRIDE 
+	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override 
 	{
 		// First stage of adding screen shot data - create the screen shot node, then add the platform
 		TSharedRef<IScreenShotData> ScreenNode = AddChild( InScreenDataItem.DeviceName );
@@ -32,12 +32,12 @@ public:
 	};
 
 
-	virtual EScreenShotDataType::Type GetScreenNodeType() OVERRIDE 
+	virtual EScreenShotDataType::Type GetScreenNodeType() override 
 	{ 
 		return EScreenShotDataType::SSDT_ScreenView; 
 	};
 
-	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) OVERRIDE
+	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) override
 	{
 		FilteredChildren.Empty();
 
@@ -61,7 +61,7 @@ public:
 
 	// Begin SScreenShotNodeBase interface
 
-	virtual TSharedRef<IScreenShotData> CreateNode( const FString& ChildName ) OVERRIDE 
+	virtual TSharedRef<IScreenShotData> CreateNode( const FString& ChildName ) override 
 	{
 		TSharedPtr< IScreenShotData > ScreenShotNode = MakeShareable( new FScreenShotPlatformNode( ChildName ) );;
 		Children.Add( ScreenShotNode.ToSharedRef() );

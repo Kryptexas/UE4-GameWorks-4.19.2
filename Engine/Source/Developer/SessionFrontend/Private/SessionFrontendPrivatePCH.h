@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionFrontendPrivatePCH.h: Pre-compiled header file for the SessionFrontend module.
-=============================================================================*/
-
 #pragma once
 
 #include "SessionFrontend.h"
@@ -20,6 +16,7 @@
 #include "Slate.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 // @todo gmp: remove these dependencies by making the session front-end extensible
 #include "AutomationWindow.h"

@@ -106,9 +106,9 @@ public:
 #endif
 
 		VplListHeadBufferSRV.Bind(Initializer.ParameterMap, TEXT("gVplListHeadBuffer") );
-		VplListHeadBufferUAV.Bind(Initializer.ParameterMap, TEXT("gVplListHeadBufferRW") );
+		VplListHeadBufferUAV.Bind(Initializer.ParameterMap, TEXT("RWVplListHeadBuffer") );
 		VplListBufferSRV.Bind(Initializer.ParameterMap, TEXT("gVplListBuffer") );
-		VplListBufferUAV.Bind(Initializer.ParameterMap, TEXT("gVplListBufferRW") );
+		VplListBufferUAV.Bind(Initializer.ParameterMap, TEXT("RWVplListBuffer") );
 
 #if LPV_GV_VOLUME_TEXTURE
 		for ( int i = 0; i < 3; i++ )
@@ -120,8 +120,8 @@ public:
 		GvBufferSRV.Bind(Initializer.ParameterMap, TEXT("gGvBuffer") );
 		GvBufferUAV.Bind(Initializer.ParameterMap, TEXT("gGvBufferRW") );
 #endif
-		GvListBufferUAV.Bind(Initializer.ParameterMap, TEXT("gGvListBufferRW") );
-		GvListHeadBufferUAV.Bind(Initializer.ParameterMap, TEXT("gGvListHeadBufferRW") );
+		GvListBufferUAV.Bind(Initializer.ParameterMap, TEXT("RWGvListBuffer") );
+		GvListHeadBufferUAV.Bind(Initializer.ParameterMap, TEXT("RWGvListHeadBuffer") );
 
 		GvListBufferSRV.Bind(Initializer.ParameterMap, TEXT("gGvListBuffer") );
 		GvListHeadBufferSRV.Bind(Initializer.ParameterMap, TEXT("gGvListHeadBuffer") );
@@ -135,7 +135,7 @@ public:
 		OutEnvironment.SetDefine( TEXT("LPV_GV_VOLUME_TEXTURE"),	(uint32)LPV_GV_VOLUME_TEXTURE );
 	}
 	// Serialization
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 
@@ -177,94 +177,94 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters( const FLpvBaseWriteShaderParams& Params )
+	void SetParameters(FRHICommandList& RHICmdList, const FLpvBaseWriteShaderParams& Params )
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Params.UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Params.UniformBuffer );
 #if LPV_VOLUME_TEXTURE
 		for(int i  =0; i < 7; i++)
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), Params.LpvBufferSRVs[i] );
+				RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), Params.LpvBufferSRVs[i]);
 			}
 			if ( LpvBufferUAVs[i].IsBound() )
 			{
-				RHISetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), Params.LpvBufferUAVs[i] );
+				RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), Params.LpvBufferUAVs[i] );
 			}
 
-			SetTextureParameter( ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.LpvBufferSRVs[i] );
+			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.LpvBufferSRVs[i] );
 		}
 #else
 		if ( LpvBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), Params.LpvBufferSRV );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), Params.LpvBufferSRV );
 		}
 		if ( LpvBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, LpvBufferUAV.GetBaseIndex(), Params.LpvBufferUAV );
+			RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAV.GetBaseIndex(), Params.LpvBufferUAV );
 		}
 #endif
 		if ( VplListHeadBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, VplListHeadBufferSRV.GetBaseIndex(), Params.VplListHeadBufferSRV );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, VplListHeadBufferSRV.GetBaseIndex(), Params.VplListHeadBufferSRV );
 		}
 		if ( VplListHeadBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), Params.VplListHeadBufferUAV );
+			RHICmdList.SetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), Params.VplListHeadBufferUAV );
 		}
 		if ( VplListBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, VplListBufferSRV.GetBaseIndex(), Params.VplListBufferSRV );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, VplListBufferSRV.GetBaseIndex(), Params.VplListBufferSRV );
 		}
 		if ( VplListBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), Params.VplListBufferUAV ); 
+			RHICmdList.SetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), Params.VplListBufferUAV ); 
 		}
 #if LPV_GV_VOLUME_TEXTURE
 		for ( int i=0;i<3; i++ )
 		{
 			if ( GvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), Params.GvBufferSRVs[i] );
+				RHICmdList.SetShaderTexture(ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), Params.GvBufferSRVs[i]);
 			}
 			if ( GvBufferUAVs[i].IsBound() )
 			{
-				RHISetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), Params.GvBufferUAVs[i] );
+				RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), Params.GvBufferUAVs[i] );
 			}
 
-			SetTextureParameter( ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.GvBufferSRVs[i] );
+			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.GvBufferSRVs[i] );
 		}
 #else
 		if ( GvBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, GvBufferSRV.GetBaseIndex(), Params.GvBufferSRV );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, GvBufferSRV.GetBaseIndex(), Params.GvBufferSRV );
 		}
 		if ( GvBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, GvBufferUAV.GetBaseIndex(), Params.GvBufferUAV );
+			RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAV.GetBaseIndex(), Params.GvBufferUAV );
 		}
 #endif
 		if(GvListBufferUAV.IsBound())
 		{
-			RHISetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), Params.GvListBufferUAV); 
+			RHICmdList.SetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), Params.GvListBufferUAV); 
 		}
 		if(GvListHeadBufferUAV.IsBound())
 		{
-			RHISetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), Params.GvListHeadBufferUAV); 
+			RHICmdList.SetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), Params.GvListHeadBufferUAV); 
 		}
 		if(GvListBufferSRV.IsBound())
 		{
-			RHISetShaderResourceViewParameter(ShaderRHI, GvListBufferSRV.GetBaseIndex(), Params.GvListBufferSRV);
+			RHICmdList.SetShaderResourceViewParameter(ShaderRHI, GvListBufferSRV.GetBaseIndex(), Params.GvListBufferSRV);
 		}
 		if(GvListHeadBufferSRV.IsBound())
 		{
-			RHISetShaderResourceViewParameter(ShaderRHI, GvListHeadBufferSRV.GetBaseIndex(), Params.GvListHeadBufferSRV);
+			RHICmdList.SetShaderResourceViewParameter(ShaderRHI, GvListHeadBufferSRV.GetBaseIndex(), Params.GvListHeadBufferSRV);
 		}
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 #if LPV_VOLUME_TEXTURE
@@ -272,68 +272,68 @@ public:
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
 		{
-				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef()  );
+				RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 		}
 			if ( LpvBufferUAVs[i].IsBound() )
 		{
-				RHISetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+				RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 	}
 #else
 		if ( LpvBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 		}
 		if ( LpvBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, LpvBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 #endif
 		if ( VplListHeadBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, VplListHeadBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, VplListHeadBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 		}
 		if ( VplListHeadBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 		if ( VplListBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, VplListBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, VplListBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 		}
 		if ( VplListBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 #if LPV_GV_VOLUME_TEXTURE
 		for ( int i = 0; i < 3; i++ )
 		{
 			if ( GvBufferSRVParameters[i].IsBound() )
 		{
-				RHISetShaderTexture( ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef() );
+				RHICmdList.SetShaderTexture(ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 		}
 			if ( GvBufferUAVs[i].IsBound() )
 		{
-				RHISetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+				RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 		}
 #else
 		if ( GvBufferSRV.IsBound() )
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, GvBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, GvBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 		}
 		if ( GvBufferUAV.IsBound() )
 		{
-			RHISetUAVParameter( ShaderRHI, GvBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
 		}
 #endif
 		if(GvListBufferUAV.IsBound())
 		{
-			RHISetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
+			RHICmdList.SetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
 		}
 		if(GvListHeadBufferUAV.IsBound())
 		{
-			RHISetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
+			RHICmdList.SetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
 		}
 	}
 
@@ -390,7 +390,7 @@ public:
 
 	explicit FLpvClearCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearCS,TEXT("LPVClear"),TEXT("CSClear"),SF_Compute);
 
@@ -415,7 +415,7 @@ public:
 
 	explicit FLpvClearGeometryVolumeCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearGeometryVolumeCS,TEXT("LPVClear"),TEXT("CSClearGeometryVolume"),SF_Compute);
 
@@ -440,7 +440,7 @@ public:
 
 	explicit FLpvClearListsCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearListsCS,TEXT("LPVClearLists"),TEXT("CSClearLists"),SF_Compute);
 
@@ -473,31 +473,32 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		FLpvBaseWriteShaderParams& BaseParams,
 		FTextureRHIParamRef RsmDiffuseTextureRHI,
 		FTextureRHIParamRef RsmNormalTextureRHI,
 		FTextureRHIParamRef RsmDepthTextureRHI )
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FLpvWriteShaderCSBase::SetParameters( BaseParams );
+		FLpvWriteShaderCSBase::SetParameters(RHICmdList, BaseParams );
 
 		FSamplerStateRHIParamRef SamplerStateLinear  = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		FSamplerStateRHIParamRef SamplerStatePoint   = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 		// FIXME: Why do we have to bind a samplerstate to a sampler here? Presumably this is for legacy reasons... 
-		SetTextureParameter( ShaderRHI, RsmDiffuseTexture, LinearTextureSampler, SamplerStateLinear, RsmDiffuseTextureRHI );
-		SetTextureParameter( ShaderRHI, RsmNormalTexture, LinearTextureSampler, SamplerStateLinear, RsmNormalTextureRHI );
-		SetTextureParameter( ShaderRHI, RsmDepthTexture, PointTextureSampler, SamplerStatePoint, RsmDepthTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmDiffuseTexture, LinearTextureSampler, SamplerStateLinear, RsmDiffuseTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmNormalTexture, LinearTextureSampler, SamplerStateLinear, RsmNormalTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmDepthTexture, PointTextureSampler, SamplerStatePoint, RsmDepthTextureRHI );
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
-		FLpvWriteShaderCSBase::UnbindBuffers();
+		FLpvWriteShaderCSBase::UnbindBuffers(RHICmdList);
 	}
 
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			
+	virtual bool Serialize( FArchive& Ar ) override			
 	{ 
 		bool rv = FLpvWriteShaderCSBase::Serialize( Ar ); 
 		Ar << RsmDiffuseTexture;
@@ -538,7 +539,7 @@ public:
 
 	explicit FLpvInject_AccumulateVplListsCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvInject_AccumulateVplListsCS,TEXT("LPVInject_AccumulateVplLists"),TEXT("CSAccumulateVplLists"),SF_Compute);
 
@@ -563,7 +564,7 @@ public:
 
 	explicit FLpvBuildGeometryVolumeCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvBuildGeometryVolumeCS,TEXT("LPVBuildGeometryVolume"),TEXT("CSBuildGeometryVolume"),SF_Compute);
 
@@ -601,7 +602,7 @@ public:
 
 	explicit TLpvPropagateCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<0>,													TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
@@ -641,20 +642,20 @@ class FLpvInjectShader_Base : public FLpvWriteShaderCSBase
 {
 public:
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		FLpvBaseWriteShaderParams& BaseParams,
 		FDirectLightInjectBufferRef& InjectUniformBuffer )
 	{
-		FLpvWriteShaderCSBase::SetParameters( BaseParams );
+		FLpvWriteShaderCSBase::SetParameters(RHICmdList, BaseParams );
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FLpvDirectLightInjectParameters>(), InjectUniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FLpvDirectLightInjectParameters>(), InjectUniformBuffer );
 	}
 
 	FLpvInjectShader_Base()	{	}
 
 	explicit FLpvInjectShader_Base( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 
 // ----------------------------------------------------------------------------
@@ -679,7 +680,7 @@ public:
 
 	explicit TLpvInject_PointLightCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvInjectShader_Base(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvInjectShader_Base::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvInjectShader_Base::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<0>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<INJECT_SHADOWED>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
@@ -707,12 +708,11 @@ FLightPropagationVolume::FLightPropagationVolume() :
 		mLpvBuffers[i]->Initialize( sizeof(LPVBufferElement), LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES, BUF_FastVRAM, false, false );
 	}
 #endif
-
 	// VPL List buffers
 	mVplListBuffer = new FRWBufferStructured();
-	mVplListBuffer->Initialize( sizeof( VplListEntry ), 256*256*LPV_GRIDRES, 0, true, false );
+	mVplListBuffer->Initialize(sizeof(VplListEntry), 256 * 256 * LPV_GRIDRES, 0, true, false);
 	mVplListHeadBuffer = new FRWBufferByteAddress();
-	mVplListHeadBuffer->Initialize( LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES*4, BUF_ByteAddressBuffer );
+	mVplListHeadBuffer->Initialize(LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES * 4, BUF_ByteAddressBuffer);
 
 	// Geometry volume buffers
 #if !LPV_GV_VOLUME_TEXTURE
@@ -727,9 +727,9 @@ FLightPropagationVolume::FLightPropagationVolume() :
 #endif // !LPV_GV_VOLUME_TEXTURE
 
 	GvListBuffer = new FRWBufferStructured();
-	GvListBuffer->Initialize( sizeof( VplListEntry ), 256*256*LPV_GRIDRES, 0, true, false );
+	GvListBuffer->Initialize(sizeof(VplListEntry), 256 * 256 * LPV_GRIDRES, 0, true, false);
 	GvListHeadBuffer = new FRWBufferByteAddress();
-	GvListHeadBuffer->Initialize( LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES*4, BUF_ByteAddressBuffer );
+	GvListHeadBuffer->Initialize(LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES * 4, BUF_ByteAddressBuffer);
 
 	LpvWriteUniformBufferParams = new FLpvWriteUniformBufferParameters;
 	FMemory::Memzero( LpvWriteUniformBufferParams, sizeof(FLpvWriteUniformBufferParameters) );
@@ -921,7 +921,7 @@ void FLightPropagationVolume::InitSettings( const FSceneView& View )
 /**
 * Clears the LPV
 */
-void FLightPropagationVolume::Clear()
+void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 {
 	if ( !bEnabled )
 	{
@@ -941,45 +941,44 @@ void FLightPropagationVolume::Clear()
 	// Clear the list buffers
 	{
 		TShaderMapRef<FLpvClearListsCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Clear the LPV (or fade, if REFINE_OVER_TIME is enabled)
 	{
 		TShaderMapRef<FLpvClearCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Clear the geometry volume if necessary
 	if ( SecondaryOcclusionStrength > 0.001f )
 	{
 		TShaderMapRef<FLpvClearGeometryVolumeCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-	Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 	//RHIBatchComputeShaderEnd();
 
-	// Clear the list UAV counters
-	RHISetUAVParameter( FComputeShaderRHIRef(), 7, mVplListBuffer->UAV, 0 );
-	RHISetUAVParameter( FComputeShaderRHIRef(), 7, GvListBuffer->UAV, 0 );
-	RHISetUAVParameter( FComputeShaderRHIRef(), 7, FUnorderedAccessViewRHIParamRef(), 0 );
+	RHICmdList.SetUAVParameter( FComputeShaderRHIRef(), 7, mVplListBuffer->UAV, 0 );
+	RHICmdList.SetUAVParameter( FComputeShaderRHIRef(), 7, GvListBuffer->UAV, 0 );
+	RHICmdList.SetUAVParameter( FComputeShaderRHIRef(), 7, FUnorderedAccessViewRHIParamRef(), 0 );
 }
 
 /**
@@ -1032,6 +1031,7 @@ void FLightPropagationVolume::SetVplInjectionConstants(
 * Injects a Directional light into the LPV
 */
 void FLightPropagationVolume::InjectDirectionalLightRSM(
+	FRHICommandListImmediate& RHICmdList,
 	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmNormalTex, 
 	const FTexture2DRHIRef&		RsmDepthTex, 
@@ -1042,19 +1042,19 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	{
 		SCOPED_DRAW_EVENT(LpvInjectDirectionalLightRSM, DEC_LIGHT);
 
-		SetVplInjectionConstants( ProjectedShadowInfo, LightProxy );
+		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
 
 		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		// Clear the list counter the first time this function is called in a frame
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
+		Shader->SetParameters(RHICmdList, ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
 
-		DispatchComputeShader(*Shader, 256/8, 256/8, 1 ); 
+		DispatchComputeShader(RHICmdList, *Shader, 256/8, 256/8, 1 ); 
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList); 
 	}
 
 	// If this is the first directional light, build the geometry volume with it
@@ -1070,17 +1070,17 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		LpvWriteUniformBufferParams->GeometryVolumeCaptureLightDirection = LightDirection;
 
 		TShaderMapRef<FLpvBuildGeometryVolumeCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams ); // FIXME: is this causing a stall? Double-buffer?
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
+		Shader->SetParameters(RHICmdList, ShaderParams );
 
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	mInjectedLightCount++;
@@ -1089,7 +1089,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 /**
 * Propagates light in the LPV 
 */
-void FLightPropagationVolume::Propagate()
+void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 {
 	if ( !bEnabled )
 	{
@@ -1103,17 +1103,17 @@ void FLightPropagationVolume::Propagate()
 		mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
 
 		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(GetGlobalShaderMap());
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
+		Shader->SetParameters(RHICmdList, ShaderParams );
 
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Propagate lighting, ping-ponging between the two buffers
@@ -1129,7 +1129,7 @@ void FLightPropagationVolume::Propagate()
 			bool bSecondaryBounces		= (SecondaryBounceStrength > 0.001f); 
 			mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
 			FLpvWriteShaderCSBase* Shader = GetPropagateShader( bSecondaryOcclusion, bSecondaryBounces );
-			RHISetComputeShader(Shader->GetComputeShader());
+			RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 			LpvWriteUniformBufferParams->PropagationIndex = PropagationStep;
 			PropagationStep++;
@@ -1138,11 +1138,11 @@ void FLightPropagationVolume::Propagate()
 
 			FLpvBaseWriteShaderParams ShaderParams;
 			GetShaderParams( ShaderParams );
-			Shader->SetParameters( ShaderParams );
+			Shader->SetParameters(RHICmdList, ShaderParams );
 
-			DispatchComputeShader( Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+			DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-			Shader->UnbindBuffers(); 
+			Shader->UnbindBuffers(RHICmdList); 
 		}
 	}
 
@@ -1189,7 +1189,7 @@ void FLightPropagationVolume::GetShaderParams( FLpvBaseWriteShaderParams& OutPar
 	OutParams.UniformBuffer = LpvWriteUniformBuffer;
 }
 
-void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
+void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light)
 {
 	if(!bEnabled)
 	{
@@ -1230,9 +1230,9 @@ void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
 				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<0> >( GetGlobalShaderMap() );
 			}
 		}
-		RHISetComputeShader(Shader->GetComputeShader());
+		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
-		FDirectLightInjectBufferRef InjectUniformBuffer = FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleUse);
+		FDirectLightInjectBufferRef InjectUniformBuffer = FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleDraw);
 
 		mWriteBufferIndex = 1 - mWriteBufferIndex; // Swap buffers with each iteration
 
@@ -1241,9 +1241,9 @@ void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 
-		Shader->SetParameters( ShaderParams, InjectUniformBuffer );
-		DispatchComputeShader(Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
-		Shader->UnbindBuffers(); 
+		Shader->SetParameters(RHICmdList, ShaderParams, InjectUniformBuffer );
+		DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
+		Shader->UnbindBuffers(RHICmdList); 
 	}
 
 }

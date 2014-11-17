@@ -5,34 +5,37 @@
 #if !UE_ENABLE_ICU
 #include "Text.h"
 
-FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
+bool FText::IsWhitespace( const TCHAR Char )
+{
+	return FChar::IsWhitespace(Char);
+}
+
+FText FText::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FDateTime DateTime(Date.Year, Date.Month, Date.Day);
 	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d") ) );
 }
 
-FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTime( const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FDateTime DateTime(1, 1, 1, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
 	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
 }
 
-FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTimespan( const FTimespan& Time, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FDateTime DateTime(Time.GetTicks());
 	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
 }
 
-FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsDateTime( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d-%H.%M.%S") ) );
+	return FText::FromString(DateTime.ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 }
 
-FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsMemory( SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FFormatNamedArguments Args;
@@ -479,6 +482,21 @@ FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > In
 
 	FArgumentGetter ArgumentGetter(FormatNamedArguments);
 	return FLegacyTextHelper::Format(Pattern, FGetArgumentValue::CreateRaw(&ArgumentGetter, &FArgumentGetter::GetArgumentValue));
+}
+
+FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	return Format(Pattern, Arguments);
+}
+
+FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	return Format(Pattern, Arguments);
+}
+
+FText FText::FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	return Format(Pattern, InArguments);
 }
 
 #endif

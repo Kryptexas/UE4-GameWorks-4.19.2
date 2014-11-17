@@ -226,8 +226,8 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 						static FName TaskGraphModule(TEXT("TaskGraph"));			
 						if (FModuleManager::Get().IsModuleLoaded(TaskGraphModule))
 						{
-							IProfileVisualizerModule* ProfileVisualizer = (IProfileVisualizerModule*)&FModuleManager::Get().GetModuleInterface(TaskGraphModule);
-							ProfileVisualizer->DisplayProfileVisualizer( InVisualizerData, TEXT("GPU") );
+							IProfileVisualizerModule& ProfileVisualizer = FModuleManager::GetModuleChecked<IProfileVisualizerModule>(TaskGraphModule);
+							ProfileVisualizer.DisplayProfileVisualizer( InVisualizerData, TEXT("GPU") );
 						}
 					}
 				} DisplayProfilerVisualizer;

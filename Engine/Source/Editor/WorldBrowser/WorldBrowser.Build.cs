@@ -36,6 +36,8 @@ public class WorldBrowser : ModuleRules
 				"SourceControlWindows",
                 "RawMesh",
                 "MeshUtilities",
+                "LandscapeEditor",
+				"Levels",
             }
 		);
 

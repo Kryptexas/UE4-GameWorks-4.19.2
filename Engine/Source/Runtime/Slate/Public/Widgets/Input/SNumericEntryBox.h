@@ -205,12 +205,12 @@ public:
 private:
 
 	// Begin SWidget Interface
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return StaticCastSharedPtr<SWidget>(EditableText)->SupportsKeyboardFocus();
 	}
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override
 	{
 		FReply Reply = FReply::Handled();
 
@@ -234,7 +234,7 @@ private:
 		return Reply;
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		FKey Key = InKeyboardEvent.GetKey();
 
@@ -405,7 +405,7 @@ private:
 	/**
 	 * Caches the value and performs widget visibility maintenance
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		// Visibility toggle only matters if the spinbox is used
 		if( SpinBox.IsValid() )

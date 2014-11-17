@@ -18,7 +18,7 @@ void SOverlay::Construct( const SOverlay::FArguments& InArgs )
 }
 
 
-void SOverlay::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
@@ -102,7 +102,7 @@ int32 SOverlay::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& My
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 		MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 	}

@@ -1,14 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 #include "../PhysicsEngine/PhysXSupport.h"
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	// grab default values from physx
 	PxVehicleDifferential4WData DefDifferentialSetup;
 	TEnumAsByte<EVehicleDifferential4W::Type> DiffType((uint8)DefDifferentialSetup.mType);
@@ -70,7 +72,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 
 	// Initialize WheelSetups array with 4 wheels
 	WheelSetups.SetNum(4);
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 }
 
 #if WITH_EDITOR
@@ -108,7 +110,7 @@ void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FProperty
 }
 #endif
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setup, PxVehicleDifferential4WData& PxSetup)
 {
@@ -326,11 +328,11 @@ void UWheeledVehicleMovementComponent4W::UpdateSimulation(float DeltaTime)
 	PxVehicleDrive4WSmoothAnalogRawInputsAndSetAnalogInputs(SmoothData, SpeedSteerLookup, RawInputData, DeltaTime, false, *PVehicleDrive4W);
 }
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		PxVehicleEngineData EngineData;
@@ -344,7 +346,7 @@ void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineD
 
 void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleDifferential4WData& NewDifferentialSetup)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		PxVehicleDifferential4WData DifferentialData;
@@ -358,7 +360,7 @@ void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleD
 
 void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleTransmissionData& NewTransmissionSetup)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		PxVehicleGearsData GearData;

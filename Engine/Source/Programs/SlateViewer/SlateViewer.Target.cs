@@ -50,8 +50,6 @@ public class SlateViewerTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
-
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
 		// Don't need editor

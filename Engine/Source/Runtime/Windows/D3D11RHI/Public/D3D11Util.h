@@ -203,8 +203,8 @@ public:
 	ID3D11Buffer* Unlock();
 
 	// Begin FRenderResource interface.
-	virtual void InitRHI() OVERRIDE;
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.
 
 private:

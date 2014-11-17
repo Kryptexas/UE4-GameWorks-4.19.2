@@ -33,14 +33,14 @@ public:
 	virtual ~FOnlineSubsystemImpl();
 
 	// IOnlineSubsystem
-	virtual bool IsServer() const OVERRIDE;
-	virtual bool IsDedicated() const OVERRIDE{ return bForceDedicated || IsRunningDedicatedServer(); }
-	virtual void SetForceDedicated(bool bForce) OVERRIDE { bForceDedicated = bForce; }
+	virtual bool IsServer() const override;
+	virtual bool IsDedicated() const override{ return bForceDedicated || IsRunningDedicatedServer(); }
+	virtual void SetForceDedicated(bool bForce) override { bForceDedicated = bForce; }
 	
-	virtual class UObject* GetNamedInterface(FName InterfaceName) OVERRIDE;
-	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) OVERRIDE;
+	virtual class UObject* GetNamedInterface(FName InterfaceName) override;
+	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override;
 
-	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const OVERRIDE;
+	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
 
 	// FOnlineSubsystemImpl
 

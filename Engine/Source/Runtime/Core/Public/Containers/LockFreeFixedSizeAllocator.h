@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LockFreeFixedSizeAllocator.h: A lock free pooled allocator for fixed size blocks of a particular type
-=============================================================================*/
-
 #pragma once
 
 #include "LockFreeList.h"
@@ -12,6 +8,7 @@
 #define MONITOR_FIXED_ALLOCATION (0)
 
 #define USE_RECYCLING (1)
+
 
 #if !USE_RECYCLING
 
@@ -33,7 +30,9 @@ public:
 };
 
 
-#else
+#else //!USE_RECYCLING
+
+
 /** Thread safe, lock free pooling allocator of fixed size blocks that never returns free space until program shutdown. **/
 template<int32 SIZE>
 class TLockFreeFixedSizeAllocator	// alignment isn't handled, assumes FMemory::Malloc will work
@@ -86,7 +85,9 @@ private:
 	FNoopCounter		NumFree;
 #endif
 };
-#endif
+
+#endif //!USE_RECYCLING
+
 
 /** Thread safe, lock free pooling allocator of memory for instances of T. Never returns free space until program shutdown. **/
 template<class T>
@@ -110,4 +111,3 @@ public:
 		TLockFreeFixedSizeAllocator<sizeof(T)>::Free(Item);
 	}
 };
-

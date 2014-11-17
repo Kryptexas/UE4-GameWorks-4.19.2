@@ -92,7 +92,7 @@ FORCEINLINE TUnrolledLinkList<T, blockSize>::TUnrolledLinkList()
 	: freeNode( &head )
 	, num(0)
 {
-	checkAtCompileTime( ( blockSize & (blockSize - 1) ) == 0, Block_size_must_be_power_of_2 );
+	static_assert((blockSize & (blockSize - 1)) == 0, "Block size must be power of 2.");
 }
 
 template< typename T, uint32 blockSize >

@@ -8,6 +8,7 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
+#include "Landscape/Landscape.h"
 
 #if WITH_EDITOR
 
@@ -52,10 +53,10 @@ void FLandscapeEditDataInterface::Flush()
 	// delete all the FLandscapeTextureDataInfo allocations
 	for( TMap<UTexture2D*, FLandscapeTextureDataInfo*>::TIterator It(TextureDataMap); It;  ++It )
 	{
-		delete It.Value();
+		delete It.Value();	// FLandscapeTextureDataInfo destructors will unlock any texture data
 	}
 
-	TextureDataMap.Empty();	// FLandscapeTextureDataInfo destructors will unlock any texture data
+	TextureDataMap.Empty();
 }
 
 #include "LevelUtils.h"
@@ -180,10 +181,10 @@ bool FLandscapeEditDataInterface::GetComponentsInRegion(int32 X1, int32 Y1, int3
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
 		for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-		{		
+		{
 			ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
 			if( Component )
-			{				
+			{
 				bNotLocked = bNotLocked && ( !FLevelUtils::IsLevelLocked(Component->GetLandscapeProxy()->GetLevel()) ) && FLevelUtils::IsLevelVisible(Component->GetLandscapeProxy()->GetLevel());
 				if (OutComponents)
 				{
@@ -247,7 +248,7 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
 		for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-		{	
+		{
 			FIntPoint ComponentKey(ComponentIndexX,ComponentIndexY);
 			ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(ComponentKey);
 
@@ -3763,14 +3764,7 @@ void FLandscapeEditDataInterface::SetSelectData(int32 X1, int32 Y1, int32 X2, in
 				//FlushRenderingCommands();
 				// Construct Texture...
 				int32 WeightmapSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections;
-				DataTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Component->GetOutermost(), NAME_None, RF_Public);
-				DataTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_G8);
-				DataTexture->SRGB = false;
-				DataTexture->CompressionNone = true;
-				DataTexture->MipGenSettings = TMGS_LeaveExistingMips;
-				DataTexture->AddressX = TA_Clamp;
-				DataTexture->AddressY = TA_Clamp;
-				DataTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+				DataTexture = Component->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_G8);
 				// Alloc dummy mips
 				ULandscapeComponent::CreateEmptyTextureMips(DataTexture, true);
 				DataTexture->PostEditChange();
@@ -3910,14 +3904,7 @@ void FLandscapeEditDataInterface::SetXYOffsetDataTempl(int32 X1, int32 Y1, int32
 					//FlushRenderingCommands();
 					// Construct Texture...
 					int32 WeightmapSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections;
-					XYOffsetTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Component->GetOutermost(), NAME_None, RF_Public);
-					XYOffsetTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-					XYOffsetTexture->SRGB = false;
-					XYOffsetTexture->CompressionNone = true;
-					XYOffsetTexture->MipGenSettings = TMGS_LeaveExistingMips;
-					XYOffsetTexture->AddressX = TA_Clamp;
-					XYOffsetTexture->AddressY = TA_Clamp;
-					XYOffsetTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap; // for now...
+					XYOffsetTexture = Component->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 					// Alloc dummy mips
 					ULandscapeComponent::CreateEmptyTextureMips(XYOffsetTexture, true);
 					XYOffsetTexture->PostEditChange();

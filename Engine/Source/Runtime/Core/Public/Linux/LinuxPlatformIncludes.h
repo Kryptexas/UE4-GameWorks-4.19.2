@@ -69,6 +69,7 @@ struct RECT
 #include "Linux/LinuxPlatformSurvey.h"
 #include "Linux/LinuxPlatformHttp.h"
 
+typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime
 #include "Linux/LinuxPlatformProperties.h"
@@ -78,7 +79,7 @@ struct RECT
 #endif
 
 #ifndef UE_SERVER
-#error "WITH_EDITORONLY_DATA must be defined"
+#error "UE_SERVER must be defined"
 #endif
 
 typedef FLinuxPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;

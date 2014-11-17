@@ -10,7 +10,7 @@ public:
 	{
 	}
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
 

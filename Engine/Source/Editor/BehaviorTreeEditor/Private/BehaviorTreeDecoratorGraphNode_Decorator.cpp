@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTreeGraphNode_CompositeDecorator.h"
+#include "BehaviorTreeDecoratorGraphNode_Decorator.h"
 
 UBehaviorTreeDecoratorGraphNode_Decorator::UBehaviorTreeDecoratorGraphNode_Decorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -84,4 +88,23 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::ResetNodeOwner()
 
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
 	}
+}
+
+bool UBehaviorTreeDecoratorGraphNode_Decorator::RefreshNodeClass()
+{
+	bool bUpdated = false;
+	if (NodeInstance == NULL)
+	{
+		if (FClassBrowseHelper::IsClassKnown(ClassData))
+		{
+			PostPlacedNewNode();
+			bUpdated = (NodeInstance != NULL);
+		}
+		else
+		{
+			FClassBrowseHelper::AddUnknownClass(ClassData);
+		}
+	}
+
+	return bUpdated;
 }

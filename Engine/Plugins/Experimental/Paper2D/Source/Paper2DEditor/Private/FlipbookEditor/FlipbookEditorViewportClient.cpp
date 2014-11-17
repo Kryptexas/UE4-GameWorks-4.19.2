@@ -13,17 +13,16 @@
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditorViewportClient
 
-FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UPaperFlipbook*>& InFlipbookBeingEdited, const TAttribute<float>& InPlayTime)
+FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UPaperFlipbook*>& InFlipbookBeingEdited)
 {
 	FlipbookBeingEdited = InFlipbookBeingEdited;
 	FlipbookBeingEditedLastFrame = FlipbookBeingEdited.Get();
-	PlayTime = InPlayTime;
 	PreviewScene = &OwnedPreviewScene;
 
 	SetRealtime(true);
 
 	// Create a render component for the sprite being edited
-	AnimatedRenderComponent = NewObject<UPaperAnimatedRenderComponent>();
+	AnimatedRenderComponent = NewObject<UPaperFlipbookComponent>();
 	AnimatedRenderComponent->SetFlipbook(FlipbookBeingEdited.Get());
 	AnimatedRenderComponent->UpdateBounds();
 	PreviewScene->AddComponent(AnimatedRenderComponent.Get(), FTransform::Identity);
@@ -44,6 +43,18 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 	{
 		Canvas.SetHitProxy(NULL);
 	}
+
+	int32 YPos = 42;
+
+	static const FText FlipbookHelpStr = LOCTEXT("FlipbookEditHelp", "Flipbook editor");
+
+	// Display tool help
+	{
+		FCanvasTextItem TextItem(FVector2D(6, YPos), FlipbookHelpStr, GEngine->GetSmallFont(), FLinearColor::White);
+		TextItem.EnableShadow(FLinearColor::Black);
+		TextItem.Draw(&Canvas);
+		YPos += 36;
+	}
 }
 
 void FFlipbookEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
@@ -63,10 +74,10 @@ void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawI
 
 void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 {
-	if ( AnimatedRenderComponent.IsValid() )
+	if (AnimatedRenderComponent.IsValid())
 	{
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		if ( Flipbook != FlipbookBeingEditedLastFrame.Get() )
+		if (Flipbook != FlipbookBeingEditedLastFrame.Get())
 		{
 			AnimatedRenderComponent->SetFlipbook(Flipbook);
 			AnimatedRenderComponent->UpdateBounds();
@@ -75,7 +86,9 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 
 		// Zoom in on the sprite
 		//@TODO: This doesn't work correctly, only partially zooming in or something
-		if (bDeferZoomToSprite)
+		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
+		FIntPoint Size = Viewport->GetSizeXY();
+		if (bDeferZoomToSprite && (Size.X > 0) && (Size.Y > 0))
 		{
 			FocusViewportOnBox(AnimatedRenderComponent->Bounds.GetBox(), true);
 			bDeferZoomToSprite = false;

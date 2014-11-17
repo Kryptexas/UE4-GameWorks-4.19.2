@@ -6,6 +6,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Vehicles/VehicleAnimInstance.h"
+#include "GameFramework/WheeledVehicle.h"
 #include "AnimationRuntime.h"
 
 /////////////////////////////////////////////////////

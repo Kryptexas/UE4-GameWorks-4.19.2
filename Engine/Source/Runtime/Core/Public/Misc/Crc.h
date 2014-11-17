@@ -26,7 +26,7 @@ struct CORE_API FCrc
 		// We ensure that we never try to do a StrCrc32 with a CharType of more than 4 bytes.  This is because
 		// we always want to treat every CRC as if it was based on 4 byte chars, even if it's less, because we
 		// want consistency between equivalent strings with different character types.
-		checkAtCompileTime(sizeof(CharType) <= 4, StrCrc32_only_works_with_CharTypes_up_to_32_bits);
+		static_assert(sizeof(CharType) <= 4, "StrCrc32 only works with CharType up to 32 bits.");
 
 		CRC = ~CRC;
 		while (CharType Ch = *Data++)

@@ -154,7 +154,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 	{
 		if (GUseThreadedRendering)
 		{
-			check( Flags == GL_SYNC_FLUSH_COMMANDS_BIT );
+			// check( Flags == GL_SYNC_FLUSH_COMMANDS_BIT );
 			GLenum Result = eglClientWaitSyncKHR( AndroidEGL::GetInstance()->GetDisplay(), Sync, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, Timeout );
 			switch (Result)
 			{

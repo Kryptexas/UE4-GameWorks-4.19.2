@@ -7,6 +7,6 @@ class SGraphNodeCallParameterCollectionFunction : public SGraphNodeK2Default
 protected:
 
 	// SGraphNode interface
-	virtual TSharedPtr<SGraphPin> CreatePinWidget(UEdGraphPin* Pin) const OVERRIDE;
+	virtual TSharedPtr<SGraphPin> CreatePinWidget(UEdGraphPin* Pin) const override;
 	// End of SGraphNode interface
 };

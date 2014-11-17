@@ -38,21 +38,21 @@ public:
 
 
 	/** Gets the name of this profiler as a string.  This is used to allow the user to select this profiler in a system configuration file or on the command-line */
-	virtual const TCHAR* GetProfilerName() const OVERRIDE
+	virtual const TCHAR* GetProfilerName() const override
 	{
 		return TEXT( "VTune" );
 	}
 
 
 	/** Pauses profiling. */
-	virtual void ProfilerPauseFunction() OVERRIDE
+	virtual void ProfilerPauseFunction() override
 	{
 		VTPause();
 	}
 
 
 	/** Resumes profiling. */
-	virtual void ProfilerResumeFunction() OVERRIDE
+	virtual void ProfilerResumeFunction() override
 	{
 		VTResume();
 	}

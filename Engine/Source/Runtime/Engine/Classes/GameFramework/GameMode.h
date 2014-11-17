@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GameFramework/Info.h"
 #include "GameMode.generated.h"
 
 //=============================================================================
@@ -248,10 +248,10 @@ public:
 	virtual void SetBandwidthLimit(float AsyncIOBandwidthLimit);
 
 	// Begin AActor interface
-	virtual void PreInitializeComponents() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void PreInitializeComponents() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void Reset() override;
+	virtual void Tick(float DeltaSeconds) override;
 	// End AActor interface
 
 	/** 
@@ -405,7 +405,7 @@ public:
 	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
 	/** @Returns true if NewPlayer may only join the server as a spectator. */
-	virtual bool MustSpectate(APlayerController* NewPlayer);
+	virtual bool MustSpectate(APlayerController* NewPlayer) const;
 
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController(AController* InController);

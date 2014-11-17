@@ -38,13 +38,4 @@ FText UAnimGraphNode_RotationMultiplier::GetNodeTitle(ENodeTitleType::Type Title
 	}
 }
 
-FString UAnimGraphNode_RotationMultiplier::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString Result = GetControllerDescription().ToString();
-	Result += (TitleType == ENodeTitleType::ListView) ? TEXT(" - ") : TEXT("\n");
-	Result += FString::Printf(TEXT("Bone: %s"), *Node.TargetBone.BoneName.ToString());
-	return Result;
-}
-
 #undef LOCTEXT_NAMESPACE

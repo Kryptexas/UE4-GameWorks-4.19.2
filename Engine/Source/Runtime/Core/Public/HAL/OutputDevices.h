@@ -158,8 +158,8 @@ protected:
 template<uint8 InDefaultVerbosity, uint8 InCompileTimeVerbosity>
 struct FLogCategory : public FLogCategoryBase
 {
-	checkAtCompileTime((InDefaultVerbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity, bogus_default_verbosity);
-	checkAtCompileTime(InCompileTimeVerbosity < ELogVerbosity::NumVerbosity, bogus_compile_time_verbosity);
+	static_assert((InDefaultVerbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity, "Bogus default verbosity.");
+	static_assert(InCompileTimeVerbosity < ELogVerbosity::NumVerbosity, "Bogus compile time verbosity.");
 	enum
 	{
 		CompileTimeVerbosity = InCompileTimeVerbosity
@@ -352,7 +352,7 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 
 	/**
 	 * Passes on the flush request to all current output devices.
@@ -404,9 +404,9 @@ public:
 	 */
 	void Flush();
 
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
@@ -433,7 +433,7 @@ public:
 	 * @param	Data	unused
 	 * @param	Event	unused
 	 */
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{}
 };
 
@@ -446,9 +446,9 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
@@ -460,7 +460,7 @@ class FBufferedOutputDevice : public FOutputDevice
 	TArray<FBufferedLine> BufferedLines;
 
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		new(BufferedLines)FBufferedLine( InData, Verbosity, Category );
 	}
@@ -491,9 +491,9 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
@@ -511,6 +511,7 @@ private:
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogMac, Log, All);
+CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogLinux, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogIOS, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogAndroid, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogPS4, Log, All);

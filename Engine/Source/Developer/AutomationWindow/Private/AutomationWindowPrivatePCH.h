@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWindowPrivatePCH.h: Pre-compiled header file for the AutomationWindow module.
-=============================================================================*/
-
-#include "../Public/AutomationWindow.h"
+#include "AutomationWindow.h"
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Messaging.h"
@@ -24,6 +20,8 @@
  *****************************************************************************/
 
 #include "SAutomationWindowCommandBar.h"
+#include "SAutomationGraphicalResultBox.h"
+#include "SAutomationTestTreeView.h"
 #include "SAutomationExportMenu.h"
 #include "AutomationFilter.h"
 #include "AutomationPresetManager.h"

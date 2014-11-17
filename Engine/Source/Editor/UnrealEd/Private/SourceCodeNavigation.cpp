@@ -234,7 +234,7 @@ protected:
 	{
 		return true;
 	}
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 private:
 
@@ -509,7 +509,7 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 							if(FunctionSymbolName == SymbolName)
 							{
 								uint64 Address = SymbolEntry.n_value;
-								FString AtoSCommand = FString::Printf(TEXT("-nowarning -d -o %s 0x%x"), *FullModulePath, Address);
+								FString AtoSCommand = FString::Printf(TEXT("-nowarning -arch x86_64 -d -o \"%s\" 0x%x"), *FullModulePath, Address);
 								int32 ReturnCode = 0;
 								FString Results;
 								FPlatformProcess::ExecProcess( TEXT("/usr/bin/atos"), *AtoSCommand, &ReturnCode, &Results, NULL );
@@ -526,7 +526,7 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 											int32 FileNamePos = LastIndex+1;
 											int32 FileNameLen = ColonIndex-FileNamePos;
 											FString FileName = Results.Mid(FileNamePos, FileNameLen);
-											FString LineNumber = Results.Mid(ColonIndex + 1, 1);
+											FString LineNumber = Results.Mid(ColonIndex + 1, CloseIndex-(ColonIndex + 1));
 											SourceCodeAccessor.OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
 										}
 									}
@@ -1281,7 +1281,7 @@ bool FSourceCodeNavigation::FindClassModuleName( UClass* InClass, FString& Modul
 				// Because the module loaded into memory may have a slightly mutated file name (for
 				// hot reload, etc), we ask the module manager for the actual file name being used.  This
 				// is important as we need to be sure to get the correct symbols.
-				FModuleManager::FModuleStatus ModuleStatus;
+				FModuleStatus ModuleStatus;
 				if( ensure( FModuleManager::Get().QueryModule( ShortClassPackageName, ModuleStatus ) ) )
 				{
 					// Use the base file name (no path, no extension) as the module name for symbol look up!

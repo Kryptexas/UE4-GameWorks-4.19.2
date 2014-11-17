@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AI/NavigationOctree.h"
+#include "NavigationOctree.h"
 #include "RecastHelpers.h"
+#include "AI/Navigation/NavRelevantComponent.h"
 
 #if NAVOCTREE_CONTAINS_COLLISION_DATA
 #include "RecastNavMeshGenerator.h"
@@ -51,17 +52,6 @@ void FNavigationOctree::AddActor(class AActor* Actor, FNavigationOctreeElement& 
 			if (NavRelevantActor)
 			{
 				bExportGeometry = NavRelevantActor->GetNavigationRelevantData(Data.Data);
-			}
-
-			TArray<UNavRelevantComponent*> Components;
-			Actor->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
-			{
-				UNavRelevantComponent* NavRelevantComponent = Components[i];
-				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-				{
-					NavRelevantComponent->OnApplyModifiers(Data.Data.Modifiers);
-				}
 			}
 		}
 

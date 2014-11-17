@@ -76,7 +76,7 @@ public:
 
 		const FSceneView& View = Context.View;
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, View);
 		
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
@@ -90,48 +90,48 @@ public:
 
 		FVector2D InvExtent = FVector2D(1.0f / InputDesc->Extent.X, 1.0f / InputDesc->Extent.Y);
 
-		SetShaderValue(ShaderRHI, fxaaQualityRcpFrame, InvExtent);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityRcpFrame, InvExtent);
 
 		{
 			float N = 0.5f;
 			FVector4 Value(-N * InvExtent.X, -N * InvExtent.Y, N * InvExtent.X, N * InvExtent.Y);
-			SetShaderValue(ShaderRHI, fxaaConsoleRcpFrameOpt, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt, Value);
 		}
 
 		{
 			float N = 2.0f;
 			FVector4 Value(-N * InvExtent.X, -N * InvExtent.Y, N * InvExtent.X, N * InvExtent.Y);
-			SetShaderValue(ShaderRHI, fxaaConsoleRcpFrameOpt2, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt2, Value);
 		}
 
 		{
 			float Value = 0.75f;
-			SetShaderValue(ShaderRHI, fxaaQualitySubpix, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualitySubpix, Value);
 		}
 
 		{
 			float Value = 0.166f;
-			SetShaderValue(ShaderRHI, fxaaQualityEdgeThreshold, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityEdgeThreshold, Value);
 		}
 
 		{
 			float Value = 0.0833f;
-			SetShaderValue(ShaderRHI, fxaaQualityEdgeThresholdMin, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityEdgeThresholdMin, Value);
 		}
 
 		{
 			float Value = 8.0f;
-			SetShaderValue(ShaderRHI, fxaaConsoleEdgeSharpness, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeSharpness, Value);
 		}
 
 		{
 			float Value = 0.125f;
-			SetShaderValue(ShaderRHI, fxaaConsoleEdgeThreshold, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeThreshold, Value);
 		}
 
 		{
 			float Value = 0.05f;
-			SetShaderValue(ShaderRHI, fxaaConsoleEdgeThresholdMin, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeThresholdMin, Value);
 		}
 	}
 	
@@ -190,7 +190,7 @@ public:
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -202,7 +202,7 @@ public:
 
 		FVector2D InvExtent = FVector2D(1.0f / InputDesc->Extent.X, 1.0f / InputDesc->Extent.Y);
 
-		SetShaderValue(ShaderRHI, fxaaQualityRcpFrame, InvExtent);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityRcpFrame, InvExtent);
 	}
 
 	FShaderParameter fxaaQualityRcpFrame;
@@ -219,8 +219,9 @@ static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessAntiAliasingPS<Quality> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);
@@ -248,14 +249,16 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	
+
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(Quality)
 	{
@@ -271,6 +274,7 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
+		Context.RHICmdList,
 		DestRect.Min.X, DestRect.Min.Y,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
@@ -280,7 +284,7 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 		*VertexShader,
 		EDRF_Default);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const

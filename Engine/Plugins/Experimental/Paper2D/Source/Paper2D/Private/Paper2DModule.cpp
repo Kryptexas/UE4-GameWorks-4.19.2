@@ -3,7 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "Paper2DModule.h"
 
-#include "Physics/Box2DIntegration.h"
+//#include "Physics/Box2DIntegration.h"
 #include "Rendering/PaperBatchManager.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -12,10 +12,8 @@
 class FPaper2DModule : public IPaper2DModuleInterface
 {
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
-		FPhysicsIntegration2D::InitializePhysics();
-
 		check(GConfig);
 
 		if (!GConfig->GetVector(TEXT("Paper2D"), TEXT("PaperAxisX"), PaperAxisX, GEngineIni))
@@ -32,10 +30,9 @@ public:
 		FPaperBatchManager::Initialize();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FPaperBatchManager::Shutdown();
-		FPhysicsIntegration2D::ShutdownPhysics();
 	}
 };
 

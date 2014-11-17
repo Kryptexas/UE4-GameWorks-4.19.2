@@ -22,7 +22,7 @@ public:
 	}
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	/** Show all bones in the tree */
 	TSharedPtr< FUICommandInfo > ShowAllBones;

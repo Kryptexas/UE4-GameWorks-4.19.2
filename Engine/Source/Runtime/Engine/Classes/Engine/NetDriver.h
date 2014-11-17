@@ -3,9 +3,14 @@
 //
 // Base class of a network driver attached to an active or pending level.
 #pragma once
-//
+
+#include "EngineTypes.h"
+
 #include "NetDriver.generated.h"
 
+class FRepChangedPropertyTracker;
+class FRepLayout;
+class FObjectReplicator;
 
 //
 // Whether to support net lag and packet loss testing.
@@ -87,7 +92,7 @@ struct FActorDestructionInfo
 };
 
 
-UCLASS(dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
+UCLASS(Abstract, customConstructor, transient, MinimalAPI, config=Engine)
 class UNetDriver : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()
@@ -163,8 +168,9 @@ public:
 	class UWorld* World;
 
 	/** @todo document */
-	UPROPERTY()
-	UPackageMap* MasterMap;
+	TSharedPtr< class FNetGUIDCache > GuidCache;
+
+	TSharedPtr< class FClassNetCacheMgr >	NetCache;
 
 	/** The loaded UClass of the net connection type to use */
 	UPROPERTY()
@@ -310,9 +316,9 @@ public:
 
 
 	// Begin UObject interface.
-	ENGINE_API virtual void PostInitProperties() OVERRIDE;
-	ENGINE_API virtual void FinishDestroy() OVERRIDE;
-	ENGINE_API virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	ENGINE_API virtual void PostInitProperties() override;
+	ENGINE_API virtual void FinishDestroy() override;
+	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -327,7 +333,7 @@ public:
 	 *
 	 * @return true if the handler consumed the input, false to continue searching handlers
 	 */
-	ENGINE_API virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog) OVERRIDE;
+	ENGINE_API virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog) override;
 
 	ENGINE_API ENetMode	GetNetMode() const;
 
@@ -490,11 +496,6 @@ public:
 	 * @return true if we're done verifying this package, false if we're not done yet (because i.e. async loading is in progress)
 	 */
 	bool VerifyPackageInfo(FPackageInfo& Info);
-
-	/** Flushes and clears all packagemaps on this driver and driver's connections */
-	ENGINE_API virtual void ResetPackageMaps();
-
-	ENGINE_API virtual void LockPackageMaps();
 
 	ENGINE_API virtual void CleanPackageMaps();
 

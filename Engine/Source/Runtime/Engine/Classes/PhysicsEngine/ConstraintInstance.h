@@ -3,6 +3,13 @@
 
 #include "ConstraintInstance.generated.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxD6Joint;
+}
+#endif // WITH_PHYSX
+
 // LINEAR DOF
 UENUM()
 enum ELinearConstraintMotion
@@ -27,6 +34,18 @@ namespace EConstraintFrame
 	};
 }
 
+UENUM()
+namespace EAngularDriveMode
+{
+	enum Type
+	{
+		//Follows the shortest arc between a pair of anuglar configurations (Ignored if any angular limits/locks are used)
+		SLERP,
+		//Path is decomposed into twist and swing. Doesn't follow shortest arc and may have gimbal lock. (Works with angular limits/locks)
+		TwistAndSwing
+	};
+}
+
 /** Container for a physics representation of an object */
 USTRUCT()
 struct ENGINE_API FConstraintInstance
@@ -46,7 +65,7 @@ struct ENGINE_API FConstraintInstance
 
 #if WITH_PHYSX
 	/** Internal use. Physics-engine representation of this constraint. */
-	class physx::PxD6Joint*		ConstraintData;
+	physx::PxD6Joint*		ConstraintData;
 #endif	//WITH_PHYSX
 
 	/** Physics scene index. */
@@ -268,11 +287,11 @@ struct ENGINE_API FConstraintInstance
 	FVector LinearVelocityTarget;
 
 	/** Spring to apply to the for linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Position Strength", editcondition = "bLinearPositionDrive"))
 	float LinearDriveSpring;
 
 	/** Damping to apply to the for linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Velocity Strength", editcondition = "bLinearVelocityDrive"))
 	float LinearDriveDamping;
 
 	/** Limit to the force the linear drive can apply. */
@@ -305,6 +324,10 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY()
 	FQuat AngularPositionTarget_DEPRECATED;
 	
+	/** The way rotation paths are estimated */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (editcondition = "bAngularVelocityDrive"))
+	TEnumAsByte<enum EAngularDriveMode::Type> AngularDriveMode;
+
 	/** Target orientation for the angular drive. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
 	FRotator AngularOrientationTarget;
@@ -314,16 +337,49 @@ struct ENGINE_API FConstraintInstance
 	FVector AngularVelocityTarget;    // Revolutions per second
 
 	/** Spring value to apply to the for angular drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (DisplayName = "Angular Position Strength", editcondition = "bAngularOrientationDrive"))
 	float AngularDriveSpring;
 
-	/** Damping value to apply to the for angulardrive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
+	/** Damping value to apply to the for angular drive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (DisplayName = "Angular Velocity Strength", editcondition = "bAngularVelocityDrive"))
 	float AngularDriveDamping;
 
 	/** Limit to the force the angular drive can apply. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
 	float AngularDriveForceLimit;    //	Due to the way the ConstraintInstance pooling works, this MUST BE LAST PROPERTY OF THE CLASS.
+
+	float AverageMass;
+
+
+	/** Sets the LinearX Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearXLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the LinearY Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearYLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the LinearZ Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearZLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the Angular Swing1 Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float Swing1LimitAngle);
+
+	/** Sets the Angular Swing2 Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float Swing2LimitAngle);
+
+	/** Sets the Angular Twist Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularTwistLimit(EAngularConstraintMotion MotionType, float TwistLimitAngle);
 
 #if WITH_PHYSX
 	FPhysxUserData PhysxUserData;
@@ -362,18 +418,22 @@ public:
 	/** Get the position of this constraint in world space. */
 	FVector GetConstraintLocation();
 
-	void	SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
-	void	SetLinearVelocityDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
-	void	SetAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
-	void	SetAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
+	void SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
+	void SetLinearVelocityDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
+	void SetAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
+	void SetAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
 
-	void	SetLinearPositionTarget(const FVector& InPosTarget);
-	void	SetLinearVelocityTarget(const FVector& InVelTarget);
-	void	SetLinearDriveParams(float InSpring, float InDamping, float InForceLimit);
+	void SetLinearPositionTarget(const FVector& InPosTarget);
+	void SetLinearVelocityTarget(const FVector& InVelTarget);
+	void SetLinearDriveParams(float InSpring, float InDamping, float InForceLimit);
 
-	void	SetAngularOrientationTarget(const FQuat& InPosTarget);
-	void	SetAngularVelocityTarget(const FVector& InVelTarget);
-	void	SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+	void SetAngularOrientationTarget(const FQuat& InPosTarget);
+	void SetAngularVelocityTarget(const FVector& InVelTarget);
+	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+
+	void UpdateLinearLimit();
+	void UpdateAngularLimit();
+
 
 	/** Scale Angular Limit Constraints (as defined in RB_ConstraintSetup) */
 	void	SetAngularDOFLimitScale(float InSwing1LimitScale, float InSwing2LimitScale, float InTwistLimitScale);

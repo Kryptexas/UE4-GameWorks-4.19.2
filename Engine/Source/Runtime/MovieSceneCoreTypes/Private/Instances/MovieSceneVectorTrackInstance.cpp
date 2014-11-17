@@ -2,12 +2,12 @@
 
 #include "MovieSceneCoreTypesPCH.h"
 #include "MovieSceneVectorTrackInstance.h"
-#include "MatineeUtils.h"
-
 
 FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVectorTrack& InVectorTrack )
 {
 	VectorTrack = &InVectorTrack;
+
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( VectorTrack->GetPropertyName() ) );
 }
 
 void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
@@ -15,43 +15,36 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 	FVector4 Vector;
 	if( VectorTrack->Eval( Position, LastPosition, Vector ) )
 	{
-		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
+		int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
+		switch( NumChannelsUsed )
 		{
-			UObject* Object = RuntimeObjects[ObjIndex];
-
-			UObject* PropertyOwner = NULL;
-			UProperty* Property = NULL;
-			//@todo Sequencer - Major performance problems here.  This needs to be initialized and stored (not serialized) somewhere
-			void* Address = FMatineeUtils::GetPropertyAddress<void>( Object, VectorTrack->GetPropertyName(), Property, PropertyOwner );
-		
-			if (Address)
+			case 2:
 			{
-				bool bIsVector2D = false, bIsVector = false, bIsVector4 = false;
-				const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
-				check(StructProp && StructProp->Struct);
-				FName StructName = StructProp->Struct->GetFName();
-
-				bIsVector2D = StructName == NAME_Vector2D;
-				bIsVector = StructName == NAME_Vector;
-				bIsVector4 = StructName == NAME_Vector4;
-				check(bIsVector2D || bIsVector || bIsVector4);
-
-				if (bIsVector2D)
-				{
-					*(FVector2D*)Address = FVector2D(Vector.X, Vector.Y);
-				}
-				else if (bIsVector)
-				{
-					*(FVector*)Address = FVector(Vector.X, Vector.Y, Vector.Z);
-				}
-				else if (bIsVector4)
-				{
-					*(FVector4*)Address = Vector;
-				}
-				// Let the property owner know that we changed one of its properties
-				PropertyOwner->PostInterpChange( Property );
+				FVector2D Value(Vector.X, Vector.Y);
+				PropertyBindings->CallFunction(RuntimeObjects, &Value);
+				break;
 			}
+			case 3:
+			{
+				FVector Value(Vector.X, Vector.Y, Vector.Z);
+				PropertyBindings->CallFunction(RuntimeObjects, &Value);
+				break;
+			}
+			case 4:
+			{
+				PropertyBindings->CallFunction(RuntimeObjects, &Vector);
+				break;
+			}
+			default:
+				UE_LOG(LogSequencerRuntime, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
+				break;
 		}
+		
 	}
 }
 
+
+void FMovieSceneVectorTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
+{
+	PropertyBindings->UpdateBindings(RuntimeObjects);
+}

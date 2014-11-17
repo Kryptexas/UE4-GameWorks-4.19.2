@@ -17,13 +17,13 @@ public:
 	{
 	}
 
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
 	{
 		// This net is a variable read
 		ResolveAndRegisterScopedTerm(Context, Net, Context.VariableReferences);
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_Variable* VarNode = Cast<UK2Node_Variable>(Node);
 		if (VarNode)
@@ -153,33 +153,6 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else
 	{
 		Result = LOCTEXT("Get", "Get");
-	}
-
-	return Result;
-}
-
-FString UK2Node_VariableGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString Result = TEXT("Get");
-
-	// If there is only one variable being read, the title can be made the variable name
-	FString OutputPinName;
-	int32 NumOutputsFound = 0;
-
-	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
-	{
-		UEdGraphPin* Pin = Pins[PinIndex];
-		if (Pin->Direction == EGPD_Output)
-		{
-			++NumOutputsFound;
-			OutputPinName = Pin->PinName;
-		}
-	}
-
-	if (NumOutputsFound == 1)
-	{
-		Result = Result + TEXT(" ") + OutputPinName;
 	}
 
 	return Result;

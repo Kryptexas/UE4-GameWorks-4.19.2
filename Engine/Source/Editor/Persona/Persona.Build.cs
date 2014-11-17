@@ -33,6 +33,7 @@ public class Persona : ModuleRules
                 "PropertyEditor",
 				"EditorWidgets",
                 "BlueprintGraph",
+                "RHI",
 			}
 		);
 

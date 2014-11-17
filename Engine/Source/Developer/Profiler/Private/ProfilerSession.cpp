@@ -489,6 +489,8 @@ bool FRawProfilerSession::HandleTicker( float DeltaTime )
 
 void FRawProfilerSession::PrepareLoading()
 {
+	SCOPE_LOG_TIME_FUNC();
+
 	const FString Filepath = DataFilepath + FStatConstants::StatsFileRawExtension;
 	const int64 Size = IFileManager::Get().FileSize( *Filepath );
 	if( Size < 4 )
@@ -514,7 +516,7 @@ void FRawProfilerSession::PrepareLoading()
 	StatsThreadStats.MarkAsLoaded();
 
 	TArray<FStatMessage> Messages;
-	if( Stream.Header.bRawStatFile )
+	if( Stream.Header.bRawStatsFile )
 	{
 		// Read metadata.
 		TArray<FStatMessage> MetadataMessages;
@@ -530,88 +532,181 @@ void FRawProfilerSession::PrepareLoading()
 		// Read frames offsets.
 		Stream.ReadFramesOffsets( *FileReader );
 
-		// Prepare profiler frames.
-		double ElapsedTimeMS = 0;
-		for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
+		// Buffer used to store the compressed and decompressed data.
+		TArray<uint8> SrcArray;
+		TArray<uint8> DestArray;
+		const bool bHasCompressedData = Stream.Header.HasCompressedData();
+
+		// Temporary fix for setting the correct value for the SecondsPerCycle.
 		{
-			const FStatsFrameInfo& StatsFrameInfo = Stream.FramesInfo[FrameIndex];
-			FileReader->Seek( StatsFrameInfo.FrameFileOffset );
-			int64 TargetFrame;
-			*FileReader << TargetFrame;
+			SCOPE_LOG_TIME( TEXT( "Looking for the STAT_SecondsPerCycle" ), nullptr );
+			UE_LOG( LogStats, Log, TEXT( "Looking for the STAT_SecondsPerCycle" ) );
+			FileReader->Seek( Stream.FramesInfo[0].FrameFileOffset );
 
-			const double GameThreadTimeMS = GetMetaData()->ConvertCyclesToMS( (uint32)StatsFrameInfo.ThreadCycles.FindChecked( GameThreadID ) );
-
-			// Update mini-view, convert from cycles to ms.
-			TMap<uint32, float> ThreadTimesMS;
-			for( auto InnerIt = StatsFrameInfo.ThreadCycles.CreateConstIterator(); InnerIt; ++InnerIt )
+			if( bHasCompressedData )
 			{
-				const uint32 ThreadID = InnerIt.Key();
-				const bool bCanBeAdded = GameThreadID == ThreadID || GetMetaData()->GetRenderThreadID().Contains( ThreadID );
-				if( bCanBeAdded )
-				{
-					ThreadTimesMS.Add( ThreadID, GetMetaData()->ConvertCyclesToMS( InnerIt.Value() ) );
-				}
+				// Read the compressed data.
+				FCompressedStatsData UncompressedData( SrcArray, DestArray );
+				*FileReader << UncompressedData;
 			}
 
-			// Pass the reference to the stats' metadata.
-			OnAddThreadTime.ExecuteIfBound( FrameIndex, ThreadTimesMS, StatMetaData );
+			// Select the proper archive.
+			FMemoryReader MemoryReader( DestArray, true );
+			FArchive& Archive = bHasCompressedData ? MemoryReader : *FileReader;
 
-			// Create a new profiler frame and add it to the stream.
-			ElapsedTimeMS += GameThreadTimeMS;
-			FProfilerFrame* ProfilerFrame = new FProfilerFrame( TargetFrame, GameThreadTimeMS, ElapsedTimeMS );
-			ProfilerFrame->ThreadTimesMS = ThreadTimesMS;
-			ProfilerStream.AddProfilerFrame( TargetFrame, ProfilerFrame );
-
-			// Thread cycles can be used to generate low-res thread view.
-			// @TODO yrx 2014-04-23 
-		}
-		int64 FrameOffset0 = Stream.FramesInfo[0].FrameFileOffset;
-		FileReader->Seek( FrameOffset0 );
-
-#if	1
-		double CycleCounterAdjustmentMS = 0.0f;
-
-		// Read the raw stats messages.
-		for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
-		{
-			FProfilerFrame* ProfilerFrame = ProfilerStream.GetProfilerFrame( FrameIndex );
-			FileReader->Seek( Stream.FramesInfo[FrameIndex].FrameFileOffset );
-
-			UE_LOG( LogStats, Log, TEXT( "Processing raw stats frame: %4i/%4i" ), FrameIndex, Stream.FramesInfo.Num() );
-
-			FStatPacketArray Packet;
+			FStatPacketArray StatPacketArray;
 
 			int64 TargetFrame;
-			*FileReader << TargetFrame;
+			Archive << TargetFrame;
 
 			int32 NumPackets;
-			*FileReader << NumPackets;
+			Archive << NumPackets;
 
 			for( int32 PacketIndex = 0; PacketIndex < NumPackets; PacketIndex++ )
 			{
 				FStatPacket* ToRead = new FStatPacket();
-				Stream.ReadStatPacket( *FileReader, *ToRead, bIsFinalized );
-				Packet.Packets.Add( ToRead );
+				Stream.ReadStatPacket( Archive, *ToRead, bIsFinalized );
+				StatPacketArray.Packets.Add( ToRead );
 			}
 
-			ProcessStatPacketArray( Packet, *ProfilerFrame, FrameIndex ); // or ProfilerFrame->TargetFrame
-
-			// Find the first cycle counter for the game thread.
-			if( CycleCounterAdjustmentMS == 0.0f )
+			for( int32 PacketIndex = 0; PacketIndex < StatPacketArray.Packets.Num(); PacketIndex++ )
 			{
-				CycleCounterAdjustmentMS = ProfilerFrame->Root->CycleCounterStartTimeMS;
-			}
+				const FStatPacket& StatPacket = *StatPacketArray.Packets[PacketIndex];
+				const TArray<FStatMessage>& Data = StatPacket.StatMessages;
 
-			TMap<uint32, int64> ThreadCycles;
-			// Serialize thread cycles.
-			*FileReader << ThreadCycles;
-		
-			// Update thread time and mark profiler frame as valid and ready for use.
-			ProfilerFrame->MarkAsValid();
+				for( int32 Index = 0; Index < Data.Num(); Index++ )
+				{
+					const FStatMessage& Item = Data[Index];
+					check( Item.NameAndInfo.GetFlag( EStatMetaFlags::DummyAlwaysOne ) );  // we should never be sending short names to the stats anymore
+
+					const FName ShortName = Item.NameAndInfo.GetShortName();
+					if( ShortName == TEXT( "STAT_SecondsPerCycle" ) )
+					{
+						StatMetaData->SecondsPerCycle = Item.GetValue_double();
+						UE_LOG( LogStats, Log, TEXT( "STAT_SecondsPerCycle is %f [ns]" ), StatMetaData->GetSecondsPerCycle()*1000*1000 );
+						
+						PacketIndex = StatPacketArray.Packets.Num();
+						break;
+					}
+				}
+			}
 		}
 
-		// Adjust all profiler frames.
-		ProfilerStream.AdjustCycleCounters( CycleCounterAdjustmentMS );
+		check( StatMetaData->GetSecondsPerCycle() > 0.0 );
+
+		{
+			SCOPE_LOG_TIME( TEXT( "Preparing profiler frames" ), nullptr );
+
+			// Prepare profiler frames.
+			double ElapsedTimeMS = 0;
+			for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
+			{
+				const FStatsFrameInfo& StatsFrameInfo = Stream.FramesInfo[FrameIndex];
+				FileReader->Seek( StatsFrameInfo.FrameFileOffset );
+
+				if( bHasCompressedData )
+				{
+					// Read the compressed data.
+					FCompressedStatsData UncompressedData( SrcArray, DestArray );
+					*FileReader << UncompressedData;
+				}
+
+				// Select the proper archive.
+				FMemoryReader MemoryReader( DestArray, true );
+				FArchive& Archive = bHasCompressedData ? MemoryReader : *FileReader;
+
+				int64 TargetFrame;
+				Archive << TargetFrame;
+
+				const double GameThreadTimeMS = GetMetaData()->ConvertCyclesToMS( (uint32)StatsFrameInfo.ThreadCycles.FindChecked( GameThreadID ) );
+
+				// Update mini-view, convert from cycles to ms.
+				TMap<uint32, float> ThreadTimesMS;
+				for( auto InnerIt = StatsFrameInfo.ThreadCycles.CreateConstIterator(); InnerIt; ++InnerIt )
+				{
+					const uint32 ThreadID = InnerIt.Key();
+					const bool bCanBeAdded = GameThreadID == ThreadID || GetMetaData()->GetRenderThreadID().Contains( ThreadID );
+					if( bCanBeAdded )
+					{
+						ThreadTimesMS.Add( ThreadID, GetMetaData()->ConvertCyclesToMS( InnerIt.Value() ) );
+					}
+				}
+
+				// Pass the reference to the stats' metadata.
+				OnAddThreadTime.ExecuteIfBound( FrameIndex, ThreadTimesMS, StatMetaData );
+
+				// Create a new profiler frame and add it to the stream.
+				ElapsedTimeMS += GameThreadTimeMS;
+				FProfilerFrame* ProfilerFrame = new FProfilerFrame( TargetFrame, GameThreadTimeMS, ElapsedTimeMS );
+				ProfilerFrame->ThreadTimesMS = ThreadTimesMS;
+				ProfilerStream.AddProfilerFrame( TargetFrame, ProfilerFrame );
+
+				// Thread cycles can be used to generate low-res thread view.
+				// @TODO yrx 2014-04-23 
+			}
+			int64 FrameOffset0 = Stream.FramesInfo[0].FrameFileOffset;
+			FileReader->Seek( FrameOffset0 );
+		}
+
+#if	1
+		{
+			SCOPE_LOG_TIME( TEXT( "Processing raw stats frames" ), nullptr );
+
+			double CycleCounterAdjustmentMS = 0.0f;
+
+			// Read the raw stats messages.
+			for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
+			{
+				FProfilerFrame* ProfilerFrame = ProfilerStream.GetProfilerFrame( FrameIndex );
+				FileReader->Seek( Stream.FramesInfo[FrameIndex].FrameFileOffset );
+
+				UE_CLOG( FrameIndex % 8 == 0, LogStats, Log, TEXT( "Processing raw stats frame: %4i/%4i" ), FrameIndex, Stream.FramesInfo.Num() );
+
+				if( bHasCompressedData )
+				{
+					// Read the compressed data.
+					FCompressedStatsData UncompressedData( SrcArray, DestArray );
+					*FileReader << UncompressedData;
+				}
+
+				// Select the proper archive.
+				FMemoryReader MemoryReader( DestArray, true );
+				FArchive& Archive = bHasCompressedData ? MemoryReader : *FileReader;
+
+				FStatPacketArray Packet;
+
+				int64 TargetFrame;
+				Archive << TargetFrame;
+
+				int32 NumPackets;
+				Archive << NumPackets;
+
+				for( int32 PacketIndex = 0; PacketIndex < NumPackets; PacketIndex++ )
+				{
+					FStatPacket* ToRead = new FStatPacket();
+					Stream.ReadStatPacket( Archive, *ToRead, bIsFinalized );
+					Packet.Packets.Add( ToRead );
+				}
+
+				ProcessStatPacketArray( Packet, *ProfilerFrame, FrameIndex ); // or ProfilerFrame->TargetFrame
+
+				// Find the first cycle counter for the game thread.
+				if( CycleCounterAdjustmentMS == 0.0f )
+				{
+					CycleCounterAdjustmentMS = ProfilerFrame->Root->CycleCounterStartTimeMS;
+				}
+
+				TMap<uint32, int64> ThreadCycles;
+				// Serialize thread cycles.
+				Archive << ThreadCycles;
+
+				// Update thread time and mark profiler frame as valid and ready for use.
+				ProfilerFrame->MarkAsValid();
+			}
+
+			// Adjust all profiler frames.
+			ProfilerStream.AdjustCycleCounters( CycleCounterAdjustmentMS );
+		}
 
 #endif // 0
 	}
@@ -633,12 +728,6 @@ void FRawProfilerSession::PrepareLoading()
 void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& StatsThreadStats )
 {
 	TMap<FName, int32> GroupFNameIDs;
-
-	StatsThreadStats.Groups;
-	StatsThreadStats.MemoryPoolToCapacityLongName;
-	StatsThreadStats.NotClearedEveryFrame;
-	StatsThreadStats.Threads;
-	StatsThreadStats.ShortNameToLongName;
 
 	for( auto It = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
 	{
@@ -721,11 +810,12 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 		if( GroupName == FStatConstants::NAME_ThreadGroup )
 		{
 			uint32 ThreadID = 0;
-			for( auto It = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
+			for( auto ThreadsIt = StatsThreadStats.Threads.CreateConstIterator(); ThreadsIt; ++ThreadsIt )
 			{
-				if( It.Value() == StatName )
+				if (ThreadsIt.Value() == StatName)
 				{
-					ThreadID = It.Key();
+					ThreadID = ThreadsIt.Key();
+					break;
 				}
 			}
 			ThreadIDtoStatID.Add( ThreadID, StatID );
@@ -745,14 +835,7 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 				RenderThreadIDs.AddUnique( ThreadID );
 			}
 		}
-
-		if( StatName == TEXT( "STAT_SecondsPerCycle" ) )
-		{
-			SecondsPerCycle = LongName.GetValue_double();
-		}
 	}
-
-	SecondsPerCycle = FPlatformTime::GetSecondsPerCycle();
 }
 
 void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPacketArray, FProfilerFrame& out_ProfilerFrame, int32 FrameIndex )

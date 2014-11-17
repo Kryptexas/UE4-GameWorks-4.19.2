@@ -33,7 +33,7 @@
 //#define D3D11_STATE_CACHE_DEBUG 1
 
 
-#if D3D11_STATE_CACHE_DEBUG && DO_CHECK
+#if D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG && DO_CHECK
 	#define D3D11_STATE_CACHE_VERIFY(...) VerifyCacheState()
 	#define D3D11_STATE_CACHE_VERIFY_PRE(...) VerifyCacheStatePre()
 	#define D3D11_STATE_CACHE_VERIFY_POST(...) VerifyCacheStatePost()
@@ -205,6 +205,14 @@ protected:
 		check(ResourceIndex < ARRAYSIZE(CurrentShaderResourceViews[ShaderFrequency]));
 		if ((CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] != SRV) || GD3D11SkipStateCaching)
 		{
+			if(SRV)
+			{
+				SRV->AddRef();
+			}
+			if(CurrentShaderResourceViews[ShaderFrequency][ResourceIndex])
+			{
+				CurrentShaderResourceViews[ShaderFrequency][ResourceIndex]->Release();
+			}
 			CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] = SRV;
 			if (AlternatePathFunction != nullptr)
 			{
@@ -879,7 +887,7 @@ public:
 	 */
 	virtual void ClearState();
 
-#if D3D11_STATE_CACHE_DEBUG
+#if D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG
 protected:
 	// Debug helper methods to verify cached state integrity.
 	template <EShaderFrequency ShaderFrequency>

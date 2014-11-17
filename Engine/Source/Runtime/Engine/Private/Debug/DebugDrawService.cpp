@@ -56,10 +56,11 @@ void UDebugDrawService::Draw(const FEngineShowFlags Flags, FViewport* Viewport, 
 		CanvasObject = ConstructObject<UCanvas>(UCanvas::StaticClass(),GetTransientPackage(),TEXT("DebugCanvasObject"));
 		CanvasObject->AddToRoot();
 	}
-	
+
 	CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 	CanvasObject->Update();	
 	CanvasObject->Canvas = Canvas;
+	CanvasObject->SetView(View);
 
 	// PreRender the player's view.
 	Draw(Flags, CanvasObject);	

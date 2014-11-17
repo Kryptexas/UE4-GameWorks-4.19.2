@@ -2,10 +2,11 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "MaterialExpressionTextureSampleParameter.generated.h"
 
-UCLASS(collapsecategories, abstract, hidecategories=Object, MinimalAPI)
-class UMaterialExpressionTextureSampleParameter : public UMaterialExpressionTextureSample
+UCLASS(collapsecategories, abstract, hidecategories=Object)
+class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExpressionTextureSample
 {
 	GENERATED_UCLASS_BODY()
 
@@ -21,8 +22,14 @@ class UMaterialExpressionTextureSampleParameter : public UMaterialExpressionText
 	FName Group;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool MatchesSearchQuery(const TCHAR* SearchQuery) override;
+#if WITH_EDITOR
+	virtual bool CanRenameNode() const override { return true; }
+	virtual FString GetEditableName() const override;
+	virtual void SetEditableName(const FString& NewName) override;
+#endif
 	// End UMaterialExpression Interface
 
 	/**
@@ -45,14 +52,10 @@ class UMaterialExpressionTextureSampleParameter : public UMaterialExpressionText
 	 */
 	virtual void SetDefaultTexture();
 
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}
 
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery );
 	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 };
-
-
-

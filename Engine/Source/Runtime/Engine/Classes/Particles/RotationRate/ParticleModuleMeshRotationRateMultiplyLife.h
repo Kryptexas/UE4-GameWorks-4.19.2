@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/RotationRate/ParticleModuleRotationRateBase.h"
 #include "ParticleModuleMeshRotationRateMultiplyLife.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Mesh Rotation Rate * Life"))
@@ -18,14 +19,14 @@ class UParticleModuleMeshRotationRateMultiplyLife : public UParticleModuleRotati
 
 
 	//Begin UObject Interface
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostInitProperties() override;
+	virtual void	Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	// End UParticleModule Interface
 };
 

@@ -5,6 +5,11 @@
  */
 
 #pragma once
+
+#include "Editor/UnrealEdTypes.h"
+
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
+
 #include "MaterialEditorInstanceConstant.generated.h"
 
 USTRUCT()
@@ -196,7 +201,7 @@ struct FEditorStaticComponentMaskParameterValue : public FEditorParameterValue
 	
 };
 
-UCLASS(hidecategories=Object, dependson=UUnrealEdTypes, collapsecategories)
+UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -237,9 +242,9 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	uint32 bUseOldStyleMICEditorGroups:1;
 
 	// Begin UObject interface.
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditUndo() override;
 #endif
 	// End UObject interface.
 

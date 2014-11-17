@@ -7,6 +7,20 @@
 
 #pragma once
 
+/** Helper struct used to get the string version of the Windows version. */
+struct FWindowsOSVersionHelper
+{
+	enum ErrorCodes
+	{
+		SUCCEEDED = 0,
+		ERROR_UNKNOWNVERSION = 1,
+		ERROR_GETPRODUCTINFO_FAILED = 2,
+		ERROR_GETVERSIONEX_FAILED = 4,
+	};
+
+	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
+};
+
 /**
 * Windows implementation of the misc OS functions
 **/
@@ -57,6 +71,9 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static uint32 GetLastError();
 
 	static void RaiseException( uint32 ExceptionCode );
+
+	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
+	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
 
 	static bool CoInitialize();
 	static void CoUninitialize();
@@ -136,12 +153,11 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static bool HasCPUIDInstruction();
 
-	/** 
-	 * Uses cpuid instruction to get the vendor string
-	 *
-	 * @return	CPU vendor name
-	 */
 	static FString GetCPUVendor();
+	static FString GetCPUBrand();
+	static FString GetPrimaryGPUBrand();
+	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
+	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
 
 	/**
 	 * Uses cpuid instruction to get the vendor string
@@ -158,8 +174,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-
-	static bool GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue);
 
 	/** 
 	 * Provides a simpler interface for fetching and cleanup of registry value queries
@@ -197,6 +211,11 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 
 	/** @return Get the name of the platform specific file manager (Explorer) */
 	static FText GetFileManagerName();
+
+	/**
+	 * Returns whether the platform is running on battery power or not.
+	 */
+	static bool IsRunningOnBattery();
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

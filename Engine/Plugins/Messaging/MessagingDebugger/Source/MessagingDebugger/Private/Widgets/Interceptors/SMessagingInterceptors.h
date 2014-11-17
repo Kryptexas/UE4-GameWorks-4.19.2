@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingInterceptors.h: Declares the SMessagingInterceptors class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,9 +19,9 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InStyle - The visual style to use for this widget.
-	 * @param InTracer - The message tracer.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InStyle The visual style to use for this widget.
+	 * @param InTracer The message tracer.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
 };

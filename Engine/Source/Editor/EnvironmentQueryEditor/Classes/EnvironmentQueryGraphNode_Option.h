@@ -11,12 +11,12 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 	UPROPERTY()
 	TArray<class UEnvironmentQueryGraphNode_Test*> Tests;
 
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FText GetDescription() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void PostPlacedNewNode() override;
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void PrepareForCopying() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetDescription() const override;
 
 	void AddSubNode(class UEnvironmentQueryGraphNode_Test* NodeTemplate, class UEdGraph* ParentGraph);
 	void CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const;
@@ -25,5 +25,5 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 
 protected:
 
-	virtual void ResetNodeOwner() OVERRIDE;
+	virtual void ResetNodeOwner() override;
 };

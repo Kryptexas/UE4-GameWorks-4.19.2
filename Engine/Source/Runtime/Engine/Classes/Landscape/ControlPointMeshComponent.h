@@ -16,7 +16,7 @@ class UControlPointMeshComponent : public UStaticMeshComponent
 
 	//Begin UPrimitiveComponent Interface
 #if WITH_EDITOR
-	virtual bool ShouldRenderSelected() const OVERRIDE
+	virtual bool ShouldRenderSelected() const override
 	{
 		return Super::ShouldRenderSelected() || bSelected;
 	}

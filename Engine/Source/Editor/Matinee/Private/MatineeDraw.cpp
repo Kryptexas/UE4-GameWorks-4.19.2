@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MatineeDraw.cpp: Functions covering drawing the Matinee window
-=============================================================================*/
-
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeViewportClient.h"
@@ -11,6 +7,20 @@
 #include "Runtime/Engine/Public/Interpolation.h"
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackFloatBase.h"
+#include "Matinee/InterpTrackVectorBase.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/MatineeAnimInterface.h"
+#include "Materials/MaterialInstanceActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Particles/Emitter.h"
+
 
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;

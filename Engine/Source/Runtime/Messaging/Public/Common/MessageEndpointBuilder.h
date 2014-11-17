@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageEndpointConfigurator.h: Declares the FMessageEndpointConfigurator class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -54,14 +50,13 @@ public:
 	 * @param Handler The class handling the messages.
 	 * @param HandlerFunc The class function handling the messages.
 	 * @param ReceivingThread The thread on which to handle the message.
-	 *
 	 * @return This instance (for method chaining).
 	 */
 	template<typename MessageType, typename HandlerType>
 	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TMessageHandlerFunc<MessageType, HandlerType>::Type HandlerFunc )
 	{
 		// @todo gmp: implement proper async message deserialization, so this can be removed
-		checkAtCompileTime(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, Please_Add_A_WithMessageHandling_TypeTrait);
+		static_assert(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, "Please add a WithMessageHandling type trait.");
 
 		Handlers.Add(MakeShareable(new TMessageHandler<MessageType, HandlerType>(Handler, HandlerFunc)));
 
@@ -81,8 +76,7 @@ public:
 	 * causing no other messages to be delivered in the meantime.
 	 *
 	 * @return This instance (for method chaining).
-	 *
-	 * @ReceivingOnThread
+	 * @see ReceivingOnThread
 	 */
 	FMessageEndpointBuilder& ReceivingOnAnyThread( )
 	{
@@ -100,10 +94,8 @@ public:
 	 * Also see the additional notes for ReceivingOnAnyThread().
 	 *
 	 * @param NamedThread The name of the thread to receive messages on.
-	 *
 	 * @return This instance (for method chaining).
-	 *
-	 * @seeReceivingOnAnyThread
+	 * @see ReceivingOnAnyThread
 	 */
 	FMessageEndpointBuilder& ReceivingOnThread( ENamedThreads::Type NamedThread )
 	{
@@ -128,7 +120,6 @@ public:
 	 * Registers a message handler with the endpoint.
 	 *
 	 * @param Handler The handler to add.
-	 *
 	 * @return This instance (for method chaining).
 	 */
 	FMessageEndpointBuilder& WithHandler( const IMessageHandlerRef& Handler )
@@ -157,7 +148,7 @@ public:
 	/**
 	 * Builds the message endpoint as configured.
 	 *
-	 * @return A new message endpoint, or NULL if it couldn't be built.
+	 * @return A new message endpoint, or nullptr if it couldn't be built.
 	 */
 	FMessageEndpointPtr Build( )
 	{

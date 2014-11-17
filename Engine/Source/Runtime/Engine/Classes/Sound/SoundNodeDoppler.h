@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
- 
+#include "Sound/SoundNode.h"
 #include "SoundNodeDoppler.generated.h"
 
 struct FListener;
@@ -21,8 +21,8 @@ class USoundNodeDoppler : public USoundNode
 
 public:
 	// Begin USoundNode interface. 
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 
 protected:

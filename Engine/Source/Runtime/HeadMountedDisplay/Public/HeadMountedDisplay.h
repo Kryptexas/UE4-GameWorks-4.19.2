@@ -3,8 +3,6 @@
 #ifndef __HEADMOUNTEDDISPLAY_H__
 #define __HEADMOUNTEDDISPLAY_H__
 
-#include "Core.h"
-#include "Engine.h"
 #include "IHeadMountedDisplayModule.h"
 #include "IHeadMountedDisplay.h"
 

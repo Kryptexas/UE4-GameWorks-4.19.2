@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingDispatchStateTableRow.h: Declares the SMessagingDispatchStateTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,8 +24,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InOwnerTableView - The table view that owns this row.
+	 * @param InArgs The construction arguments.
+	 * @param InOwnerTableView The table view that owns this row.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FMessagingDebuggerModelRef& InModel )
 	{
@@ -45,10 +41,10 @@ public:
 
 public:
 
-	// Begin SMultiColumnTableRow interface
+	// SMultiColumnTableRow interface
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "DispatchLatency")
 		{
@@ -97,15 +93,12 @@ public:
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	// End SMultiColumnTableRow interface
-
 protected:
 
 	/**
 	 * Converts a time span a color value.
 	 *
-	 * @param Latency - The time span to convert.
-	 *
+	 * @param Latency The time span to convert.
 	 * @return The corresponding color value.
 	 */
 	FSlateColor TimespanToColor( double Timespan ) const
@@ -131,10 +124,8 @@ protected:
 	/**
 	 * Converts the given time span in seconds to a human readable string.
 	 *
-	 * @param Seconds - The time span to convert.
-	 *
+	 * @param Seconds The time span to convert.
 	 * @return The text representation.
-	 *
 	 * @todo gmp: refactor this into FText::AsTimespan or something like that
 	 */
 	FText TimespanToReadableText( double Seconds ) const

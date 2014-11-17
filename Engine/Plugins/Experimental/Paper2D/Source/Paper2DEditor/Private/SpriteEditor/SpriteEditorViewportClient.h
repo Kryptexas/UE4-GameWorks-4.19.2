@@ -19,6 +19,7 @@ namespace ESpriteEditorMode
 	enum Type
 	{
 		ViewMode,
+		EditSourceRegionMode,
 		EditCollisionMode,
 		EditRenderingGeomMode,
 		AddSpriteMode
@@ -35,20 +36,20 @@ public:
 	FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SSpriteEditorViewport> InSpriteEditorViewportPtr);
 
 	// FViewportClient interface
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI);
-	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas) OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas) override;
+	virtual void Tick(float DeltaSeconds) override;
 	// End of FViewportClient interface
 
 	// FEditorViewportClient interface
-	virtual void UpdateMouseDelta() OVERRIDE;
-	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad) OVERRIDE;
-	virtual bool InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) OVERRIDE;
-	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) OVERRIDE;
-	virtual void TrackingStopped() OVERRIDE;
-	virtual FWidget::EWidgetMode GetWidgetMode() const OVERRIDE;
+	virtual void UpdateMouseDelta() override;
+	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad) override;
+	virtual bool InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
+	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
+	virtual void TrackingStopped() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const;
 	virtual FMatrix GetWidgetCoordSystem() const;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
@@ -66,12 +67,17 @@ public:
 	void ToggleShowNormals() { bShowNormals = !bShowNormals; Invalidate(); }
 	bool IsShowNormalsChecked() const { return bShowNormals; }
 
+	void ToggleShowMeshEdges();
+	bool IsShowMeshEdgesChecked() const;
+
 	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; }
+	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; }
 	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; }
 	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; }
 	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
+	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
 	bool IsInCollisionEditMode() const { return CurrentMode == ESpriteEditorMode::EditCollisionMode; }
 	bool IsInRenderingEditMode() const { return CurrentMode == ESpriteEditorMode::EditRenderingGeomMode; }
 	bool IsInAddSpriteMode() const { return CurrentMode == ESpriteEditorMode::AddSpriteMode; }
@@ -96,6 +102,11 @@ public:
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged();
+
+	ESpriteEditorMode::Type GetCurrentMode() const
+	{
+		return CurrentMode;
+	}
 private:
 	// Editor mode
 	ESpriteEditorMode::Type CurrentMode;
@@ -107,10 +118,10 @@ private:
 	TWeakPtr<FSpriteEditor> SpriteEditorPtr;
 
 	// Render component for the source texture view
-	UPaperRenderComponent* SourceTextureViewComponent;
+	UPaperSpriteComponent* SourceTextureViewComponent;
 
 	// Render component for the sprite being edited
-	UPaperRenderComponent* RenderSpriteComponent;
+	UPaperSpriteComponent* RenderSpriteComponent;
 
 	// Widget mode
 	FWidget::EWidgetMode WidgetMode;
@@ -154,10 +165,12 @@ private:
 	FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
 
 	void DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles);
+	void DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos);
 	void DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry);
 	void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
 	void DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 	void DrawSocketNames(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
+	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry);
 
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();

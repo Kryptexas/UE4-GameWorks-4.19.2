@@ -26,6 +26,10 @@ namespace AutomationTool
 			{
 				CommandLine += " -rocket";
 			}
+			if (!IsBuildMachine && UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealBuildTool.UnrealTargetPlatform.Mac)
+			{
+				CommandLine += " -nocreatestub";
+			}
 			CommandUtils.RunAndLog(Env, UBTExecutable, CommandLine, LogName);
 		}
 
@@ -46,7 +50,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, Project, AdditionalArgs);
+				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, CommandUtils.MakePathSafeToUseWithCommandLine(Project), AdditionalArgs);
 			}
 			return CmdLine;
 		}

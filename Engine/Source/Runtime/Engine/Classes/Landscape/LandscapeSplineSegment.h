@@ -228,17 +228,17 @@ public:
 	virtual void FindNearest( const FVector& InLocation, float& t, FVector& OutLocation, FVector& OutTangent );
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool Modify(bool bAlwaysMarkDirty = true) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostEditImport() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 protected:
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 public:
 	// End UObject Interface
 

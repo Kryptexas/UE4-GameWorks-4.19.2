@@ -11,22 +11,25 @@ public:
 	FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent);
 
 	// FEditorViewportClient interface
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) OVERRIDE;
-	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) OVERRIDE;
-	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) OVERRIDE;
-	virtual void TrackingStopped() OVERRIDE;
-	virtual FWidget::EWidgetMode GetWidgetMode() const OVERRIDE;
+	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
+	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
+	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) override;
+	virtual void TrackingStopped() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode) override;
+	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
+	virtual bool CanCycleWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const;
 	virtual FMatrix GetWidgetCoordSystem() const;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return COORD_Local; }
-	virtual bool ShouldOrbitCamera() const OVERRIDE;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) OVERRIDE;
+	virtual bool ShouldOrbitCamera() const override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
 
 	/** 
 	 *	Updates the static mesh and static mesh component being used in the Static Mesh Editor.
@@ -82,6 +85,12 @@ public:
 	/** Callback for checking the binormals show flag. */
 	bool IsSetShowBinormalsChecked() const;
 
+	/** Callback for toggling the collision show flag. */
+	void SetShowWireframeCollision();
+
+	/** Callback for checking the collision show flag. */
+	bool IsSetShowWireframeCollisionChecked() const;
+
 	/** Callback for toggling the socket show flag. */
 	void SetShowSockets();
 
@@ -102,7 +111,7 @@ public:
 
 protected:
 	// FEditorViewportClient interface
-	virtual void PerspectiveCameraMoved() OVERRIDE;
+	virtual void PerspectiveCameraMoved() override;
 
 private:
 	/** The Simplygon logo to be drawn when Simplygon has been used on the static mesh. */
@@ -119,6 +128,7 @@ private:
 
 	/** Flags for various options in the editor. */
 	bool bDrawUVs;
+	bool bShowCollision;
 	bool bShowSockets;
 	bool bDrawNormals;
 	bool bDrawTangents;

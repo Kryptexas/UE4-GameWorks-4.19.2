@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-
-
+#include "PhysxUserData.h"
 #include "DestructibleComponent.generated.h"
 
 #if WITH_PHYSX
@@ -13,6 +12,7 @@ namespace physx
 	{
 		class  NxDestructibleActor;
 		struct NxApexDamageEventReportData;
+		struct NxApexChunkStateEventData;
 	}
 #endif
 	class PxRigidDynamic;
@@ -31,6 +31,9 @@ struct FDestructibleChunkInfo
 	physx::PxRigidDynamic* Actor;
 };
 #endif // WITH_PHYSX 
+
+/** Delegate for notification when fracture occurs */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentFractureSignature, const FVector &, HitPoint, const FVector &, HitDirection);
 
 /**
  *	This component holds the physics data for a DestructibleActor
@@ -76,9 +79,9 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 #if WITH_EDITOR
 	// Begin UObject interface.
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 
 	// Take damage
@@ -94,6 +97,11 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
 	class UDestructibleMesh * GetDestructibleMesh();
+
+	/** Called when a component is touched */
+	UPROPERTY(BlueprintAssignable, Category = "Components|Destructible")
+	FComponentFractureSignature OnComponentFracture;
+
 public:
 #if WITH_APEX
 	/** The NxDestructibleActor instantated from an NxDestructibleAsset, which contains the runtime physical state. */
@@ -101,40 +109,39 @@ public:
 #endif	//WITH_APEX
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
-	virtual void Activate(bool bReset=false) OVERRIDE;
-	virtual void Deactivate() OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
+	virtual void Activate(bool bReset=false) override;
+	virtual void Deactivate() override;
 	// End USceneComponent interface.
 
 	// Begin UActorComponent interface.
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void DestroyPhysicsState() OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
+	virtual void CreatePhysicsState() override;
+	virtual void DestroyPhysicsState() override;
+	virtual class UBodySetup* GetBodySetup() override;
 	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const OVERRIDE;
-	virtual bool IsAnySimulatingPhysics() const OVERRIDE;
+	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;
+	virtual bool IsAnySimulatingPhysics() const override;
 
-	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false) OVERRIDE;
-	virtual void AddImpulseAtLocation(FVector Impulse, FVector Position, FName BoneName = NAME_None) OVERRIDE;
-	virtual void AddForce(FVector Force, FName BoneName = NAME_None) OVERRIDE;
-	virtual void AddForceAtLocation(FVector Force, FVector Location, FName BoneName = NAME_None) OVERRIDE;
-	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) OVERRIDE;
-	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) OVERRIDE;
-	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) OVERRIDE;
-	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) OVERRIDE;
+	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false) override;
+	virtual void AddImpulseAtLocation(FVector Impulse, FVector Position, FName BoneName = NAME_None) override;
+	virtual void AddForce(FVector Force, FName BoneName = NAME_None) override;
+	virtual void AddForceAtLocation(FVector Force, FVector Location, FName BoneName = NAME_None) override;
+	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) override;
+	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) override;
+	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
-	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
+	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) override;
+	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) override;
 	// End UPrimitiveComponent interface.
 
 	// Begin SkinnedMeshComponent interface.
-	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const OVERRIDE;
-	virtual void RefreshBoneTransforms() OVERRIDE;
-	virtual void SetSkeletalMesh(USkeletalMesh* InSkelMesh) OVERRIDE;
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
+	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const override;
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
+	virtual void SetSkeletalMesh(USkeletalMesh* InSkelMesh) override;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 	// End SkinnedMeshComponent interface.
 
 
@@ -175,11 +182,14 @@ public:
 
 	/** Callback from physics system to notify the actor that it has been damaged */
 	void OnDamageEvent(const physx::apex::NxApexDamageEventReportData& InDamageEvent);
+
+	/** Callback from physics system to notify the actor that a chunk's visibilty has changed */
+	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
 	// End DestructibleComponent interface.
 
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 
 	FORCEINLINE static int32 ChunkIdxToBoneIdx(int32 ChunkIdx) { return ChunkIdx + 1; }
 	FORCEINLINE static int32 BoneIdxToChunkIdx(int32 BoneIdx) { return FMath::Max(BoneIdx - 1, 0); }

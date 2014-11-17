@@ -10,6 +10,29 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorTransaction, Log, All);
 	A single transaction.
 -----------------------------------------------------------------------------*/
 
+FTransaction::FObjectRecord::FObjectRecord(FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_DC InDefaultConstructor, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor)
+	:	Object				( InObject )
+	,	Array				( InArray )
+	,	Index				( InIndex )
+	,	Count				( InCount )
+	,	Oper				( InOper )
+	,	ElementSize			( InElementSize )
+	,	DefaultConstructor	( InDefaultConstructor )
+	,	Serializer			( InSerializer )
+	,	Destructor			( InDestructor )
+	,	bRestored			( false )
+	,	bWantsBinarySerialization ( true )
+{
+	// Blueprint compile-in-place can alter class layout so use tagged serialization for objects relying on a UBlueprint's Class
+	if (UBlueprintGeneratedClass* Class = Cast<UBlueprintGeneratedClass>(InObject->GetClass()))
+	{
+		bWantsBinarySerialization = false; 
+	}
+	ObjectAnnotation = Object->GetTransactionAnnotation();
+	FWriter Writer( Data, ReferencedObjects, ReferencedNames, bWantsBinarySerialization );
+	SerializeContents( Writer, Oper );
+}
+
 void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper )
 {
 	if( Array )
@@ -19,6 +42,7 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check((SIZE_T)Array>=(SIZE_T)Object+sizeof(UObject));
 		check((SIZE_T)Array+sizeof(FScriptArray)<=(SIZE_T)Object+Object->GetClass()->GetPropertiesSize());
 		check(ElementSize!=0);
+		check(DefaultConstructor!=NULL);
 		check(Serializer!=NULL);
 		check(Index>=0);
 		check(Count>=0);
@@ -40,8 +64,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 			// "Undo/Redo Modify" or "Saving remove order" or "Undoing remove order" or "Redoing add order".
 			if( InOper==-1 && Ar.IsLoading() )
 			{
-				Array->Insert( Index, Count, ElementSize );
-				FMemory::Memzero( (uint8*)Array->GetData() + Index*ElementSize, Count*ElementSize );
+				Array->InsertZeroed( Index, Count, ElementSize );
+				for( int32 i=Index; i<Index+Count; i++ )
+				{
+					DefaultConstructor( (uint8*)Array->GetData() + i*ElementSize );
+				}
 			}
 
 			// Serialize changed items.
@@ -57,6 +84,7 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		//UE_LOG(LogEditorTransaction, Log,  TEXT("Object %s"), *Object->GetFullName());
 		check(Index==0);
 		check(ElementSize==0);
+		check(DefaultConstructor==NULL);
 		check(Serializer==NULL);
 		Object->Serialize( Ar );
 	}
@@ -70,8 +98,10 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 		TArray<uint8> FlipData;
 		TArray<UObject*> FlipReferencedObjects;
 		TArray<FName> FlipReferencedNames;
+		TSharedPtr<ITransactionObjectAnnotation> FlipObjectAnnotation;
 		if( Owner->bFlip )
 		{
+			FlipObjectAnnotation = Object->GetTransactionAnnotation();
 			FWriter Writer( FlipData, FlipReferencedObjects, FlipReferencedNames, bWantsBinarySerialization );
 			SerializeContents( Writer, -Oper );
 		}
@@ -79,6 +109,7 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 		SerializeContents( Reader, Oper );
 		if( Owner->bFlip )
 		{
+			Exchange( ObjectAnnotation, FlipObjectAnnotation );
 			Exchange( Data, FlipData );
 			Exchange( ReferencedObjects, FlipReferencedObjects );
 			Exchange( ReferencedNames, FlipReferencedNames );
@@ -87,9 +118,14 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 	}
 }
 
+int32 FTransaction::GetRecordCount() const
+{
+	return Records.Num();
+}
+
 void FTransaction::RemoveRecords( int32 Count /* = 1  */ )
 {
-	if ( Records.Num() >= Count )
+	if ( Count > 0 && Records.Num() >= Count )
 	{
 		Records.RemoveAt( Records.Num() - Count, Count );
 
@@ -157,7 +193,7 @@ void FTransaction::SaveObject( UObject* Object )
 	{
 		ObjectMap.Add(Object,1);
 		// Save the object.
-		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL );
+		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL, NULL );
 	}
 	else
 	{
@@ -165,11 +201,12 @@ void FTransaction::SaveObject( UObject* Object )
 	}
 }
 
-void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor )
+void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor )
 {
 	check(Object);
 	check(Array);
 	check(ElementSize);
+	check(DefaultConstructor);
 	check(Serializer);
 	check(Object->IsValidLowLevel());
 	check((SIZE_T)Array>=(SIZE_T)Object);
@@ -182,7 +219,7 @@ void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index,
 	if( Object->HasAnyFlags(RF_Transactional) && (Object->GetOutermost()->PackageFlags&PKG_PlayInEditor) == 0 )
 	{
 		// Save the array.
-		new( Records )FObjectRecord( this, Object, Array, Index, Count, Oper, ElementSize, Serializer, Destructor );
+		new( Records )FObjectRecord( this, Object, Array, Index, Count, Oper, ElementSize, DefaultConstructor, Serializer, Destructor );
 	}
 }
 
@@ -206,16 +243,19 @@ void FTransaction::Apply()
 	const int32 End   = Inc==1 ? Records.Num() :              -1;
 
 	// Init objects.
-	TArray<UObject*> ChangedObjects;
+	TMap<UObject*, TSharedPtr<ITransactionObjectAnnotation>> ChangedObjects;
 	for( int32 i=Start; i!=End; i+=Inc )
 	{
-		Records[i].bRestored = false;
-		if(ChangedObjects.Find(Records[i].Object) == INDEX_NONE)
+		FObjectRecord& Record = Records[i];
+		Record.bRestored = false;
+
+		if (!ChangedObjects.Contains(Record.Object))
 		{
-			Records[i].Object->CheckDefaultSubobjects();
-			Records[i].Object->PreEditUndo();
-			ChangedObjects.Add(Records[i].Object);
+			Record.Object->CheckDefaultSubobjects();
+			Record.Object->PreEditUndo();
 		}
+
+		ChangedObjects.Add(Record.Object, Record.ObjectAnnotation);
 	}
 	for( int32 i=Start; i!=End; i+=Inc )
 	{
@@ -223,16 +263,24 @@ void FTransaction::Apply()
 	}
 
 	NumModelsModified = 0;		// Count the number of UModels that were changed.
-	for(int32 ObjectIndex = 0;ObjectIndex < ChangedObjects.Num();ObjectIndex++)
+	for (auto ChangedObjectIt : ChangedObjects)
 	{
-		UObject* ChangedObject = ChangedObjects[ObjectIndex];
+		UObject* ChangedObject = ChangedObjectIt.Key;
 		UModel* Model = Cast<UModel>(ChangedObject);
-		if( Model && Model->Nodes.Num() )
+		if (Model && Model->Nodes.Num())
 		{
-			FBSPOps::bspBuildBounds( Model );
+			FBSPOps::bspBuildBounds(Model);
 			++NumModelsModified;
 		}
-		ChangedObject->PostEditUndo();
+		TSharedPtr<ITransactionObjectAnnotation> ChangedObjectTransactionAnnotation = ChangedObjectIt.Value;
+		if (ChangedObjectTransactionAnnotation.IsValid())
+		{
+			ChangedObject->PostEditUndo(ChangedObjectTransactionAnnotation);
+		}
+		else
+		{
+			ChangedObject->PostEditUndo();
+		}
 	}
 	
 	// Rebuild BSP here instead of waiting for the next tick since
@@ -243,13 +291,13 @@ void FTransaction::Apply()
 	}
 
 	// Flip it.
-	if( bFlip )
+	if (bFlip)
 	{
 		Inc *= -1;
 	}
-	for(int32 ObjectIndex = 0;ObjectIndex < ChangedObjects.Num();ObjectIndex++)
+	for (auto ChangedObjectIt : ChangedObjects)
 	{
-		UObject* ChangedObject = ChangedObjects[ObjectIndex];
+		UObject* ChangedObject = ChangedObjectIt.Key;
 		ChangedObject->CheckDefaultSubobjects();
 	}
 }
@@ -320,7 +368,7 @@ void UTransBuffer::Serialize( FArchive& Ar )
 	{
 		Ar << UndoBuffer;
 	}
-	Ar << ResetReason << UndoCount << ActiveCount;
+	Ar << ResetReason << UndoCount << ActiveCount << ActiveRecordCounts;
 
 	CheckState();
 }
@@ -359,28 +407,7 @@ void UTransBuffer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 
 int32 UTransBuffer::Begin( const TCHAR* SessionContext, const FText& Description )
 {
-	CheckState();
-	const int32 Result = ActiveCount;
-	if( ActiveCount++==0 )
-	{
-		// Cancel redo buffer.
-		if( UndoCount )
-		{
-			UndoBuffer.RemoveAt( UndoBuffer.Num()-UndoCount, UndoCount );
-		}
-		UndoCount = 0;
-
-		// Purge previous transactions if too much data occupied.
-		while( GetUndoSize() > MaxMemory )
-		{
-			UndoBuffer.RemoveAt( 0 );
-		}
-
-		// Begin a new transaction.
-		GUndo = new(UndoBuffer)FTransaction( SessionContext, Description, 1 );
-	}
-	CheckState();
-	return Result;
+	return BeginInternal<FTransaction>(SessionContext, Description);
 }
 
 
@@ -404,9 +431,10 @@ int32 UTransBuffer::End()
 #endif
 			GUndo = NULL;
 		}
+		ActiveRecordCounts.Pop();
 		CheckState();
 	}
-	return ActiveCount;
+	return Result;
 }
 
 
@@ -437,6 +465,7 @@ void UTransBuffer::Reset( const FText& Reason )
 	UndoCount    = 0;
 	ResetReason  = Reason;
 	ActiveCount  = 0;
+	ActiveRecordCounts.Empty();
 
 	CheckState();
 }
@@ -459,12 +488,19 @@ void UTransBuffer::Cancel( int32 StartIndex /*=0*/ )
 		}
 		else
 		{
+			int32 RecordsToKeep = 0;
+			for (int32 ActiveIndex = 0; ActiveIndex <= StartIndex; ++ActiveIndex)
+			{
+				RecordsToKeep += ActiveRecordCounts[ActiveIndex];
+			}
+
 			FTransaction& Transaction = UndoBuffer.Last();
-			Transaction.RemoveRecords(ActiveCount - StartIndex);
+			Transaction.RemoveRecords(Transaction.GetRecordCount() - RecordsToKeep);
 		}
 
 		// reset the active count
 		ActiveCount = StartIndex;
+		ActiveRecordCounts.SetNum(StartIndex);
 	}
 
 	CheckState();
@@ -646,6 +682,7 @@ void UTransBuffer::CheckState() const
 	// Validate the internal state.
 	check(UndoBuffer.Num()>=UndoCount);
 	check(ActiveCount>=0);
+	check(ActiveRecordCounts.Num() == ActiveCount);
 }
 
 

@@ -1709,7 +1709,7 @@ public:
 	template< const EEventPropertyIndex::Type BooleanPropertyIndex >
 	void SetBooleanStateForAllChildren( const bool bValue )
 	{
-		//checkAtCompileTime( false, FEventGraphSample_SetBooleanStateForAllChildren_BooleanPropertyIndex_NotSupported );
+		//static_assert(false, "Method not supported.");
  
 		// Not sure why but this if-statement is not optimized based on BooleanPropertyIndex
 		if( BooleanPropertyIndex == EEventPropertyIndex::bIsCulled )

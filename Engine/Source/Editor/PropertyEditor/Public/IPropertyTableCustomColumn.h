@@ -9,6 +9,8 @@
 class IPropertyTableCustomColumn
 {
 public:
+	virtual ~IPropertyTableCustomColumn() {}
+
 	virtual bool Supports( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities ) const = 0;
 
 	virtual TSharedPtr< SWidget > CreateColumnLabel( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style ) const = 0;

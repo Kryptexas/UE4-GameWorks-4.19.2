@@ -23,7 +23,8 @@ namespace UnrealBuildTool.Rules
 					"Slate",
 					"SlateCore",
 					"UnrealEd",
-					"MoviePlayer"
+					"MoviePlayer",
+					"ProjectTargetPlatformEditor",
 				}
 			);
 

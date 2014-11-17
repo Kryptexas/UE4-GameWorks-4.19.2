@@ -80,7 +80,7 @@ struct TAlignedBytes<Size,1>
 		struct TAlignedBytes<Size,Align> \
 		{ \
 			uint8 Pad[Size]; \
-			checkAtCompileTime( Size % Align == 0, CLRInteropTypesMustNotBeAligned ); \
+			static_assert(Size % Align == 0, "CLR interop types must not be aligned."); \
 		};
 #else
 /** A macro that implements TAlignedBytes for a specific alignment. */

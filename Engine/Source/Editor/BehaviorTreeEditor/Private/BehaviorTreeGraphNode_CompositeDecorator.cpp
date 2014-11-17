@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTreeGraphNode_CompositeDecorator.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
@@ -32,11 +35,6 @@ FString UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTypeDescription() cons
 FText UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return FText::FromString(CompositeName.Len() ? CompositeName : GetNodeTypeDescription());
-}
-
-FName UBehaviorTreeGraphNode_CompositeDecorator::GetNameIcon() const
-{
-	return FName("BTEditor.Graph.BTNode.CompositeDecorator.Icon");
 }
 
 FString UBehaviorTreeGraphNode_CompositeDecorator::GetDescription() const
@@ -88,6 +86,31 @@ void UBehaviorTreeGraphNode_CompositeDecorator::PostCopyNode()
 			}
 		}
 	}
+}
+
+bool UBehaviorTreeGraphNode_CompositeDecorator::RefreshNodeClass()
+{
+	bool bUpdated = false;
+
+	if (BoundGraph)
+	{
+		for (int32 i = 0; i < BoundGraph->Nodes.Num(); i++)
+		{
+			UBehaviorTreeDecoratorGraphNode_Decorator* Node = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(BoundGraph->Nodes[i]);
+			if (Node)
+			{
+				const bool bNodeUpdated = Node->RefreshNodeClass();
+				bUpdated = bUpdated || bNodeUpdated;
+			}
+		}
+	}
+
+	return bUpdated;
+}
+
+bool UBehaviorTreeGraphNode_CompositeDecorator::HasErrors() const
+{
+	return bHasObserverError;
 }
 
 void UBehaviorTreeGraphNode_CompositeDecorator::CreateBoundGraph()

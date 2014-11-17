@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageSegmenter.h: Declares the FUdpMessageSegmenter class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -68,7 +64,6 @@ public:
 	 *
 	 * @param OutData Will hold the segment data.
 	 * @param OutSegment Will hold the segment number.
-	 *
 	 * @return true if a segment was returned, false if there are no more pending segments.
 	 */
 	bool GetNextPendingSegment(TArray<uint8>& OutData, uint16& OutSegment) const

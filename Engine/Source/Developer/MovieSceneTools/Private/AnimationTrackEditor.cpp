@@ -18,6 +18,7 @@
 #include "MovieSceneAnimationSection.h"
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
+#include "Animation/SkeletalMeshActor.h"
 
 
 
@@ -43,14 +44,14 @@ UMovieSceneSection* FAnimationSection::GetSectionObject()
 	return &Section;
 }
 
-FString FAnimationSection::GetDisplayName() const
+FText FAnimationSection::GetDisplayName() const
 {
-	return TEXT("Animation");
+	return NSLOCTEXT("FAnimationSection", "AnimationSection", "Animation");
 }
 
-FString FAnimationSection::GetSectionTitle() const
+FText FAnimationSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneAnimationSection>(&Section)->GetAnimSequence()->GetName();
+	return FText::FromString( Cast<UMovieSceneAnimationSection>(&Section)->GetAnimSequence()->GetName() );
 }
 
 float FAnimationSection::GetSectionHeight() const
@@ -238,9 +239,10 @@ void FAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneAnimationTrack::StaticClass(), FName("Animation"));
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAnimationTrack::StaticClass(), FName("Animation"));
 
 			if (ensure(Track))
 			{

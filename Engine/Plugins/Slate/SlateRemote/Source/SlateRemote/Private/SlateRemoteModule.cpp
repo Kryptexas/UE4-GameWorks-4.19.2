@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteModule.cpp: Implements the SlateRemote module.
-=============================================================================*/
-
 #include "SlateRemotePrivatePCH.h"
 
 
@@ -18,9 +14,9 @@ class FSlateRemoteModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		if (!SupportsSlateRemote())
 		{
@@ -50,7 +46,7 @@ public:
 		RestartServices();
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		// unregister application events
 		FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
@@ -68,12 +64,10 @@ public:
 		ShutdownRemoteServer();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 

@@ -14,11 +14,11 @@ public:
 	class FInteractiveFoliageSceneProxy* FoliageSceneProxy;
 
 	// Begin UPrimitiveComponent Interface
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
 
 	// Begin UActorComponent Interface
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void DestroyRenderState_Concurrent() override;
 	// End UActorComponent Interface
 
 	friend class AInteractiveFoliageActor;

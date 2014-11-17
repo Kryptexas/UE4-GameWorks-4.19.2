@@ -5,6 +5,8 @@
 #include "LandscapeRender.h"
 #include "ImageWrapper.h"
 
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+
 ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 
@@ -19,6 +21,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, bPickValuePerApply(false)
 	, bUseFlattenTarget(false)
 	, FlattenTarget(0)
+	, bShowFlattenTargetPreview(true)
 
 	, RampWidth(2000)
 	, RampSideFalloff(0.4f)
@@ -359,7 +362,7 @@ void ULandscapeEditorObject::SetbSnapGizmo(bool InbSnapGizmo)
 {
 	bSnapGizmo = InbSnapGizmo;
 
-	FEdModeLandscape* EdMode = (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 	if (EdMode && EdMode->CurrentGizmoActor.IsValid())
 	{
 		EdMode->CurrentGizmoActor->bSnapToLandscapeGrid = bSnapGizmo;

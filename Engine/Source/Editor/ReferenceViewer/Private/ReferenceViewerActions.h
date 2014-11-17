@@ -16,9 +16,12 @@ public:
 	}
 
 	// TCommands<> interface
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	// End of TCommands<> interface
 public:
+
+	// Opens the selected asset in the asset editor
+	TSharedPtr<FUICommandInfo> OpenSelectedInAssetEditor;
 
 	// Re-constructs the graph with the selected asset as the center
 	TSharedPtr<FUICommandInfo> ReCenterGraph;

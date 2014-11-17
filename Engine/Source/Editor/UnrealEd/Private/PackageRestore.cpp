@@ -12,10 +12,11 @@ namespace PackageRestore
 	class FPackageRestoreItem : public TSharedFromThis<FPackageRestoreItem>
 	{
 	public:
-		FPackageRestoreItem(const FString& InPackageName, const FString& InPackageFilename, const FString& InAutoSaveFilename)
+		FPackageRestoreItem(const FString& InPackageName, const FString& InPackageFilename, const FString& InAutoSaveFilename, const bool bInIsExistingPackage)
 			: PackageName(InPackageName)
 			, PackageFilename(InPackageFilename)
 			, AutoSaveFilename(InAutoSaveFilename)
+			, bIsExistingPackage(bInIsExistingPackage)
 			, State(ESlateCheckBoxState::Unchecked)
 		{
 		}
@@ -36,6 +37,12 @@ namespace PackageRestore
 		const FString& GetAutoSaveFilename() const
 		{
 			return AutoSaveFilename;
+		}
+
+		/** @return True if this item is to replace an existing package, or false if it is to add a new package */
+		bool IsExistingPackage() const
+		{
+			return bIsExistingPackage;
 		}
 
 		/** @return The state of this item (checked, unchecked) */
@@ -89,6 +96,7 @@ namespace PackageRestore
 		FString PackageName;
 		FString PackageFilename;
 		FString AutoSaveFilename;
+		bool bIsExistingPackage;
 		ESlateCheckBoxState::Type State;
 	};
 
@@ -400,17 +408,13 @@ namespace PackageRestore
 		 * Get the return code for this dlg, as well as some useful information about what was selected
 		 *
 		 * @param SelectedPackageItems Array to fill with the list items the user wants to restore
-		 * @param SelectedPackageNames Array to fill with the package names the user wants to restore
 		 *
 		 * @return true if we should perform an import, false if the user cancelled
 		 */
-		bool GetReturnType(FPackageRestoreItems& SelectedPackageItems, TArray<FString>& SelectedPackageNames) const
+		bool GetReturnType(FPackageRestoreItems& SelectedPackageItems) const
 		{
 			SelectedPackageItems.Empty();
 			SelectedPackageItems.Reserve(PackageRestoreItems->Num());
-
-			SelectedPackageNames.Empty();
-			SelectedPackageNames.Reserve(PackageRestoreItems->Num());
 
 			// Get the list of packages selected to be restored
 			for(auto It = PackageRestoreItems->CreateConstIterator(); It; ++It)
@@ -420,7 +424,6 @@ namespace PackageRestore
 				if(ListItem->GetState() == ESlateCheckBoxState::Checked)
 				{
 					SelectedPackageItems.Add(ListItem);
-					SelectedPackageNames.Add(ListItem->GetPackageName());
 				}
 			}
 
@@ -445,6 +448,11 @@ namespace PackageRestore
 		for(auto It = SelectedPackageItems.CreateConstIterator(); It; ++It)
 		{
 			const FPackageRestoreItemPtr& RestoreItem = *It;
+
+			if(!RestoreItem->IsExistingPackage())
+			{
+				continue;
+			}
 
 			UPackage* const Package = FindPackage(nullptr, *RestoreItem->GetPackageName());
 			if(Package)
@@ -519,7 +527,16 @@ FEditorFileUtils::EPromptReturnCode PackageRestore::PromptToRestorePackages(cons
 		FString PackageFilename;
 		if(FPackageName::DoesPackageExist(PackageFullPath, nullptr, &PackageFilename))
 		{
-			FPackageRestoreItemPtr PackageItemPtr = MakeShareable(new FPackageRestoreItem(PackageFullPath, PackageFilename, AutoSaveDir / AutoSavePath));
+			FPackageRestoreItemPtr PackageItemPtr = MakeShareable(new FPackageRestoreItem(PackageFullPath, PackageFilename, AutoSaveDir / AutoSavePath, true/*bIsExistingPackage*/));
+			PackageRestoreItems.Add(PackageItemPtr);
+		}
+		else
+		{
+			// A package may not exist on disk if it was for a newly added or imported asset, which hasn't yet had SaveDirtyPackages called for it
+			PackageFilename = FPackageName::LongPackageNameToFilename(PackageFullPath); // no extension yet
+			PackageFilename += FPaths::GetExtension(AutoSavePath, true/*bIncludeDot*/);
+
+			FPackageRestoreItemPtr PackageItemPtr = MakeShareable(new FPackageRestoreItem(PackageFullPath, PackageFilename, AutoSaveDir / AutoSavePath, false/*bIsExistingPackage*/));
 			PackageRestoreItems.Add(PackageItemPtr);
 		}
 	}
@@ -546,17 +563,32 @@ FEditorFileUtils::EPromptReturnCode PackageRestore::PromptToRestorePackages(cons
 
 	// Get the return code, and work out what we need to restore
 	FPackageRestoreItems SelectedPackageItems;
-	TArray<FString> SelectedPackageNames;
-	if(!PackageRestoreDlgRef->GetReturnType(SelectedPackageItems, SelectedPackageNames))
+	if(!PackageRestoreDlgRef->GetReturnType(SelectedPackageItems))
 	{
 		return FEditorFileUtils::PR_Declined;
 	}
 
 	// Try and ensure that these packages are checked-out by the source control system
-	// Note: This may fail and present the user with an error message, however we still 
-	// want to continue as they may have checked out some packages that could now be restored
-	const bool bErrorIfAlreadyCheckedOut = false; // some of the packages might already be checked out; that isn't an error
-	FEditorFileUtils::CheckoutPackages(SelectedPackageNames, nullptr, bErrorIfAlreadyCheckedOut);
+	{
+		TArray<FString> SelectedPackageNames;
+		SelectedPackageNames.Reserve(SelectedPackageItems.Num());
+
+		// Get an array of selected package names to check out
+		for(auto It = SelectedPackageItems.CreateConstIterator(); It; ++It)
+		{
+			const FPackageRestoreItemPtr& SelectedPackageItem = *It;
+
+			if(SelectedPackageItem->IsExistingPackage())
+			{
+				SelectedPackageNames.Add(SelectedPackageItem->GetPackageName());
+			}
+		}
+
+		// Note: This may fail and present the user with an error message, however we still 
+		// want to continue as they may have checked out some packages that could now be restored
+		const bool bErrorIfAlreadyCheckedOut = false; // some of the packages might already be checked out; that isn't an error
+		FEditorFileUtils::CheckoutPackages(SelectedPackageNames, nullptr, bErrorIfAlreadyCheckedOut);
+	}
 
 	// It's possible that some packages may have already been loaded by the editor
 	// If they have, we need to forcibly unload them so that we can overwrite their files

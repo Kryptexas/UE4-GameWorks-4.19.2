@@ -22,6 +22,9 @@ void SScreenShotSearchBar::Construct( const FArguments& InArgs, IScreenShotManag
 
 	PlatformDisplayString = "Any";
 
+	//Default to show all screenshots
+	DisplayEveryNthScreenshot = 1;
+
 	TArray< TSharedPtr<FString> >& PlatformList = ScreenShotManager->GetCachedPlatfomList();
 
 	ChildSlot
@@ -32,25 +35,84 @@ void SScreenShotSearchBar::Construct( const FArguments& InArgs, IScreenShotManag
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			SNew( SBox )
-			.WidthOverride( 100.0f )
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
 			[
-				SNew(SComboButton)
-				.ButtonContent()
+				SNew( STextBlock )
+				.Text( LOCTEXT("ScreenshotNthLabel", "Display Every Nth Screenshot:") )
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew( SBox )
+				.Padding( FMargin(4.0f, 0.0f, 0.0f, 0.0f) )
+				.WidthOverride( 100.0f )
 				[
-					SNew(STextBlock)
-					.Text( this, &SScreenShotSearchBar::GetPlatformString )
-				]
-				.ContentPadding(FMargin(6.0f, 2.0f))
-				.MenuContent()
-				[
-					SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
-					.ItemHeight(24.0f)
-					.ListItemsSource(&PlatformList)
-					.OnGenerateRow(this, &SScreenShotSearchBar::HandlePlatformListViewGenerateRow)
-					.OnSelectionChanged(this, &SScreenShotSearchBar::HandlePlatformListSelected )
+					SNew(SSpinBox<int32>)
+					.MinValue(1)
+					.MaxValue(20)
+					.MinSliderValue(1)
+					.MaxSliderValue(20)
+					.Value(this,&SScreenShotSearchBar::GetDisplayEveryNthScreenshot)
+					.OnValueChanged(this,&SScreenShotSearchBar::OnChangedDisplayEveryNthScreenshot)
+					.OnValueCommitted(this,&SScreenShotSearchBar::OnCommitedDisplayEveryNthScreenshot)
 				]
 			]
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding( 5.0f, 0.0f, 5.0f, 0.0f )
+		[
+			SNew(SSeparator)
+			.Orientation(Orient_Vertical)
+			.SeparatorImage( FEditorStyle::GetBrush(TEXT("Menu.Separator")) )
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT("ScreenshotPlatform", "Platform:") )
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew( SBox )
+				.WidthOverride( 100.0f )
+				[
+					SNew(SComboButton)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text( this, &SScreenShotSearchBar::GetPlatformString )
+					]
+					.ContentPadding(FMargin(6.0f, 2.0f))
+						.MenuContent()
+						[
+							SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
+							.ItemHeight(24.0f)
+							.ListItemsSource(&PlatformList)
+							.OnGenerateRow(this, &SScreenShotSearchBar::HandlePlatformListViewGenerateRow)
+							.OnSelectionChanged(this, &SScreenShotSearchBar::HandlePlatformListSelected )
+						]
+				]
+			]
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding( 5.0f, 0.0f, 5.0f, 0.0f )
+		[
+			SNew(SSeparator)
+			.Orientation(Orient_Vertical)
+			.SeparatorImage( FEditorStyle::GetBrush(TEXT("Menu.Separator")) )
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth( 0.3f )
@@ -73,6 +135,22 @@ void SScreenShotSearchBar::Construct( const FArguments& InArgs, IScreenShotManag
 	];
 }
 
+void SScreenShotSearchBar::OnCommitedDisplayEveryNthScreenshot(int32 InNewValue, ETextCommit::Type CommitType)
+{
+	DisplayEveryNthScreenshot = InNewValue;
+	ScreenShotManager->SetDisplayEveryNthScreenshot(DisplayEveryNthScreenshot);
+}
+
+void SScreenShotSearchBar::OnChangedDisplayEveryNthScreenshot(int32 InNewValue)
+{
+	DisplayEveryNthScreenshot = InNewValue;
+}
+
+int32 SScreenShotSearchBar::GetDisplayEveryNthScreenshot() const
+{
+	return DisplayEveryNthScreenshot;
+}
+
 FString SScreenShotSearchBar::GetPlatformString() const
 {
 	return PlatformDisplayString;
@@ -90,7 +168,18 @@ void SScreenShotSearchBar::HandleFilterTextChanged( const FText& InFilterText )
 
 void SScreenShotSearchBar::HandlePlatformListSelected( TSharedPtr<FString> PlatformName, ESelectInfo::Type SelectInfo )
 {
-	FString TestName = *PlatformName;
+	FString TestName;
+
+	if( PlatformName.IsValid() )
+	{
+		TestName = *PlatformName;
+		PlatformDisplayString = *PlatformName;
+	}
+	else
+	{
+		PlatformDisplayString = "Any";
+	}
+
 	if ( TestName == "Any" )
 	{
 		TestName = "";
@@ -98,7 +187,6 @@ void SScreenShotSearchBar::HandlePlatformListSelected( TSharedPtr<FString> Platf
 
 	ScreenShotComparisonFilter->SetPlatformFilter( TestName );
 	ScreenShotManager->SetFilter( ScreenShotFilters );
-	PlatformDisplayString = *PlatformName;
 }
 
 
@@ -117,7 +205,8 @@ FReply SScreenShotSearchBar::RefreshView( )
 
 	ScreenShotComparisonFilter->SetPlatformFilter( "" );
 	ScreenShotManager->SetFilter( ScreenShotFilters );
-	PlatformDisplayString = "";
+	PlatformDisplayString = "Any";
+	DisplayEveryNthScreenshot = 1;
 
 	return FReply::Handled();
 }

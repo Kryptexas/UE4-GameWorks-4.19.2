@@ -15,11 +15,11 @@ class FEditorViewportSnapping : public ISnappingPolicy
 {
 public:
 	// FEditorViewportSnapping interface
-	virtual void SnapScale(FVector& Point, const FVector& GridBase) OVERRIDE;
-	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) OVERRIDE;
-	virtual void SnapRotatorToGrid(FRotator& Rotation) OVERRIDE;
-	virtual void ClearSnappingHelpers(bool bClearImmediately = false) OVERRIDE;
-	virtual void DrawSnappingHelpers(const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual void SnapScale(FVector& Point, const FVector& GridBase) override;
+	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) override;
+	virtual void SnapRotatorToGrid(FRotator& Rotation) override;
+	virtual void ClearSnappingHelpers(bool bClearImmediately = false) override;
+	virtual void DrawSnappingHelpers(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 	// End of FEditorViewportSnapping interface
 
 	bool IsSnapToGridEnabled();
@@ -105,7 +105,7 @@ bool FEditorViewportSnapping::IsSnapRotationEnabled()
 	// Ask Current Editor Mode if Rotation Snap is enabled
 	bool bSnapEnabled = false;
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bSnapEnabled |= ActiveModes[ModeIndex]->IsSnapRotationEnabled();
@@ -186,7 +186,7 @@ void FEditorViewportSnapping::SetActorSnapDistance(float Distance)
 
 bool FEditorViewportSnapping::SnapActorsToNearestActor( FVector& Drag, FLevelEditorViewportClient* ViewportClient )
 {
-	FEditorModeTools& Tools = GEditorModeTools();
+	FEditorModeTools& Tools = GLevelEditorModeTools();
 
 	// Does the user have actor snapping enabled?
 	bool bSnapped = false;
@@ -288,7 +288,7 @@ void FEditorViewportSnapping::SnapRotatorToGrid(FRotator& Rotation)
 	if( IsSnapRotationEnabled() )
 	{		
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if( ActiveModes[ModeIndex]->SnapRotatorToGridOverride( Rotation ) == true )

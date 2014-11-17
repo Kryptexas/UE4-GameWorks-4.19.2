@@ -112,7 +112,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamRequestUserStats bWasSuccessful: %d UserId: %s"), bWasSuccessful, *UserId.ToDebugString());
 	}
@@ -121,7 +121,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (!bInit)
 		{
@@ -160,7 +160,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncTaskSteam::Finalize();
 
@@ -237,7 +237,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamUpdateStats bWasSuccessful: %d User: %s"), bWasSuccessful, *UserId.ToDebugString());
 	}
@@ -246,7 +246,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (!bInit)
 		{
@@ -373,7 +373,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamRetrieveStats bWasSuccessful: %d UserId: %s"), bWasSuccessful, *UserId.ToDebugString());
 	}
@@ -382,7 +382,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (!bInit)
 		{
@@ -419,7 +419,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncTaskSteam::Finalize();
 
@@ -498,7 +498,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE 
+	virtual void TriggerDelegates() override 
 	{
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		
@@ -553,7 +553,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamGetAchievements bWasSuccessful: %d UserId: %s"), bWasSuccessful, *UserId.ToDebugString());
 	}
@@ -562,7 +562,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (!bInit)
 		{
@@ -600,7 +600,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncTaskSteam::Finalize();
 
@@ -611,7 +611,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger its delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE 
+	virtual void TriggerDelegates() override 
 	{
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		
@@ -699,7 +699,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamRetrieveLeaderboard bWasSuccessful: %d"), bWasSuccessful);
 	}
@@ -708,7 +708,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		ISteamUtils* SteamUtilsPtr = SteamUtils();
 		check(SteamUtilsPtr);
@@ -748,7 +748,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncTaskSteam::Finalize();
 
@@ -808,7 +808,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamRetrieveLeaderboardEntries bWasSuccessful: %d"), bWasSuccessful);
 	}
@@ -817,7 +817,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		ISteamUtils* SteamUtilsPtr = SteamUtils();
 		check(SteamUtilsPtr);
@@ -882,7 +882,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		FOnlineAsyncTaskSteam::Finalize();
 
@@ -980,7 +980,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamUpdateLeaderboard bWasSuccessful: %d Leaderboard: %s Score: %d"), bWasSuccessful, *LeaderboardName.ToString(), NewScore);
 	}
@@ -989,7 +989,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		ISteamUtils* SteamUtilsPtr = SteamUtils();
 		check(SteamUtilsPtr);
@@ -1063,7 +1063,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE
+	virtual void TriggerDelegates() override
 	{
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		if (bShouldTriggerDelegates)
@@ -1127,7 +1127,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	FString ToString() const OVERRIDE
+	FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskSteamStoreStats SessionName: %s bWasSuccessful: %d"), *SessionName.ToString(), bWasSuccessful);
 	}
@@ -1136,7 +1136,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		FOnlineLeaderboardsSteamPtr Leaderboards = StaticCastSharedPtr<FOnlineLeaderboardsSteam>(Subsystem->GetLeaderboardsInterface());
 
@@ -1198,7 +1198,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE 
+	virtual void TriggerDelegates() override 
 	{
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		
@@ -1229,21 +1229,21 @@ private:
 	}
 
 	/** Internal function to allow write state tracking */
-	virtual void OperationStarted() OVERRIDE
+	virtual void OperationStarted() override
 	{
 		check(WriteObject.IsValid());
 		WriteObject->WriteState = EOnlineAsyncTaskState::InProgress;
 	}
 
 	/** Internal function to allow write state tracking */
-	virtual void OperationFailed() OVERRIDE
+	virtual void OperationFailed() override
 	{
 		check(WriteObject.IsValid());
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
 	}
 
 	/** Internal function to allow write state tracking */
-	virtual void OperationSucceeded() OVERRIDE
+	virtual void OperationSucceeded() override
 	{
 		check(WriteObject.IsValid());
 		WriteObject->WriteState = EOnlineAsyncTaskState::Done;
@@ -1260,7 +1260,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE 
+	virtual void TriggerDelegates() override 
 	{
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		

@@ -65,10 +65,20 @@ private:
 
 			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 			void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
+			FString Filter;
+
+			if (FileFilterExtension.IsEmpty())
+			{
+				Filter = TEXT("All files (*.*)|*.*");
+			}
+			else
+			{
+				Filter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *FileFilterExtension, *FileFilterExtension, *FileFilterExtension);
+			}
 
 			TArray<FString> OutFiles;
-			const FString filter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *FileFilterExtension, *FileFilterExtension, *FileFilterExtension);
-			if (DesktopPlatform->OpenFileDialog(ParentWindowHandle, LOCTEXT("PropertyEditorTitle", "File picker...").ToString(), DefaultPath, TEXT(""), filter, EFileDialogFlags::None, OutFiles))
+		
+			if (DesktopPlatform->OpenFileDialog(ParentWindowHandle, LOCTEXT("PropertyEditorTitle", "File picker...").ToString(), DefaultPath, TEXT(""), Filter, EFileDialogFlags::None, OutFiles))
 			{
 				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_OPEN, FPaths::GetPath(OutFiles[0]));
 
@@ -100,12 +110,12 @@ private:
 	FString FileFilterExtension;
 };
 
-TSharedRef<IStructCustomization> FFilePathStructCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FFilePathStructCustomization::MakeInstance()
 {
 	return MakeShareable(new FFilePathStructCustomization());
 }
 
-void FFilePathStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FFilePathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	const UProperty* Property = StructPropertyHandle->GetProperty();
 	checkSlow(Property);
@@ -140,7 +150,7 @@ TSharedPtr<SWidget> FFilePathStructCustomization::CreatePickerWidget(TSharedRef<
 	return TSharedPtr<SWidget>();
 }
 
-void FFilePathStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FFilePathStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 }
 

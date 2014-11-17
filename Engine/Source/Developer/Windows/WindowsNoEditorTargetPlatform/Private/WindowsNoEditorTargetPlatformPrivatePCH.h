@@ -20,6 +20,7 @@
 #endif
 
 #include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <TlHelp32.h>

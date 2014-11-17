@@ -283,13 +283,3 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	glUseProgram(0);
 
 }
-
-/**
- * Returns a slate texture resource
- *
- * @param	The name of the texture to return
- */
-FSlateShaderResourceProxy* FSlateOpenGLRenderingPolicy::GetTextureResource( const FSlateBrush& Brush )
-{
-	return TextureManager->GetTexture( Brush );
-}

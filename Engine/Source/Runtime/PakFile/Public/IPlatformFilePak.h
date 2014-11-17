@@ -22,8 +22,9 @@ struct FPakInfo
 	{
 		PakFile_Version_Initial = 1,
 		PakFile_Version_NoTimestamps = 2,
+		PakFile_Version_CompressionEncryption = 3,
 
-		PakFile_Version_Latest = PakFile_Version_NoTimestamps
+		PakFile_Version_Latest = PakFile_Version_CompressionEncryption
 	};
 
 	/** Pak file magic value. */
@@ -81,6 +82,34 @@ struct FPakInfo
 };
 
 /**
+ * Struct storing offsets and sizes of a compressed block
+ */
+struct FPakCompressedBlock
+{
+	/** Offset of the start of a compression block. Offset is absolute */
+	int64 CompressedStart;
+	/** Offset of the end of a compression block. This may not align completely with the start of the next block. Offset is absolute */
+	int64 CompressedEnd;
+
+	bool operator == (const FPakCompressedBlock& B) const
+	{
+		return CompressedStart == B.CompressedStart && CompressedEnd == B.CompressedEnd;
+	}
+
+	bool operator != (const FPakCompressedBlock& B) const
+	{
+		return !(*this == B);
+	}
+};
+
+FORCEINLINE FArchive& operator<<(FArchive& Ar, FPakCompressedBlock& Block)
+{
+	Ar << Block.CompressedStart;
+	Ar << Block.CompressedEnd;
+	return Ar;
+}
+
+/**
  * Struct holding info about a single file stored in pak file.
  */
 struct FPakEntry
@@ -95,6 +124,12 @@ struct FPakEntry
 	int32 CompressionMethod;
 	/** File SHA1 value. */
 	uint8 Hash[20];
+	/** Array of compression blocks that describe how to decompress this pak entry */
+	TArray<FPakCompressedBlock> CompressionBlocks;
+	/** Size of a compressed block in the file */
+	uint32 CompressionBlockSize;
+	/** True is file is encrypted */
+	uint8 bEncrypted;
 	/** Flag is set to true when FileHeader has been checked against PakHeader. It is not serialized */
 	mutable bool  Verified;
 
@@ -106,6 +141,8 @@ struct FPakEntry
 		, Size(0)
 		, UncompressedSize(0)
 		, CompressionMethod(0)
+		, CompressionBlockSize(0)
+		, bEncrypted(false)
 		, Verified(false)
 	{
 		FMemory::Memset(Hash, 0, sizeof(Hash));
@@ -119,6 +156,14 @@ struct FPakEntry
 	int64 GetSerializedSize(int32 Version) const
 	{
 		int64 SerializedSize = sizeof(Offset) + sizeof(Size) + sizeof(UncompressedSize) + sizeof(CompressionMethod) + sizeof(Hash);
+		if (Version >= FPakInfo::PakFile_Version_CompressionEncryption)
+		{
+			SerializedSize += sizeof(bEncrypted) + sizeof(CompressionBlockSize);
+			if(CompressionMethod != COMPRESS_None)
+			{
+				SerializedSize += sizeof(FPakCompressedBlock) * CompressionBlocks.Num() + sizeof(int32);
+			}
+		}
 		if (Version < FPakInfo::PakFile_Version_NoTimestamps)
 		{
 			// Timestamp
@@ -137,7 +182,10 @@ struct FPakEntry
 		return Size == B.Size && 
 			UncompressedSize == B.UncompressedSize &&
 			CompressionMethod == B.CompressionMethod &&
-			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) == 0;
+			bEncrypted == B.bEncrypted &&
+			CompressionBlockSize == B.CompressionBlockSize &&
+			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) == 0 &&
+			CompressionBlocks == B.CompressionBlocks;
 	}
 
 	/**
@@ -150,7 +198,10 @@ struct FPakEntry
 		return Size != B.Size || 
 			UncompressedSize != B.UncompressedSize ||
 			CompressionMethod != B.CompressionMethod ||
-			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) != 0;
+			bEncrypted != B.bEncrypted ||
+			CompressionBlockSize != B.CompressionBlockSize ||
+			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) != 0 ||
+			CompressionBlocks != B.CompressionBlocks;
 	}
 
 	/**
@@ -171,6 +222,15 @@ struct FPakEntry
 			Ar << Timestamp;
 		}
 		Ar.Serialize(Hash, sizeof(Hash));
+		if (Version >= FPakInfo::PakFile_Version_CompressionEncryption)
+		{
+			if(CompressionMethod != COMPRESS_None)
+			{
+				Ar << CompressionBlocks;
+			}
+			Ar << bEncrypted;
+			Ar << CompressionBlockSize;
+		}
 	}
 
 	/**
@@ -524,22 +584,102 @@ public:
 };
 
 /**
+ * Placeholder Class
+ */
+class PAKFILE_API FPakNoEncryption
+{
+public:
+	enum 
+	{
+		Alignment = 1,
+	};
+
+	static FORCEINLINE int64 AlignReadRequest(int64 Size) 
+	{
+		return Size;
+	}
+
+	static FORCEINLINE void DecryptBlock(void* Data, int64 Size)
+	{
+		// Nothing needs to be done here
+	}
+};
+
+template< typename EncryptionPolicy = FPakNoEncryption >
+class PAKFILE_API FPakReaderPolicy
+{
+public:
+	/** Pak file that own this file data */
+	const FPakFile&		PakFile;
+	/** Pak file entry for this file. */
+	const FPakEntry&	PakEntry;
+	/** Pak file archive to read the data from. */
+	FArchive*			PakReader;
+	/** Offset to the file in pak (including the file header). */
+	int64				OffsetToFile;
+
+	FPakReaderPolicy(const FPakFile& InPakFile,const FPakEntry& InPakEntry,FArchive* InPakReader)
+		: PakFile(InPakFile)
+		, PakEntry(InPakEntry)
+		, PakReader(InPakReader)
+	{
+		OffsetToFile = PakEntry.Offset + PakEntry.GetSerializedSize(PakFile.GetInfo().Version);
+	}
+
+	FORCEINLINE int64 FileSize() const 
+	{
+		return PakEntry.Size;
+	}
+
+	void Serialize(int64 DesiredPosition, void* V, int64 Length)
+	{
+		uint8 TempBuffer[EncryptionPolicy::Alignment];
+		if (EncryptionPolicy::AlignReadRequest(DesiredPosition) != DesiredPosition)
+		{
+			int64 Start = DesiredPosition & ~(EncryptionPolicy::Alignment-1);
+			int64 Offset = DesiredPosition - Start;
+			int32 CopySize = EncryptionPolicy::Alignment-(DesiredPosition-Start);
+			PakReader->Seek(OffsetToFile + Start);
+			PakReader->Serialize(TempBuffer, EncryptionPolicy::Alignment);
+			EncryptionPolicy::DecryptBlock(TempBuffer, EncryptionPolicy::Alignment);
+			FMemory::Memcpy(V, TempBuffer+Offset, CopySize);
+			V = (void*)((uint8*)V + CopySize);
+			DesiredPosition += CopySize;
+			Length -= CopySize;
+			check(DesiredPosition % EncryptionPolicy::Alignment == 0);
+		}
+		else
+		{
+			PakReader->Seek(OffsetToFile + DesiredPosition);
+		}
+		
+		int64 CopySize = Length & ~(EncryptionPolicy::Alignment-1);
+		PakReader->Serialize(V, CopySize);
+		EncryptionPolicy::DecryptBlock(V, CopySize);
+		Length -= CopySize;
+		V = (void*)((uint8*)V + CopySize);
+
+		if (Length > 0)
+		{
+			PakReader->Serialize(TempBuffer, EncryptionPolicy::Alignment);
+			EncryptionPolicy::DecryptBlock(TempBuffer, EncryptionPolicy::Alignment);
+			FMemory::Memcpy(V, TempBuffer, Length);
+		}
+	}
+};
+
+/**
  * File handle to read from pak file.
  */
+template< typename ReaderPolicy = FPakReaderPolicy<> >
 class PAKFILE_API FPakFileHandle : public IFileHandle
 {	
-	/** Pak file that own this file data */
-	const FPakFile& PakFile;
-	/** Pak file entry for this file. */
-	const FPakEntry& PakEntry;
-	/** Pak file archive to read the data from. */
-	FArchive* PakReader;
 	/** True if PakReader is shared and should not be deleted by this handle. */
 	const bool bSharedReader;
-	/** Offset to the file in pak (including the file header). */
-	int64 OffsetToFile;
 	/** Current read position. */
 	int64 ReadPos;
+	/** Class that controls reading from pak file */
+	ReaderPolicy Reader;
 
 public:
 
@@ -551,13 +691,10 @@ public:
 	 * @param InPakFile Pak file.
 	 */
 	FPakFileHandle(const FPakFile& InPakFile, const FPakEntry& InPakEntry, FArchive* InPakReader, bool bIsSharedReader)
-		: PakFile(InPakFile)
-		, PakEntry(InPakEntry)
-		, PakReader(InPakReader)
-		, bSharedReader(bIsSharedReader)
+		: bSharedReader(bIsSharedReader)
 		, ReadPos(0)
+		, Reader(InPakFile, InPakEntry, InPakReader)
 	{
-		OffsetToFile = PakEntry.Offset + PakEntry.GetSerializedSize(PakFile.GetInfo().Version);
 	}
 
 	/**
@@ -567,39 +704,39 @@ public:
 	{
 		if (!bSharedReader)
 		{
-			delete PakReader;
+			delete Reader.PakReader;
 		}
 	}
 
 	// BEGIN IFileHandle Interface
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		return ReadPos;
 	}
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
-		if (NewPosition > PakEntry.Size || NewPosition < 0)
+		if (NewPosition > Reader.FileSize() || NewPosition < 0)
 		{
 			return false;
 		}
 		ReadPos = NewPosition;
 		return true;
 	}
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
-		return Seek(PakEntry.Size - NewPositionRelativeToEnd);
+		return Seek(Reader.FileSize() - NewPositionRelativeToEnd);
 	}
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		// Check that the file header is OK
-		if (!PakEntry.Verified)
+		if (!Reader.PakEntry.Verified)
 		{
 			FPakEntry FileHeader;
-			PakReader->Seek(PakEntry.Offset);
-			FileHeader.Serialize(*PakReader, PakFile.GetInfo().Version);
-			if (FPakEntry::VerifyPakEntriesMatch(PakEntry, FileHeader))
+			Reader.PakReader->Seek(Reader.PakEntry.Offset);
+			FileHeader.Serialize(*Reader.PakReader, Reader.PakFile.GetInfo().Version);
+			if (FPakEntry::VerifyPakEntriesMatch(Reader.PakEntry, FileHeader))
 			{
-				PakEntry.Verified = true;
+				Reader.PakEntry.Verified = true;
 			}
 			else
 			{
@@ -608,11 +745,10 @@ public:
 			}
 		}
 		//
-		PakReader->Seek(OffsetToFile + ReadPos);
-		if (PakEntry.Size >= (ReadPos + BytesToRead))
+		if (Reader.FileSize() >= (ReadPos + BytesToRead))
 		{
 			// Read directly from Pak.
-			PakReader->Serialize(Destination, BytesToRead);
+			Reader.Serialize(ReadPos, Destination, BytesToRead);
 			ReadPos += BytesToRead;
 			return true;
 		}
@@ -621,14 +757,14 @@ public:
 			return false;
 		}
 	}
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		// Writing in pak files is not allowed.
 		return false;
 	}
-	virtual int64 Size() OVERRIDE
+	virtual int64 Size() override
 	{
-		return PakEntry.Size;
+		return Reader.FileSize();
 	}
 	/// END IFileHandle Interface
 };
@@ -752,15 +888,15 @@ public:
 	 */
 	virtual ~FPakPlatformFile();
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FPakPlatformFile::GetTypeName();
 	}
@@ -818,7 +954,7 @@ public:
 	}
 
 	// BEGIN IPlatformFile Interface
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		// Check pak files first.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -830,20 +966,20 @@ public:
 		return Result;
 	}
 
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		// Check pak files first
 		const FPakEntry* FileEntry = FindFileInPakFiles(Filename);
 		if (FileEntry != NULL)
 		{
-			return FileEntry->Size;
+			return FileEntry->CompressionMethod != COMPRESS_None ? FileEntry->UncompressedSize : FileEntry->Size;
 		}
 		// First look for the file in the user dir.
 		int64 Result = LowerLevel->FileSize(Filename);
 		return Result;
 	}
 
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		// If file exists in pak file it will never get deleted.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -855,7 +991,7 @@ public:
 		return Result;
 	}
 
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		// Files in pak file are always read-only.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -867,7 +1003,7 @@ public:
 		return Result;
 	}
 
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// Files which exist in pak files can't be moved
 		if (FindFileInPakFiles(From) != NULL)
@@ -879,7 +1015,7 @@ public:
 		return Result;
 	}
 
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		// Files in pak file will never change their read-only flag.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -892,7 +1028,7 @@ public:
 		return Result;
 	}
 
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// Check pak files first.
 		FPakFile* PakFile = NULL;
@@ -905,7 +1041,7 @@ public:
 		return Result;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		// No modifications allowed on files from pak (although we could theoretically allow this one).
 		if (FindFileInPakFiles(Filename) == NULL)
@@ -914,7 +1050,7 @@ public:
 		}
 	}
 
-	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		// AccessTimestamp not yet supported in pak files (although it is possible).
 		FPakFile* PakFile = NULL;
@@ -927,9 +1063,9 @@ public:
 		return Result;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE;
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		// No modifications allowed on pak files.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -940,7 +1076,7 @@ public:
 		return LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 	}
 
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		// Check pak files first.
 		if (DirectoryExistsInPakFiles(Directory))
@@ -952,13 +1088,13 @@ public:
 		return Result;
 	}
 
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 		// Directories can be created only under the normal path
 		return LowerLevel->CreateDirectory(Directory);
 	}
 
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 		// Even if the same directory exists outside of pak files it will never
 		// get truely deleted from pak and will still be reported by Iterate functions.
@@ -1011,7 +1147,7 @@ public:
 		}
 	};
 
-	virtual bool IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		bool Result = true;
 		TSet<FString> FilesVisitedInPak;
@@ -1066,7 +1202,7 @@ public:
 		return Result;
 	}
 
-	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		TSet<FString> FilesVisitedInPak;
 		TArray<FPakFile*> Paks;
@@ -1075,7 +1211,7 @@ public:
 		return IPlatformFile::IterateDirectoryRecursively(Directory, PakVisitor);
 	}
 
-	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		// Can't delete directories existing in pak files. See DeleteDirectory(..) for more info.
 		if (DirectoryExistsInPakFiles(Directory))
@@ -1086,13 +1222,13 @@ public:
 		return LowerLevel->DeleteDirectoryRecursively(Directory);
 	}
 
-	virtual bool CreateDirectoryTree(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectoryTree(const TCHAR* Directory) override
 	{
 		// Directories can only be created only under the normal path
 		return LowerLevel->CreateDirectoryTree(Directory);
 	}
 
-	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) override;
 
 	/**
 	 * Converts a filename to a path inside pak file.
@@ -1107,7 +1243,7 @@ public:
 		return RelativeFilename.Mid(Pak->GetMountPoint().Len());
 	}
 
-	FString ConvertToAbsolutePathForExternalAppForRead(const TCHAR* Filename) OVERRIDE
+	FString ConvertToAbsolutePathForExternalAppForRead(const TCHAR* Filename) override
 	{
 		// Check in Pak file first
 		FPakFile* Pak = NULL;
@@ -1121,7 +1257,7 @@ public:
 		}
 	}
 
-	FString ConvertToAbsolutePathForExternalAppForWrite(const TCHAR* Filename) OVERRIDE
+	FString ConvertToAbsolutePathForExternalAppForWrite(const TCHAR* Filename) override
 	{
 		// Check in Pak file first
 		FPakFile* Pak = NULL;

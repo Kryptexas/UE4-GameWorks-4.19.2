@@ -14,57 +14,57 @@ class UChildConnection : public UNetConnection
 	class UNetConnection* Parent;
 
 	// Begin UNetConnection interface.
-	virtual UChildConnection* GetUChildConnection() OVERRIDE
+	virtual UChildConnection* GetUChildConnection() override
 	{
 		return this;
 	}
 
-	virtual FString LowLevelGetRemoteAddress(bool bAppendPort=false) OVERRIDE
+	virtual FString LowLevelGetRemoteAddress(bool bAppendPort=false) override
 	{
 		return Parent->LowLevelGetRemoteAddress(bAppendPort);
 	}
 
-	virtual FString LowLevelDescribe() OVERRIDE
+	virtual FString LowLevelDescribe() override
 	{
 		return Parent->LowLevelDescribe();
 	}
 
-		virtual void LowLevelSend( void* Data, int32 Count ) OVERRIDE
+		virtual void LowLevelSend( void* Data, int32 Count ) override
 	{
 	}
 
-	virtual void InitSendBuffer() OVERRIDE
+	virtual void InitSendBuffer() override
 	{
 		Parent->InitSendBuffer();
 	}
 
-	virtual void AssertValid() OVERRIDE
+	virtual void AssertValid() override
 	{
 		Parent->AssertValid();
 	}
 
-	virtual void SendAck( int32 PacketId, bool FirstTime=1, bool bHavePingAckData=0, uint32 PingAckData=0 ) OVERRIDE
+	virtual void SendAck( int32 PacketId, bool FirstTime=1, bool bHavePingAckData=0, uint32 PingAckData=0 ) override
 	{
 	}
 
-	virtual void FlushNet(bool bIgnoreSimulation = false) OVERRIDE
+	virtual void FlushNet(bool bIgnoreSimulation = false) override
 	{
 		Parent->FlushNet(bIgnoreSimulation);
 	}
 
-	virtual int32 IsNetReady(bool Saturate) OVERRIDE
+	virtual int32 IsNetReady(bool Saturate) override
 	{
 		return Parent->IsNetReady(Saturate);
 	}
 
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		State = Parent->State;
 	}
 
-	virtual void HandleClientPlayer(class APlayerController* PC, class UNetConnection* NetConnection) OVERRIDE;
+	virtual void HandleClientPlayer(class APlayerController* PC, class UNetConnection* NetConnection) override;
 	
-	virtual void CleanUp() OVERRIDE;
+	virtual void CleanUp() override;
 
 	// End UNetConnection interface.
 

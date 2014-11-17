@@ -9,19 +9,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureEndEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Value);
 
 /** Slider widget */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API USlider : public USlateLeafWidgetComponent
+UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
-
-	///** Whether the slidable area should be indented to fit the handle. */
-	//SLATE_ATTRIBUTE(bool, IndentHandle)
-
-	///** Whether the handle is interactive or fixed. */
-	//SLATE_ATTRIBUTE(bool, Locked)
-
+	
 	///** The style used to draw the slider. */
 	//SLATE_STYLE_ARGUMENT(FSliderStyle, Style)
+
+	/** The volume value to display. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	float Value;
 
 	/** The slider's orientation. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -35,9 +33,13 @@ class UMG_API USlider : public USlateLeafWidgetComponent
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor SliderHandleColor;
 
-	/** The volume value to display. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	float Value;
+	/** Whether the slidable area should be indented to fit the handle. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	bool IndentHandle;
+
+	/** Whether the handle is interactive or fixed. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	bool Locked;
 
 	/** Invoked when the mouse is pressed and a capture begins. */
 	UPROPERTY(BlueprintAssignable)
@@ -51,28 +53,29 @@ class UMG_API USlider : public USlateLeafWidgetComponent
 	UPROPERTY(BlueprintAssignable)
 	FOnFloatValueChangedEvent OnValueChanged;
 
-	/*  */
+	/** Gets the current value of the slider. */
 	UFUNCTION(BlueprintPure, Category="Behavior")
 	float GetValue();
 
-	/*  */
+	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float InValue);
+	
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
 
 protected:
-	TSharedPtr<class SSlider> SliderWidget() const
-	{
-		if ( MyWidget.IsValid() )
-		{
-			return StaticCastSharedRef<SSlider>(MyWidget.ToSharedRef());
-		}
+	/** Native Slate Widget */
+	TSharedPtr<SSlider> MySlider;
 
-		return TSharedPtr<class SSlider>();
-	}
-
-	// USlateWrapperComponent interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// UWidget interface
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+	// End of UWidget interface
 
 	void HandleOnValueChanged(float InValue);
 	void HandleOnMouseCaptureBegin();

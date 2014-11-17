@@ -233,6 +233,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (float)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Float")
 	static bool EqualEqual_FloatFloat(float A, float B);
 
+	/* Returns true if (|A - B| < ErrorTolerance) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Nearly Equal (float)", Keywords = "== equal"), Category="Math|Float")
+	static bool NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance = 1.e-6f);
+
 	/* Returns true if A does not equal B (A != B)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (float)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Float")
 	static bool NotEqual_FloatFloat(float A, float B);
@@ -338,6 +342,30 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns V clamped to be between A and B (inclusive) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Clamp (float)", Min="0.0", Max="1.0"), Category="Math|Float")
 	static float FClamp(float Value, float Min, float Max);
+
+	/** Returns max of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Integer")
+	static void MaxOfIntArray(const TArray<int32>& IntArray, int32& IndexOfMaxValue, int32& MaxValue);
+
+	/** Returns min of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Integer")
+	static void MinOfIntArray(const TArray<int32>& IntArray, int32& IndexOfMinValue, int32& MinValue);
+
+	/** Returns max of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Float")
+	static void MaxOfFloatArray(const TArray<float>& FloatArray, int32& IndexOfMaxValue, float& MaxValue);
+
+	/** Returns min of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Float")
+	static void MinOfFloatArray(const TArray<float>& FloatArray, int32& IndexOfMinValue, float& MinValue);
+
+	/** Returns max of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Byte")
+	static void MaxOfByteArray(const TArray<uint8>& ByteArray, int32& IndexOfMaxValue, uint8& MaxValue);
+
+	/** Returns min of all array entries and the index at which it was found. Returns value of 0 and index of -1 if the supplied array is empty. */
+	UFUNCTION(BlueprintPure, Category="Math|Byte")
+	static void MinOfByteArray(const TArray<uint8>& ByteArray, int32& IndexOfMinValue, uint8& MinValue);
 
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
 	UFUNCTION(BlueprintPure, Category="Math|Float")
@@ -466,6 +494,9 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static FVector RandomUnitVector();
 
+	/** Returns a random point within the specified bounding box */
+	UFUNCTION(BlueprintPure, Category = "Math|Random")
+	static FVector RandomPointInBoundingBox(FBox BoundingBox);
 	/* 
 	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
 	 * @param ConeDir	The base "center" direction of the cone.
@@ -523,7 +554,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator Multiply_RotatorFloat(FRotator A, float B);
 
 	/** Combine 2 rotations to give you the resulting rotation */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "CombineRotators", Keywords="rotate rotation"), Category="Math|Rotator")
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "CombineRotators", Keywords="rotate rotation add"), Category="Math|Rotator")
 	static FRotator ComposeRotators(FRotator A, FRotator B);
 
 	/** Negate a rotator*/
@@ -863,7 +894,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector InverseTransformDirection(const FTransform& T, FVector Direction);
 
 	/** Multiply two transforms in order */
-	UFUNCTION(BlueprintPure, meta=(ToolTip = "Multiply two transforms in order: A * B"), Category="Math|Transform")
+	UFUNCTION(BlueprintPure, meta=(ToolTip = "Multiply two transforms in order: A * B", Keywords="add"), Category="Math|Transform")
 	static FTransform ComposeTransforms(const FTransform& A, const FTransform& B);
 
 	/** 
@@ -1007,6 +1038,17 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
+
+	/**
+	 * Determines whether a given set of points are coplanar, with a tolerance. Any three points or less are always coplanar.
+	 *
+	 * @param Points - The set of points to determine coplanarity for.
+	 * @param Tolerance - Larger numbers means more variance is allowed.
+	 *
+	 * @return Whether the points are relatively coplanar, based on the tolerance
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Geometry")
+	static bool PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance = 0.1f);
 
 	//
 	// Intersection

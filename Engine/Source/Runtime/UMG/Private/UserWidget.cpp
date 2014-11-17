@@ -4,6 +4,29 @@
 
 #include "SceneViewport.h"
 
+TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New()
+{
+	TSharedRef<FUMGDragDropOp> Operation = MakeShareable(new FUMGDragDropOp);
+	Operation->Construct();
+
+	return Operation;
+}
+
+void FUMGDragDropOp::OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent)
+{
+	FDragDropOperation::OnDrop(bDropWasHandled, MouseEvent);
+}
+
+void FUMGDragDropOp::OnDragged(const class FDragDropEvent& DragDropEvent)
+{
+	FDragDropOperation::OnDragged(DragDropEvent);
+}
+
+TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
+{
+	return DecoratorWidget;
+}
+
 class SViewportWidgetHost : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(SViewportWidgetHost)
@@ -21,12 +44,12 @@ class SViewportWidgetHost : public SCompoundWidget
 			];
 	}
 
-	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) OVERRIDE
+	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override
 	{
 		return true;
 	}
 
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -103,15 +126,13 @@ protected:
 
 
 /////////////////////////////////////////////////////
-// AUserWidget
+// UUserWidget
 
-AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
+UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	RootWidget = SNullWidget::NullWidget;
-	Visiblity = ESlateVisibility::Visible;
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bTickEvenWhenPaused = true;
+	/*PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;*/
 	bShowCursorWhenVisible = false;
 	bAbsoluteLayout = false;
 	bModal = false;
@@ -120,147 +141,82 @@ AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Fill;
 }
 
-void AUserWidget::PostActorCreated()
+void UUserWidget::PostInitProperties()
 {
-	Super::PostActorCreated();
+	Super::PostInitProperties();
+
+	Components.Reset();
+
+	// Only do this if this widget is of a blueprint class
+	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if ( BGClass != NULL )
+	{
+		BGClass->InitializeWidget(this);
+	}
+
+	//RebuildWidget();
 }
 
-void AUserWidget::Destroyed()
+UWorld* UUserWidget::GetWorld() const
 {
-	RootWidget.Reset();
-	Super::Destroyed();
+	UObject* Outer = GetOuter();
+	if ( Outer == NULL )
+	{
+		return NULL;
+	}
+
+	// TODO UMG Global UI elements should go where?  who will be their outer.  Currently CreateWidget node makes the level their owner.
+	if ( ULevel* Level = Cast<ULevel>(Outer) )
+	{
+		return Level->OwningWorld;
+	}
+
+	return NULL;
 }
 
-void AUserWidget::RerunConstructionScripts()
+UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	Super::RerunConstructionScripts();
-
-	RebuildWrapperWidget();
+	GetWidget();
+	
+	TWeakObjectPtr<UWidget> VisualWidget = WidgetToComponent.FindRef(InWidget);
+	return VisualWidget.Get();
 }
 
-void AUserWidget::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
-{
-	//if ( BindingEvaluator )
-	//{
-	//	// TODO UMG pass in this as a parameter, so it has the context to set properties?
-	//	ProcessEvent(BindingEvaluator, NULL);
-	//}
-	//static AUserWidget* TestWidget;
-	//static FWidgetNode_Base* LinkedPtr = NULL;
-
-	//FText GlueText()
-	//{
-	//	LinkedPtr->EvaluateGraphExposedInputs.Execute(TestWidget);
-	//	FWidgetNode_Text* TextNode = (FWidgetNode_Text*)LinkedPtr;
-	//	return TextNode->Text;
-	//}
-
-	//TextBlock->LinkedTextAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&GlueText));
-
-	//UWorld* World = GetWorld();
-	//if ( World && World->IsGameWorld() )
-	//{
-	//	if ( UWidgetBlueprintGeneratedClass* WidgetBlueprintClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
-	//	{
-	//		for ( UStructProperty* Attribute : WidgetBlueprintClass->WidgetNodeProperties )
-	//		{
-
-	//		}
-	//	}
-
-
-	//	//if ( bShowCursorWhenVisible && GetIsVisible() )
-	//	//{
-	//	//	World->GetFirstLocalPlayerFromController()->PlayerController->bShowMouseCursor = true;
-	//	//	UGameViewportClient* Viewport = World->GetGameViewport();
-	//	//}
-	//}
-}
-
-USlateWrapperComponent* AUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
-{
-	return WidgetToComponent.FindRef(InWidget);
-}
-
-void AUserWidget::RebuildWrapperWidget()
+TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
 	WidgetToComponent.Reset();
-	RootWidget = SNullWidget::NullWidget;
 	
-	TArray<USlateWrapperComponent*> SlateWrapperComponents;
-	GetComponents(SlateWrapperComponents);
+	TSharedPtr<SWidget> UserRootWidget;
 
 	// Add the first component to the root of the widget surface.
-	if ( SlateWrapperComponents.Num() > 0 )
+	if ( Components.Num() > 0 )
 	{
-		if ( bAbsoluteLayout )
-		{
-			RootWidget =
-				SNew(SCanvas)
-
-				+ SCanvas::Slot()
-				.Position(AbsolutePosition)
-				.Size(AbsoluteSize)
-				.VAlign(VerticalAlignment)
-				.HAlign(HorizontalAlignment)
-				[
-					SlateWrapperComponents[0]->GetWidget()
-				];
-		}
-		else
-		{
-			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-
-			auto& NewSlot = VerticalBox->AddSlot()
-				.Padding(Padding)
-				.HAlign(HorizontalAlignment)
-				.VAlign(VerticalAlignment)
-				[
-					SlateWrapperComponents[0]->GetWidget()
-				];
-
-			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Size);
-
-			RootWidget = VerticalBox;
-		}
+		UserRootWidget = Components[0]->GetWidget();
+	}
+	else
+	{
+		UserRootWidget = SNew(SSpacer);
 	}
 
 	// Place all of our top-level children Slate wrapped components into the overlay
-	for (int32 ComponentIndex = 0; ComponentIndex < SlateWrapperComponents.Num(); ++ComponentIndex)
+	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
 	{
-		USlateWrapperComponent* Handle = SlateWrapperComponents[ComponentIndex];
+		UWidget* Handle = Components[ComponentIndex];
 		TSharedRef<SWidget> Widget = Handle->GetWidget();
 
 		WidgetToComponent.Add(Widget, Handle);
 	}
-	
-	// If this is a game world add the widget to the current worlds viewport.
-	UWorld* World = GetWorld();
-	if ( World && World->IsGameWorld() )
-	{
-		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, (bool)bModal)
+
+	return SNew(SObjectWidget, this)
 		[
-			RootWidget.ToSharedRef()
+			UserRootWidget.ToSharedRef()
 		];
-
-		RootWidget = WidgetHost;
-
-		UGameViewportClient* Viewport = World->GetGameViewport();
-		Viewport->AddViewportWidgetContent(RootWidget.ToSharedRef());
-
-		if ( Visiblity == ESlateVisibility::Visible )
-		{
-			Show();
-		}
-		else
-		{
-			Hide();
-		}
-	}
 }
 
-TSharedPtr<SWidget> AUserWidget::GetWidgetFromName(const FString& Name) const
+TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
+	GetWidget();
+	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -272,70 +228,149 @@ TSharedPtr<SWidget> AUserWidget::GetWidgetFromName(const FString& Name) const
 	return TSharedPtr<SWidget>();
 }
 
-USlateWrapperComponent* AUserWidget::GetHandleFromName(const FString& Name) const
+UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
+	GetWidget();
+	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
 		{
-			return Entry.Value;
+			TWeakObjectPtr<UWidget> VisualWidget = Entry.Value;
+			return VisualWidget.Get();
 		}
 	}
 
 	return NULL;
 }
 
-TSharedRef<SWidget> AUserWidget::GetRootWidget()
+TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 {
-	return RootWidget.ToSharedRef();
+	if ( bAbsoluteLayout )
+	{
+		return SNew(SCanvas)
+
+			+ SCanvas::Slot()
+			.Position(AbsolutePosition)
+			.Size(AbsoluteSize)
+			.VAlign(VerticalAlignment)
+			.HAlign(HorizontalAlignment)
+			[
+				GetWidget()
+			];
+	}
+	else
+	{
+		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+		auto& NewSlot = VerticalBox->AddSlot()
+			.Padding(Padding)
+			.HAlign(HorizontalAlignment)
+			.VAlign(VerticalAlignment)
+			[
+				GetWidget()
+			];
+
+		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
+
+		return VerticalBox;
+	}
 }
 
-void AUserWidget::Show()
+UWidget* UUserWidget::GetRootWidgetComponent()
 {
-	RootWidget->SetVisibility(EVisibility::Visible);
-	OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
-
-	// If this is a game world add the widget to the current worlds viewport.
-	UWorld* World = GetWorld();
-	if ( World && World->IsGameWorld() )
+	GetWidget();
+	
+	if ( Components.Num() > 0 )
 	{
-		UGameViewportClient* Viewport = World->GetGameViewport();
-		TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-		if ( GameViewportWidget.IsValid() )
+		return Components[0];
+	}
+
+	return NULL;
+}
+
+void UUserWidget::Show()
+{
+	GetWidget();
+	
+	if ( !FullScreenWidget.IsValid() )
+	{
+		TSharedRef<SWidget> RootWidget = MakeFullScreenWidget();
+
+		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, (bool)bModal)
+			[
+				RootWidget
+			];
+
+		FullScreenWidget = WidgetHost;
+
+		//WidgetHost->SetVisibility(EVisibility::Visible);
+		//OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
+
+		// If this is a game world add the widget to the current worlds viewport.
+		UWorld* World = GetWorld();
+		if ( World && World->IsGameWorld() )
 		{
-			GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(RootWidget);
-			FSlateApplication::Get().SetKeyboardFocus(RootWidget);
+			UGameViewportClient* Viewport = World->GetGameViewport();
+			Viewport->AddViewportWidgetContent(WidgetHost);
+
+			TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+			if ( GameViewportWidget.IsValid() )
+			{
+				GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(RootWidget);
+				FSlateApplication::Get().SetKeyboardFocus(RootWidget);
+			}
 		}
 	}
 }
 
-void AUserWidget::Hide()
+void UUserWidget::Hide()
 {
-	RootWidget->SetVisibility(EVisibility::Hidden);
-	OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
-
-	// If this is a game world add the widget to the current worlds viewport.
-	UWorld* World = GetWorld();
-	if ( World && World->IsGameWorld() )
+	GetWidget();
+	
+	if ( FullScreenWidget.IsValid() )
 	{
-		UGameViewportClient* Viewport = World->GetGameViewport();
-		TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-		if ( GameViewportWidget.IsValid() )
+		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
+
+		//RootWidget->SetVisibility(EVisibility::Hidden);
+		//OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
+
+		// If this is a game world add the widget to the current worlds viewport.
+		UWorld* World = GetWorld();
+		if ( World && World->IsGameWorld() )
 		{
-			//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-			// the Widget stack, and the dialog stack.
-			GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
-			FSlateApplication::Get().SetKeyboardFocus(TSharedPtr<SWidget>());
+			UGameViewportClient* Viewport = World->GetGameViewport();
+			Viewport->RemoveViewportWidgetContent(RootWidget.ToSharedRef());
+
+			TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+			if ( GameViewportWidget.IsValid() )
+			{
+				//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+				// the Widget stack, and the dialog stack.
+				GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
+				FSlateApplication::Get().SetKeyboardFocus(TSharedPtr<SWidget>());
+			}
 		}
 	}
 }
 
-bool AUserWidget::GetIsVisible()
+bool UUserWidget::GetIsVisible()
 {
-	return RootWidget->GetVisibility().IsVisible();
+	GetWidget();
+	
+	return FullScreenWidget.IsValid();
 }
 
-TEnumAsByte<ESlateVisibility::Type> AUserWidget::GetVisiblity()
+TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 {
-	return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
+	GetWidget();
+	
+	if ( FullScreenWidget.IsValid() )
+	{
+		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
+
+		return UWidget::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
+	}
+
+	return ESlateVisibility::Collapsed;
 }

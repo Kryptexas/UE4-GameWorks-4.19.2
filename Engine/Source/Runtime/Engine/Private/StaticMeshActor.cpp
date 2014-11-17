@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "MessageLog.h"
+#include "StaticMeshResources.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
@@ -14,7 +15,6 @@
 AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
 	StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
@@ -23,6 +23,24 @@ AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializePropertie
 	StaticMeshComponent->bGenerateOverlapEvents = false;
 
 	RootComponent = StaticMeshComponent;
+}
+
+void AStaticMeshActor::BeginPlay()
+{
+	// Since we allow AStaticMeshActor to specify whether it replicates via bStaticMeshReplicateMovement - per placed instance
+	// and we do the normal SetReplicates call in PostInitProperties, before instanced properties are serialized in, 
+	// we need to do this here. 
+	//
+	// This is a short term fix until we find a better play for SetReplicates to be called in AActor.
+
+	if (Role == ROLE_Authority && bStaticMeshReplicateMovement)
+	{
+		bReplicates = false;
+		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+		SetReplicates(true);
+	}	
+
+	Super::BeginPlay();
 }
 
 FString AStaticMeshActor::GetDetailedInfoInternal() const

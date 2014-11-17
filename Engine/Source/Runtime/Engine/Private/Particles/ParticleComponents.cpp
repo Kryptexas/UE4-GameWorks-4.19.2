@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
 #include "LevelUtils.h"
 #include "ImageUtils.h"
 #include "FXSystem.h"
@@ -16,6 +18,34 @@
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
+
+#include "Particles/Collision/ParticleModuleCollision.h"
+#include "Particles/Color/ParticleModuleColorOverLife.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
+#include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
+#include "Particles/Lifetime/ParticleModuleLifetime.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Orbit/ParticleModuleOrbit.h"
+#include "Particles/Size/ParticleModuleSize.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/Spawn/ParticleModuleSpawnBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/Velocity/ParticleModuleVelocity.h"
+#include "Particles/Emitter.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
+#include "Particles/ParticleEventManager.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystemReplay.h"
+
 
 #define LOCTEXT_NAMESPACE "ParticleComponents"
 
@@ -193,6 +223,7 @@ AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 			ArrowComponent->AttachParent = ParticleSystemComponent;
+			ArrowComponent->bAbsoluteScale = true;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -2663,10 +2694,14 @@ bool UParticleSystem::RemoveAllDuplicateModules(bool bInMarkForCooker, TMap<UObj
 								// Ignore 'Cascade' category, transient, native and EditorOnly properties...
 								if (!bIsTransient && !bIsEditorOnly && !bIsCascade)
 								{
-									bool bIsIdentical = Property->Identical_InContainer(SourceModule, CheckModule, PPF_DeepComparison);
-									if (bIsIdentical == false)
+									for( int32 iProp=0; iProp<Property->ArrayDim; iProp++ )
 									{
-										bIsDifferent = true;
+										bool bIsIdentical = Property->Identical_InContainer(SourceModule, CheckModule, iProp, PPF_DeepComparison);
+										if (bIsIdentical == false)
+										{
+											bIsDifferent = true;
+											break;
+										}
 									}
 								}
 							}
@@ -4728,19 +4763,58 @@ int32 UParticleSystemComponent::GetNumActiveParticles() const
 	return NumParticles;
 }
 
-void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated)
+void UParticleSystemComponent::GetOwnedTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, const void* InOwner, bool bSetOwner)
 {
-	int32 NumEmitters = EmitterInstances.Num();
-	for (int32 i = 0; i < NumEmitters; ++i)
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
 	{
-		FParticleEmitterInstance* Instance = EmitterInstances[i];
-		if (Instance && Instance->IsTrailEmitter())
+		if (Inst && Inst->IsTrailEmitter())
 		{
-			FParticleAnimTrailEmitterInstance* TrailInstance = (FParticleAnimTrailEmitterInstance*)(Instance);
-			if ((bIncludeUnassociated && TrailInstance->AnimNotifyState == NULL) || TrailInstance->AnimNotifyState == InAnimNotifyState)
+			FParticleAnimTrailEmitterInstance* TrailEmitter = (FParticleAnimTrailEmitterInstance*)Inst;
+			if (bSetOwner)
 			{
-				OutTrailEmitters.Add(TrailInstance);
+				TrailEmitter->Owner = InOwner;
+				OutTrailEmitters.Add(TrailEmitter);
 			}
+			else if (TrailEmitter->Owner == InOwner)
+			{
+				OutTrailEmitters.Add(TrailEmitter);
+			}
+		}
+	}
+}
+
+void UParticleSystemComponent::BeginTrails(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
+{
+	ActivateSystem(true);
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->BeginTrail();
+			Inst->SetTrailSourceData(InFirstSocketName, InSecondSocketName, InWidthMode, InWidth);
+		}
+	}
+}
+
+void UParticleSystemComponent::EndTrails()
+{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->EndTrail();
+		}
+	}
+	DeactivateSystem();
+}
+
+void UParticleSystemComponent::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
+{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->SetTrailSourceData(InFirstSocketName, InSecondSocketName, InWidthMode, InWidth);
 		}
 	}
 }
@@ -4768,7 +4842,7 @@ bool UParticleSystemComponent::HasCompleted()
 		{
 			if (Instance->CurrentLODLevel->bEnabled)
 			{
-				if (Instance->CurrentLODLevel->RequiredModule->EmitterLoops > 0)
+				if (Instance->CurrentLODLevel->RequiredModule->EmitterLoops > 0 || Instance->IsTrailEmitter())
 				{
 					if (bWasDeactivated && bSuppressSpawning)
 					{
@@ -5939,41 +6013,6 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 		{
 			SetTemplate( PS_CameraEffect );
 		}
-	}
-}
-
-
-AEmitterSpawnable::AEmitterSpawnable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-	ParticleSystemComponent->SecondsBeforeInactive = 0;
-	
-	bDestroyOnSystemFinish = true;
-	bNetTemporary = true;
-}
-
-void AEmitterSpawnable::SetTemplate(UParticleSystem* NewTemplate)
-{
-	Super::SetTemplate(NewTemplate);
-
-	ParticleTemplate = NewTemplate;
-}
-
-void AEmitterSpawnable::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-{
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-	
-	DOREPLIFETIME_CONDITION( AEmitterSpawnable, ParticleTemplate, COND_InitialOnly );
-}
-
-void AEmitterSpawnable::OnRep_ParticleTemplate()
-{
-	SetTemplate(ParticleTemplate);
-	ParticleSystemComponent->ActivateSystem();
-	if (ParticleTemplate == NULL && bDestroyOnSystemFinish)
-	{
-		// prevent emitter from hanging around forever with no template
-		Destroy();
 	}
 }
 

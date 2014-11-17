@@ -5,7 +5,9 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "TargetPlatform.h"
+#include "AnimTree.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
@@ -23,6 +25,19 @@
 	}
 #endif // WITH_PHYSX
 
+// CVars
+static TAutoConsoleVariable<float> CVarContactOffsetFactor(
+	TEXT("p.ContactOffsetFactor"),
+	0.01f,
+	TEXT("Multiplied by min dimension of object to calculate how close objects get before generating contacts. Default: 0.01"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarMaxContactOffset(
+	TEXT("p.MaxContactOffset"),
+	1.f,
+	TEXT("Max value of contact offset, which controls how close objects get before generating contacts. Default: 1.0"),
+	ECVF_Default);
+
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -36,6 +51,7 @@ UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
 	BuildScale_DEPRECATED = 1.0f;
 	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
+	SetFlags(RF_Transactional);
 }
 
 void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
@@ -53,6 +69,7 @@ void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
 	DefaultInstance.CopyBodyInstancePropertiesFrom(&FromSetup->DefaultInstance);
 	PhysMaterial = FromSetup->PhysMaterial;
 	PhysicsType = FromSetup->PhysicsType;
+	bDoubleSidedGeometry = FromSetup->bDoubleSidedGeometry;
 }
 
 void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
@@ -103,26 +120,29 @@ void UBodySetup::CreatePhysicsMeshes()
 		check( !bGenerateNonMirroredCollision || CookedDataReader.ConvexMeshes.Num() == 0 || CookedDataReader.ConvexMeshes.Num() == AggGeom.ConvexElems.Num() );
 		check( !bGenerateMirroredCollision || CookedDataReader.ConvexMeshesNegX.Num() == 0 || CookedDataReader.ConvexMeshesNegX.Num() == AggGeom.ConvexElems.Num() );
 
-		//If the cooked data no longer has convex meshes, make sure to empty AggGeom.ConvexElems - otherwise we leave NULLS which cause issues, and we also read past the end of CookedDataReader.ConvexMeshes
-		if( (bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() == 0) || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() == 0))
+		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
 		{
-			AggGeom.ConvexElems.Empty();
-		}
-
-		for( int32 ElementIndex = 0; ElementIndex < AggGeom.ConvexElems.Num(); ElementIndex++ )
-		{
-			FKConvexElem& ConvexElem = AggGeom.ConvexElems[ElementIndex];
-
-			if(bGenerateNonMirroredCollision)
+			//If the cooked data no longer has convex meshes, make sure to empty AggGeom.ConvexElems - otherwise we leave NULLS which cause issues, and we also read past the end of CookedDataReader.ConvexMeshes
+			if ((bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() == 0) || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() == 0))
 			{
-				ConvexElem.ConvexMesh = CookedDataReader.ConvexMeshes[ ElementIndex ];
-				FPhysxSharedData::Get().Add(ConvexElem.ConvexMesh);
+				AggGeom.ConvexElems.Empty();
 			}
 
-			if(bGenerateMirroredCollision)
+			for (int32 ElementIndex = 0; ElementIndex < AggGeom.ConvexElems.Num(); ElementIndex++)
 			{
-				ConvexElem.ConvexMeshNegX = CookedDataReader.ConvexMeshesNegX[ ElementIndex ];
-				FPhysxSharedData::Get().Add(ConvexElem.ConvexMeshNegX);
+				FKConvexElem& ConvexElem = AggGeom.ConvexElems[ElementIndex];
+
+				if (bGenerateNonMirroredCollision)
+				{
+					ConvexElem.ConvexMesh = CookedDataReader.ConvexMeshes[ElementIndex];
+					FPhysxSharedData::Get().Add(ConvexElem.ConvexMesh);
+				}
+
+				if (bGenerateMirroredCollision)
+				{
+					ConvexElem.ConvexMeshNegX = CookedDataReader.ConvexMeshesNegX[ElementIndex];
+					FPhysxSharedData::Get().Add(ConvexElem.ConvexMeshNegX);
+				}
 			}
 		}
 
@@ -241,17 +261,18 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 		// set min scale
 		Scale3D = FVector(0.1f);
 	}
-	// Determine if applied scaling is uniform. If it isn't, only convex geometry will be copied over
-	MinScale = Scale3D.GetMin(); // Uniform scaling factor
-	MinScaleAbs = FMath::Abs(MinScale);
+
+	Scale3DAbs = Scale3D.GetAbs();
+	MinScaleAbs = Scale3DAbs.GetMin();
+
+	MinScale = FMath::Max3(Scale3D.X, Scale3D.Y, Scale3D.Z) < 0.f ? -MinScaleAbs : MinScaleAbs;	//if all three values are negative make minScale negative
+	
 	if (FMath::IsNearlyZero(MinScale))
 	{
 		// only one of them can be 0, we make sure they have mini set up correctly
 		MinScale = 0.1f;
 		MinScaleAbs = 0.1f;
 	}
-
-	Scale3DAbs = FVector(FMath::Abs(Scale3D.X), FMath::Abs(Scale3D.Y), FMath::Abs(Scale3D.Z)); // magnitude of scale (sign removed)
 }
 
 #if WITH_BODY_WELDING
@@ -294,10 +315,8 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 	bool bDestStatic = (PDestActor->isRigidStatic() != NULL);
 
 	// Get contact offset params
-	static const auto CVarContactOffsetFactor = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.ContactOffsetFactor"));
-	const float ContactOffsetFactor = CVarContactOffsetFactor->GetValueOnGameThread();
-	static const auto CVarMaxContactOffset = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.MaxContactOffset"));
-	const float MaxContactOffset = CVarMaxContactOffset->GetValueOnGameThread();
+	const float ContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
+	const float MaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
 
 	check(GEngine->DefaultPhysMaterial != NULL);
 	PxMaterial* PDefaultMat = GEngine->DefaultPhysMaterial->GetPhysXMaterial();
@@ -373,7 +392,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				// this is a bit confusing since radius and height is scaled
 				// first apply the scale first 
 				float Radius = FMath::Max(SphylElem->Radius * ScaleRadius, 0.1f);
-				float HalfHeight = SphylElem->Length * ScaleLength * 0.5f;
+				float Length = SphylElem->Length + SphylElem->Radius * 2.f;
+				float HalfLength = Length * ScaleLength * 0.5f;
+				Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
+				float HalfHeight = HalfLength - Radius;
+				HalfHeight = FMath::Max(0.1f, HalfHeight);
 
 				PxCapsuleGeometry PCapsuleGeom;
 				PCapsuleGeom.halfHeight = HalfHeight;
@@ -469,9 +492,16 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 		PxTriangleMesh* UseTriMesh = bUseNegX ? TriMeshNegX : TriMesh;
 		if(UseTriMesh != NULL)
 		{
+			
+
 			PxTriangleMeshGeometry PTriMeshGeom;
 			PTriMeshGeom.triangleMesh = bUseNegX ? TriMeshNegX : TriMesh;
 			PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
+			if (bDoubleSidedGeometry)
+			{
+				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
+			}
+			
 
 			if(PTriMeshGeom.isValid())
 			{
@@ -518,6 +548,12 @@ void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
 		for (int32 i = 0; i < AggGeom.ConvexElems.Num(); i++)
 		{
 			FKConvexElem* ConvexElem = &(AggGeom.ConvexElems[i]);
+
+			FTransform ConvexTrans = ConvexElem->GetTransform();
+			FVector ConvexLoc = ConvexTrans.GetLocation();
+			ConvexLoc *= ScaleMultiplier3D;
+			ConvexTrans.SetLocation(ConvexLoc);
+			ConvexElem->SetTransform(ConvexTrans);
 
 			TArray<FVector>& Vertices = ConvexElem->VertexData;
 			for (int32 VertIndex = 0; VertIndex < Vertices.Num(); ++VertIndex)
@@ -717,6 +753,23 @@ void UBodySetup::PostLoad()
 	}
 }
 
+void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
+{
+	SCOPE_CYCLE_COUNTER(STAT_UpdateTriMeshVertices);
+#if WITH_PHYSX
+	if (TriMesh)
+	{
+		
+		PxVec3 * PNewPositions = TriMesh->getVerticesForModification();
+		for (int32 i = 0; i < NewPositions.Num(); ++i)
+		{
+			PNewPositions[i] = U2PVector(NewPositions[i]);
+		}
+
+		TriMesh->refitBVH();
+	}
+#endif
+}
 
 FByteBulkData* UBodySetup::GetCookedData(FName Format)
 {
@@ -782,6 +835,20 @@ void UBodySetup::PostInitProperties()
 		BodySetupGuid = FGuid::NewGuid();
 	}
 }
+
+#if WITH_EDITOR
+void UBodySetup::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	// If we have any convex elems, ensure they are recreated whenever anything is modified!
+	if(AggGeom.ConvexElems.Num() > 0)
+	{
+		InvalidatePhysicsData();
+		CreatePhysicsMeshes();
+	}
+}
+#endif // WITH_EDITOR
 
 SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 {
@@ -891,6 +958,13 @@ int32 FKAggregateGeom::GetElementCount(int32 Type) const
 	}
 }
 
+void FKConvexElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	FTransform Transform = GetTransform();
+	Transform.SetScale3D(Transform.GetScale3D() + DeltaSize);
+	SetTransform(Transform);
+}
+
 // References: 
 // http://amp.ece.cmu.edu/Publication/Cha/icip01_Cha.pdf
 // http://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
@@ -947,6 +1021,18 @@ void FKSphereElem::Serialize( const FArchive& Ar )
 	}
 }
 
+void FKSphereElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	// Find element with largest magnitude, btu preserve sign.
+	float DeltaRadius = DeltaSize.X;
+	if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
+		DeltaRadius = DeltaSize.Y;
+	else if (FMath::Abs(DeltaSize.Z) > FMath::Abs(DeltaRadius))
+		DeltaRadius = DeltaSize.Z;
+
+	Radius = FMath::Max(Radius + DeltaRadius, MinSize);
+}
+
 void FKBoxElem::Serialize( const FArchive& Ar )
 {
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PHYSICS_TRANSFORMS )
@@ -956,6 +1042,14 @@ void FKBoxElem::Serialize( const FArchive& Ar )
 	}
 }
 
+void FKBoxElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	// Sizes are lengths, so we double the delta to get similar increase in size.
+	X = FMath::Max(X + 2 * DeltaSize.X, MinSize);
+	Y = FMath::Max(Y + 2 * DeltaSize.Y, MinSize);
+	Z = FMath::Max(Z + 2 * DeltaSize.Z, MinSize);
+}
+
 void FKSphylElem::Serialize( const FArchive& Ar )
 {
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PHYSICS_TRANSFORMS )
@@ -963,6 +1057,25 @@ void FKSphylElem::Serialize( const FArchive& Ar )
 		Center = TM_DEPRECATED.GetOrigin();
 		Orientation = TM_DEPRECATED.ToQuat();
 	}
+}
+
+void FKSphylElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	float DeltaRadius = DeltaSize.X;
+	if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
+	{
+		DeltaRadius = DeltaSize.Y;
+	}
+
+	float DeltaHeight = DeltaSize.Z;
+	float radius = FMath::Max(Radius + DeltaRadius, MinSize);
+	float length = Length + DeltaHeight;
+
+	length += Radius - radius;
+	length = FMath::Max(0.f, length);
+
+	Radius = radius;
+	Length = length;
 }
 
 class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const
@@ -976,10 +1089,9 @@ class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const
 	return PhysMat;
 }
 
-float UBodySetup::CalculateMass(const UPrimitiveComponent* Component)
+float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 {
 	FVector ComponentScale(1.0f, 1.0f, 1.0f);
-	UPhysicalMaterial* PhysMat = GetPhysMaterial();
 	const FBodyInstance* BodyInstance = NULL;
 	float MassScale = DefaultInstance.MassScale;
 
@@ -1006,7 +1118,7 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component)
 		BodyInstance = &DefaultInstance;
 	}
 
-	PhysMat = BodyInstance->PhysMaterialOverride != NULL ? BodyInstance->PhysMaterialOverride : PhysMat;
+	UPhysicalMaterial* PhysMat = BodyInstance->GetSimplePhysicalMaterial();
 	MassScale = BodyInstance->MassScale;
 
 	// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
@@ -1019,11 +1131,18 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component)
 	}
 
 	// Then scale mass to avoid big differences between big and small objects.
-	const float BasicMass = AggGeom.GetVolume(ComponentScale) * DensityKGPerCubicUU;
-	//@TODO: Some static meshes are triggering this - disabling until content can be analyzed - ensureMsgf(BasicMass >= 0.0f, TEXT("UBodySetup::CalculateMass(%s) - The volume of the aggregate geometry is negative"), *Component->GetReadableName());
+	const float BasicVolume = GetVolume(ComponentScale);
+	//@TODO: Some static meshes are triggering this - disabling until content can be analyzed - ensureMsgf(BasicVolume >= 0.0f, TEXT("UBodySetup::CalculateMass(%s) - The volume of the aggregate geometry is negative"), *Component->GetReadableName());
+
+	const float BasicMass = FMath::Max<float>(BasicVolume, 0.0f) * DensityKGPerCubicUU;
 
 	const float UsePow = FMath::Clamp<float>(RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
 	const float RealMass = FMath::Pow(BasicMass, UsePow);
 
 	return RealMass * MassScale;
+}
+
+float UBodySetup::GetVolume(const FVector& Scale) const
+{
+	return AggGeom.GetVolume(Scale);
 }

@@ -12,7 +12,7 @@
 class FCoreModule : public FDefaultModuleImpl
 {
 public:
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		// Core cannot be unloaded or reloaded
 		return false;
@@ -122,6 +122,7 @@ uint64					GMakeCacheIDIndex				= 0;						/* Cache ID */
 FString				GEngineIni;													/* Engine ini filename */
 FString				GEditorIni;													/* Editor ini filename */
 FString				GEditorKeyBindingsIni;										/* Editor Key Bindings ini file */
+FString				GEditorLayoutIni;											/* Editor UI Layout ini filename */
 FString				GEditorUserSettingsIni;										/* Editor User Settings ini filename */
 FString				GEditorGameAgnosticIni;										/* Editor Settings (shared between games) ini filename */
 FString				GCompatIni;
@@ -216,7 +217,7 @@ ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
 /** Global screen shot index, which is a way to make it so we don't have overwriting ScreenShots			*/
 int32                     GScreenshotBitmapIndex           = -1;
 /** Whether stats should emit named events for e.g. PIX.													*/
-bool					GCycleStatsShouldEmitNamedEvents= false;
+int32					GCycleStatsShouldEmitNamedEvents = 0;
 /** Disables some warnings and minor features that would interrupt a demo presentation						*/
 bool					GIsDemoMode						= false;
 /** Whether or not a unit test is currently being run														*/
@@ -227,12 +228,17 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;
 
+/** Stack names from the VM to be unrolled when we assert */
+TArray<FScriptTraceStackNode> GScriptStack;
+
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
 DEFINE_STAT(STAT_MemoryICUTotalAllocationSize);
+DEFINE_STAT(STAT_MemoryICUDataFileAllocationSize);
 DEFINE_STAT(STAT_AnimationMemory);
 DEFINE_STAT(STAT_PrecomputedVisibilityMemory);
+DEFINE_STAT(STAT_PrecomputedShadowDepthMapMemory);
 DEFINE_STAT(STAT_PrecomputedLightVolumeMemory);
 DEFINE_STAT(STAT_StaticMeshTotalMemory);
 DEFINE_STAT(STAT_SkeletalMeshVertexMemory);
@@ -267,10 +273,13 @@ DEFINE_STAT(STAT_GameTickWantedWaitTime);
 DEFINE_STAT(STAT_GameTickAdditionalWaitTime);
 
 DEFINE_STAT(STAT_TaskGraph_OtherTasks);
-DEFINE_STAT(STAT_TaskGraph_RenderIdles);
+DEFINE_STAT(STAT_TaskGraph_OtherStalls);
+
+DEFINE_STAT(STAT_TaskGraph_RenderStalls);
 
 DEFINE_STAT(STAT_TaskGraph_GameTasks);
-DEFINE_STAT(STAT_TaskGraph_GameIdles);
+DEFINE_STAT(STAT_TaskGraph_GameStalls);
+
 DEFINE_STAT(STAT_FlushThreadedLogs);
 DEFINE_STAT(STAT_PumpMessages);
 
@@ -291,6 +300,7 @@ DEFINE_STAT(STAT_AsyncIO_PlatformReadTime);
 
 DEFINE_LOG_CATEGORY(LogHAL);
 DEFINE_LOG_CATEGORY(LogMac);
+DEFINE_LOG_CATEGORY(LogLinux);
 DEFINE_LOG_CATEGORY(LogIOS);
 DEFINE_LOG_CATEGORY(LogAndroid);
 DEFINE_LOG_CATEGORY(LogWindows);

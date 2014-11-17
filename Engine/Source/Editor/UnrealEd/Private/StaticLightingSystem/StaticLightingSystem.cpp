@@ -8,6 +8,7 @@
 
 FSwarmDebugOptions GSwarmDebugOptions;
 
+#include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
 #include "LightingBuildOptions.h"
 #include "StaticLightingPrivate.h"
 #include "Database.h"
@@ -16,6 +17,7 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "PrecomputedLightVolume.h"
 #include "LevelUtils.h"
 #include "CrashTracker.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 
@@ -103,9 +105,7 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 
 	check(StaticLightingSystem);
 
-	// BEGIN - pass information about lighting update to navigation system (we don't want to dirty navigation - it will re-add components)
-	if (StaticLightingSystem->GetWorld()->GetNavigationSystem() != NULL)
-		StaticLightingSystem->GetWorld()->GetNavigationSystem()->BeginFakeComponentChanges();
+	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld());
 
 	if (!bDiscardResults)
 	{
@@ -118,10 +118,6 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 			FStaticLightingManager::Get()->FailLightingBuild();
 		}
 	}
-
-	// END - pass information about lighting update to navigation system 
-	if (StaticLightingSystem->GetWorld()->GetNavigationSystem() != NULL)
-		StaticLightingSystem->GetWorld()->GetNavigationSystem()->EndFakeComponentChanges();
 
 	FStaticLightingManager::Get()->DestroyStaticLightingSystem();
 	
@@ -1809,7 +1805,7 @@ void FStaticLightingSystem::GatherScene()
 		ULightComponentBase* LightBase = Lights[LightIndex];
 		USkyLightComponent* SkyLight = Cast<USkyLightComponent>(LightBase);
 
-		if (SkyLight)
+		if (SkyLight && (SkyLight->Mobility == EComponentMobility::Static || SkyLight->Mobility == EComponentMobility::Stationary))
 		{
 			LightmassExporter->AddLight(SkyLight);
 		}
@@ -2052,7 +2048,7 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 {
 	const bool bAutoApplyEnabled = GetDefault<ULevelEditorMiscSettings>()->bAutoApplyLightingEnable;
 	const bool bSlowTask = GIsSlowTask;
-	const bool bInterpEditMode = GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
+	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
 	const bool bAutomationTesting = GIsAutomationTesting;

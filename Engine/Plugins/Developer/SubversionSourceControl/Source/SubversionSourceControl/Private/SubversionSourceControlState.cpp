@@ -29,6 +29,11 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceC
 	return NULL;
 }
 
+TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceControlState::GetBaseRevForMerge() const
+{
+	return FindHistoryRevision(PendingMergeBaseFileRevNumber);
+}
+
 FName FSubversionSourceControlState::GetIconName() const
 {
 	if(LockState == ELockState::Locked)
@@ -39,8 +44,7 @@ FName FSubversionSourceControlState::GetIconName() const
 	{
 		return FName("Subversion.CheckedOutByOtherUser");
 	}
-
-	if(!IsCurrent())
+	else if (!IsCurrent())
 	{
 		return FName("Subversion.NotAtHeadRevision");
 	}
@@ -48,7 +52,14 @@ FName FSubversionSourceControlState::GetIconName() const
 	switch(WorkingCopyState)
 	{
 	case EWorkingCopyState::Added:
-		return FName("Subversion.OpenForAdd");
+		if(bCopied)
+		{
+			return FName("Subversion.Branched");
+		}
+		else
+		{
+			return FName("Subversion.OpenForAdd");
+		}
 	case EWorkingCopyState::NotControlled:
 		return FName("Subversion.NotInDepot");
 	}
@@ -66,8 +77,7 @@ FName FSubversionSourceControlState::GetSmallIconName() const
 	{
 		return FName("Subversion.CheckedOutByOtherUser_Small");
 	}
-
-	if(!IsCurrent())
+	else if (!IsCurrent())
 	{
 		return FName("Subversion.NotAtHeadRevision_Small");
 	}
@@ -75,7 +85,14 @@ FName FSubversionSourceControlState::GetSmallIconName() const
 	switch(WorkingCopyState)
 	{
 	case EWorkingCopyState::Added:
-		return FName("Subversion.OpenForAdd_Small");
+		if(bCopied)
+		{
+			return FName("Subversion.Branched_Small");
+		}
+		else
+		{
+			return FName("Subversion.OpenForAdd_Small");
+		}
 	case EWorkingCopyState::NotControlled:
 		return FName("Subversion.NotInDepot_Small");
 	}
@@ -101,7 +118,14 @@ FText FSubversionSourceControlState::GetDisplayName() const
 	case EWorkingCopyState::Pristine:
 		return LOCTEXT("Pristine", "Pristine");
 	case EWorkingCopyState::Added:
-		return LOCTEXT("Added", "Added");
+		if(bCopied)
+		{
+			return LOCTEXT("Added", "Added With History");
+		}
+		else
+		{
+			return LOCTEXT("Added", "Added");
+		}
 	case EWorkingCopyState::Deleted:
 		return LOCTEXT("Deleted", "Deleted");
 	case EWorkingCopyState::Modified:
@@ -147,7 +171,14 @@ FText FSubversionSourceControlState::GetDisplayTooltip() const
 	case EWorkingCopyState::Pristine:
 		return LOCTEXT("Pristine_Tooltip", "There are no modifications");
 	case EWorkingCopyState::Added:
-		return LOCTEXT("Added_Tooltip", "Item is scheduled for addition");
+		if(bCopied)
+		{
+			return LOCTEXT("Added_Tooltip", "Item is scheduled for addition with history");
+		}
+		else
+		{
+			return LOCTEXT("Added_Tooltip", "Item is scheduled for addition");
+		}
 	case EWorkingCopyState::Deleted:
 		return LOCTEXT("Deleted_Tooltip", "Item is scheduled for deletion");
 	case EWorkingCopyState::Modified:
@@ -181,6 +212,11 @@ const FString& FSubversionSourceControlState::GetFilename() const
 const FDateTime& FSubversionSourceControlState::GetTimeStamp() const
 {
 	return TimeStamp;
+}
+
+bool FSubversionSourceControlState::CanCheckIn() const
+{
+	return ( (LockState == ELockState::Locked) || (WorkingCopyState == EWorkingCopyState::Added) ) && !IsConflicted() && IsCurrent();
 }
 
 bool FSubversionSourceControlState::CanCheckout() const
@@ -245,6 +281,11 @@ bool FSubversionSourceControlState::IsModified() const
 bool FSubversionSourceControlState::CanAdd() const
 {
 	return WorkingCopyState == EWorkingCopyState::NotControlled;
+}
+
+bool FSubversionSourceControlState::IsConflicted() const
+{
+	return PendingMergeBaseFileRevNumber != INVALID_REVISION;
 }
 
 #undef LOCTEXT_NAMESPACE

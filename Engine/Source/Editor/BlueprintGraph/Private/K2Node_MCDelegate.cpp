@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "K2Node_BaseMCDelegate.h"
-#include "K2Node_AddDelegate.h"
-#include "K2Node_CallDelegate.h"
-#include "K2Node_ClearDelegate.h"
-#include "K2Node_RemoveDelegate.h"
 #include "CompilerResultsLog.h"
 #include "DelegateNodeHandlers.h"
 
@@ -59,16 +54,20 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
+	const auto Property = DelegateReference.ResolveMember<UMulticastDelegateProperty>(this);
+	const auto PropertyOwnerClass = (Property ? Property->GetOwnerClass() : NULL);
+	const auto Blueprint = GetBlueprint();
+	
+	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass || PropertyOwnerClass == Blueprint->SkeletonGeneratedClass);
+
 	UEdGraphPin* SelfPin = NULL;
-	if (DelegateReference.IsSelfContext())
+	if (bUseSelf)
 	{
 		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
 	}
 	else
 	{
-		// Allow redirects on the target node if necessary.
-		DelegateReference.ResolveMember<UMulticastDelegateProperty>((UClass*)NULL);
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), DelegateReference.GetMemberParentClass(this), false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), PropertyOwnerClass, false, false, K2Schema->PN_Self);
 	}
 
 	if(SelfPin)
@@ -186,6 +185,13 @@ bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStru
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
+void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "EventDelegate" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
+}
+
 /////// UK2Node_AddDelegate ///////////
 
 UK2Node_AddDelegate::UK2Node_AddDelegate(const class FPostConstructInitializeProperties& PCIP)
@@ -209,20 +215,20 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 FText UK2Node_AddDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("ProeprtyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {ProeprtyName}"), Args);
-}
-
-FString UK2Node_AddDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Bind Event to %s"), *GetPropertyName().ToString());
+	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {PropertyName}"), Args);
 }
 
 FNodeHandlingFunctor* UK2Node_AddDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_AddRemoveDelegate(CompilerContext, KCST_AddMulticastDelegate);
+}
+
+void UK2Node_AddDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "AddDelegate" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
 }
 
 /////// UK2Node_ClearDelegate ///////////
@@ -237,13 +243,6 @@ FText UK2Node_ClearDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "ClearDelegate", "Unbind all Events from {PropertyName}"), Args);
-}
-
-FString UK2Node_ClearDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Unbind all Events from %s"), *GetPropertyName().ToString());
 }
 
 FNodeHandlingFunctor* UK2Node_ClearDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -276,13 +275,6 @@ FText UK2Node_RemoveDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "RemoveDelegate", "Unbind Event from {PropertyName}"), Args);
-}
-
-FString UK2Node_RemoveDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Unbind Event from %s"), *GetPropertyName().ToString());
 }
 
 FNodeHandlingFunctor* UK2Node_RemoveDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -331,13 +323,6 @@ FText UK2Node_CallDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "CallDelegate", "Call {PropertyName}"), Args);
-}
-
-FString UK2Node_CallDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Call %s"), *GetPropertyName().ToString());
 }
 
 void UK2Node_CallDelegate::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

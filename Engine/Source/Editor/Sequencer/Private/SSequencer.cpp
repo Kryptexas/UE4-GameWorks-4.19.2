@@ -4,7 +4,7 @@
 
 #include "SSequencer.h"
 #include "Editor/SequencerWidgets/Public/SequencerWidgetsModule.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "ISequencerSection.h"
@@ -38,7 +38,7 @@ public:
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TWeakPtr<ISequencerInternals> InSequencer)
+	void Construct(const FArguments& InArgs, TWeakPtr<FSequencer> InSequencer)
 	{
 		ViewRange = InArgs._ViewRange;
 		Sequencer = InSequencer;
@@ -60,7 +60,7 @@ public:
 		}
 	}
 	
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		float Alpha = Sequencer.Pin()->GetOverlayFadeCurve();
 		
@@ -92,7 +92,7 @@ public:
 		return LayerId;
 	}
 
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		return FVector2D(100, 100);
 	}
@@ -132,14 +132,13 @@ private:
 	/** The current minimum view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** The main sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 	/** Cached set of ranges that are being filtering currently */
 	TArray< TRange<float> > CachedFilteredRanges;
 };
 
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequencerInternals > InSequencer )
+void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
 
@@ -180,7 +179,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 			[
 				SNew( SHorizontalBox )
 				+SHorizontalBox::Slot()
-				.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
+				.Padding( FMargin( 0.0f, 0.0f, 0.0f, 0.0f ) )
 				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
 				.VAlign(VAlign_Center)
 				[
@@ -205,6 +204,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 					[
 						// @todo Sequencer - Temp clean view button
 						SNew( SCheckBox )
+						.Visibility( this, &SSequencer::OnGetCleanViewVisibility )
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
 						.IsChecked( this, &SSequencer::OnGetCleanViewCheckState )
 						.OnCheckStateChanged( this, &SSequencer::OnCleanViewChecked )
@@ -226,13 +226,18 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 			[
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
-				.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
+				// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
+				.Padding( FMargin(0) )
 				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
 				.VAlign(VAlign_Center)
 				[
-					// Search box for searching through the outliner
-					SNew( SSearchBox )
-					.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
+					SNew( SBox )
+					.Padding( FMargin( 0,0,4,0) )
+					[
+						// Search box for searching through the outliner
+						SNew( SSearchBox )
+						.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
+					]
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -310,7 +315,10 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 
 	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+SSequencer::~SSequencer()
+{
+}
 
 void SSequencer::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -399,6 +407,11 @@ ESlateCheckBoxState::Type SSequencer::OnGetAutoKeyCheckState() const
 void SSequencer::OnAutoKeyChecked( ESlateCheckBoxState::Type InState ) 
 {
 	OnToggleAutoKey.ExecuteIfBound( InState == ESlateCheckBoxState::Checked ? true : false );
+}
+
+EVisibility SSequencer::OnGetCleanViewVisibility() const 
+{
+	return Sequencer.Pin()->IsLevelEditorSequencer() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 ESlateCheckBoxState::Type SSequencer::OnGetCleanViewCheckState() const
@@ -511,7 +524,7 @@ FReply SSequencer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 
 void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 
 	bool bObjectAdded = false;
 	bool bSpawnableAdded = false;
@@ -555,8 +568,8 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 
 		if (!SequencerRef.OnHandleAssetDropped(CurObject, TargetObjectGuid))
 		{
-			SequencerRef.AddSpawnableForAssetOrClass( CurObject, NULL );
-			bSpawnableAdded = true;
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( CurObject, NULL );
+			bSpawnableAdded = NewGuid.IsValid();
 		}
 		bObjectAdded = true;
 	}
@@ -577,7 +590,7 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 
 void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 
 	bool bSpawnableAdded = false;
 	for( auto ClassIter = DragDropOp.ClassesToDrop.CreateConstIterator(); ClassIter; ++ClassIter )
@@ -587,9 +600,9 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 		{
 			UObject* Object = Class->GetDefaultObject();
 
-			SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
 
-			bSpawnableAdded = true;
+			bSpawnableAdded = NewGuid.IsValid();
 
 		}
 	}
@@ -605,7 +618,7 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 
 void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 	bool bSpawnableAdded = false;
 	for( auto ClassDataIter = DragDropOp.AssetsToDrop->CreateConstIterator(); ClassDataIter; ++ClassDataIter )
 	{
@@ -644,8 +657,8 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 
 		if( Object != NULL )
 		{
-			SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
-			bSpawnableAdded = true;
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
+			bSpawnableAdded = NewGuid.IsValid();
 		}
 	}
 
@@ -660,50 +673,7 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 
 void SSequencer::OnActorsDropped( FActorDragDropGraphEdOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
-	bool bPossessableAdded = false;
-	for( auto ActorIter = DragDropOp.Actors.CreateIterator(); ActorIter; ++ActorIter )
-	{
-		AActor* Actor = ( *ActorIter ).Get();
-		if( Actor != NULL )
-		{
-			// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
-			// MovieScene asset.
-			UMovieScene* OwnerMovieScene = SequencerRef.GetFocusedMovieScene();
-
-			// @todo sequencer: Undo doesn't seem to be working at all
-			const FScopedTransaction Transaction( LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene") );
-
-			// Possess the object!
-			{
-				// Update level script
-				const bool bCreateIfNotFound = true;
-				UK2Node_PlayMovieScene* PlayMovieSceneNode = SequencerRef.BindToPlayMovieSceneNode( bCreateIfNotFound );
-
-				// Create a new possessable
-				OwnerMovieScene->Modify();
-				const FString PossessableName = Actor->GetActorLabel();
-				const FGuid PossessableGuid = OwnerMovieScene->AddPossessable( PossessableName, Actor->GetClass() );
-
-				if (Sequencer.Pin()->IsShotFilteringOn()) {Sequencer.Pin()->AddUnfilterableObject(PossessableGuid);}
-
-				// Bind the actor to the new possessable
-				// @todo sequencer: Handle Undo properly here (new UObjects being created and modified)
-				TArray< UObject* > Actors;
-				Actors.Add( Actor );
-				PlayMovieSceneNode->BindPossessableToObjects( PossessableGuid, Actors );
-
-				bPossessableAdded = true;
-			}
-		}
-	}
-
-	if( bPossessableAdded )
-	{
-		SequencerRef.SpawnOrDestroyPuppetObjects( SequencerRef.GetFocusedMovieSceneInstance() );
-
-		SequencerRef.NotifyMovieSceneDataChanged();
-	}
+	Sequencer.Pin()->OnActorsDropped( DragDropOp.Actors );
 }
 
 void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
@@ -746,7 +716,7 @@ void SSequencer::DeleteSelectedNodes()
 	{
 		const FScopedTransaction Transaction( LOCTEXT("UndoDeletingObject", "Delete Object from MovieScene") );
 
-		ISequencerInternals& SequencerRef = *Sequencer.Pin();
+		FSequencer& SequencerRef = *Sequencer.Pin();
 
 		for( auto It = SelectedNodes.CreateConstIterator(); It; ++It )
 		{

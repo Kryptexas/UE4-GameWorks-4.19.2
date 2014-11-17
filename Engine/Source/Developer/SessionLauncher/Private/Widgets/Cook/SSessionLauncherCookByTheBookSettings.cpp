@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherCookByTheBookSettings.cpp: Implements the SSessionLauncherCookByTheBookSettings class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 
@@ -60,7 +56,7 @@ TSharedRef<SWidget> SSessionLauncherCookByTheBookSettings::MakeComplexWidget()
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
-		.MaxHeight(320.0f)
+		.MaxHeight(256.0f)
 		[
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
@@ -78,7 +74,7 @@ TSharedRef<SWidget> SSessionLauncherCookByTheBookSettings::MakeComplexWidget()
 				]
 
 				+ SVerticalBox::Slot()
-					.AutoHeight()
+					.FillHeight(1.0)
 					.Padding(0.0f, 2.0f, 0.0f, 0.0f)
 					[
 						SNew(SSessionLauncherCookedPlatforms, Model.ToSharedRef())

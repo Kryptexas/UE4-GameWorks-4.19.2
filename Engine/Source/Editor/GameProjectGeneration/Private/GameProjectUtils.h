@@ -5,6 +5,121 @@
 class GameProjectUtils
 {
 public:
+	/** Context information used when validating that source code is being placed in the correct place for a given module */
+	struct FModuleContextInfo
+	{
+		/** Path to the Source folder of the module */
+		FString ModuleSourcePath;
+
+		/** Name of the module */
+		FString ModuleName;
+	};
+
+	/** Where is this class located within the Source folder? */
+	enum class EClassLocation : uint8
+	{
+		/** The class is going to a user defined location (outside of the Public, Private, or Classes) folder for this module */
+		UserDefined,
+
+		/** The class is going to the Public folder for this module */
+		Public,
+
+		/** The class is going to the Private folder for this module */
+		Private,
+
+		/** The class is going to the Classes folder for this module */
+		Classes,
+	};
+
+	/** Information used when creating a new class via AddCodeToProject */
+	struct FNewClassInfo
+	{
+		/** The type of class we want to create */
+		enum class EClassType : uint8
+		{
+			/** The new class is using a UObject as a base, consult BaseClass for the type */
+			UObject,
+
+			/** The new class should be an empty standard C++ class */
+			EmptyCpp,
+
+			/** The new class should be a Slate widget, deriving from SCompoundWidget */
+			SlateWidget,
+
+			/** The new class should be a Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class */
+			SlateWidgetStyle,
+		};
+
+		/** Default constructor; must produce an object which fails the IsSet check */
+		FNewClassInfo()
+			: ClassType(EClassType::UObject)
+			, BaseClass(nullptr)
+		{
+		}
+
+		/** Convenience constructor so you can construct from a EClassType */
+		explicit FNewClassInfo(const EClassType InClassType)
+			: ClassType(InClassType)
+			, BaseClass(nullptr)
+		{
+		}
+
+		/** Convenience constructor so you can construct from a UClass */
+		explicit FNewClassInfo(const UClass* InBaseClass)
+			: ClassType(EClassType::UObject)
+			, BaseClass(InBaseClass)
+		{
+		}
+
+		/** Check to see if this struct is set to something that could be used to create a new class */
+		bool IsSet() const
+		{
+			return ClassType != EClassType::UObject || BaseClass;
+		}
+
+		/** Get the "friendly" class name to use in the UI */
+		FString GetClassName() const;
+
+		/** Get the class description to use in the UI */
+		FString GetClassDescription() const;
+
+		/** Get the class icon to use in the UI */
+		const FSlateBrush* GetClassIcon() const;
+
+		/** Get the C++ prefix used for this class type */
+		FString GetClassPrefixCPP() const;
+
+		/** Get the C++ class name; this may or may not be prefixed, but will always produce a valid C++ name via GetClassPrefix() + GetClassName() */
+		FString GetClassNameCPP() const;
+
+		/** Some classes may apply a particular suffix; this function returns the class name with those suffixes removed */
+		FString GetCleanClassName(const FString& ClassName) const;
+
+		/** Some classes may apply a particular suffix; this function returns the class name that will ultimately be used should that happen */
+		FString GetFinalClassName(const FString& ClassName) const;
+
+		/** Get the path needed to include this class into another file */
+		bool GetIncludePath(FString& OutIncludePath) const;
+
+		/** Given a class name, generate the header file (.h) that should be used for this class */
+		FString GetHeaderFilename(const FString& ClassName) const;
+
+		/** Given a class name, generate the source file (.cpp) that should be used for this class */
+		FString GetSourceFilename(const FString& ClassName) const;
+
+		/** Get the generation template filename to used based on the current class type */
+		FString GetHeaderTemplateFilename() const;
+
+		/** Get the generation template filename to used based on the current class type */
+		FString GetSourceTemplateFilename() const;
+
+		/** The type of class we want to create */
+		EClassType ClassType;
+
+		/** Base class information; if the ClassType is UObject */
+		const UClass* BaseClass;
+	};
+
 	/** Returns true if the project filename is properly formed and does not conflict with another project */
 	static bool IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason);
 
@@ -26,6 +141,9 @@ public:
 	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
 	static void CheckAndWarnProjectFilenameValid();
 
+	/** Checks out the current project file (or prompts to make writable) */
+	static void TryMakeProjectFileWriteable();
+
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
 	static bool UpdateGameProject(const FString &EngineIdentifier);
 
@@ -33,16 +151,13 @@ public:
 	static void OpenAddCodeToProjectDialog();
 
 	/** Returns true if the specified class name is properly formed and does not conflict with another class */
-	static bool IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason);
+	static bool IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
-	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
-
-	/** Returns the default base folder to create a new project */
-	static FString GetDefaultProjectCreationPath();
 
 	/** Returns number of code files in the currently loaded project */
 	static int32 GetProjectCodeFileCount();
@@ -59,25 +174,32 @@ public:
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
 
+	/**
+	 * Get the default module context information based on the current value of FApp
+	 */
+	static FModuleContextInfo GetCurrentModuleContextInfo();
+
 	/** 
 	 * Get the absolute root path under which all project source code must exist
 	 *
 	 * @param	bIncludeModuleName	Whether to include the module name in the root path?
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * 
 	 * @return	The root path. Will always be an absolute path ending with a /
 	 */
-	static FString GetSourceRootPath(const bool bIncludeModuleName);
+	static FString GetSourceRootPath(const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo);
 
 	/** 
 	 * Check to see if the given path is a valid place to put source code for this project (exists within the source root path) 
 	 *
 	 * @param	InPath				The path to check
 	 * @param	bIncludeModuleName	Whether to require the module name in the root path? (is really used as a prefix so will allow MyModule, MyModuleEditor, etc)
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	true if the path is valid, false otherwise
 	 */
-	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason = nullptr);
+	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** 
 	 * Given the path provided, work out where generated .h and .cpp files would be placed
@@ -86,14 +208,40 @@ public:
 	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
 	 * @param	OutHeaderPath		The path where the .h file should be placed
 	 * @param	OutSourcePath		The path where the .cpp file should be placed
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	false if the paths are invalid
 	 */
-	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
+	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
+
+	/** 
+	 * Given the path provided, work out where it's located within the Source folder
+	 *
+	 * @param	InPath				The path to use a base
+	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	OutClassLocation	The location within the Source folder
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	false if the paths are invalid
+	 */
+	static bool GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
 	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
+
+	/**
+	 * Update the list of supported target platforms based upon the parameters provided
+	 * This will take care of checking out and saving the updated .uproject file automatically
+	 * 
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	static void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
+
+	/** Clear the list of supported target platforms */
+	static void ClearSupportedTargetPlatforms();
 
 private:
 	/** Generates a new project without using a template project */
@@ -150,7 +298,6 @@ private:
 	/** Creates the batch file for launching the editor or game */
 	static bool GenerateLaunchBatchFile(const FString& ProjectName, const FString& ProjectFolder, bool bLaunchEditor, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
-
 	/** Returns the contents of the specified template file */
 	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
 
@@ -167,10 +314,10 @@ private:
 	static FString MakeIncludeList(const TArray<FString>& InList);
 
 	/** Generates a header file for a UObject class. OutSyncLocation is a string representing the preferred cursor sync location for this file after creation. */
-	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const UClass* BaseClass, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, FText& OutFailReason);
+	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Generates a cpp file for a UObject class */
-	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString& ModuleName, const FString& PrefixedClassName, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FText& OutFailReason);
+	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Generates a Build.cs file for a game module */
 	static bool GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason);
@@ -225,10 +372,13 @@ private:
 	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
-	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Handler for the user confirming they've read the name legnth warning */
 	static void OnWarningReasonOk();
+
+	/** Given a source file name, find its location within the project */
+	static bool FindSourceFileInProject(const FString& InFilename, FString& OutPath, const FModuleContextInfo& ModuleInfo);
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;

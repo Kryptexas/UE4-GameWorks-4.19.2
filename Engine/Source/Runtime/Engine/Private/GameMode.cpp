@@ -5,7 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/GameNetworkManager.h"
+#include "Matinee/MatineeActor.h"
 #include "OnlineSubsystemUtils.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/DefaultPawn.h"
+#include "GameFramework/SpectatorPawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -348,7 +353,7 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 
 	AActor* BestStart = ChoosePlayerStart(Player);
 
-	if ( (BestStart == NULL) && (Player == NULL) )
+	if (BestStart == NULL)
 	{
 		// no playerstart found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
@@ -537,7 +542,6 @@ void AGameMode::StartMatch()
 	}
 
 	//Let the game session override the StartMatch function, in case it wants to wait for arbitration
-
 	if (GameSession->HandleStartMatchRequest())
 	{
 		return;
@@ -956,7 +960,7 @@ void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNe
 {
 }
 
-bool AGameMode::MustSpectate(APlayerController* NewPlayer)
+bool AGameMode::MustSpectate(APlayerController* NewPlayer) const
 {
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
@@ -983,7 +987,7 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	InitNewPlayer(NewPlayerController, UniqueId, Options);
 
 	// Find a start spot.
-	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
+	AActor* const StartSpot = FindPlayerStart( NewPlayerController, Portal );
 	if( StartSpot == NULL )
 	{
 		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
@@ -1296,7 +1300,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bShouldBeLoaded,
 						TheLevel->bShouldBeVisible,
 						TheLevel->bShouldBlockOnLoad,
-						TheLevel->GetLODIndex(GetWorld()));
+						TheLevel->LevelLODIndex);
 				}
 			}
 			PC->ClientFlushLevelStreaming();

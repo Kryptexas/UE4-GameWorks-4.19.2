@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "AI/AITypes.h"
+#include "AITypes.h"
+#include "GameFramework/Pawn.h"
 #include "FunctionalAITest.generated.h"
+
+class AFunctionalAITest;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIController*, Controller, APawn*, Pawn);
 
@@ -25,7 +28,7 @@ struct FAITestSpawnInfo
 
 	/** if set will be applied to spawned AI */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)
-	UBehaviorTree* BehaviorTree;
+	class UBehaviorTree* BehaviorTree;
 
 	/** Where should AI be spawned */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)
@@ -34,10 +37,36 @@ struct FAITestSpawnInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn, meta=(UIMin=1, ClampMin=1))
 	int32 NumberToSpawn;
 
+	/** delay between consecutive spawn attempts */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AISpawn, meta = (UIMin = 0, ClampMin = 0))
+	float SpawnDelay;
+
+	/** Gets filled owning spawn set upon game start */
+	FName SpawnSetName;
+
 	FAITestSpawnInfo() : NumberToSpawn(1)
 	{}
 
 	FORCEINLINE bool IsValid() const { return PawnClass != NULL && SpawnLocation != NULL; }
+
+	bool Spawn(AFunctionalAITest* AITest) const;
+};
+
+USTRUCT()
+struct FPendingDelayedSpawn : public FAITestSpawnInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	uint32 NumberToSpawnLeft;
+	float TimeToNextSpawn;
+	bool bFinished;
+
+	FPendingDelayedSpawn()
+		: NumberToSpawnLeft(uint32(-1)), TimeToNextSpawn(FLT_MAX), bFinished(true)
+	{}
+	FPendingDelayedSpawn(const FAITestSpawnInfo& Source);
+
+	void Tick(float TimeDelta, AFunctionalAITest* AITest);
 };
 
 USTRUCT()
@@ -69,12 +98,16 @@ class AFunctionalAITest : public AFunctionalTest
 {
 	GENERATED_UCLASS_BODY()
 	
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AITest)
 	TArray<FAITestSpawnSet> SpawnSets;
 
 	UPROPERTY(BlueprintReadOnly, Category=AITest)
 	TArray<APawn*> SpawnedPawns;
 
+	UPROPERTY(BlueprintReadOnly, Category = AITest)
+	TArray<FPendingDelayedSpawn> PendingDelayedSpawns;
+	
 	int32 CurrentSpawnSetIndex;
 	FString CurrentSpawnSetName;
 
@@ -85,19 +118,29 @@ class AFunctionalAITest : public AFunctionalTest
 	/** Called when a all AI finished spawning */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnAllAISPawned;
-		
+
+	uint32 bSingleSetRun:1;
+
+public:
 	UFUNCTION(BlueprintCallable, Category = "Development")
 	virtual bool IsOneOfSpawnedPawns(AActor* Actor);
 
-	virtual void BeginPlay() OVERRIDE;
+	// AActor interface begin
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	// AActor interface end
 
-	virtual bool StartTest() OVERRIDE;
-	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) OVERRIDE;
-	virtual bool WantsToRunAgain() const OVERRIDE;
-	virtual void CleanUp() OVERRIDE;
-	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const OVERRIDE;
+	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>()) override;
+	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) override;
+	virtual bool WantsToRunAgain() const override;
+	virtual void CleanUp() override;
+	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const override;
+	virtual FString GetReproString() const override;
+
+	void AddSpawnedPawn(APawn& SpawnedPawn);
 
 protected:
 
 	void KillOffSpawnedPawns();
+	void ClearPendingDelayedSpawns();
 };

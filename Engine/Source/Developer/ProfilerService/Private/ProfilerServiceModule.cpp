@@ -28,7 +28,7 @@ public:
 	// End IModuleInterface interface
 
 	// Begin IProfilerServiceModule interface
-	virtual IProfilerServiceManagerPtr CreateProfilerServiceManager( ) OVERRIDE
+	virtual IProfilerServiceManagerPtr CreateProfilerServiceManager( ) override
 	{
 		if (!ProfilerServiceManager.IsValid())
 		{

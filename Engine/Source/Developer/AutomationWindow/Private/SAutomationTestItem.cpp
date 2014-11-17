@@ -10,6 +10,120 @@
 #define LOCTEXT_NAMESPACE "AutomationTestItem"
 
 
+/**
+* Implements a Cell widget for the history objects of an automation report.
+*/
+class SAutomationHistoryCell
+	: public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SAutomationHistoryCell) { }
+	SLATE_END_ARGS()
+
+public:
+
+	/**
+	* Constructs the widget.
+	*
+	* @param InArgs			- The construction arguments.
+	* @param InHistoryItem	- The history item we are providing the cell for
+	*/
+	void Construct(const FArguments& InArgs, TSharedPtr<IAutomationReport> InHistoryItem);
+
+	/**
+	 * Rebuild the content of the history cell into our Content Area
+	 */
+	void RebuildContentArea();
+
+	// Begin SWidget Interface
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	// End SWidget Interface
+
+private:
+
+	// A copy of the history items for us to note differences between this and the controller.
+	TArray<TSharedPtr<FAutomationHistoryItem>> HistoryCopy;
+
+	// The automation reports history information
+	TSharedPtr<IAutomationReport> HistoryItem;
+
+	// The widget which holds the content for the History Cell
+	TSharedPtr<SHorizontalBox> ContentArea;
+};
+
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void SAutomationHistoryCell::Construct(const FArguments& InArgs, TSharedPtr<IAutomationReport> InHistoryItem)
+{
+	HistoryItem = InHistoryItem;
+
+	ContentArea = SNew(SHorizontalBox);
+	RebuildContentArea();
+
+	ChildSlot
+	[
+		ContentArea.ToSharedRef()
+	];
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void SAutomationHistoryCell::RebuildContentArea()
+{
+	// Clear the previous results before we update the cell again
+	ContentArea->ClearChildren();
+
+	// Create an overview of the previous results in icon form.
+	const TArray<TSharedPtr<FAutomationHistoryItem>> History = HistoryItem->GetHistory();
+	for (const TSharedPtr<FAutomationHistoryItem> HistoryItem : History)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Date"), FText::AsDateTime(HistoryItem->RunDate));
+
+		const FSlateBrush* ResultIcon = nullptr;
+		if (HistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Errors)
+		{
+			Args.Add(TEXT("Result"), LOCTEXT("HasErrors", "had errors"));
+			ResultIcon = FEditorStyle::GetBrush("Automation.Fail");
+		}
+		else if (HistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Warnings)
+		{
+			Args.Add(TEXT("Result"), LOCTEXT("HasWarnings", "had warnings"));
+			ResultIcon = FEditorStyle::GetBrush("Automation.Warning");
+		}
+		else
+		{
+			Args.Add(TEXT("Result"), LOCTEXT("WasSuccessful", "was successful"));
+			ResultIcon = FEditorStyle::GetBrush("Automation.Success");
+		}
+
+		// Add the previous result as an icon representation to the cell
+		ContentArea->AddSlot()
+		[
+			SNew(SImage)
+			.Image(ResultIcon)
+			.ToolTipText(FText::Format(LOCTEXT("ItemTooltip", "{Date} - This run {Result}!"), Args))
+		];
+	}
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+void SAutomationHistoryCell::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	const TArray<TSharedPtr<FAutomationHistoryItem>> TestHistory = HistoryItem->GetHistory();
+
+	// if the test history has changed, reflect it in this cell
+	if (TestHistory != HistoryCopy)
+	{
+		RebuildContentArea();
+		HistoryCopy = TestHistory;
+	}
+}
+
+
 /* SAutomationTestItem interface
  *****************************************************************************/
 
@@ -179,6 +293,10 @@ TSharedRef<SWidget> SAutomationTestItem::GenerateWidgetForColumn( const FName& C
 		}
 		return HBox;
 	}
+	else if (ColumnName == AutomationTestWindowConstants::History)
+	{
+		return SNew(SAutomationHistoryCell, TestStatus);
+	}
 	else if( ColumnName == AutomationTestWindowConstants::Timing )
 	{
 		return SNew( STextBlock )
@@ -221,10 +339,6 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 	{
 		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
 	}
-	else if( TestState == EAutomationState::InProcess )
-	{
-		ToolTip = LOCTEXT("TestToolTipInProgress", "In progress");
-	}
 	else if( TestState == EAutomationState::NotEnoughParticipants )
 	{
 		ToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.");
@@ -234,13 +348,17 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("GameName"), FText::FromString(TestStatus->GetGameInstanceName(ClusterIndex)));
 
-		if (TestState == EAutomationState::Success)
+		if (TestState == EAutomationState::InProcess)
 		{
-			ToolTip = LOCTEXT("TestToolTipComplete", "Completed on: ");
+			ToolTip = FText::Format(LOCTEXT("TestToolTipInProgress", "In progress on: {GameName}"), Args);
+		}
+		else if (TestState == EAutomationState::Success)
+		{
+			ToolTip = FText::Format(LOCTEXT("TestToolTipComplete", "Completed on: {GameName}"), Args);
 		}
 		else
 		{
-			ToolTip = LOCTEXT("TestToolTipFailed", "Failed on: ");
+			ToolTip = FText::Format(LOCTEXT("TestToolTipFailed", "Failed on: {GameName}"), Args);
 		}
 	}
 	return ToolTip;
@@ -249,7 +367,7 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 
 ESlateCheckBoxState::Type SAutomationTestItem::IsTestEnabled() const
 {
-	return TestStatus->IsEnabled();
+	return TestStatus->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 

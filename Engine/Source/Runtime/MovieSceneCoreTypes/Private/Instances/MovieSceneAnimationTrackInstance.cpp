@@ -4,6 +4,7 @@
 #include "MovieSceneAnimationTrackInstance.h"
 #include "IMovieScenePlayer.h"
 #include "MovieSceneAnimationTrack.h"
+#include "Matinee/MatineeAnimInterface.h"
 
 FMovieSceneAnimationTrackInstance::FMovieSceneAnimationTrackInstance( UMovieSceneAnimationTrack& InAnimationTrack )
 {

@@ -15,47 +15,17 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	PrimaryComponentTick.bCanEverTick = true;
-
-	bAutoActivate = true;
-	bTickInEditor = true;
+	bCanHaveMultipleChildren = false;
 }
 
-USlateWrapperComponent* UContentWidget::GetContent()
+UPanelSlot* UContentWidget::GetContentSlot() const
 {
-	return Content;
+	return Slots.Num() > 0 ? Slots[0] : NULL;
 }
 
-void UContentWidget::SetContent(USlateWrapperComponent* InContent)
+UClass* UContentWidget::GetSlotClass() const
 {
-	Content = InContent;
-}
-
-int32 UContentWidget::GetChildrenCount() const
-{
-	return Content != NULL ? 1 : 0;
-}
-
-USlateWrapperComponent* UContentWidget::GetChildAt(int32 Index) const
-{
-	return Content;
-}
-
-bool UContentWidget::AddChild(USlateWrapperComponent* InContent, FVector2D Position)
-{
-	Content = InContent;
-	return true;
-}
-
-bool UContentWidget::RemoveChild(USlateWrapperComponent* Child)
-{
-	if ( Content == Child )
-	{
-		Content = NULL;
-		return true;
-	}
-
-	return false;
+	return UPanelSlot::StaticClass();
 }
 
 /////////////////////////////////////////////////////

@@ -10,6 +10,8 @@ static FString GSavedCommandLine;
  */
 int main( int argc, char** argv )
 {
+	FPlatformMisc::SetGracefulTerminationHandler();
+
 	for (int32 Option = 1; Option < argc; Option++)
 	{
 		GSavedCommandLine += TEXT(" ");

@@ -32,10 +32,4 @@ FText UAnimGraphNode_CopyBone::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args);
 }
 
-FString UAnimGraphNode_CopyBone::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("%s\nSource Bone: %s\nTarget Bone: %s"), *GetControllerDescription().ToString(), *Node.SourceBone.BoneName.ToString(), *Node.TargetBone.BoneName.ToString());
-}
-
 #undef LOCTEXT_NAMESPACE

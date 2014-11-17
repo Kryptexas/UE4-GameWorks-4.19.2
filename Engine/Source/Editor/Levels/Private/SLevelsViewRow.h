@@ -74,21 +74,21 @@ protected:
 	/** @return the visibility for the Actor Count column */
 	EVisibility IsActorColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayActorCount)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	/** @return the visibility for the Lightmass Size column */
 	EVisibility IsLightmassSizeColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	/** @return the visibility for the File Size column */
 	EVisibility IsFileSizeColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 
@@ -106,7 +106,7 @@ protected:
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName & ColumnID ) OVERRIDE
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName & ColumnID ) override
 	{
 		TSharedPtr< SWidget > TableRowContent;
 
@@ -378,7 +378,7 @@ protected:
 	 *
 	 * @param DragDropEvent   The drag and drop event.
 	 */
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
 		if (DragActorOp.IsValid())
@@ -395,7 +395,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
 		if (!DragActorOp.IsValid())
@@ -434,7 +434,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
 		if (!DragActorOp.IsValid())
@@ -582,13 +582,13 @@ private:
 	FReply OnToggleLock()
 	{
 		// If were locking a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( LevelMode )
 		{
 			ULevelStreaming* LevelStreaming = ViewModel->GetLevelStreaming().Get();
 			if( LevelMode->IsEditing( LevelStreaming ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 		}
 
@@ -945,19 +945,19 @@ private:
 			return FReply::Handled();
 		}		
 
-		if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Level))
+		if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Level))
 		{
 			// Activate Level Mode if it was not active
-			GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Level );
+			GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Level );
 		}
 			
-		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		check(ActiveMode != NULL);
 
 		if( ActiveMode->IsEditing(LevelStreaming) == true )
 		{
 			// Toggle this mode off if already editing this level
-			GEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_Level);
+			GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_Level);
 
 			// Cache Transform, as it might of changed by doing a view port edit
 			LevelTransform = LevelStreaming->LevelTransform;
@@ -987,7 +987,7 @@ private:
 	bool LevelEditTextTransformAllowed() const
 	{
 		ULevelStreaming* LevelStreaming = ViewModel->GetLevelStreaming().Get();
-		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( ActiveMode && ActiveMode->IsEditing(LevelStreaming) == true )
 		{
 			return false;

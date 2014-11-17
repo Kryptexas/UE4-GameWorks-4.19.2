@@ -92,17 +92,17 @@ namespace SceneOutliner
 		void ExpandActor(AActor* Actor);
 
 		/** SWidget interface */
-		virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+		virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 		/**	Broadcasts whenever the current selection changes */
 		FSimpleMulticastDelegate SelectionChanged;
 
 		/** Sends a requests to the Scene Outliner to refresh itself the next chance it gets */
-		virtual void Refresh() OVERRIDE;
+		virtual void Refresh() override;
 
 		// Begin FEditorUndoClient Interface
-		virtual void PostUndo(bool bSuccess) OVERRIDE;
-		virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+		virtual void PostUndo(bool bSuccess) override;
+		virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 		// End of FEditorUndoClient
 
 		/** Get an array of the currently selected items in this tree */
@@ -178,6 +178,9 @@ namespace SceneOutliner
 
 		/** Called by STreeView when an item is scrolled into view */
 		void OnOutlinerTreeItemScrolledIntoView( FOutlinerTreeItemPtr TreeItem, const TSharedPtr<ITableRow>& Widget );
+
+		/** Called when an item in the tree has been collapsed or expanded */
+		void OnItemExpansionChanged(FOutlinerTreeItemPtr TreeItem, bool bIsExpanded) const;
 
 		/** Called by USelection::SelectionChangedEvent delegate when the level's selection changes */
 		void OnLevelSelectionChanged(UObject* Obj);
@@ -255,13 +258,13 @@ namespace SceneOutliner
 		bool AddChildToParent(FOutlinerTreeItemRef TreeItem, FName ParentPath, bool bIgnoreSearchFilter = false);
 
 		/** Called when a folder is to be created */
-		void OnBroadcastFolderCreate(const UWorld& InWorld, FName NewPath);
+		void OnBroadcastFolderCreate(UWorld& InWorld, FName NewPath);
 
 		/** Called when a folder is to be moved */
 		void OnBroadcastFolderMove(FName OldPath, FName NewPath);
 
 		/** Called when a folder is to be deleted */
-		void OnBroadcastFolderDelete(const UWorld& InWorld, FName Path);
+		void OnBroadcastFolderDelete(UWorld& InWorld, FName Path);
 
 		/** Detach the specified item from its parent if specified */
 		void DetachChildFromParent(TSharedRef<TOutlinerTreeItem> Child, FName ParentPath);
@@ -274,7 +277,7 @@ namespace SceneOutliner
 		bool IsActorDisplayable( const AActor* Actor ) const;
 
 		/** @return Returns a string to use for highlighting results in the outliner list */
-		virtual FText GetFilterHighlightText() const OVERRIDE;
+		virtual FText GetFilterHighlightText() const override;
 
 		/**
 		 * Handler for when a property changes on any object
@@ -322,10 +325,10 @@ namespace SceneOutliner
 		EVisibility GetSearchBoxVisibility() const;
 
 		/** Overridden from SWidget: Checks to see if this widget supports keyboard focus */
-		virtual bool SupportsKeyboardFocus() const OVERRIDE;
+		virtual bool SupportsKeyboardFocus() const override;
 
 		/** Overridden from SWidget: Called when a key is pressed down */
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 		/** Function to validate actor list shown in scene outliner widget */
 		void ValidateOutlinerTreeView();
@@ -380,9 +383,6 @@ namespace SceneOutliner
 		{
 			/** The set of parent items which are not expanded */
 			TSet<const AActor*> CollapsedItems;
-
-			/** The set of folders which are not expanded */
-			TSet<FName> CollapsedFolders;
 		};
 
 
@@ -534,7 +534,7 @@ namespace SceneOutliner
 		/********** Sort functions **********/
 
 		/** Handles column sorting mode change */
-		void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+		void OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode );
 
 		/** @return Returns the current sort mode of the specified column */
 		EColumnSortMode::Type GetColumnSortMode( const FName ColumnId ) const;

@@ -120,7 +120,6 @@ public partial class Project : CommandUtils
 		{
 			if (Params.ClientTargetPlatforms.Count > 0)
 			{
-				UnrealTargetPlatform ClientPlatform = Params.ClientTargetPlatforms[0];
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
 				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
 				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, Params.RunCommandline);
@@ -193,112 +192,120 @@ public partial class Project : CommandUtils
 	{
 		if (Params.Unattended)
 		{
-            int Timeout = 60 * 30;
-            if (Params.RunAutomationTests)
+            string LookFor = "Bringing up level for play took";
+            if (Params.RunAutomationTest != "")
             {
-                Timeout = 6 * 60 * 60;
+                LookFor = "Automation Test Succeeded";
             }
-            using (var Watchdog = new WatchdogTimer(Timeout))
+            else if (Params.RunAutomationTests)
+            {
+                LookFor = "Automation Test Queue Empty";
+            }
+            else if (Params.EditorTest)
+            {
+                LookFor = "Asset discovery search completed in";
+            }
 			{
 
                 string AllClientOutput = "";
+                int LastAutoFailIndex = -1;
                 ProcessResult ClientProcess = null;
 				FileStream ClientProcessLog = null;
 				StreamReader ClientLogReader = null;
 				Log("Starting Client for unattended test....");
-				ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH", null, ClientRunFlags | ERunOptions.NoWaitForExit);
+                ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH -testexit=\"" + LookFor + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
 				while (!FileExists(ClientLogFile) && !ClientProcess.HasExited)
 				{
 					Log("Waiting for client logging process to start...{0}", ClientLogFile);
 					Thread.Sleep(2000);
 				}
-				if (!ClientProcess.HasExited)
+                if (FileExists(ClientLogFile))
 				{
 					Thread.Sleep(2000);
 					Log("Client logging process started...{0}", ClientLogFile);
 					ClientProcessLog = File.Open(ClientLogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 					ClientLogReader = new StreamReader(ClientProcessLog);
 				}
-				if (ClientProcess.HasExited || ClientLogReader == null)
+				if (ClientLogReader == null)
 				{
-					throw new AutomationException("Client exited before we asked it to.");
+					throw new AutomationException("Client exited without creating a log file.");
 				}
 				bool bKeepReading = true;
 				bool WelcomedCorrectly = false;
-				while (!ClientProcess.HasExited && bKeepReading)
+                bool bClientExited = false;
+                DateTime ExitTime = DateTime.UtcNow;
+
+                while (bKeepReading)
 				{
-					while (!ClientLogReader.EndOfStream && bKeepReading && !ClientProcess.HasExited)
+                    if (!bClientExited && ClientProcess.HasExited)
+                    {
+                        ExitTime = DateTime.UtcNow;
+                        bClientExited = true;
+                    }
+					string ClientOutput = ClientLogReader.ReadToEnd();
+					if (!String.IsNullOrEmpty(ClientOutput))
 					{
-						string ClientOutput = ClientLogReader.ReadToEnd();
-						if (!String.IsNullOrEmpty(ClientOutput))
+                        if (bClientExited)
+                        {
+                            ExitTime = DateTime.UtcNow; // as long as it is spewing, we reset the timer
+                        }
+                        AllClientOutput += ClientOutput;
+						Console.Write(ClientOutput);
+
+                        if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
 						{
-                            AllClientOutput += ClientOutput;
-							Console.Write(ClientOutput);
-
-                            string LookFor = "Bringing up level for play took";
-                            if (Params.RunAutomationTest != "")
+							WelcomedCorrectly = true;
+							Log("Test complete...");
+							bKeepReading = false;
+						}
+                        else if (Params.RunAutomationTests)
+                        {
+                            int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
+                            int ParenIndex = AllClientOutput.LastIndexOf(")");
+                            if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
                             {
-                                LookFor = "Automation Test Succeeded";
-                            }
-                            else if (Params.RunAutomationTests)
-                            {
-                                LookFor = "Automation Test Queue Empty";
-                            }
-                            else if (Params.EditorTest)
-                            {
-                                LookFor = "Asset discovery search completed in";
-                            }
-
-                            if (AllClientOutput.Contains(LookFor))
-							{
-								Log("Client loaded, lets wait 30 seconds...");
-								Thread.Sleep(30000);
-								if (!ClientProcess.HasExited)
-								{
-									WelcomedCorrectly = true;
-								}
-								Log("Test complete...");
-								bKeepReading = false;
-							}
-                            else if (Params.RunAutomationTests)
-                            {
-                                int FailIndex = AllClientOutput.IndexOf("Automation Test Failed");
-                                int ParenIndex = AllClientOutput.LastIndexOf(")");
-                                if (FailIndex >= 0 && ParenIndex > FailIndex)
+                                string Tail = AllClientOutput.Substring(FailIndex);
+                                int CloseParenIndex = Tail.IndexOf(")");
+                                int OpenParenIndex = Tail.IndexOf("(");
+                                string Test = "";
+                                if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
                                 {
-                                    string Tail = AllClientOutput.Substring(FailIndex);
-                                    int CloseParenIndex = Tail.IndexOf(")");
-                                    int OpenParenIndex = Tail.IndexOf("(");
-                                    string Test = "";
-                                    if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
-                                    {
-                                        Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
-                                    }
-#if true
-                                    Log("Stopping client...");
-                                    ClientProcess.StopProcess();
-                                    if (IsBuildMachine)
-                                    {
-                                        Thread.Sleep(70000);
-                                    }
-#endif
-                                    throw new AutomationException("Automated test failed ({0}).", Test);
+                                    Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
+                                    Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+                                    LastAutoFailIndex = FailIndex;
                                 }
                             }
                         }
-					}
+                    }
+                    else if (bClientExited && (DateTime.UtcNow - ExitTime).TotalSeconds > 30)
+                    {
+                        Log("Client exited and has been quiet for 30 seconds...exiting");
+                        bKeepReading = false;
+                    }
 				}
+                if (ClientProcess != null && !ClientProcess.HasExited)
+                {
+                    Log("Client is supposed to exit, lets wait a while for it to exit naturally...");
+                    for (int i = 0 ; i < 120 && !ClientProcess.HasExited; i++)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
 				if (ClientProcess != null && !ClientProcess.HasExited)
 				{
 					Log("Stopping client...");
 					ClientProcess.StopProcess();
-				}
-
-                // this is hack that prevents a hang
-                if (IsBuildMachine)
-                {
-                    Thread.Sleep(70000);
+                    Thread.Sleep(10000);
                 }
+                while (ClientLogReader != null && !ClientLogReader.EndOfStream)
+                {
+                    string ClientOutput = ClientLogReader.ReadToEnd();
+                    if (!String.IsNullOrEmpty(ClientOutput))
+                    {
+                        Console.Write(ClientOutput);
+                    }
+                }
+
 				if (!WelcomedCorrectly)
 				{
 					throw new AutomationException("Client exited before we asked it to.");
@@ -324,6 +331,11 @@ public partial class Project : CommandUtils
 					Thread.Sleep(100);
 				}
 				while (ClientProcess.HasExited == false);
+
+				if (ClientProcess.ExitCode != 0)
+				{
+					throw new AutomationException("Client exited with error code: " + ClientProcess.ExitCode);
+				}
 			}
 		}
 	}
@@ -336,19 +348,23 @@ public partial class Project : CommandUtils
 		bool WelcomedCorrectly = false;
 		int NumClients = Params.NumClients;
         string AllClientOutput = "";
+        int LastAutoFailIndex = -1;
 
         if (Params.Unattended)
 		{
-            int Timeout = 60 * 5;
-            if (Params.FakeClient)
+            string LookFor = "Bringing up level for play took";
+            if (Params.DedicatedServer)
             {
-                Timeout = 60 * 15;
+                LookFor = "Welcomed by server";
             }
-            if (Params.RunAutomationTests)
+            else if (Params.RunAutomationTest != "")
             {
-                Timeout = 6 * 60 * 60;
+                LookFor = "Automation Test Succeeded";
             }
-			using (var Watchdog = new WatchdogTimer(Timeout))
+            else if (Params.RunAutomationTests)
+            {
+                LookFor = "Automation Test Queue Empty";
+            }
 			{
 				while (!FileExists(ServerLogFile) && !ServerProcess.HasExited)
 				{
@@ -379,7 +395,7 @@ public partial class Project : CommandUtils
                                         (AllServerOutput.Contains("Game Engine Initialized") || AllServerOutput.Contains("Unreal Network File Server is ready")))
 								{
 									Log("Starting Client for unattended test....");
-									ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH", null, ClientRunFlags | ERunOptions.NoWaitForExit);
+									ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH -testexit=\"" + LookFor + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
 									//@todo no testing is done on these
 									if (NumClients > 1 && NumClients < 9)
 									{
@@ -410,10 +426,6 @@ public partial class Project : CommandUtils
 								if (ClientProcess != null && ClientProcess.HasExited)
 								{
 									ServerProcess.StopProcess();
-                                    if (IsBuildMachine)
-                                    {
-                                        Thread.Sleep(70000);
-                                    }
 									throw new AutomationException("Client exited before we asked it to.");
 								}
 							}
@@ -423,10 +435,6 @@ public partial class Project : CommandUtils
 							if (ClientProcess.HasExited)
 							{
 								ServerProcess.StopProcess();
-                                if (IsBuildMachine)
-                                {
-                                    Thread.Sleep(70000);
-                                }
 								throw new AutomationException("Client exited or closed the log before we asked it to.");
 							}
 							while (!ClientProcess.HasExited && !ServerProcess.HasExited && bKeepReading)
@@ -439,21 +447,8 @@ public partial class Project : CommandUtils
                                         AllClientOutput += ClientOutput;
 										Console.Write(ClientOutput);
 
-                                        string LookFor = "Bringing up level for play took";
-                                        if (Params.DedicatedServer)
+                                        if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
                                         {
-                                            LookFor = "Welcomed by server";
-                                        }
-                                        else if (Params.RunAutomationTest != "")
-                                        {
-                                            LookFor = "Automation Test Succeeded";
-                                        }
-                                        else if (Params.RunAutomationTests)
-                                        {
-                                            LookFor = "Automation Test Queue Empty";
-                                        }
-                                        if (AllClientOutput.Contains(LookFor))
-										{
 											if (Params.FakeClient)
 											{
 												Log("Welcomed by server or client loaded, lets wait ten minutes...");
@@ -464,32 +459,14 @@ public partial class Project : CommandUtils
 												Log("Welcomed by server or client loaded, lets wait 30 seconds...");
 												Thread.Sleep(30000);
 											}
-											if (!ServerProcess.HasExited && !ClientProcess.HasExited)
-											{
-												WelcomedCorrectly = true;
-											}
-											if (!ServerProcess.HasExited)
-											{
-												Log("Test complete");
-												if (ClientProcess != null && !ClientProcess.HasExited)
-												{
-													Log("Stopping client....");
-													ClientProcess.StopProcess();
-												}
-												Log("Stopping server....");
-												ServerProcess.StopProcess();
-                                                if (IsBuildMachine)
-                                                {
-                                                    Thread.Sleep(70000);
-                                                }
-											}
+											WelcomedCorrectly = true;
 											bKeepReading = false;
 										}
                                         else if (Params.RunAutomationTests)
                                         {
-                                            int FailIndex = AllClientOutput.IndexOf("Automation Test Failed");
+                                            int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
                                             int ParenIndex = AllClientOutput.LastIndexOf(")");
-                                            if (FailIndex >= 0 && ParenIndex > FailIndex)
+                                            if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
                                             {
                                                 string Tail = AllClientOutput.Substring(FailIndex);
                                                 int CloseParenIndex = Tail.IndexOf(")");
@@ -498,33 +475,9 @@ public partial class Project : CommandUtils
                                                 if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
                                                 {
                                                     Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
+                                                    Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+                                                    LastAutoFailIndex = FailIndex;
                                                 }
-#if true
-                                                if (!ServerProcess.HasExited)
-                                                {
-                                                    Log("Stopping server....");
-                                                    ServerProcess.StopProcess();
-                                                }
-                                                if (ClientProcess != null && !ClientProcess.HasExited)
-                                                {
-                                                    Log("Stopping client....");
-                                                    ClientProcess.StopProcess();
-                                                }
-                                                foreach (var OtherClient in OtherClients)
-                                                {
-                                                    if (OtherClient != null && !OtherClient.HasExited)
-                                                    {
-                                                        Log("Stopping client....");
-                                                        OtherClient.StopProcess();
-                                                    }
-                                                }
-                                                if (IsBuildMachine)
-                                                {
-                                                    Thread.Sleep(70000);
-                                                }
-
-#endif
-                                                throw new AutomationException("Automated test failed ({0}).", Test);
                                             }
                                         }
 									}
@@ -594,11 +547,6 @@ public partial class Project : CommandUtils
 		}
 		if (Params.Unattended)
 		{
-            // this is a hack to prevent hangs on exit
-            if (IsBuildMachine)
-            {
-                Thread.Sleep(70000);
-            }
             if (!WelcomedCorrectly)
             {
 			    throw new AutomationException("Server or client exited before we asked it to.");
@@ -720,7 +668,7 @@ public partial class Project : CommandUtils
 			}
 			else if (!Params.Stage)
 			{
-				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir, "Saved/Sandboxes", "Cooked-" + SC.CookPlatform);
+				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir, "Saved", "Cooked", SC.CookPlatform);
 				if (!SC.StageTargetPlatform.LaunchViaUFE)
 				{
 					TempCmdLine += "-sandbox=" + CommandUtils.MakePathSafeToUseWithCommandLine(SandboxPath) + " ";
@@ -754,7 +702,7 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-unattended ";
 		}
-        if (IsBuildMachine)
+        if (IsBuildMachine || Params.Unattended)
         {
             TempCmdLine += "-buildmachine ";
         }
@@ -903,7 +851,7 @@ public partial class Project : CommandUtils
 				Args += " -pak";
 			}
 		}
-        if (IsBuildMachine)
+        if (IsBuildMachine || Params.Unattended)
         {
             Args += " -buildmachine"; 
         }

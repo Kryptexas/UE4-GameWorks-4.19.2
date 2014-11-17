@@ -17,8 +17,6 @@ namespace UnrealBuildTool
 		public static string Create(string TempFileName, List<string> Lines)
 		{
 			FileInfo TempFileInfo = new FileInfo( TempFileName );
-			DirectoryInfo TempFolderInfo = new DirectoryInfo( TempFileInfo.DirectoryName );
-
 			// Delete the existing file if it exists
 			if( TempFileInfo.Exists )
 			{
@@ -27,21 +25,7 @@ namespace UnrealBuildTool
 				TempFileInfo.Refresh();
 			}
 
-			// Create the folder if it doesn't exist
-			if( !TempFolderInfo.Exists )
-			{
-				// Create the 
-				TempFolderInfo.Create();
-				TempFolderInfo.Refresh();
-			}
-
-			using( FileStream Writer = TempFileInfo.OpenWrite() )
-			{
-				using( StreamWriter TextWriter = new StreamWriter( Writer ) )
-				{
-					Lines.ForEach( x => TextWriter.WriteLine( x ) );
-				}
-			}
+			FileItem.CreateIntermediateTextFile(TempFileName, string.Join(Environment.NewLine, Lines));
 
 			return TempFileName;
 		}

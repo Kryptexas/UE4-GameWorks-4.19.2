@@ -10,6 +10,7 @@
 #include "AssetToolsModule.h"
 #include "MaterialEditor.h"
 #include "SMaterialEditorViewportToolBar.h"
+#include "ComponentReregisterContext.h"
 
 /** Viewport Client for the preview viewport */
 class FMaterialEditorViewportClient : public FEditorViewportClient
@@ -18,11 +19,11 @@ public:
 	FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FPreviewScene& InPreviewScene);
 
 	// FEditorViewportClient interface
-	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) OVERRIDE;
-	virtual bool ShouldOrbitCamera() const OVERRIDE;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) OVERRIDE;
+	virtual FLinearColor GetBackgroundColor() const override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
+	virtual bool ShouldOrbitCamera() const override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
 	
 	void SetShowGrid(bool bShowGrid);
 
@@ -33,7 +34,7 @@ private:
 };
 
 FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient( &InPreviewScene )
+	: FEditorViewportClient( GLevelEditorModeTools(), &InPreviewScene )
 	, MaterialEditorPtr(InMaterialEditor)
 {
 	// Setup defaults for the common draw helper.

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Sound/SoundMix.h"
+
 class FAudioReverbEffect
 {
 public:

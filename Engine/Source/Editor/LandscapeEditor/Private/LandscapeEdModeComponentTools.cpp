@@ -1,9 +1,10 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
+#include "Landscape/Landscape.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
@@ -11,6 +12,7 @@
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -28,7 +30,7 @@ public:
 	{
 	}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if( LandscapeInfo )
 		{
@@ -165,14 +167,14 @@ public:
 		: FLandscapeToolBase<TStrokeClass>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Selection"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Selection", "Component Selection"); };
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual const TCHAR* GetToolName() override { return TEXT("Selection"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Selection", "Component Selection"); };
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual FLandscapeTool::EToolType GetToolType() OVERRIDE { return this->TT_Mask; }
+	virtual FLandscapeTool::EToolType GetToolType() override { return this->TT_Mask; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -186,10 +188,10 @@ public:
 		: FLandscapeToolSelect<TStrokeClass>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Mask"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Mask", "Region Selection"); };
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectRegion | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return true; }
+	virtual const TCHAR* GetToolName() override { return TEXT("Mask"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Mask", "Region Selection"); };
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectRegion | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return true; }
 };
 
 class FLandscapeToolStrokeVisibility
@@ -200,7 +202,7 @@ public:
 		,	Cache(InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if( LandscapeInfo )
 		{
@@ -269,13 +271,13 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeVisibility>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Visibility"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Visibility", "Visibility"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Visibility"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Visibility", "Visibility"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -288,7 +290,7 @@ public:
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : NULL;
 
@@ -570,14 +572,7 @@ public:
 								int32 WeightmapSize = (Comp->SubsectionSizeQuads+1) * Comp->NumSubsections;
 
 								// We need a new weightmap texture
-								CurrentWeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), World->GetCurrentLevel()->GetOutermost(), NAME_None, RF_Public);
-								CurrentWeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-								CurrentWeightmapTexture->SRGB = false;
-								CurrentWeightmapTexture->CompressionNone = true;
-								CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-								CurrentWeightmapTexture->AddressX = TA_Clamp;
-								CurrentWeightmapTexture->AddressY = TA_Clamp;
-								CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+								CurrentWeightmapTexture = Comp->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 								// Alloc dummy mips
 								Comp->CreateEmptyTextureMips(CurrentWeightmapTexture);
 								CurrentWeightmapTexture->PostEditChange();
@@ -740,13 +735,13 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeMoveToLevel>(InEdMode)	
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("MoveToLevel"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_MoveToLevel", "Move to Streaming Level"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("MoveToLevel"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_MoveToLevel", "Move to Streaming Level"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -762,7 +757,7 @@ public:
 		,	HeightCache(InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : NULL;
 		if( Landscape && EdMode->LandscapeRenderAddCollision)
@@ -816,6 +811,7 @@ public:
 
 						// Assign shared properties
 						LandscapeComponent->bCastStaticShadow = Landscape->bCastStaticShadow;
+						LandscapeComponent->bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
 
 						int32 ComponentVerts = (Landscape->SubsectionSizeQuads+1) * Landscape->NumSubsections;
 						// Update Weightmap Scale Bias
@@ -871,13 +867,13 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeAddComponent>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("AddComponent"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_AddComponent", "Add New Landscape Component"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("AddComponent"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_AddComponent", "Add New Landscape Component"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -890,7 +886,7 @@ public:
 		:	LandscapeInfo(InTarget.LandscapeInfo.Get())
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if( LandscapeInfo )
 		{
@@ -1050,13 +1046,13 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeDeleteComponent>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("DeleteComponent"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_DeleteComponent", "Delete Landscape Components"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("DeleteComponent"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_DeleteComponent", "Delete Landscape Components"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -1080,7 +1076,7 @@ public:
 		float Data;
 	};
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1169,7 +1165,7 @@ public:
 					{
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i )
 						{
-							FGizmoPreData GizmoData[NeighborNum];
+							FGizmoPreData GizmoPreData[NeighborNum];
 
 							for (int32 LocalY = 0; LocalY < 2; ++LocalY)
 							{
@@ -1177,18 +1173,18 @@ public:
 								{
 									int32 x = FMath::Clamp(LX + LocalX, X1, X2);
 									int32 y = FMath::Clamp(LY + LocalY, Y1, Y2);
-									GizmoData[LocalX + LocalY*2].Ratio = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(x, y));
+									GizmoPreData[LocalX + LocalY * 2].Ratio = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(x, y));
 									int32 index = (x-X1) + (y-Y1)*(1+X2-X1);
 
 									if (bApplyToAll)
 									{
 										if ( i < 0 )
 										{
-											GizmoData[LocalX + LocalY*2].Data = Gizmo->GetNormalizedHeight( HeightData[index] );
+											GizmoPreData[LocalX + LocalY * 2].Data = Gizmo->GetNormalizedHeight(HeightData[index]);
 										}
 										else
 										{
-											GizmoData[LocalX + LocalY*2].Data = WeightDatas[index*LayerNum + i ];
+											GizmoPreData[LocalX + LocalY * 2].Data = WeightDatas[index*LayerNum + i];
 										}
 									}
 									else
@@ -1196,11 +1192,11 @@ public:
 										typename ToolTarget::CacheClass::DataType OriginalValue = Data[index];
 										if ( EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap )
 										{
-											GizmoData[LocalX + LocalY*2].Data = Gizmo->GetNormalizedHeight(OriginalValue);
+											GizmoPreData[LocalX + LocalY * 2].Data = Gizmo->GetNormalizedHeight(OriginalValue);
 										}
 										else
 										{
-											GizmoData[LocalX + LocalY*2].Data = OriginalValue;
+											GizmoPreData[LocalX + LocalY * 2].Data = OriginalValue;
 										}
 									}
 								}
@@ -1211,14 +1207,14 @@ public:
 							float FracY = LandscapeLocal.Y - LY;
 							LerpedData.Ratio = bFullCopy ? 1.f : 
 								FMath::Lerp(
-								FMath::Lerp(GizmoData[0].Ratio, GizmoData[1].Ratio, FracX),
-								FMath::Lerp(GizmoData[2].Ratio, GizmoData[3].Ratio, FracX),
+								FMath::Lerp(GizmoPreData[0].Ratio, GizmoPreData[1].Ratio, FracX),
+								FMath::Lerp(GizmoPreData[2].Ratio, GizmoPreData[3].Ratio, FracX),
 								FracY
 								);
 
 							LerpedData.Data = FMath::Lerp(
-								FMath::Lerp(GizmoData[0].Data, GizmoData[1].Data, FracX),
-								FMath::Lerp(GizmoData[2].Data, GizmoData[3].Data, FracX),
+								FMath::Lerp(GizmoPreData[0].Data, GizmoPreData[1].Data, FracX),
+								FMath::Lerp(GizmoPreData[2].Data, GizmoPreData[3].Data, FracX),
 								FracY
 								);
 
@@ -1245,29 +1241,29 @@ public:
 									}
 								}
 
-								FGizmoSelectData* GizmoData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
-								if (GizmoData)
+								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								if (GizmoSelectData)
 								{
 									if (bApplyToAll)
 									{
 										if (i < 0)
 										{
-											GizmoData->HeightData = LerpedData.Data;
+											GizmoSelectData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											GizmoData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
+											GizmoSelectData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
 										}
 									}
 									else
 									{
 										if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 										{
-											GizmoData->HeightData = LerpedData.Data;
+											GizmoSelectData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											GizmoData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
+											GizmoSelectData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
 								}
@@ -1375,21 +1371,21 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget> >(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Copy"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Copy", "Copy"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Copy"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Copy", "Copy"); };
 
-	virtual void SetEditRenderType() OVERRIDE
+	virtual void SetEditRenderType() override
 	{ 
 		GLandscapeEditRenderMode = ELandscapeEditRenderMode::Gizmo | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask);
 		GLandscapeEditRenderMode |= (this->EdMode && this->EdMode->CurrentToolTarget.LandscapeInfo.IsValid() && this->EdMode->CurrentToolTarget.LandscapeInfo->SelectedRegion.Num()) ? ELandscapeEditRenderMode::SelectRegion : ELandscapeEditRenderMode::SelectComponent;
 	}
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return Target.TargetType == ToolTarget::TargetType;
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) OVERRIDE
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
 	{
 		check(this->MousePositions.Num()==0);
 		this->bToolActive = true;
@@ -1404,7 +1400,7 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE 
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override 
 	{
 		if( this->bToolActive && this->MousePositions.Num() )
 		{
@@ -1418,7 +1414,7 @@ public:
 		this->EdMode->GizmoBrush->EndStroke();
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int x, int y ) OVERRIDE
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int x, int y ) override
 	{
 		return true;
 	}	
@@ -1437,7 +1433,7 @@ public:
 		,	WeightCache(InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1673,10 +1669,10 @@ public:
 		,	bUseGizmoRegion(false)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Paste"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Paste"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
 
-	virtual void SetEditRenderType() OVERRIDE 
+	virtual void SetEditRenderType() override 
 	{ 
 		GLandscapeEditRenderMode = ELandscapeEditRenderMode::Gizmo | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask);
 		GLandscapeEditRenderMode |= (this->EdMode && this->EdMode->CurrentToolTarget.LandscapeInfo.IsValid() && this->EdMode->CurrentToolTarget.LandscapeInfo->SelectedRegion.Num()) ? ELandscapeEditRenderMode::SelectRegion : ELandscapeEditRenderMode::SelectComponent;
@@ -1687,12 +1683,12 @@ public:
 		bUseGizmoRegion = InbUseGizmoRegion;
 	}
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return Target.TargetType == ToolTarget::TargetType;
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) OVERRIDE
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
 	{
 		this->bToolActive = true;
 		this->ToolStroke = new FLandscapeToolStrokePaste<ToolTarget>(this->EdMode, InTarget);
@@ -1713,7 +1709,7 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		if( this->bToolActive && this->MousePositions.Num() )
 		{
@@ -1734,7 +1730,7 @@ public:
 		}
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override
 	{
 		if (bUseGizmoRegion)
 		{
@@ -1768,7 +1764,7 @@ public:
 
 	// Just hybrid of Copy and Paste tool
 	// Copy tool doesn't use any view information, so just do it as one function
-	virtual void Process(int32 Index, int32 Arg) OVERRIDE
+	virtual void Process(int32 Index, int32 Arg) override
 	{
 		switch(Index)
 		{
@@ -1814,13 +1810,13 @@ public:
 	{
 	}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("NewLandscape"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_NewLandscape", "New Landscape"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("NewLandscape"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_NewLandscape", "New Landscape"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // ignores target...
 	}
@@ -1836,18 +1832,18 @@ public:
 		EdMode->NewLandscapePreviewMode = ENewLandscapePreviewMode::None;
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation )
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation )
 	{
 		// does nothing
 		return false;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient)
+	virtual void EndTool(FEditorViewportClient* ViewportClient)
 	{
 		// does nothing
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 	{
 		// does nothing
 		return false;
@@ -1869,13 +1865,13 @@ public:
 	{
 	}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("ResizeLandscape"); }
-	virtual FText GetDisplayName() OVERRIDE { return LOCTEXT("LandscapeMode_ResizeLandscape", "Change Landscape Component Size"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("ResizeLandscape"); }
+	virtual FText GetDisplayName() override { return LOCTEXT("LandscapeMode_ResizeLandscape", "Change Landscape Component Size"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // ignores target...
 	}
@@ -1905,18 +1901,18 @@ public:
 	{
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation )
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation )
 	{
 		// does nothing
 		return false;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient)
+	virtual void EndTool(FEditorViewportClient* ViewportClient)
 	{
 		// does nothing
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 	{
 		// does nothing
 		return false;

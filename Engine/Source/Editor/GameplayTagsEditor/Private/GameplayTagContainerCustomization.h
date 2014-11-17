@@ -6,10 +6,10 @@
 #include "SGameplayTagWidget.h"
 
 /** Customization for the gameplay tag container struct */
-class FGameplayTagContainerCustomization : public IStructCustomization, public FEditorUndoClient
+class FGameplayTagContainerCustomization : public IPropertyTypeCustomization, public FEditorUndoClient
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance()
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance()
 	{
 		return MakeShareable(new FGameplayTagContainerCustomization);
 	}
@@ -17,14 +17,14 @@ public:
 	~FGameplayTagContainerCustomization();
 
 	/** Overridden to show an edit button to launch the gameplay tag editor */
-	virtual void CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	
 	/** Overridden to do nothing */
-	virtual void CustomizeStructChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE {}
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo( bool bSuccess ) OVERRIDE;
-	virtual void PostRedo( bool bSuccess ) OVERRIDE;	
+	virtual void PostUndo( bool bSuccess ) override;
+	virtual void PostRedo( bool bSuccess ) override;	
 	// End FEditorUndoClient Interface
 
 private:

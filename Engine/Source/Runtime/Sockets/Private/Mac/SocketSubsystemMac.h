@@ -56,17 +56,17 @@ public:
 	 *
 	 * @return true if initialized ok, false otherwise
 	 */
-	virtual bool Init(FString& Error) OVERRIDE;
+	virtual bool Init(FString& Error) override;
 
 	/**
 	 * Performs platform specific socket clean up
 	 */
-	virtual void Shutdown() OVERRIDE;
+	virtual void Shutdown() override;
 
 	/**
 	 * @return Whether the machine has a properly configured network device or not
 	 */
-	virtual bool HasNetworkDevice() OVERRIDE;
+	virtual bool HasNetworkDevice() override;
 };
 
 /**
@@ -92,12 +92,12 @@ public:
 	{
 	}
 
-	virtual bool Close() OVERRIDE
+	virtual bool Close() override
 	{
 		return close(Socket) == 0;
 	}
 
-	virtual bool SetReuseAddr(bool bAllowReuse) OVERRIDE
+	virtual bool SetReuseAddr(bool bAllowReuse) override
 	{
 		int Param = bAllowReuse ? 1 : 0;
 		return (setsockopt(Socket,SOL_SOCKET,SO_REUSEADDR,(char*)&Param,sizeof(Param)) == 0) && (setsockopt(Socket,SOL_SOCKET,SO_REUSEPORT,(char*)&Param,sizeof(Param)) == 0);

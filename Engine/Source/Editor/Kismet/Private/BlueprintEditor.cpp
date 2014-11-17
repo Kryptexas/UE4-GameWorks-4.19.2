@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Engine/LevelScriptBlueprint.h"
+#include "Engine/Breakpoint.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -16,6 +18,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Kismet/GameplayStatics.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h"
 #include "BlueprintEditorCommands.h"
 #include "BlueprintEditor.h"
@@ -310,6 +313,43 @@ FGraphPanelSelectionSet FBlueprintEditor::GetSelectedNodes() const
 	return CurrentSelection;
 }
 
+void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete ) const
+{
+	if( Blueprint && GraphNode && FEngineAnalytics::IsAvailable() )
+	{
+		// Build Node Details
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		FString ProjectID = ProjectSettings.ProjectID.ToString();
+		TArray< FAnalyticsEventAttribute > NodeAttributes;
+		NodeAttributes.Add( FAnalyticsEventAttribute( TEXT( "ProjectId" ), ProjectID ) );
+		NodeAttributes.Add( FAnalyticsEventAttribute( TEXT( "BlueprintId" ), Blueprint->GetBlueprintGuid().ToString() ) );
+		TArray< TKeyValuePair<FString, FString> > Attributes;
+
+		if( UK2Node* K2Node = Cast<UK2Node>( GraphNode ))
+		{
+			K2Node->GetNodeAttributes( Attributes );
+		}
+		else if( UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>( GraphNode ))
+		{
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Comment" ) ));
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), CommentNode->GetClass()->GetName() ));
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), CommentNode->GetName() ));
+		}
+		if( Attributes.Num() > 0 )
+		{
+			// Build Node Attributes
+			for( auto Iter = Attributes.CreateConstIterator(); Iter; ++Iter )
+			{
+				NodeAttributes.Add( FAnalyticsEventAttribute( Iter->Key, Iter->Value ));
+			}
+			// Send Analytics event
+			FString EventType = bNodeDelete ?	TEXT( "Editor.Usage.BlueprintEditor.NodeDeleted" ) :
+												TEXT( "Editor.Usage.BlueprintEditor.NodeCreated" );
+			FEngineAnalytics::GetProvider().RecordEvent( EventType, NodeAttributes );
+		}
+	}
+}
+
 void FBlueprintEditor::RefreshEditors()
 {
 	DocumentManager->CleanInvalidTabs();
@@ -401,6 +441,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().PromoteToVariable,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnPromoteToVariable ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanPromoteToVariable )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().SplitStructPin,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnSplitStructPin ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanSplitStructPin )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RecombineStructPin,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnRecombineStructPin ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanRecombineStructPin )
 				);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AddExecutionPin,
@@ -633,12 +683,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeFunctionDefinition,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeFunctionDefinition ),
-				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction)
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
 				);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeVariableDefinition,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeVariableDefinition ),
-				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable)
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
 				);
 		}
 	}
@@ -750,6 +804,7 @@ FBlueprintEditor::FBlueprintEditor()
 	, bIsActionMenuContextSensitive(true)
 	, CurrentUISelection(FBlueprintEditor::NoSelection)
 	, bEditorMarkedAsClosed(false)
+	, bCodeBasedProject(false)
 {
 	AnalyticsStats.GraphActionMenusNonCtxtSensitiveExecCount = 0;
 	AnalyticsStats.GraphActionMenusCtxtSensitiveExecCount = 0;
@@ -1125,6 +1180,16 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
 	}
 
+	// Cache the project type ( Blueprint or Code Based )
+	if( FPaths::IsProjectFilePathSet() )
+	{
+		FProjectStatus ProjectStatus;
+		if( IProjectManager::Get().QueryStatusForProject( FPaths::GetProjectFilePath(), ProjectStatus ) && ProjectStatus.bCodeBasedProject )
+		{
+			bCodeBasedProject = true;
+		}
+	}
+
 	// Post-layout initialization
 	PostLayoutBlueprintEditorInitialization();
 
@@ -1435,17 +1500,7 @@ FBlueprintEditor::~FBlueprintEditor()
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "PastedNodesCreated" ), AnalyticsStats.NodePasteCreateCount ));
 
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "ProjectId" ), ProjectID ) );
-
-		TArray< FAnalyticsEventAttribute > BPEditorNodeStats;
-		for( auto Iter = AnalyticsStats.CreatedNodeTypes.CreateIterator(); Iter; ++Iter )
-		{
-			const FString NodeType = FString::Printf( TEXT( "%s.%s" ), *Iter->Value.NodeClass.ToString(), *Iter->Key.ToString() ); 
-			BPEditorNodeStats.Add( FAnalyticsEventAttribute( NodeType, Iter->Value.Instances ));
-		}
-		AnalyticsStats.CreatedNodeTypes.Reset();
-
 		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor" ), BPEditorAttribs );
-		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor.NodeCreation" ), BPEditorNodeStats );
 
 		for (auto Iter = AnalyticsStats.GraphDisallowedPinConnections.CreateConstIterator(); Iter; ++Iter)
 		{
@@ -2029,21 +2084,6 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
 
 		FSlateApplication::Get().DismissAllMenus();
-	}
-}
-
-void FBlueprintEditor::AnalyticsTrackNewNode( FName NodeClass, FName NodeType )
-{
-	if( FAnalyticsStatistics::FNodeDetails* Result = AnalyticsStats.CreatedNodeTypes.Find( NodeType ))
-	{
-		Result->Instances++;
-	}
-	else
-	{
-		FAnalyticsStatistics::FNodeDetails NewEntry;
-		NewEntry.NodeClass = NodeClass;
-		NewEntry.Instances = 1;
-		AnalyticsStats.CreatedNodeTypes.Add( NodeType, NewEntry );
 	}
 }
 
@@ -2677,6 +2717,72 @@ bool FBlueprintEditor::CanPromoteToVariable() const
 	return bCanPromote;
 }
 
+void FBlueprintEditor::OnSplitStructPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		UEdGraphPin* TargetPin = FocusedGraphEd->GetGraphPinForMenu();
+
+		check(IsEditingSingleBlueprint());
+		check(GetBlueprintObj()->SkeletonGeneratedClass);
+		check(TargetPin);
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		K2Schema->SplitPin(TargetPin);
+	}
+}
+
+bool FBlueprintEditor::CanSplitStructPin() const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool bCanSplit = false;
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
+		{
+			bCanSplit = K2Schema->CanSplitStructPin(*Pin);
+		}
+	}
+
+	return bCanSplit;
+}
+
+void FBlueprintEditor::OnRecombineStructPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		UEdGraphPin* TargetPin = FocusedGraphEd->GetGraphPinForMenu();
+
+		check(IsEditingSingleBlueprint());
+		check(GetBlueprintObj()->SkeletonGeneratedClass);
+		check(TargetPin);
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		K2Schema->RecombinePin(TargetPin);
+	}
+}
+
+bool FBlueprintEditor::CanRecombineStructPin() const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool bCanRecombine = false;
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
+		{
+			bCanRecombine = K2Schema->CanRecombineStructPin(*Pin);
+		}
+	}
+
+	return bCanRecombine;
+}
+
 void FBlueprintEditor::OnAddExecutionPin()
 {
 	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
@@ -2965,30 +3071,6 @@ bool FBlueprintEditor::CanChangePinType() const
 	}
 	return false;
 }
-
-struct FFunctionFromNodeHelper
-{
-	UFunction* Function;
-	UK2Node* Node;
-	FFunctionFromNodeHelper(UObject* SelectedObj) : Function(NULL), Node(NULL)
-	{
-		Node = Cast<UK2Node>(SelectedObj);
-		UBlueprint* Blueprint = Node ? Node->GetBlueprint() : NULL;
-		const UClass* SearchScope = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
-		if(SearchScope)
-		{
-			if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
-			{
-				Function = SearchScope->FindFunctionByName(EventNode->EventSignatureName);
-			}
-			else if(UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
-			{
-				const FName FunctionName = (FunctionNode->CustomGeneratedFunctionName != NAME_None) ? FunctionNode->CustomGeneratedFunctionName : FunctionNode->GetGraph()->GetFName();
-				Function = SearchScope->FindFunctionByName(FunctionName);
-			}
-		}
-	}
-};
 
 void FBlueprintEditor::OnAddParentNode()
 {
@@ -3866,7 +3948,7 @@ void FBlueprintEditor::DeleteSelectedNodes()
 				{
 					DocumentManager->CleanInvalidTabs();
 				}
-
+				AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, true );
 				FBlueprintEditorUtils::RemoveNode(GetBlueprintObj(), Node, true);
 			}
 		}
@@ -4255,6 +4337,8 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 		{
 			bNeedToModifyStructurally = true;
 		}
+		// Log new node created to analytics
+		AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, false );
 	}
 
 	if (bNeedToModifyStructurally)
@@ -6045,6 +6129,11 @@ bool FBlueprintEditor::IsSelectionNativeVariable()
 	return false;
 }
 
+bool FBlueprintEditor::IsNativeCodeBrowsingAvailable() const
+{
+	return bCodeBasedProject;
+}
+
 void FBlueprintEditor::OnFindInstancesCustomEvent()
 {
 	auto GraphEditor = FocusedGraphEdPtr.Pin();
@@ -6251,6 +6340,15 @@ bool FBlueprintEditor::IsFocusedGraphEditable() const
 		return IsEditable(FocusedGraph);
 	}
 	return true;
+}
+
+void FBlueprintEditor::SaveAsset_Execute()
+{
+	// Update the Blueprint's search data
+	GetBlueprintObj()->SearchGuid = FGuid::NewGuid();
+	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(GetBlueprintObj());
+
+	IBlueprintEditor::SaveAsset_Execute();
 }
 
 /////////////////////////////////////////////////////

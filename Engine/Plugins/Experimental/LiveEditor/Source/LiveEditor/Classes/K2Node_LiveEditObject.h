@@ -1,26 +1,29 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "LiveEditorTypes.h"
+
 #include "K2Node_LiveEditObject.generated.h"
 
-UCLASS(DependsOn=ULiveEditorTypes,MinimalAPI)
+UCLASS(MinimalAPI)
 class UK2Node_LiveEditObject : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface.
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	// End UK2Node interface
 
 	/** Create new pins to show LiveEditable properties on archetype */

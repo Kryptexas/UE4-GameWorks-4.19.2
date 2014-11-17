@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 
+#include "Engine/WorldComposition.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
 #include "ISourceControlModule.h"
@@ -24,12 +25,14 @@
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
 
-/** Helper to pass a recompile request to game thread */
-struct FRecompileRequest
+UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
 {
-	FShaderRecompileData RecompileData;
-	bool bComplete;
-};
+	DefaultPVRTCQuality = 0;
+	bSupportMetal = false;
+	bSupportOpenGLES2 = true;
+}
+
 
 /* Static functions
  *****************************************************************************/
@@ -164,6 +167,11 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 					FPlatformProcess::Sleep(0.0f);
 				}
 			}
+
+#if PLATFORM_MAC
+			// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
+			FPlatformMisc::PumpMessages(true);
+#endif
 
 			// update task graph
 			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
@@ -347,17 +355,12 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 
 		if ( TargetPlatformNames.Num() )
 		{
-			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+			const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();
+
+			for (const FString &TargetPlatformName : TargetPlatformNames)
 			{
-				const FString &TargetPlatformName = TargetPlatformNames[Index];
-
-
-				const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();	
-
-
-				for ( int Index = 0; Index < TargetPlatforms.Num(); ++Index )
+				for (ITargetPlatform *TargetPlatform : TargetPlatforms)
 				{
-					ITargetPlatform *TargetPlatform = TargetPlatforms[ Index ];
 					if ( TargetPlatform->PlatformName() == TargetPlatformName )
 					{
 						Platforms.Add( TargetPlatform );
@@ -438,7 +441,7 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 					if ( !World->bIsWorldInitialized)
 					{
 						// we need to initialize the world - at least need physics scene since BP construction script runs during cooking, otherwise trace won't work
-						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).AllowAudioPlayback(false).CreatePhysicsScene(true).CreateWorldComposition(false));
+						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
 					}
 				}
 
@@ -545,7 +548,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		FString OutputDirectory = GetOutputDirectoryOverride();
 
 		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
+		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
 
 		CleanSandbox(Platforms);
 
@@ -573,12 +576,14 @@ FString UCookCommandlet::GetOutputDirectoryOverride() const
 	// Output directory override.	
 	if (!FParse::Value(*Params, TEXT("Output="), OutputDirectory))
 	{
-		OutputDirectory = TEXT("Cooked-[Platform]");
+		// Full path so that the sandbox wrapper doesn't try to re-base it under Sandboxes
+		OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+		OutputDirectory = FPaths::ConvertRelativePathToFull(OutputDirectory);
 	}
 	else if (!OutputDirectory.Contains(TEXT("[Platform]"), ESearchCase::IgnoreCase, ESearchDir::FromEnd) )
 	{
 		// Output directory needs to contain [Platform] token to be able to cook for multiple targets.
-		OutputDirectory += TEXT("/Cooked-[Platform]");
+		OutputDirectory = FPaths::Combine(*OutputDirectory, TEXT("[Platform]"));
 	}
 	FPaths::NormalizeDirectoryName(OutputDirectory);
 
@@ -737,12 +742,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	GEditor->ParseMapSectionIni(*Params, MapList);
 	for (int32 MapIdx = 0; MapIdx < MapList.Num(); MapIdx++)
 	{
-		if (UWorldComposition::CollectTilesToCook(MapList[MapIdx], FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
-				
 		FilesInPath.AddUnique(MapList[MapIdx]);
 	}
 
@@ -750,50 +749,63 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	TArray<FString> CmdLineDirEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
-		// Check for -MAP=<name of map> entries
 		const FString& Switch = Switches[SwitchIdx];
 
+		// Check for -MAP=<name of map> entries
 		if (Switch.StartsWith(TEXT("MAP=")) == true)
 		{
 			FString MapToCook = Switch.Right(Switch.Len() - 4);
+			
 			// Allow support for -MAP=Map1+Map2+Map3 as well as -MAP=Map1 -MAP=Map2
-			int32 PlusIdx = MapToCook.Find(TEXT("+"));
-			while (PlusIdx != INDEX_NONE)
+			for (int32 PlusIdx = MapToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = MapToCook.Find(TEXT("+")))
 			{
 				FString MapName = MapToCook.Left(PlusIdx);
 				CmdLineMapEntries.Add(MapName);
+
 				MapToCook = MapToCook.Right(MapToCook.Len() - (PlusIdx + 1));
-				PlusIdx = MapToCook.Find(TEXT("+"));
 			}
+
 			CmdLineMapEntries.Add(MapToCook);
 		}
 
+		// Check for -COOKDIR=<path to directory> entries
 		if (Switch.StartsWith(TEXT("COOKDIR=")) == true)
 		{
 			FString DirToCook = Switch.Right(Switch.Len() - 8);
+			
 			// Allow support for -COOKDIR=Dir1+Dir2+Dir3 as well as -COOKDIR=Dir1 -COOKDIR=Dir2
-			int32 PlusIdx = DirToCook.Find(TEXT("+"));
-			while (PlusIdx != INDEX_NONE)
+			for (int32 PlusIdx = DirToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = DirToCook.Find(TEXT("+")))
 			{
 				FString DirName = DirToCook.Left(PlusIdx);
-				CmdLineMapEntries.Add(DirName);
+				
+				// The dir may be contained within quotes
+				DirName = DirName.TrimQuotes();
+				FPaths::NormalizeDirectoryName(DirName);
+				CmdLineDirEntries.Add(DirName);
+
 				DirToCook = DirToCook.Right(DirToCook.Len() - (PlusIdx + 1));
-				PlusIdx = DirToCook.Find(TEXT("+"));
 			}
+			
+			// The dir may be contained within quotes
+			DirToCook = DirToCook.TrimQuotes();
+			FPaths::NormalizeDirectoryName(DirToCook);
 			CmdLineDirEntries.Add(DirToCook);
+		}
+	}
+
+	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
+	{
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+		for(const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
+		{
+			CmdLineDirEntries.Add(AbsoluteGameContentDir / DirToCook.Path);
 		}
 	}
 
 	for (int32 CmdLineMapIdx = 0; CmdLineMapIdx < CmdLineMapEntries.Num(); CmdLineMapIdx++)
 	{
 		FString CurrEntry = CmdLineMapEntries[CmdLineMapIdx];
-		
-		// Check if this cmd entry is related to world composition
-		if (UWorldComposition::CollectTilesToCook(CurrEntry, FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
 		
 		if (FPackageName::IsShortPackageName(CurrEntry))
 		{
@@ -879,35 +891,22 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		FConfigCacheIni::LoadLocalIniFile(PlatformEngineIni, TEXT("Engine"), true, *Platforms[Index]->IniPlatformName());
 
 		// get the server and game default maps and cook them
-		TArray<FString> DefaultMaps;
 		FString Obj;
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
-		}
-
-		for (FString DefaultMap : DefaultMaps)
-		{
-			// Check if this map is related to world composition
-			if (UWorldComposition::CollectTilesToCook(DefaultMap, FilesInPath))
-			{
-				// Entry has been handled by world composition, no further processing required
-				continue;
-			}
-
-			FilesInPath.AddUnique(DefaultMap);
+			FilesInPath.AddUnique(Obj);
 		}
 	}
 
@@ -1146,6 +1145,13 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				{
 					World->LoadSecondaryLevels(true, &CookedPackages);
 				}
+
+				// Collect world composition tile packages to cook
+				if (World->WorldComposition)
+				{
+					World->WorldComposition->CollectTilesToCook(FilesInPath);
+				}
+
 				// maps don't compile level script actors correctly unless we do FULL GC's, they may also hold weak pointer refs that need to be reset
 				NumProcessedSinceLastGC = GCInterval; 
 

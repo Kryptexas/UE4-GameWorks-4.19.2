@@ -10,21 +10,21 @@ public:
 
 	FTextPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor, const TSharedRef< class IPropertyTableUtilities >& InPropertyUtilities, FSlateFontInfo InFont = FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ) );
 
-	virtual TSharedRef< class SWidget > ConstructDisplayWidget() OVERRIDE;
+	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override;
 
-	virtual bool RequiresDropDown() OVERRIDE;
+	virtual bool RequiresDropDown() override;
 
-	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() OVERRIDE;
+	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() override;
 
-	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() OVERRIDE;
+	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() override;
 
-	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() OVERRIDE;
+	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() override;
 
-	virtual FString GetValueAsString() OVERRIDE;
+	virtual FString GetValueAsString() override;
 
-	virtual FText GetValueAsText() OVERRIDE;
+	virtual FText GetValueAsText() override;
 
-	virtual bool HasReadOnlyEditMode() OVERRIDE { return HasReadOnlyEditingWidget; }
+	virtual bool HasReadOnlyEditMode() override { return HasReadOnlyEditingWidget; }
 
 
 private:

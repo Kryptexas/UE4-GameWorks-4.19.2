@@ -256,7 +256,7 @@ namespace AutomationTool
             }
             if (FilesToCopy.Count < 1 && !bAllowMissing)
             {
-                throw new AutomationException("Distill {0} did not produce any files.", AbsFile);
+                throw new AutomationException("Distill {0} did not produce any files. Recursive option was {1}.", AbsFile, bRecursive.ToString());
             }
             return FilesToCopy;
         }

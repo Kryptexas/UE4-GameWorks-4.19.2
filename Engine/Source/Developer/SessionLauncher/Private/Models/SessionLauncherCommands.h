@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionLauncherCommands.h: Declares the FSessionLauncherCommands class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,10 +24,10 @@ public:
 	
 public:
 
-	// Begin TCommands interface
+	// TCommands interface
 
 	PRAGMA_DISABLE_OPTIMIZATION
-	virtual void RegisterCommands( ) OVERRIDE
+	virtual void RegisterCommands( ) override
 	{
 		UI_COMMAND(QuickLaunch, "Quick Launch", "Builds, cooks, and launches a build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::L));
 		UI_COMMAND(CreateBuild, "Build", "Creates a build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::B));
@@ -40,27 +36,17 @@ public:
 	}
 	PRAGMA_ENABLE_OPTIMIZATION
 
-	// End TCommands interface
-
 public:
 
-	/**
-	 * Toggles the data capture for all session instances. Global and custom command.
-	 */
-	TSharedPtr< FUICommandInfo > CreateBuild;
+	/** Toggles the data capture for all session instances. Global and custom command. */
+	TSharedPtr<FUICommandInfo> CreateBuild;
 
-	/**
-	 * Toggles the data preview for all session instances. Global and custom command.
-	 */
-	TSharedPtr< FUICommandInfo > DeployBuild;
+	/** Toggles the data preview for all session instances. Global and custom command. */
+	TSharedPtr<FUICommandInfo> DeployBuild;
 
-	/**
-	 * Toggles the data capture for all session instances. Global and custom command.
-	 */
-	TSharedPtr< FUICommandInfo > QuickLaunch;
+	/** Toggles the data capture for all session instances. Global and custom command. */
+	TSharedPtr<FUICommandInfo> QuickLaunch;
 
-	/**
-	 * Toggles the data capture for all session instances. Global and custom command.
-	 */
-	TSharedPtr< FUICommandInfo > AdvancedBuild;
+	/** Toggles the data capture for all session instances. Global and custom command. */
+	TSharedPtr<FUICommandInfo> AdvancedBuild;
 };

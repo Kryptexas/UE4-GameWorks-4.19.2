@@ -31,11 +31,11 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// SWidget interface
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	FVector2D ComputeDesiredSize() const override;
 	// End of SWidget interface
 
 	/**
@@ -48,6 +48,10 @@ public:
 		Zoom = FMath::Max(InZoom, 1.0f);
 	}
 
+	float GetZoom()
+	{
+		return Zoom;
+	}
 	/**
 	 * Sets the graph's offset by which all graph bars should be moved
 	 *
@@ -74,13 +78,19 @@ public:
 	 * @param InMin	New min value.
 	 * @param InMin	New max value.
 	 */
-	void SetMinMaxValues( float InMin, float InMax )
+	void SetMinMaxValues(float InMin, float InMax)
 	{
 		MinValue = InMin;
 		MaxValue = InMax;
-	} 
+	}
 
-	void SetDrawingGeometry( const FGeometry& Geometry )
+	void GetMinMaxValues(float &InMin, float &InMax)
+	{
+		InMin = MinValue;
+		InMax = MaxValue;
+	}
+
+	void SetDrawingGeometry(const FGeometry& Geometry)
 	{
 		DrawingGeometry = Geometry;
 	}

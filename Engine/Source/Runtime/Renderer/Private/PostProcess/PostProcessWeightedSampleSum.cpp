@@ -65,13 +65,13 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, const FLinearColor* SampleWeightValues)
+	void SetParameters(FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, const FLinearColor* SampleWeightValues)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		SetTextureParameter(ShaderRHI, FilterTexture, FilterTextureSampler, SamplerStateRHI, FilterTextureRHI);
-		SetTextureParameter(ShaderRHI, AdditiveTexture, AdditiveTextureSampler, SamplerStateRHI, AdditiveTextureRHI);
-		SetShaderValueArray(ShaderRHI, SampleWeights, SampleWeightValues, NumSamples);
+		SetTextureParameter(RHICmdList, ShaderRHI, FilterTexture, FilterTextureSampler, SamplerStateRHI, FilterTextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, AdditiveTexture, AdditiveTextureSampler, SamplerStateRHI, AdditiveTextureRHI);
+		SetShaderValueArray(RHICmdList, ShaderRHI, SampleWeights, SampleWeightValues, NumSamples);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -158,6 +158,7 @@ protected:
  * @param OutVertexShader - The vertex shader used for the filter
  */
 void SetFilterShaders(
+	FRHICommandListImmediate& RHICmdList,
 	FSamplerStateRHIParamRef SamplerStateRHI,
 	FTextureRHIParamRef FilterTextureRHI,
 	FTextureRHIParamRef AdditiveTextureRHI,
@@ -169,6 +170,7 @@ void SetFilterShaders(
 	)
 {
 	check(CombineMethodInt <= 2);
+	
 
 	// A macro to handle setting the filter shader for a specific number of samples.
 #define SET_FILTER_SHADER_TYPE(NumSamples) \
@@ -181,29 +183,29 @@ void SetFilterShaders(
 			TShaderMapRef<TFilterPS<NumSamples, 0> > PixelShader(GetGlobalShaderMap()); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
 		else if(CombineMethodInt == 1) \
 		{ \
 			TShaderMapRef<TFilterPS<NumSamples, 1> > PixelShader(GetGlobalShaderMap()); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
 		else\
 		{ \
 			TShaderMapRef<TFilterPS<NumSamples, 2> > PixelShader(GetGlobalShaderMap()); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
-		VertexShader->SetParameters(SampleOffsets); \
+		VertexShader->SetParameters(RHICmdList, SampleOffsets); \
 		break; \
 	};
 
@@ -375,14 +377,14 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		BlurWeights[i] = TintValue * OffsetAndWeight[i].Y;
 	}
 
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const FTextureRHIRef& FilterTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 
@@ -429,6 +431,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	FShader* VertexShader = nullptr;
 	SetFilterShaders(
+		Context.RHICmdList,
 		TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
 		FilterTexture,
 		AdditiveTexture,
@@ -446,7 +449,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	// Otherwise perform the clear when the dest rectangle has been computed.
 	if (bHasMultipleQuads || Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
 	{
-		RHIClear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
+		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bRequiresClear = false;
 	}
 
@@ -457,7 +460,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 			FIntRect SrcRect =  View.ViewRect / SrcScaleFactor;
 			FIntRect DestRect = View.ViewRect / DstScaleFactor;
 
-			DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
+			DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 		}
 		break;
 		case EPostProcessRectSource::GBS_UIBlurRects:
@@ -477,7 +480,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 				FIntRect SrcRect = ScaledQuad / SrcScaleFactor;
 				FIntRect DestRect = ScaledQuad / DstScaleFactor;
 
-				DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
+				DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 			}
 		}
 		break;
@@ -485,7 +488,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 			checkNoEntry();
 		break;
 	}
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -511,6 +514,18 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 	return Ret;
 }
 
+
+static TAutoConsoleVariable<float> CVarFastBlurThreshold(
+	TEXT("r.FastBlurThreshold"),
+	7.0f,
+	TEXT("Defines at what radius the Gaussian blur optimization kicks in (estimated 25% - 40% faster).\n")
+	TEXT("The optimzation uses slightly less memory and has a quality loss on smallblur radius.\n")
+	TEXT("  0: use the optimization always (fastest, lowest quality)\n")
+	TEXT("  3: use the optimization starting at a 3 pixel radius (quite fast)\n")
+	TEXT("  7: use the optimization starting at a 7 pixel radius (default)\n")
+	TEXT(">15: barely ever use the optimization (high quality)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 {
 	bool bRet = false;
@@ -533,13 +548,10 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 			// we scale by width because FOV is defined horizontally
 			float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  * 2 / 100.0f;
 
-			// can be hard coded once the feature works reliable
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FastBlurThreshold"));
-
 #if PLATFORM_HTML5
-			float FastBlurThreshold = CVar->GetValueOnGameThread();
+			float FastBlurThreshold = CVarFastBlurThreshold.GetValueOnGameThread();
 #else
-			float FastBlurThreshold = CVar->GetValueOnRenderThread();
+			float FastBlurThreshold = CVarFastBlurThreshold.GetValueOnRenderThread();
 #endif
 
 			// small radius look too different with this optimization so we only to it for larger radius
@@ -561,7 +573,7 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 	return bRet;
 }
 
-void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader ) const
+void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const
 {
 	if (bDoFastBlur)
 	{
@@ -579,11 +591,12 @@ void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect S
 
 	if (bRequiresClear)
 	{
-		RHIClear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
+		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		RHICmdList,
 		DestRect.Min.X, DestRect.Min.Y,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,

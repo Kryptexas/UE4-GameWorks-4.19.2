@@ -52,7 +52,7 @@ void UK2Node_StructMemberGet::AllocatePinsForSingleMemberGet(FName MemberName)
 		}
 
 		// FOptionalPinsUpdater interface
-		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const OVERRIDE
+		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 		{
 			Record.bCanToggleVisibility = false;
 			Record.bShowPin = TestProperty->GetFName() == MatchName;
@@ -81,13 +81,6 @@ FText UK2Node_StructMemberGet::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
 	return FText::Format(LOCTEXT("GetMembersInVariable", "Get members in {VariableName}"), Args);
-}
-
-FString UK2Node_StructMemberGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	return FString::Printf(TEXT("Get members in %s"), *GetVarNameString());
 }
 
 FNodeHandlingFunctor* UK2Node_StructMemberGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

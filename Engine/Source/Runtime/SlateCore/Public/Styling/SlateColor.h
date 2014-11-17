@@ -136,7 +136,7 @@ public:
 	 */
 	bool IsColorSpecified( ) const
 	{
-		return (ColorUseRule == ESlateColorStylingMode::UseColor_Specified) || (ESlateColorStylingMode::UseColor_Specified_Link);
+		return (ColorUseRule == ESlateColorStylingMode::UseColor_Specified) || (ColorUseRule == ESlateColorStylingMode::UseColor_Specified_Link);
 	}
 
 public:

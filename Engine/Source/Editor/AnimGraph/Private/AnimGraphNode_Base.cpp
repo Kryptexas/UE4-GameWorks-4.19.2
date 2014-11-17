@@ -32,7 +32,7 @@ public:
 		}
 	}
 
-	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const OVERRIDE
+	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 	{
 		const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
 
@@ -46,12 +46,14 @@ public:
 		const bool bOptional_ShowByDefault = TestProperty->HasMetaData(Schema->NAME_PinShownByDefault);
 		const bool bOptional_HideByDefault = TestProperty->HasMetaData(Schema->NAME_PinHiddenByDefault);
 		const bool bNeverShow = TestProperty->HasMetaData(Schema->NAME_NeverAsPin);
+		const bool bPropertyIsCustomized = TestProperty->HasMetaData(Schema->NAME_CustomizeProperty);
 
 		Record.bCanToggleVisibility = bOptional_ShowByDefault || bOptional_HideByDefault;
 		Record.bShowPin = bAlwaysShow || bOptional_ShowByDefault;
+		Record.bPropertyIsCustomized = bPropertyIsCustomized;
  	}
 
-	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE
+	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override
 	{
 		if (BaseNode != NULL)
 		{
@@ -59,7 +61,7 @@ public:
 		}
 	}
 
-	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(Record.bShowPin);
@@ -84,7 +86,7 @@ public:
 		}
 	}
 
-	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(!Record.bShowPin);
@@ -217,6 +219,13 @@ void UAnimGraphNode_Base::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBu
 	CreateDefaultMenuEntry(ContextMenuBuilder);
 }
 
+void UAnimGraphNode_Base::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "AnimGraphNode" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+}
+
 TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMenuEntry(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	UAnimGraphNode_Base* TemplateNode = NewObject<UAnimGraphNode_Base>(GetTransientPackage(), GetClass());
@@ -228,7 +237,6 @@ TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMen
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = TemplateNode;
-	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 
 	return NodeAction;
 }

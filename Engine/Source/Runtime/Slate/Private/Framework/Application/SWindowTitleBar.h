@@ -47,7 +47,7 @@ class SAppIconWidget
 			];
 	}
 
-	virtual EWindowZone::Type GetWindowZoneOverride() const OVERRIDE
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
 	{
 		// Pretend we are a REAL system menu so the user can click to open a menu, or double-click to close the app on Windows
 		return EWindowZone::SysMenu;
@@ -152,6 +152,11 @@ protected:
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
 
+		if (!OwnerWindow.IsValid())
+		{
+			return;
+		}
+
 		MinimizeButton = SNew(SButton)
 				.IsFocusable(false)
 				.IsEnabled(OwnerWindow->HasMinimizeBox())
@@ -168,7 +173,7 @@ protected:
 
 		MaximizeRestoreButton = SNew(SButton)
 				.IsFocusable(false)
-				.IsEnabled(OwnerWindow->HasMinimizeBox())
+				.IsEnabled(OwnerWindow->HasMaximizeBox())
 				.ContentPadding(0.0f)
 				.OnClicked(this, &SWindowTitleBar::MaximizeRestoreButton_OnClicked)
 				.Cursor(EMouseCursor::Default)
@@ -386,7 +391,11 @@ private:
 	FReply CloseButton_OnClicked()
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
-		OwnerWindow->RequestDestroyWindow();
+
+		if (OwnerWindow.IsValid())
+		{
+			OwnerWindow->RequestDestroyWindow();
+		}
 
 		return FReply::Handled();
 	}
@@ -395,6 +404,12 @@ private:
 	const FSlateBrush* GetCloseImage() const
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
+
+		if (!OwnerWindow.IsValid())
+		{
+			return nullptr;
+		}
+
 		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
 		if (CloseButton->IsPressed())
@@ -424,17 +439,21 @@ private:
 	FReply MaximizeRestoreButton_OnClicked( )
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
-		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
-		if (NativeWindow.IsValid())
+		if (OwnerWindow.IsValid())
 		{
-			if (NativeWindow->IsMaximized())
+			TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
+
+			if (NativeWindow.IsValid())
 			{
-				NativeWindow->Restore();
-			}
-			else
-			{
-				NativeWindow->Maximize();
+				if (NativeWindow->IsMaximized())
+				{
+					NativeWindow->Restore();
+				}
+				else
+				{
+					NativeWindow->Maximize();
+				}
 			}
 		}
 
@@ -445,11 +464,17 @@ private:
 	const FSlateBrush* GetMaximizeRestoreImage( ) const
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
+
+		if (!OwnerWindow.IsValid())
+		{
+			return nullptr;
+		}
+
 		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
 		if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 		{
-			if (!OwnerWindow->HasMaximizeButton())
+			if (!OwnerWindow->HasMaximizeBox())
 			{
 				return &Style->MaximizeButtonStyle.Disabled;
 			}
@@ -478,7 +503,7 @@ private:
 		}
 		else
 		{
-			if (!OwnerWindow->HasMaximizeButton())
+			if (!OwnerWindow->HasMaximizeBox())
 			{
 				return &Style->MaximizeButtonStyle.Disabled;
 			}
@@ -511,11 +536,15 @@ private:
 	FReply MinimizeButton_OnClicked( )
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
-		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
-		if (NativeWindow.IsValid())
+		if (OwnerWindow.IsValid())
 		{
-			NativeWindow->Minimize();
+			TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
+
+			if (NativeWindow.IsValid())
+			{
+				NativeWindow->Minimize();
+			}
 		}
 
 		return FReply::Handled();
@@ -525,9 +554,15 @@ private:
 	const FSlateBrush* GetMinimizeImage( ) const
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
+
+		if (!OwnerWindow.IsValid())
+		{
+			return nullptr;
+		}
+
 		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
-		if (!OwnerWindow->HasMinimizeButton())
+		if (!OwnerWindow->HasMinimizeBox())
 		{
 			return &Style->MinimizeButtonStyle.Disabled;
 		}
@@ -559,6 +594,12 @@ private:
 	const FSlateBrush* GetWindowTitlebackgroundImage( ) const
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
+
+		if (!OwnerWindow.IsValid())
+		{
+			return nullptr;
+		}
+
 		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 		const bool bIsActive = NativeWindow.IsValid() && NativeWindow->IsForegroundWindow();
 
@@ -594,22 +635,34 @@ private:
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
 
+		if (!OwnerWindow.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
 		return OwnerWindow->GetTitle();
 	}
 
 private:
 
+	// Holds a weak pointer to the owner window.
 	TWeakPtr<SWindow> OwnerWindowPtr;
 
+	// Holds the window style to use (for buttons, text, etc.).
 	const FWindowStyle* Style;
 
+	// Holds the content widget of the title area.
 	TSharedPtr<SWidget> TitleArea;
 
+	// Holds the curve sequence for the window flash animation.
 	FCurveSequence TitleFlashSequence;
 
+	// Holds the minimize button.
 	TSharedPtr<SButton> MinimizeButton;
 
+	// Holds the maximize/restore button.
 	TSharedPtr<SButton> MaximizeRestoreButton;
 
+	// Holds the close button.
 	TSharedPtr<SButton> CloseButton;
 };

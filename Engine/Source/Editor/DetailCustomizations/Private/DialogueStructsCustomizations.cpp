@@ -8,12 +8,12 @@
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 
-TSharedRef<IStructCustomization> FDialogueContextStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FDialogueContextStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FDialogueContextStructCustomization );
 }
 
-void FDialogueContextStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueContextStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{
@@ -39,7 +39,7 @@ void FDialogueContextStructCustomization::CustomizeStructHeader( TSharedRef<IPro
 	}
 }
 
-void FDialogueContextStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueContextStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{
@@ -58,7 +58,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedRef<FAssetThumbnailPool>& InAssetThumbnailPool );
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 	void OnSelectionChanged(TSharedPtr<UDialogueVoice*> Speaker, ESelectInfo::Type SelectInfo);
@@ -278,7 +278,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedRef<FAssetThumbnailPool>& InAssetThumbnailPool );
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 	void OnSelectionChanged(TSharedPtr<FTargetSet> TargetSet, ESelectInfo::Type SelectInfo);
@@ -597,7 +597,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedRef<FAssetThumbnailPool>& InAssetThumbnailPool );
-	virtual void Tick(  const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick(  const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 	bool IsDialogueWaveValid() const;
@@ -1004,16 +1004,16 @@ EVisibility SValidatedDialogueContextHeaderWidget::GetTargetsErrorVisibility() c
 	return TargetsErrorText.IsValid() && TargetsErrorText->HasError() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-TSharedRef<IStructCustomization> FDialogueWaveParameterStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FDialogueWaveParameterStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FDialogueWaveParameterStructCustomization );
 }
 
-void FDialogueWaveParameterStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueWaveParameterStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 }
 
-void FDialogueWaveParameterStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueWaveParameterStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{

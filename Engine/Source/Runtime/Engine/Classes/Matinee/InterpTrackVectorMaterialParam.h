@@ -19,15 +19,15 @@ class UInterpTrackVectorMaterialParam : public UInterpTrackVectorBase
 
 	//Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//End UObject Interface
 
 	// Begin UInterpTrack interface.
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
 	// End UInterpTrack interface.
 };
 

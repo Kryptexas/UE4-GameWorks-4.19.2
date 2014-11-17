@@ -8,8 +8,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextChangedEvent, const F
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
 
 /** Editable text box widget */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UEditableText : public USlateWrapperComponent
+UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+class UMG_API UEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,6 +26,22 @@ protected:
 	/** Text style */
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
+
+	/** Background image for the selected text (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageSelected;
+
+	/** Background image for the selection targeting effect (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageSelectionTarget;
+
+	/** Background image for the composing text (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageComposing;
+
+	/** Image brush used for the caret (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* CaretImage;
 
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -48,36 +64,24 @@ protected:
 	float MinimumDesiredWidth;
 
 	/** Workaround as we loose focus when the auto completion closes. */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool IsCaretMovedWhenGainFocus;
 
 	/** Whether to select all text when the user clicks to give focus on the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextWhenFocused;
 
 	/** Whether to allow the user to back out of changes when they press the escape key */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool RevertTextOnEscape;
 
 	/** Whether to clear keyboard focus when pressing enter to commit changes */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool ClearKeyboardFocusOnCommit;
 
 	/** Whether to select all text when pressing enter to commit changes */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
-
-	///** Background image for the selected text (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageSelected)
-
-	///** Background image for the selection targeting effect (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageSelectionTarget)
-
-	///** Background image for the composing text (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageComposing)
-
-	///** Image brush used for the caret (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, CaretImage)
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable)
@@ -87,17 +91,30 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FOnEditableTextCommittedEvent OnTextCommitted;
 
-protected:
-	// USlateWrapperComponent interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	FText GetText() const;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetText(FText InText);
+	
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
 
 #if WITH_EDITOR
-	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	// End of UObject interface
+	virtual const FSlateBrush* GetEditorIcon() override;
 #endif
+
+protected:
+	// UWidget interface
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+	// End of UWidget
 
 	void HandleOnTextChanged(const FText& Text);
 	void HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+
+protected:
+	TSharedPtr<SEditableText> MyEditableText;
 };

@@ -25,8 +25,8 @@ public:
 	const TSharedPtr< const FSequencerDisplayNode> GetDisplayNode() const { return DisplayNode; }
 private:
 	/** SWidget Interface */
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/**
 	 * Called when the expander arrow is clicked
@@ -80,7 +80,7 @@ public:
 	SLATE_END_ARGS()
 
 	/** Construct this widget.  Called by the SNew() Slate macro. */
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, TSharedRef<ISequencerInternals> InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, TSharedRef<FSequencer> InSequencer );
 
 	/** SAnimationOutlinerView destructor */
 	virtual ~SAnimationOutlinerView();
@@ -92,7 +92,7 @@ private:
 	void GenerateWidgetForNode( TSharedRef<FSequencerDisplayNode>& InLayoutNode );
 
 	/** SPanel Interface */
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
 	/**
 	 * Called when a node is selected in the outliner
@@ -103,5 +103,5 @@ private:
 
 private:
 	/** Internal sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };

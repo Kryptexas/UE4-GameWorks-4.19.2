@@ -1,30 +1,38 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "LightComponentBase.h"
+#include "SceneTypes.h"
+
 #include "LightComponent.generated.h"
 
-/** Used to store lightmap data during RerunConstructionScripts */
-class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
+/** 
+ * A texture containing depth values of static objects that was computed during the lighting build.
+ * Used by Stationary lights to shadow translucency.
+ */
+class FStaticShadowDepthMap : public FTexture
 {
 public:
-	static const FName PrecomputedLightInstanceDataTypeName;
+	/** Transform from world space to the coordinate space that DepthSamples are stored in. */
+	FMatrix WorldToLight;
+	/** Dimensions of the generated shadow map. */
+	int32 ShadowMapSizeX;
+	int32 ShadowMapSizeY;
+	/** Shadowmap depth values */
+	TArray<FFloat16> DepthSamples;
 
-	virtual ~FPrecomputedLightInstanceData()
+	FStaticShadowDepthMap() :
+		WorldToLight(FMatrix::Identity),
+		ShadowMapSizeX(0),
+		ShadowMapSizeY(0)
 	{}
 
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return PrecomputedLightInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
+	virtual void InitRHI();
 
-	FTransform Transform;
-	FGuid LightGuid;
-	int32 ShadowMapChannel;
-	int32 PreviewShadowMapChannel;
-	bool bPrecomputedLightingIsValid;
+	void Empty();
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap);
 };
 
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
@@ -42,13 +50,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/** Transient shadowmap channel used to preview the results of stationary light shadowmap packing. */
 	int32 PreviewShadowMapChannel;
 	
-	/** 
-	 * Scales the indirect lighting contribution from this light. 
-	 * A value of 0 disables any GI from this light. Default is 1.
-	 */
-	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.0", UIMax = "6.0"))
-	float IndirectLightingIntensity;
-
 	/** Radius of light source shape. Moved to point light */
 	UPROPERTY()
 	float SourceRadius_DEPRECATED;
@@ -56,14 +57,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/** Min roughness effective for this light. Used for softening specular highlights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0.08", UIMax = "1.0"))
 	float MinRoughness;
-
-	/** 
-	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
-	 * At close to 0, shadows will start far from their caster, and there won't be self shadowing artifacts.
-	 * At close to 1, shadows will start very close to their caster, but there will be many self shadowing artifacts.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0", UIMax = "1"))
-	float SelfShadowingAccuracy;
 
 	/** 
 	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
@@ -198,6 +191,11 @@ public:
 	/** The light's scene info. */
 	class FLightSceneProxy* SceneProxy;
 
+	FStaticShadowDepthMap StaticShadowDepthMap;
+
+	/** Fence used to track progress of render resource destruction. */
+	FRenderCommandFence DestroyFence;
+
 	/**
 	 * Test whether this light affects the given primitive.  This checks both the primitive and light settings for light relevance
 	 * and also calls AffectsBounds.
@@ -238,7 +236,7 @@ public:
 	/**
 	 * Update/reset light GUIDs.
 	 */
-	virtual void UpdateLightGUIDs() OVERRIDE;
+	virtual void UpdateLightGUIDs() override;
 
 	/**
 	 * Check whether a given primitive will cast shadows from this light.
@@ -257,18 +255,22 @@ public:
 	float ComputeLightBrightness() const;
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void UpdateLightSpriteTexture() OVERRIDE;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void UpdateLightSpriteTexture() override;
 #endif // WITH_EDITOR
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject interface.
 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;
@@ -287,14 +289,14 @@ public:
 
 protected:
 	// Begin UActorComponent Interface
-	virtual void OnRegister() OVERRIDE;
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// Begin UActorComponent Interface
 
 public:
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 
 	/** Invalidates the light's cached lighting with the option to recreate the light Guids. */
 	void InvalidateLightingCacheInner(bool bRecreateLightGuids);

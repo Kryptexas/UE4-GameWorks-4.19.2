@@ -98,6 +98,38 @@ struct FAutomationCompleteState
 	uint32 NumDisabledTestsCouldntBeRun;
 };
 
+
+/**
+ * Automation constants we wish to keep across controllers and windows.
+ **/
+namespace AutomationReportConstants
+{
+	const int32 MaximumLogsToKeep = 10;
+}
+
+
+/**
+ * Information for a single automation test's history.
+ **/
+class FAutomationHistoryItem : public TSharedFromThis<FAutomationHistoryItem>
+{
+public:
+	/** The result of this particular test */
+	enum EAutomationHistoryResult
+	{
+		Successful = 0,
+		Warnings,
+		Errors
+	} RunResult;
+
+	/** The file name of the log file. */
+	FString LogLocation;
+
+	/** The date in which this test was completed */
+	FDateTime RunDate;
+};
+
+
 /**
  * Interface for automation test results
  */
@@ -202,6 +234,9 @@ public:
 
 	/** Returns the array of child reports */
 	virtual TArray<TSharedPtr<IAutomationReport> >& GetChildReports() = 0;
+
+	/** Updates the report when the number of clusters changes */
+	virtual void ClustersUpdated(const int32 NumClusters) = 0;
 
 	/** 
 	 * Recursively resets the report to "needs to be run", clears cached warnings and errors
@@ -345,4 +380,16 @@ public:
 
 	/** Stop the test which is creating this report */
 	virtual void StopRunningTest() = 0;
+
+	/**
+	 * Notification on whether we should, or should not, track this reports history
+	 */
+	virtual void TrackHistory( const bool bShouldTrack, const int32 NumReportsToTrack ) = 0;
+
+	/**
+	 * Get the history items of this particular test
+	 *
+	 * @return A reference to the items of this tests previous runs.
+	 */
+	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const = 0;
 };

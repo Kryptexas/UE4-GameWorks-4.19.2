@@ -29,8 +29,8 @@ public:
 		, _IsCaretMovedWhenGainFocus( true )
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
-		, _ClearKeyboardFocusOnCommit( true )
-		, _MinDesiredWidth( 0.0f )
+		, _ClearKeyboardFocusOnCommit(true)
+		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		{}
 
@@ -131,16 +131,18 @@ public:
 	 * @param  InNewText  The new text
 	 */
 	void SetText( const TAttribute< FText >& InNewText );
-
-	/**
-	 * Checks to see if there is any text selected
-	 *
-	 * @return  True if any text is selected
-	 */
-	bool AnyTextSelected() const
-	{
-		return Selection.StartIndex != INDEX_NONE && Selection.StartIndex != Selection.FinishIndex;
-	}
+	
+	/** See the HintText attribute */
+	void SetHintText( const TAttribute< FText >& InHintText );
+	
+	/** See the IsReadOnly attribute */
+	void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
+	
+	/** See the IsPassword attribute */
+	void SetIsPassword( TAttribute< bool > InIsPassword );
+	
+	/** See the ColorAndOpacity attribute */
+	void SetColorAndOpacity(TAttribute<FSlateColor> Color);
 
 	/**
 	 * Restores the text to the original state
@@ -175,19 +177,19 @@ protected:
 		virtual ~FTextInputMethodContext() {}
 
 	private:
-		virtual bool IsReadOnly() OVERRIDE;
-		virtual uint32 GetTextLength() OVERRIDE;
-		virtual void GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& CaretPosition) OVERRIDE;
-		virtual void SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition CaretPosition) OVERRIDE;
-		virtual void GetTextInRange(const uint32 BeginIndex, const uint32 Length, FString& OutString) OVERRIDE;
-		virtual void SetTextInRange(const uint32 BeginIndex, const uint32 Length, const FString& InString) OVERRIDE;
-		virtual int32 GetCharacterIndexFromPoint(const FVector2D& Point) OVERRIDE;
-		virtual bool GetTextBounds(const uint32 BeginIndex, const uint32 Length, FVector2D& Position, FVector2D& Size) OVERRIDE;
-		virtual void GetScreenBounds(FVector2D& Position, FVector2D& Size) OVERRIDE;
-		virtual TSharedPtr<FGenericWindow> GetWindow() OVERRIDE;
-		virtual void BeginComposition() OVERRIDE;
-		virtual void UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength) OVERRIDE;
-		virtual void EndComposition() OVERRIDE;
+		virtual bool IsReadOnly() override;
+		virtual uint32 GetTextLength() override;
+		virtual void GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& CaretPosition) override;
+		virtual void SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition CaretPosition) override;
+		virtual void GetTextInRange(const uint32 BeginIndex, const uint32 Length, FString& OutString) override;
+		virtual void SetTextInRange(const uint32 BeginIndex, const uint32 Length, const FString& InString) override;
+		virtual int32 GetCharacterIndexFromPoint(const FVector2D& Point) override;
+		virtual bool GetTextBounds(const uint32 BeginIndex, const uint32 Length, FVector2D& Position, FVector2D& Size) override;
+		virtual void GetScreenBounds(FVector2D& Position, FVector2D& Size) override;
+		virtual TSharedPtr<FGenericWindow> GetWindow() override;
+		virtual void BeginComposition() override;
+		virtual void UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength) override;
+		virtual void EndComposition() override;
 
 	private:
 		TWeakPtr<SEditableText> OwningWidget;
@@ -279,57 +281,64 @@ protected:
 		}
 	};
 
-	/**
-	 * Gets the height of the largest character in the font
-	 *
-	 * @return  The fonts height
-	 */
-	virtual float GetFontHeight() const;
-
 public:
 	// BEGIN ITextEditorWidget interface
-	virtual void StartChangingText() OVERRIDE;
-	virtual void FinishChangingText() OVERRIDE;
-	virtual bool GetIsReadOnly() const OVERRIDE;
-	virtual void BackspaceChar() OVERRIDE;
-	virtual void DeleteChar() OVERRIDE;
-	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const OVERRIDE;
-	virtual void TypeChar( const int32 Character ) OVERRIDE;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, int8 Direction, ECursorAction::Type Action ) OVERRIDE;
-	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) OVERRIDE;
-	virtual void ClearSelection() OVERRIDE;
-	virtual void SelectAllText() OVERRIDE;
-	virtual FReply OnEscape() OVERRIDE;
-	virtual void OnEnter() OVERRIDE;
-	virtual bool CanExecuteCut() const OVERRIDE;
-	virtual void CutSelectedTextToClipboard() OVERRIDE;
-	virtual bool CanExecuteCopy() const OVERRIDE;
-	virtual void CopySelectedTextToClipboard() OVERRIDE;
-	virtual bool CanExecutePaste() const OVERRIDE;
-	virtual void PasteTextFromClipboard() OVERRIDE;
-	virtual bool CanExecuteUndo() const OVERRIDE;
-	virtual void Undo() OVERRIDE;
-	virtual void Redo() OVERRIDE;
+	virtual void StartChangingText() override;
+	virtual void FinishChangingText() override;
+	virtual bool GetIsReadOnly() const override;
+	virtual void BackspaceChar() override;
+	virtual void DeleteChar() override;
+	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const override;
+	virtual void TypeChar( const int32 Character ) override;
+	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) override;
+	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) override;
+	virtual void ClearSelection() override;
+	virtual void SelectAllText() override;
+	virtual bool SelectAllTextWhenFocused() override;
+	virtual void SelectWordAt(const FVector2D& LocalPosition) override;
+	virtual void BeginDragSelection() override;
+	virtual bool IsDragSelecting() const override;
+	virtual void EndDragSelection() override;
+	virtual bool AnyTextSelected() const override;
+	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const override;
+	virtual void SetWasFocusedByLastMouseDown( bool Value ) override;
+	virtual bool WasFocusedByLastMouseDown() const override;
+	virtual void SetHasDragSelectedSinceFocused( bool Value ) override;
+	virtual bool HasDragSelectedSinceFocused() const override;
+	virtual FReply OnEscape() override;
+	virtual void OnEnter() override;
+	virtual bool CanExecuteCut() const override;
+	virtual void CutSelectedTextToClipboard() override;
+	virtual bool CanExecuteCopy() const override;
+	virtual void CopySelectedTextToClipboard() override;
+	virtual bool CanExecutePaste() const override;
+	virtual void PasteTextFromClipboard() override;
+	virtual bool CanExecuteUndo() const override;
+	virtual void Undo() override;
+	virtual void Redo() override;
+	virtual TSharedRef< SWidget > GetWidget() override;
+	virtual void SummonContextMenu( const FVector2D& InLocation ) override;
+	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
 protected:
 	// BEGIN SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual FReply OnKeyChar( const FGeometry& MyGeometry,  const FCharacterEvent& InCharacterEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FVector2D ComputeDesiredSize() const override;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual FReply OnKeyChar( const FGeometry& MyGeometry,  const FCharacterEvent& InCharacterEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	// END SWidget interface
 
 protected:
@@ -348,12 +357,27 @@ protected:
 	/**
 	 * Determines which character was clicked on
 	 *
-	 * @param  InMyGeometry  Widget geometry
-	 * @param  InMouseEvent  Mouse button event
+	 * @param  InMyGeometry				Widget geometry
+	 * @param  InScreenCursorPosition	Click position (in screen space)
 	 *
 	 * @return  The clicked character index
 	 */
 	int32 FindClickedCharacterIndex( const FGeometry& InMyGeometry, const FVector2D& InScreenCursorPosition ) const;
+
+	/**
+	 * Determines which character was clicked on
+	 *
+	 * @param  InLocalCursorPosition	Click position (in local space)
+	 *
+	 * @return  The clicked character index
+	 */
+	int32 FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const;
+
+	/** Find the closest word boundary */
+	int32 ScanForWordBoundary( const int32 Location, int8 Direction ) const; 
+
+	/** Are we currently at the beginning of a word */
+	bool IsAtWordStart( const int32 Location ) const;
 
 	/**
 	 * Adds the specified undo state to the undo stack
@@ -376,24 +400,10 @@ protected:
 	 */
 	void MakeUndoState( SEditableText::FUndoState& OutUndoState );
 
-
-	/**
-	 * Loads text for editing, from our text attribute
-	 */
-	void LoadText();
-
 	/**
 	 * Saves edited text into our text attribute, if appropriate
 	 */
 	void SaveText();
-
-	/**
-	 * Summons a context menu that allows the user to perform certain text-related actions
-	 *
-	 * @param	InLocation	Screen space position to show the menu
-	 */
-	void SummonContextMenu( const FVector2D& InLocation );
-
 
 	/**
 	 * Executes action to delete selected text
@@ -431,13 +441,6 @@ protected:
 	 */
 	void OnWindowClosed(const TSharedRef<SWindow>&);
 
-	/** 
-	 * Calculate the width of the caret 
-	 * @param FontMaxCharHeight The height of the font to calculate the caret width for
-	 * @return The width of the caret (might be clamped for very small fonts)
-	 */
-	float CalculateCaretWidth(const float FontMaxCharHeight) const;
-
 private:
 	/** 
 	 * @return whether there is anything in the clipboard
@@ -457,6 +460,7 @@ private:
 	/** The text content for this editable text widget */
 	TAttribute< FText > Text;
 
+	/** The text content fot watermark/hinting what text to type here */
 	TAttribute< FText > HintText;
 
 	/** The font used to draw the text */
@@ -487,7 +491,7 @@ private:
 	TAttribute< bool > IsCaretMovedWhenGainFocus;
 	
 	/** Whether to select all text when the user clicks to give focus on the widget */
-	TAttribute< bool > SelectAllTextWhenFocused;
+	TAttribute< bool > bSelectAllTextWhenFocused;
 
 	/** Whether to allow the user to back out of changes when they press the escape key */
 	TAttribute< bool > RevertTextOnEscape;

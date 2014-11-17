@@ -180,7 +180,7 @@ struct FNodeDebugData
 private:
 	struct DebugItem
 	{
-		DebugItem(FString Data, bool bPoseSource) : DebugData(Data), bPoseSource(bPoseSource) {}
+		DebugItem(FString Data, bool bInPoseSource) : DebugData(Data), bPoseSource(bInPoseSource) {}
 		
 		// This node items debug text to display
 		FString DebugData;
@@ -201,7 +201,7 @@ private:
 public:
 	struct FFlattenedDebugData
 	{
-		FFlattenedDebugData(FString Line, float AbsWeight, int32 Indent, int32 ChainID, bool bPoseSource) : DebugLine(Line), AbsoluteWeight(AbsWeight), Indent(Indent), ChainID(ChainID), bPoseSource(bPoseSource){}
+		FFlattenedDebugData(FString Line, float AbsWeight, int32 InIndent, int32 InChainID, bool bInPoseSource) : DebugLine(Line), AbsoluteWeight(AbsWeight), Indent(InIndent), ChainID(InChainID), bPoseSource(bInPoseSource){}
 		FString DebugLine;
 		float	AbsoluteWeight;
 		int32	Indent;
@@ -211,8 +211,8 @@ public:
 		bool IsOnActiveBranch() { return AbsoluteWeight > ZERO_ANIMWEIGHT_THRESH; }
 	};
 
-	FNodeDebugData(const class UAnimInstance* AnimInstance) : AbsoluteWeight(1.f), AnimInstance(AnimInstance) {}
-	FNodeDebugData(const class UAnimInstance* AnimInstance, float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(AnimInstance) {}
+	FNodeDebugData(const class UAnimInstance* InAnimInstance) : AbsoluteWeight(1.f), AnimInstance(InAnimInstance) {}
+	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(InAnimInstance) {}
 
 	void			AddDebugItem(FString DebugData, bool bPoseSource = false);
 	FNodeDebugData&	BranchFlow(float BranchWeight);

@@ -2,7 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_Message.h"
 #define LOCTEXT_NAMESPACE "K2Node_Message"
 
 UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties& PCIP)
@@ -25,24 +26,6 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else
 	{
 		NodeName = NSLOCTEXT("K2Node", "InvalidMessageNode", "Invalid Message Node");
-	}
-
-	return NodeName;
-}
-
-FString UK2Node_Message::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString NodeName;
-	if (UFunction* Function = GetTargetFunction())
-	{
-		NodeName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
-		NodeName += FString(TEXT("\n"));
-		NodeName += FString::Printf(TEXT("Using Interface %s"), *(Function->GetOuterUClass()->GetName()));
-	}
-	else
-	{
-		NodeName = TEXT("Invalid Message Node");
 	}
 
 	return NodeName;

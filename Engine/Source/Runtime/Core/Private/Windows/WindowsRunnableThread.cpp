@@ -9,13 +9,12 @@ uint32 FRunnableThreadWin::GuardedRun()
 {
 	uint32 ExitCode = 1;
 
+	FPlatformProcess::SetThreadAffinityMask(ThreadAffintyMask);
+
 #if PLATFORM_XBOXONE
-	if( ThreadAffintyMask )
-	{
-		SetThreadAffinityMask(ThreadAffintyMask);
-	}
 	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
 #endif
+
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	if( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -56,14 +55,6 @@ uint32 FRunnableThreadWin::Run()
 	uint32 ExitCode = 1;
 	check(Runnable);
 
-#if PLATFORM_XBOXONE
-	if( ThreadAffintyMask )
-	{
-		SetThreadAffinityMask(ThreadAffintyMask);
-	}
-	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
-#endif
-
 	// Initialize the runnable object
 	if (Runnable->Init() == true)
 	{
@@ -80,23 +71,5 @@ uint32 FRunnableThreadWin::Run()
 		ThreadInitSyncEvent->Trigger();
 	}
 
-	// Should we delete the runnable?
-	if (bShouldDeleteRunnable == true)
-	{
-		delete Runnable;
-		Runnable = NULL;
-	}
-	// Clean ourselves up without waiting
-	if (bShouldDeleteSelf == true)
-	{
-		// Make sure the caller knows we want to delete this thread if we're still int CreateInternal.
-		WantsToDeleteSelf.Increment();
-		// Wait until the caller has finished setting up this thread in case Runnable execution was very short.
-		ThreadCreatedSyncEvent->Wait();
-		// Now clean up the thread handle so we don't leak
-		CloseHandle(Thread);
-		Thread = NULL;
-		delete this;
-	}
 	return ExitCode;
 }

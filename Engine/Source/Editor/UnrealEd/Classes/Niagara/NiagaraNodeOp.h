@@ -13,9 +13,9 @@ class UNiagaraNodeOp : public UNiagaraNode
 	uint8 OpIndex;
 
 	// Begin EdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 	// End EdGraphNode interface
 
 	/** Names to use for each input pin. */

@@ -6,8 +6,8 @@ class FAssetTypeActions_InstancedFoliageSettings : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_InstancedFoliageSettings", "Foliage Settings"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(128,192,255); }
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_InstancedFoliageSettings", "Foliage Settings"); }
+	virtual FColor GetTypeColor() const override { return FColor(128,192,255); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
 };

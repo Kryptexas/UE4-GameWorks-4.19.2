@@ -23,7 +23,8 @@ public class OnlineSubsystemGooglePlay : ModuleRules
                 "Sockets",
 				"OnlineSubsystem", 
                 "Http",
-				"AndroidRuntimeSettings"
+				"AndroidRuntimeSettings",
+				"Launch"
             }
 			);
 	}

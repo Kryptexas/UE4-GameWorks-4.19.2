@@ -173,13 +173,18 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 	// Unbind any dangling references to resources
 	D3DRHI->ClearState();
 
+	if (IsValidRef(CustomPresent))
+	{
+		CustomPresent->OnBackBufferResize();
+	}
+
 	// Release our backbuffer reference, as required by DXGI before calling ResizeBuffers.
 	if (IsValidRef(BackBuffer))
 	{
 		check(BackBuffer->GetRefCount() == 1);
 
 		// IUnknown is GONE from Mono Drivers, and is replaced with IGraphicsUnknown, making this incompatible (no COM)
-#ifndef USE_MONOLITHIC_GRAPHICS_DRIVERS
+#ifndef PLATFORM_XBOXONE
 		checkComRefCount(BackBuffer->GetResource(),1);
 		checkComRefCount(BackBuffer->GetRenderTargetView(0, -1),1);
 		checkComRefCount(BackBuffer->GetShaderResourceView(),1);
@@ -202,7 +207,10 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 		{
 			DXGI_MODE_DESC BufferDesc = SetupDXGI_MODE_DESC();
 
-			VERIFYD3D11RESULT_EX(SwapChain->ResizeTarget(&BufferDesc), D3DRHI->GetDevice());
+			if (FAILED(SwapChain->ResizeTarget(&BufferDesc)))
+			{
+				ConditionalResetSwapChain(true);
+			}
 		}
 	}
 
@@ -231,10 +239,19 @@ static bool IsCompositionEnabled()
 }
 
 /** Presents the swap chain checking the return result. */
-void FD3D11Viewport::PresentChecked(int32 SyncInterval)
+bool FD3D11Viewport::PresentChecked(int32 SyncInterval)
 {
-	// Present the back buffer to the viewport window.
-	HRESULT Result = SwapChain->Present(SyncInterval, 0);
+	HRESULT Result = S_OK;
+	bool bNeedNativePresent = true;
+	if (IsValidRef(CustomPresent))
+	{
+		bNeedNativePresent = CustomPresent->Present(SyncInterval);
+	}
+	if (bNeedNativePresent)
+	{
+		// Present the back buffer to the viewport window.
+		Result = SwapChain->Present(SyncInterval, 0);
+	}
 
 	// Detect a lost device.
 	if(Result == DXGI_ERROR_DEVICE_REMOVED || Result == DXGI_ERROR_DEVICE_RESET || Result == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
@@ -246,6 +263,7 @@ void FD3D11Viewport::PresentChecked(int32 SyncInterval)
 	{
 		VERIFYD3D11RESULT(Result);
 	}
+	return bNeedNativePresent;
 }
 
 /** Blocks the CPU to synchronize with vblank by communicating with DWM. */
@@ -378,8 +396,9 @@ void FD3D11Viewport::PresentWithVsyncDWM()
 #endif	//D3D11_WITH_DWMAPI
 }
 
-void FD3D11Viewport::Present(bool bLockToVsync)
+bool FD3D11Viewport::Present(bool bLockToVsync)
 {
+	bool bNativelyPresented = true;
 #if	D3D11_WITH_DWMAPI
 	// We can't call Present if !bIsValid, as it waits a window message to be processed, but the main thread may not be pumping the message handler.
 	if(bIsValid)
@@ -413,8 +432,9 @@ void FD3D11Viewport::Present(bool bLockToVsync)
 #endif	//D3D11_WITH_DWMAPI
 	{
 		// Present the back buffer to the viewport window.
-		PresentChecked(bLockToVsync ? RHIConsoleVariables::SyncInterval : 0);
+		bNativelyPresented = PresentChecked(bLockToVsync ? RHIConsoleVariables::SyncInterval : 0);
 	}
+	return bNativelyPresented;
 }
 
 /*=============================================================================
@@ -465,7 +485,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	DrawingViewport = Viewport;
 
 	// Set the render target and viewport.
-	if( !IsValidRef( RenderTarget ) )
+	if( RenderTarget == NULL )
 	{
 		RenderTarget = Viewport->GetBackBuffer();
 	}
@@ -512,27 +532,42 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	StateCache.SetDomainShader(nullptr);
 	StateCache.SetGeometryShader(nullptr);
 	// Compute Shader is set to NULL after each Dispatch call, so no need to clear it here
+#if STATS
+	SET_CYCLE_COUNTER(STAT_D3D11CommitResourceTables, CommitResourceTableCycles);
+	SET_CYCLE_COUNTER(STAT_D3D11CacheResourceTables, CacheResourceTableCycles);
+	SET_CYCLE_COUNTER(STAT_D3D11SetShaderTextureTime, SetShaderTextureCycles);
+	INC_DWORD_STAT_BY(STAT_D3D11SetShaderTextureCalls, SetShaderTextureCalls);
+	INC_DWORD_STAT_BY(STAT_D3D11CacheResourceTableCalls, CacheResourceTableCalls);
+	INC_DWORD_STAT_BY(STAT_D3D11SetTextureInTableCalls, SetTextureInTableCalls);
+#endif
 
-	if(bPresent)
-	{
-		Viewport->Present(bLockToVsync);
-	}
+	CommitResourceTableCycles = 0;
+	CacheResourceTableCalls = 0;
+	CacheResourceTableCycles = 0;
+	SetShaderTextureCycles = 0;
+	SetShaderTextureCalls = 0;
+	SetTextureInTableCalls = 0;
+
+	bool bNativelyPresented = Viewport->Present(bLockToVsync);
 
 	// Don't wait on the GPU when using SLI, let the driver determine how many frames behind the GPU should be allowed to get
 	if (GNumActiveGPUsForRendering == 1)
 	{
-		static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
-		if (!CFinishFrameVar->GetValueOnRenderThread())
-		{
-			// Wait for the GPU to finish rendering the previous frame before finishing this frame.
-			Viewport->WaitForFrameEventCompletion();
-			Viewport->IssueFrameEvent();
-		}
-		else
-		{
-			// Finish current frame immediately to reduce latency
-			Viewport->IssueFrameEvent();
-			Viewport->WaitForFrameEventCompletion();
+		if (bNativelyPresented)
+		{ 
+			static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
+			if (!CFinishFrameVar->GetValueOnRenderThread())
+			{
+				// Wait for the GPU to finish rendering the previous frame before finishing this frame.
+				Viewport->WaitForFrameEventCompletion();
+				Viewport->IssueFrameEvent();
+			}
+			else
+			{
+				// Finish current frame immediately to reduce latency
+				Viewport->IssueFrameEvent();
+				Viewport->WaitForFrameEventCompletion();
+			}
 		}
 
 		// If the input latency timer has been triggered, block until the GPU is completely

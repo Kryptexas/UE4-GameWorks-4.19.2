@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "RenderResource.h"
 
 class FRawIndexBuffer : public FIndexBuffer
 {
@@ -20,7 +20,7 @@ public:
 	void CacheOptimize();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer& I);
@@ -45,7 +45,7 @@ public:
 	void CacheOptimize();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer16or32& I);
@@ -167,7 +167,7 @@ public:
 	void Serialize(FArchive& Ar, bool bNeedsCPUAccess);
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	inline bool Is32Bit() const { return b32Bit; }
 
@@ -214,20 +214,21 @@ public:
 	:	Indices(InNeedsCPUAccess)
 	{
 #if DISALLOW_32BIT_INDICES
-		checkAtCompileTime( sizeof(INDEX_TYPE) == sizeof(uint16), DISALLOW_32BIT_INDICESIsDefinedDoNotUse32BitIndices );
+		static_assert(sizeof(INDEX_TYPE) == sizeof(uint16), "DISALLOW_32BIT_INDICES is defined, so you should not use 32-bit indices.");
 #endif
 	}
 
 	/**
 	* Create the index buffer RHI resource and initialize its data
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		uint32 Size = Indices.Num() * sizeof(INDEX_TYPE);
 		if(Indices.Num())
 		{
 			// Create the index buffer.
-			IndexBufferRHI = RHICreateIndexBuffer(sizeof(INDEX_TYPE),Size,&Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(sizeof(INDEX_TYPE),Size,BUF_Static,CreateInfo);
 		}    
 	}
 

@@ -72,10 +72,12 @@ public:
 	SLATE_END_ARGS()
 
 
-	void Construct( const FArguments& InArgs, TSharedRef< class ISequencerInternals > InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
+	~SSequencer();
+
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	/** Updates the layout node tree from movie scene data */
 	void UpdateLayoutTree();
@@ -104,6 +106,9 @@ private:
 	 */
 	void OnAutoKeyChecked( ESlateCheckBoxState::Type InState );	
 	
+	/** @return The visibility of the clean view button */
+	EVisibility OnGetCleanViewVisibility() const;
+
 	/**
 	 * @return The state of the auto-key check box
 	 */
@@ -139,11 +144,11 @@ private:
 
 	/** SWidget interface */
 	/** @todo Sequencer Basic drag and drop support.  Doesn't belong here most likely */
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 	/**
 	 * Called when one or more assets are dropped into the widget
@@ -198,5 +203,5 @@ private:
 	/** Whether the clean sequencer view is enabled */
 	TAttribute<bool> CleanViewEnabled;
 	/** The main sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };

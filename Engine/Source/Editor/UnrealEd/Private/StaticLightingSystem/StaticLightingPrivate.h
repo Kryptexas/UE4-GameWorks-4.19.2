@@ -9,6 +9,8 @@
 // Includes.
 #include "ChunkedArray.h"
 #include "GenericOctree.h"
+#include "StaticLighting.h"
+#include "LightingBuildOptions.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogStaticLightingSystem, Log, All);
 

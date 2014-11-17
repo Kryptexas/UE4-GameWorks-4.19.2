@@ -13,6 +13,7 @@
 
 #define LOCTEXT_NAMESPACE "PropertyEditorToolkit"
 
+const FName FPropertyEditorToolkit::ToolkitFName( TEXT( "PropertyEditor" ) );
 const FName FPropertyEditorToolkit::ApplicationId( TEXT( "PropertyEditorToolkitApp" ) );
 const FName FPropertyEditorToolkit::TreeTabId( TEXT( "PropertyEditorToolkit_PropertyTree" ) );
 const FName FPropertyEditorToolkit::GridTabId( TEXT( "PropertyEditorToolkit_PropertyTable" ) );
@@ -46,8 +47,33 @@ FPropertyEditorToolkit::FPropertyEditorToolkit()
 }
 
 
+TSharedPtr<FPropertyEditorToolkit> FPropertyEditorToolkit::FindExistingEditor( UObject* Object )
+{
+	// Find any existing property editor instances for this asset
+	const TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset( Object );
+
+	IAssetEditorInstance* const * ExistingInstance = Editors.FindByPredicate( [&]( IAssetEditorInstance* Editor ){
+		return Editor->GetEditorName() == ToolkitFName;
+	} );
+
+	if( ExistingInstance )
+	{
+		auto* PropertyEditor = static_cast<FPropertyEditorToolkit*>( *ExistingInstance );
+		return PropertyEditor->SharedThis( PropertyEditor );
+	}
+
+	return nullptr;
+}
+
 TSharedRef<FPropertyEditorToolkit> FPropertyEditorToolkit::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
 {
+	auto ExistingEditor = FindExistingEditor( ObjectToEdit );
+	if( ExistingEditor.IsValid() )
+	{
+		ExistingEditor->FocusWindow();
+		return ExistingEditor.ToSharedRef();
+	}
+
 	TSharedRef< FPropertyEditorToolkit > NewEditor( new FPropertyEditorToolkit() );
 
 	TArray<UObject*> ObjectsToEdit;
@@ -60,6 +86,16 @@ TSharedRef<FPropertyEditorToolkit> FPropertyEditorToolkit::CreateEditor( const E
 
 TSharedRef<FPropertyEditorToolkit> FPropertyEditorToolkit::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit )
 {
+	if( ObjectsToEdit.Num() == 1 )
+	{
+		auto ExistingEditor = FindExistingEditor( ObjectsToEdit[0] );
+		if( ExistingEditor.IsValid() )
+		{
+			ExistingEditor->FocusWindow();
+			return ExistingEditor.ToSharedRef();
+		}
+	}
+
 	TSharedRef< FPropertyEditorToolkit > NewEditor( new FPropertyEditorToolkit() );
 	NewEditor->Initialize( Mode, InitToolkitHost, ObjectsToEdit );
 
@@ -444,7 +480,7 @@ void FPropertyEditorToolkit::GridRootPathChanged()
 
 FName FPropertyEditorToolkit::GetToolkitFName() const
 {
-	return FName("PropertyEditor");
+	return ToolkitFName;
 }
 
 FText FPropertyEditorToolkit::GetBaseToolkitName() const

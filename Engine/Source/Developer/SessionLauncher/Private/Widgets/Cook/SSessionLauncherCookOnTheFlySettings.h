@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherCookOnTheFlySettings.h: Declares the SSessionLauncherCookOnTheFlySettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherCookOnTheFlySettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -26,17 +21,15 @@ public:
 	 */
 	~SSessionLauncherCookOnTheFlySettings( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 private:
 
@@ -51,7 +44,6 @@ private:
 
 	// Callback for determining the visibility of a validation error icon.
 	EVisibility HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const;
-
 
 private:
 

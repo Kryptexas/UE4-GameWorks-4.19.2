@@ -2,6 +2,13 @@
 
 #include "AutomationControllerPrivatePCH.h"
 
+
+namespace AutomationControllerConstants
+{
+	const FString HistoryConfigSectionName = TEXT("AutomationController.History");
+}
+
+
 void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& SessionId )
 {
 	//invalidate previous tests
@@ -118,6 +125,16 @@ void FAutomationControllerManager::Init()
 {
 	AutomationTestState = EAutomationControllerModuleState::Disabled;
 	bTestResultsAvailable = false;
+	bScreenshotsEnabled = true;
+	bRequestFullScreenScreenshots = false;
+
+	// Update the ini with the settings
+	bTrackHistory = false;
+	GConfig->GetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
+
+	// Default num of items to track
+	NumberOfHistoryItemsTracked = 5;
+	GConfig->GetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
 }
 
 
@@ -158,6 +175,9 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 				if ( ClusterDistributionMask == 0 )
 				{
 					ProcessResults();
+
+					//Notify the graphical layout we are done processing results.
+					TestsCompleteDelegate.ExecuteIfBound();
 				}
 			}
 		}
@@ -212,7 +232,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FMessageAddress DeviceAddress = DeviceAddresses[AddressIndex];
 
 							// Send the test to the device for execution!
-							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand()), DeviceAddress);
+							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), bScreenshotsEnabled, bRequestFullScreenScreenshots), DeviceAddress);
 
 							// Add a test so we can check later if the device is still active
 							TestRunningArray.Add( FTestRunningInfo( DeviceAddress ) );
@@ -286,6 +306,10 @@ void FAutomationControllerManager::Startup()
 
 	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
+
+	//Default to machine name
+	DeviceGroupFlags = 0;
+	ToggleDeviceGroupFlag(EAutomationDeviceGroupTypes::MachineName);
 }
 
 
@@ -302,6 +326,7 @@ void FAutomationControllerManager::RemoveCallbacks()
 	ShutdownDelegate.Unbind();
 	TestsAvailableDelegate.Unbind();
 	TestsRefreshedDelegate.Unbind();
+	TestsCompleteDelegate.Unbind();
 }
 
 
@@ -335,6 +360,9 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 	if (RefreshTestResponses == DeviceClusterManager.GetNumClusters())
 	{
 		TestsRefreshedDelegate.ExecuteIfBound();
+
+		// Update the tests with tracking details
+		ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
 	}
 }
 
@@ -529,7 +557,6 @@ bool FAutomationControllerManager::IsTestRunnable( IAutomationReportPtr InReport
 	return bIsRunnable;
 }
 
-
 /* FAutomationControllerModule callbacks
  *****************************************************************************/
 
@@ -537,7 +564,7 @@ void FAutomationControllerManager::HandleFindWorkersResponseMessage( const FAuto
 {
 	if (Message.SessionId == ActiveSessionId)
 	{
-		DeviceClusterManager.Add(Context->GetSender(), Message.Platform, Message.InstanceName);
+		DeviceClusterManager.AddDeviceFromMessage(Context->GetSender(), Message, DeviceGroupFlags);
 	}
 
 	RequestTests();
@@ -651,4 +678,47 @@ void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomation
 {
 	FMessageAddress DeviceMessageAddress = Context->GetSender();
 	DeviceClusterManager.Remove(DeviceMessageAddress);
+}
+
+bool FAutomationControllerManager::IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const
+{
+	const uint32 FlagMask = 1 << InDeviceGroup;
+	return (DeviceGroupFlags & FlagMask) > 0;
+}
+
+void FAutomationControllerManager::ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup )
+{
+	const uint32 FlagMask = 1 << InDeviceGroup;
+	DeviceGroupFlags = DeviceGroupFlags ^ FlagMask;
+}
+
+void FAutomationControllerManager::UpdateDeviceGroups( )
+{
+	DeviceClusterManager.ReGroupDevices( DeviceGroupFlags );
+
+	// Update the reports in case the number of clusters changed
+	int32 NumOfClusters = DeviceClusterManager.GetNumClusters();
+	ReportManager.ClustersUpdated(NumOfClusters);
+}
+
+void FAutomationControllerManager::TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
+{
+	bTrackHistory = bShouldTrack;
+	NumberOfHistoryItemsTracked = NumReportsToTrack;
+
+	// Update the ini with the settings
+	GConfig->SetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
+	GConfig->SetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
+
+	ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
+}
+
+const bool FAutomationControllerManager::IsTrackingHistory() const
+{
+	return bTrackHistory;
+}
+
+const int32 FAutomationControllerManager::GetNumberHistoryItemsTracking() const
+{
+	return NumberOfHistoryItemsTracked;
 }

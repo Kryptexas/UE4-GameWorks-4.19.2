@@ -62,8 +62,6 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		}
 		else if (GraphNode->IsA(UK2Node_StructMemberSet::StaticClass()))
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("VariableName"), StructOp->GetVarNameText());
 			TitleText = FText::Format(NSLOCTEXT("GraphEditor", "StructMemberSet", "Set in {VariableName}"), Args);
 		}
 		else if (GraphNode->IsA(UK2Node_MakeStruct::StaticClass()))

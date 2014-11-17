@@ -26,7 +26,7 @@ public:
 	 *
 	 * @return true if the handler consumed the input, false to continue searching handlers
 	 */
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	/** 
 	 * Exec command handlers
@@ -142,13 +142,13 @@ private:
 	 * Called when Http module is loaded
 	 * Initialize platform specific parts of Http handling
 	 */
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 	
 	/**
 	 * Called when Http module is unloaded
 	 * Shutdown platform specific parts of Http handling
 	 */
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
 
 	/** Keeps track of Http requests while they are being processed */

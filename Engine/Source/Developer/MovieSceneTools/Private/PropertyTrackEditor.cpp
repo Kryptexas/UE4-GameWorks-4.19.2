@@ -21,51 +21,7 @@
 #include "MovieSceneToolHelpers.h"
 #include "PropertyTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-
-/**
- * A generic implementation for displaying simple property sections
- */
-class FPropertySection : public ISequencerSection
-{
-public:
-	FPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: SectionObject( InSectionObject )
-	{
-		DisplayName = FName::NameToDisplayString( SectionName.ToString(), false );
-	}
-
-	/** ISequencerSection interface */
-	virtual UMovieSceneSection* GetSectionObject() OVERRIDE { return &SectionObject; }
-
-	virtual FString GetDisplayName() const OVERRIDE
-	{
-		return DisplayName;
-	}
-	
-	virtual FString GetSectionTitle() const OVERRIDE { return FString(); }
-
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE {}
-
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
-	{
-		// Add a box for the section
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect
-		);
-
-		return LayerId;
-	}
-	
-protected:
-	/** Display name of the section */
-	FString DisplayName;
-	/** The section we are visualizing */
-	UMovieSceneSection& SectionObject;
-};
+#include "PropertySection.h"
 
 /**
  * A color section implementation
@@ -76,17 +32,17 @@ public:
 	FColorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>(&SectionObject);
 
-		LayoutBuilder.AddKeyArea("R", TEXT("Red"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetRedCurve())));
-		LayoutBuilder.AddKeyArea("G", TEXT("Green"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetGreenCurve())));
-		LayoutBuilder.AddKeyArea("B", TEXT("Blue"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetBlueCurve())));
-		LayoutBuilder.AddKeyArea("A", TEXT("Alpha"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
+		LayoutBuilder.AddKeyArea("R", NSLOCTEXT("FColorPropertySection", "RedArea", "Red"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetRedCurve())));
+		LayoutBuilder.AddKeyArea("G", NSLOCTEXT("FColorPropertySection", "GreenArea", "Green"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetGreenCurve())));
+		LayoutBuilder.AddKeyArea("B", NSLOCTEXT("FColorPropertySection", "BlueArea", "Blue"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetBlueCurve())));
+		LayoutBuilder.AddKeyArea("A", NSLOCTEXT("FColorPropertySection", "OpacityArea", "Opacity"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		const UMovieSceneColorSection* ColorSection = Cast<const UMovieSceneColorSection>(&SectionObject);
 
@@ -198,7 +154,7 @@ public:
 	FFloatPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>( &SectionObject );
 		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FFloatCurveKeyArea( FloatSection->GetFloatCurve() ) ) );
@@ -214,18 +170,22 @@ public:
 	FVectorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneVectorSection* VectorSection = Cast<UMovieSceneVectorSection>( &SectionObject );
 		int32 ChannelsUsed = VectorSection->GetChannelsUsed();
 		check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
 
-		LayoutBuilder.AddKeyArea("Vector.X", TEXT("X"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(0))));
-		LayoutBuilder.AddKeyArea("Vector.Y", TEXT("Y"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(1))));
+		LayoutBuilder.AddKeyArea("Vector.X", NSLOCTEXT("FVectorPropertySection", "XArea", "X"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(0))));
+		LayoutBuilder.AddKeyArea("Vector.Y", NSLOCTEXT("FVectorPropertySection", "YArea", "Y"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(1))));
 		if (ChannelsUsed >= 3)
-		{LayoutBuilder.AddKeyArea("Vector.Z", TEXT("Z"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(2))));}
+		{
+			LayoutBuilder.AddKeyArea("Vector.Z", NSLOCTEXT("FVectorPropertySection", "ZArea", "Z"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(2))));
+		}
 		if (ChannelsUsed >= 4)
-		{LayoutBuilder.AddKeyArea("Vector.W", TEXT("W"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(3))));}
+		{
+			LayoutBuilder.AddKeyArea("Vector.W", NSLOCTEXT("FVectorPropertySection", "WArea", "W"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(3))));
+		}
 	}
 };
 
@@ -238,13 +198,13 @@ public:
 	FBoolPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
 		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FIntegralKeyArea( BoolSection->GetCurve() ) ) );
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 
@@ -305,10 +265,13 @@ FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	// Get the object change listener for the sequencer and register a delegates for when properties change that we care about
 	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UFloatProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UBoolProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_FloatProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_BoolProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector4 ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector2D ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Color ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_LinearColor ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
 }
 
 FPropertyTrackEditor::~FPropertyTrackEditor()
@@ -317,9 +280,13 @@ FPropertyTrackEditor::~FPropertyTrackEditor()
 	if( Sequencer.IsValid() )
 	{
 		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UFloatProperty::StaticClass() ).RemoveAll( this );
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UBoolProperty::StaticClass() ).RemoveAll( this );
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).RemoveAll( this );
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_FloatProperty).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_BoolProperty).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector4).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector2D).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Color).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_LinearColor).RemoveAll(this);
 	}
 }
 
@@ -487,11 +454,10 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 	{
 		UObject* Object = InObjectsThatChanged[ObjectIndex];
 
-		if( Object )
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			bool bTrackExists = TrackForObjectExists(Object, TrackType::StaticClass(), PropertyName);
-
-			UMovieSceneTrack* Track = GetTrackForObject( Object, TrackType::StaticClass(), PropertyName );
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, TrackType::StaticClass(), PropertyName );
 			if( ensure( Track ) )
 			{
 				TrackType* TypedTrack = CastChecked<TrackType>(Track);
@@ -499,7 +465,7 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, *Value );
-				if (bSuccessfulAdd && (bAutoKeying || bTrackExists))
+				if (bSuccessfulAdd)
 				{
 					TypedTrack->SetAsShowable();
 				}
@@ -507,3 +473,4 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 		}
 	}
 }
+

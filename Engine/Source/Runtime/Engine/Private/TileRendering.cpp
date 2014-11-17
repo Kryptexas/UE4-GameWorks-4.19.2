@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "TileRendering.h"
+#include "EngineModule.h"
 
 /** 
 * vertex data for a screen quad 
@@ -41,12 +42,13 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	void InitRHI()
+	virtual void InitRHI() override
 	{
 		// used with a tristrip, so only 4 vertices are needed
 		uint32 Size = 4 * sizeof(FMaterialTileVertex);
 		// create vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(Size,NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		// lock it
 		void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
         	// first vertex element
@@ -106,7 +108,7 @@ public:
 	/** The mesh element. */
 	FMeshBatch MeshElement;
 
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 		MeshElement.VertexFactory = &GTileVertexFactory;
@@ -122,22 +124,32 @@ public:
 		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		MeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
 	}
 };
 TGlobalResource<FTileMesh> GTileMesh;
 
-void FTileRenderer::DrawTile(const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId)
+void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId)
 {
 	FMaterialTileVertex DestVertex[4];
 
 	// create verts
-	DestVertex[0].Initialize(X + SizeX, Y, U + SizeU, V);
-	DestVertex[1].Initialize(X, Y, U, V);
-	DestVertex[2].Initialize(X + SizeX, Y + SizeY, U + SizeU, V + SizeV);
-	DestVertex[3].Initialize(X, Y + SizeY, U, V + SizeV);
+	if ((IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform)))
+	{
+		DestVertex[0].Initialize(X + SizeX, View.ViewRect.Height() - (Y + SizeY), U + SizeU, V + SizeV);
+		DestVertex[1].Initialize(X, View.ViewRect.Height() - (Y + SizeY), U, V + SizeV);
+		DestVertex[2].Initialize(X + SizeX, View.ViewRect.Height() - Y, U + SizeU, V);
+		DestVertex[3].Initialize(X, View.ViewRect.Height() - Y, U, V);
+	}
+	else
+	{
+		DestVertex[0].Initialize(X + SizeX, Y, U + SizeU, V);
+		DestVertex[1].Initialize(X, Y, U, V);
+		DestVertex[2].Initialize(X + SizeX, Y + SizeY, U + SizeU, V + SizeV);
+		DestVertex[3].Initialize(X, Y + SizeY, U, V + SizeV);
+	}
 
 	// update the FMeshBatch
 	FMeshBatch& Mesh = GTileMesh.MeshElement;
@@ -145,5 +157,5 @@ void FTileRenderer::DrawTile(const class FSceneView& View, const FMaterialRender
 	Mesh.DynamicVertexData = DestVertex;
 	Mesh.MaterialRenderProxy = MaterialRenderProxy;
 
-	GetRendererModule().DrawTileMesh(View, Mesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
 }

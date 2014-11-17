@@ -7,6 +7,10 @@
 #ifndef _INC_ENGINE_UTILS
 #define _INC_ENGINE_UTILS
 
+#include "Engine/Level.h"
+#include "GameFramework/WorldSettings.h"
+#include "HitProxies.h"
+
 /*-----------------------------------------------------------------------------
 	Hit proxies.
 -----------------------------------------------------------------------------*/
@@ -25,10 +29,10 @@ struct HActor : public HHitProxy
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 MaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InMaterialIndex)
 		: Actor( InActor )
 		, PrimComponent( InPrimComponent )
-		, MaterialIndex( MaterialIndex )
+		, MaterialIndex( InMaterialIndex )
 		{}
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority) 
@@ -38,14 +42,14 @@ struct HActor : public HHitProxy
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 MaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InMaterialIndex)
 		: HHitProxy(InPriority)
 		, Actor(InActor)
 		, PrimComponent(InPrimComponent)
-		, MaterialIndex(MaterialIndex)
+		, MaterialIndex(InMaterialIndex)
 		{}
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
 
@@ -73,7 +77,7 @@ struct HBSPBrushVert : public HHitProxy
 		Brush(InBrush),
 		Vertex(InVertex)
 	{}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		//@todo: Brush Hit proxies are currently referencing between UWorld's (undesired), 
 		// once this issue is resolved remove the TWeakObjectPtr and replace with Standard ABrush*.
@@ -96,31 +100,10 @@ struct HStaticMeshVert : public HHitProxy
 		Actor(InActor),
 		Vertex(InVertex)
 	{}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
 	}
-};
-
-//
-//	HSplineProxy
-//
-
-struct HSplineProxy : public HHitProxy
-{
-	DECLARE_HIT_PROXY( ENGINE_API );
-
-	class USplineComponent* SplineComp;
-
-	HSplineProxy(class USplineComponent* InSplineComp):
-		HHitProxy(HPP_World),
-		SplineComp(InSplineComp)
-	{}
-	virtual EMouseCursor::Type GetMouseCursor()
-	{
-		return EMouseCursor::Crosshairs;
-	}	
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
 };
 
 // Hit an actor even with translucency
@@ -428,8 +411,8 @@ public:
 	/**
 	 * Constructor, inits the starting position for iteration
 	 */
-	TActorIterator( UWorld* InWorld )
-		: TActorIteratorBase< FActorFilter >( InWorld, ActorType::StaticClass() )
+	TActorIterator( UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass() )
+		: TActorIteratorBase< FActorFilter >( InWorld, InClass )
 	{
 		++(*this);
 	}
@@ -556,7 +539,7 @@ public:
 /**
  * An output device that forwards output to both the log and the console.
  */
-class FConsoleOutputDevice : public FStringOutputDevice
+class ENGINE_API FConsoleOutputDevice : public FStringOutputDevice
 {
 public:
 
@@ -568,7 +551,7 @@ public:
 		Console(InConsole)
 	{}
 
-	virtual void Serialize(const TCHAR* Text, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE;
+	virtual void Serialize(const TCHAR* Text, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 
 private:
 
@@ -587,10 +570,23 @@ private:
  *	@param ViewLocation	Location of camera
  *	@param ViewRotation	Rotation of camera
  */
-ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
+ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<struct FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
 
-/** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
-void GetLevelStreamingStatus( UWorld* InWorld, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName );
+/** SubLevel status information */
+struct FSubLevelStatus
+{
+	FName				PackageName;
+	EStreamingStatus	StreamingStatus;
+	int32				LODIndex;
+	bool				bPlayerInside;
+};
+
+/**
+ *	Gathers SubLevels status from a provided world
+ *	@param InWorld		World to gather sublevels stats from
+ *	@return				sublevels status (streaming state, LOD index, where player is)
+ */
+TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* InWorld );
 
 #if !UE_BUILD_SHIPPING
 
@@ -671,8 +667,14 @@ protected:
 
 namespace EngineUtils
 {
+	enum EAssetToLoad
+	{
+		ATL_Regular,
+		ATL_Class,
+	};
+
 	/** Loads all the assets found in the specified path and subpaths */
-	ENGINE_API bool FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets);
+	ENGINE_API bool FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets, EAssetToLoad Type);
 }
 
 /** Helper class for serializing flags describing which data have been stripped (if any). */

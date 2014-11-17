@@ -148,7 +148,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 	TitleBarEnabledOnly = InArgs._TitleBarEnabledOnly;
 	TitleBar	= InArgs._TitleBar;
 	bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
-	bShowPIENotification = InArgs._ShowPIENotification;
+	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
 
 	OnNavigateHistoryBack = InArgs._OnNavigateHistoryBack;
 	OnNavigateHistoryForward = InArgs._OnNavigateHistoryForward;
@@ -241,7 +241,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnSpawnNodeByShortcut( InArgs._GraphEvents.OnSpawnNodeByShortcut )
 			.OnUpdateGraphPanel( this, &SGraphEditorImpl::GraphEd_OnPanelUpdated )
 			.OnDisallowedPinConnection( InArgs._GraphEvents.OnDisallowedPinConnection )
-			.ShowPIENotification( InArgs._ShowPIENotification )
+			.ShowGraphStateOverlay(InArgs._ShowGraphStateOverlay)
 		]
 
 		// Indicator of current zoom level
@@ -317,7 +317,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 
 EVisibility SGraphEditorImpl::PIENotification( ) const
 {
-	if (bShowPIENotification && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
+	if(ShowGraphStateOverlay.Get() && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
 	{
 		return EVisibility::Visible;
 	}
@@ -339,7 +339,7 @@ void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InC
 	// If locked to another graph editor, and our panel has moved, synchronise the locked graph editor accordingly
 	if ((EdGraphObj != NULL) && GraphPanel.IsValid())
 	{
-		if(GraphPanel->HasMoved() && LockedGraph.IsValid())
+		if(GraphPanel->HasMoved() && IsLocked())
 		{
 			FocusLockedEditorHere();
 		}
@@ -357,7 +357,7 @@ bool SGraphEditorImpl::GraphEd_OnGetGraphEnabled() const
 	return !bTitleBarOnly;
 }
 
-FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2D& NodeAddPosition, UEdGraphNode* InGraphNode, UEdGraphPin* InGraphPin, const TArray<UEdGraphPin*>& InDragFromPins )
+FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo)
 {
 	if (EdGraphObj != NULL)
 	{
@@ -365,9 +365,9 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 		check(Schema);
 			
 		// Cache the pin this menu is being brought up for
-		GraphPinForMenu = InGraphPin;
+		GraphPinForMenu = SpawnInfo.GraphPin;
 
-		if ((InGraphPin != NULL) || (InGraphNode != NULL))
+		if ((SpawnInfo.GraphPin != NULL) || (SpawnInfo.GraphNode != NULL))
 		{
 			// Get all menu extenders for this context menu from the graph editor module
 			FGraphEditorModule& GraphEditorModule = FModuleManager::GetModuleChecked<FGraphEditorModule>( TEXT("GraphEditor") );
@@ -378,7 +378,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 			{
 				if (MenuExtenderDelegates[i].IsBound())
 				{
-					Extenders.Add(MenuExtenderDelegates[i].Execute(this->Commands.ToSharedRef(), EdGraphObj, InGraphNode, InGraphPin, !IsEditable.Get()));
+					Extenders.Add(MenuExtenderDelegates[i].Execute(this->Commands.ToSharedRef(), EdGraphObj, SpawnInfo.GraphNode, SpawnInfo.GraphPin, !IsEditable.Get()));
 				}
 			}
 			TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
@@ -386,7 +386,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 			// Show the menu for the pin or node under the cursor
 			const bool bShouldCloseAfterAction = true;
 			FMenuBuilder MenuBuilder( bShouldCloseAfterAction, this->Commands, MenuExtender );
-			Schema->GetContextMenuActions(EdGraphObj, InGraphNode, InGraphPin, &MenuBuilder, !IsEditable.Get());
+			Schema->GetContextMenuActions(EdGraphObj, SpawnInfo.GraphNode, SpawnInfo.GraphPin, &MenuBuilder, !IsEditable.Get());
 
 			return FActionMenuContent(MenuBuilder.MakeWidget());
 		}
@@ -400,8 +400,8 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 				{
 					Content = OnCreateActionMenu.Execute(
 						EdGraphObj, 
-						NodeAddPosition, 
-						InDragFromPins, 
+						SpawnInfo.NodeAddPosition,
+						SpawnInfo.DragFromPins,
 						bAutoExpandActionMenu, 
 						SGraphEditor::FActionMenuClosed::CreateSP(this, &SGraphEditorImpl::OnClosedActionMenu)
 						);
@@ -411,8 +411,8 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 					TSharedRef<SGraphEditorActionMenu> Menu =	
 						SNew(SGraphEditorActionMenu)
 						.GraphObj( EdGraphObj )
-						.NewNodePosition( NodeAddPosition )
-						.DraggedFromPins( InDragFromPins )
+						.NewNodePosition(SpawnInfo.NodeAddPosition)
+						.DraggedFromPins(SpawnInfo.DragFromPins)
 						.AutoExpandActionMenu(bAutoExpandActionMenu)
 						.OnClosedCallback( SGraphEditor::FActionMenuClosed::CreateSP(this, &SGraphEditorImpl::OnClosedActionMenu)
 						);
@@ -420,7 +420,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 					Content = FActionMenuContent( Menu, Menu->GetFilterTextBox() );
 				}
 
-				if (InDragFromPins.Num() > 0)
+				if (SpawnInfo.DragFromPins.Num() > 0)
 				{
 					GraphPanel->PreservePinPreviewUntilForced();
 				}
@@ -509,6 +509,18 @@ bool SGraphEditorImpl::IsGraphEditable() const
 	return (EdGraphObj != NULL) && IsEditable.Get();
 }
 
+bool SGraphEditorImpl::IsLocked() const
+{
+	for( auto LockedGraph : LockedGraphs )
+	{
+		if( LockedGraph.IsValid() )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 TSharedPtr<SWidget> SGraphEditorImpl::GetTitleBar() const
 {
 	return TitleBar;
@@ -516,7 +528,7 @@ TSharedPtr<SWidget> SGraphEditorImpl::GetTitleBar() const
 
 void SGraphEditorImpl::SetViewLocation( const FVector2D& Location, float ZoomAmount ) 
 {
-	if( GraphPanel.IsValid() &&  EdGraphObj && (!LockedGraph.IsValid() || !GraphPanel->HasDeferredObjectFocus()))
+	if( GraphPanel.IsValid() &&  EdGraphObj && (!IsLocked() || !GraphPanel->HasDeferredObjectFocus()))
 	{
 		GraphPanel->RestoreViewSettings(Location, ZoomAmount);
 	}
@@ -524,7 +536,7 @@ void SGraphEditorImpl::SetViewLocation( const FVector2D& Location, float ZoomAmo
 
 void SGraphEditorImpl::GetViewLocation( FVector2D& Location, float& ZoomAmount ) 
 {
-	if( GraphPanel.IsValid() &&  EdGraphObj && (!LockedGraph.IsValid() || !GraphPanel->HasDeferredObjectFocus()))
+	if( GraphPanel.IsValid() &&  EdGraphObj && (!IsLocked() || !GraphPanel->HasDeferredObjectFocus()))
 	{
 		Location = GraphPanel->GetViewOffset();
 		ZoomAmount = GraphPanel->GetZoomAmount();
@@ -533,11 +545,24 @@ void SGraphEditorImpl::GetViewLocation( FVector2D& Location, float& ZoomAmount )
 
 void SGraphEditorImpl::LockToGraphEditor( TWeakPtr<SGraphEditor> Other ) 
 {
-	LockedGraph = Other;
+	if( !LockedGraphs.Contains(Other) )
+	{
+		LockedGraphs.Push(Other);
+	}
 
 	if (GraphPanel.IsValid())
 	{
 		FocusLockedEditorHere();
+	}
+}
+
+void SGraphEditorImpl::UnlockFromGraphEditor( TWeakPtr<SGraphEditor> Other )
+{
+	check(Other.IsValid());
+	int idx = LockedGraphs.Find(Other);
+	if( ensureMsgf(idx != INDEX_NONE, TEXT("Attempted to unlock graphs that were not locked together: %s %s"), *GetReadableLocation(), *(Other.Pin()->GetReadableLocation()) ) )
+	{
+		LockedGraphs.RemoveAtSwap(idx);
 	}
 }
 
@@ -555,9 +580,17 @@ void SGraphEditorImpl::AddNotification( FNotificationInfo& Info, bool bSuccess )
 
 void SGraphEditorImpl::FocusLockedEditorHere()
 {
-	if(SGraphEditor* Editor = LockedGraph.Pin().Get())
+	for( int i = 0; i < LockedGraphs.Num(); ++i )
 	{
-		Editor->SetViewLocation(GraphPanel->GetViewOffset(), GraphPanel->GetZoomAmount());	
+		TSharedPtr<SGraphEditor> LockedGraph = LockedGraphs[i].Pin();
+		if (LockedGraph != TSharedPtr<SGraphEditor>())
+		{
+			LockedGraph->SetViewLocation(GraphPanel->GetViewOffset(), GraphPanel->GetZoomAmount());
+		}
+		else
+		{
+			LockedGraphs.RemoveAtSwap(i--);
+		}
 	}
 }
 
@@ -576,7 +609,7 @@ void SGraphEditorImpl::SetPinVisibility( SGraphEditor::EPinVisibility Visibility
 
 EVisibility SGraphEditorImpl::ReadOnlyVisibility() const
 {
-	if(PIENotification() == EVisibility::Hidden && !IsEditable.Get())
+	if(ShowGraphStateOverlay.Get() && PIENotification() == EVisibility::Hidden && !IsEditable.Get())
 	{
 		return EVisibility::Visible;
 	}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsolePanel.h: Declares the SSessionConsolePanel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -33,8 +29,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InSessionManager - The session manager to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InSessionManager The session manager to use.
 	 */
 	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
 
@@ -76,7 +72,7 @@ protected:
 
 protected:
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 private:
 
@@ -155,7 +151,7 @@ private:
 	FString LastLogFileSaveDirectory;
 
 	// Holds the log list view.
- 	TSharedPtr<SListView<FSessionLogMessagePtr> > LogListView;
+ 	TSharedPtr<SListView<FSessionLogMessagePtr>> LogListView;
 
  	// Holds the filtered list of log messages.
  	TArray<FSessionLogMessagePtr> LogMessages;

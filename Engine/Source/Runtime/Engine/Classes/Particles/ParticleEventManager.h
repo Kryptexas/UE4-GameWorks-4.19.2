@@ -2,9 +2,18 @@
 
 
 #pragma once
+
+#include "GameFramework/Actor.h"
+#include "ParticleSystemComponent.h"
+
 #include "ParticleEventManager.generated.h"
 
-UCLASS(dependson=UParticleSystemComponent, config=Game, NotBlueprintable, notplaceable)
+struct FParticleEventSpawnData;
+struct FParticleEventDeathData;
+struct FParticleEventCollideData;
+struct FParticleEventBurstData;
+
+UCLASS(config=Game, NotBlueprintable, notplaceable)
 class AParticleEventManager : public AActor
 {
 	GENERATED_UCLASS_BODY()

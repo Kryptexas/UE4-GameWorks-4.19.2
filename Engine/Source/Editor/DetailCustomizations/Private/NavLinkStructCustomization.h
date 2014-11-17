@@ -2,13 +2,21 @@
 
 #pragma once
 
-class FNavLinkStructCustomization : public IStructCustomization
+class FNavLinkStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	// Begin IStructCustomization interface
-	virtual void CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	// End IStructCustomization interface
 
-	static TSharedRef<IStructCustomization> MakeInstance();
+	// IPropertyTypeCustomization interface
+
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+
+public:
+
+	/**
+	 * Creates a new instance.
+	 *
+	 * @return A new struct customization for Keys.
+	 */
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 };

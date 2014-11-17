@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleEmitter.h"
 #include "ParticleSpriteEmitter.generated.h"
 
 UENUM()
@@ -11,6 +12,7 @@ enum EParticleScreenAlignment
 	PSA_Square,
 	PSA_Rectangle,
 	PSA_Velocity,
+	PSA_AwayFromCenter,
 	PSA_TypeSpecific,
 	PSA_MAX,
 };
@@ -22,12 +24,12 @@ class UParticleSpriteEmitter : public UParticleEmitter
 
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// Begin UParticleEmitter Interface
-	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent) OVERRIDE;
-	virtual void SetToSensibleDefaults() OVERRIDE;
+	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent) override;
+	virtual void SetToSensibleDefaults() override;
 	// End UParticleEmitter Interface
 };
 

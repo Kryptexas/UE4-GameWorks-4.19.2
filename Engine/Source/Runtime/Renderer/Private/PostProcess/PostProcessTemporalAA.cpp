@@ -52,7 +52,6 @@ class FPostProcessTemporalAAPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-
 		OutEnvironment.SetDefine( TEXT("RESPONSIVE"), Responsive );
 	}
 
@@ -91,7 +90,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		
 		FSamplerStateRHIParamRef FilterTable[4];
 		FilterTable[0] = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
@@ -101,7 +100,7 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, 0, false, FilterTable);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
@@ -128,6 +127,9 @@ public:
 			};
 		
 			float Sharpness = CVarTemporalAASharpness.GetValueOnRenderThread();
+			// With the new temporal AA, need to hardcode a value here.
+			// Going to remove this once the new temporal AA is validated.
+			Sharpness = -0.25f;
 			Sharpness = 1.0f + Sharpness * 0.5f;
 
 			float Weights[9];
@@ -157,17 +159,17 @@ public:
 			
 			for( int32 i = 0; i < 9; i++ )
 			{
-				SetShaderValue( ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
-				SetShaderValue( ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
+				SetShaderValue(Context.RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
+				SetShaderValue(Context.RHICmdList, ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
 			}
 			
 			FVector2D RandomOffsetValue;
 			TemporalRandom(&RandomOffsetValue, Context.View.FrameNumber);
-			SetShaderValue(ShaderRHI, RandomOffset, RandomOffsetValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
 		}
 
-		CameraMotionParams.Set(Context.View, ShaderRHI);
+		CameraMotionParams.Set(Context.RHICmdList, Context.View, ShaderRHI);
 	}
 };
 
@@ -211,30 +213,32 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 	TShaderMapRef< FPostProcessTemporalAAPS<2,0> >	PixelShader( GetGlobalShaderMap() );
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y, 
@@ -244,7 +248,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSSRTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -286,30 +290,32 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 	TShaderMapRef< FPostProcessTemporalAAPS<0,0> >	PixelShader( GetGlobalShaderMap() );
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y, 
@@ -319,7 +325,8 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
 	ViewState->DOFHistoryRT = PassOutputs[0].PooledRenderTarget;
 	check( ViewState->DOFHistoryRT );
 }
@@ -364,30 +371,32 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 	TShaderMapRef< FPostProcessTemporalAAPS<3,0> >	PixelShader( GetGlobalShaderMap() );
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y, 
@@ -397,7 +406,7 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessLightShaftTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -440,11 +449,11 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	//RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
+	//Context.SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
 
 	// is optimized away if possible (RT size=view size, )
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
@@ -453,59 +462,25 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	uint32 Quality = FMath::Clamp(CVar->GetValueOnRenderThread(), 1, 6);
 	bool bUseFast = Quality == 3;
 
-	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 
-	{	// Normal temporal feedback
-		// Draw to pixels where stencil == 0
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Equal,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
-
-		if(bUseFast)
-		{
-			TShaderMapRef< FPostProcessTemporalAAPS<4,0> >	PixelShader( GetGlobalShaderMap() );
-
-			static FGlobalBoundShaderState BoundShaderState;
-
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-		else
-		{
-			TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
-
-			static FGlobalBoundShaderState BoundShaderState;
-
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-	
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle(
-			0, 0,
-			SrcRect.Width(), SrcRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y, 
-			SrcRect.Width(), SrcRect.Height(),
-			SrcRect.Size(),
-			SrcSize,
-			*VertexShader,
-			EDRF_UseTriangleOptimization);
-	}
-
-	{	// Responsive feedback for tagged pixels
-		// Draw to pixels where stencil != 0
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
+	if(Context.View.bCameraCut)
+	{
+		// On camera cut this turns on responsive everywhere.
 		
-		TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-		if(bUseFast)
+		// Normal temporal feedback
+		Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+
+		TShaderMapRef< FPostProcessTonemapVS >			VertexShader(GetGlobalShaderMap());
+		if (bUseFast)
 		{
 			TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
+			
 
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			VertexShader->SetVS(Context);
 			PixelShader->SetParameters(Context);
@@ -515,15 +490,17 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
+			
 
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			VertexShader->SetVS(Context);
 			PixelShader->SetParameters(Context);
 		}
-
+	
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
+			Context.RHICmdList,
 			0, 0,
 			SrcRect.Width(), SrcRect.Height(),
 			SrcRect.Min.X, SrcRect.Min.Y, 
@@ -533,8 +510,98 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
+	else
+	{
+		{	
+			// Normal temporal feedback
+			// Draw to pixels where stencil == 0
+			Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Equal,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
+	
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader(GetGlobalShaderMap());
+			if (bUseFast)
+			{
+				TShaderMapRef< FPostProcessTemporalAAPS<4,0> >	PixelShader( GetGlobalShaderMap() );
+	
+				static FGlobalBoundShaderState BoundShaderState;
+				
+	
+				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	
+				VertexShader->SetVS(Context);
+				PixelShader->SetParameters(Context);
+			}
+			else
+			{
+				TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
+	
+				static FGlobalBoundShaderState BoundShaderState;
+				
+	
+				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	
+				VertexShader->SetVS(Context);
+				PixelShader->SetParameters(Context);
+			}
+		
+			// Draw a quad mapping scene color to the view's render target
+			DrawRectangle(
+				Context.RHICmdList,
+				0, 0,
+				SrcRect.Width(), SrcRect.Height(),
+				SrcRect.Min.X, SrcRect.Min.Y, 
+				SrcRect.Width(), SrcRect.Height(),
+				SrcRect.Size(),
+				SrcSize,
+				*VertexShader,
+				EDRF_UseTriangleOptimization);
+		}
+	
+		{	// Responsive feedback for tagged pixels
+			// Draw to pixels where stencil != 0
+			Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
+			
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+			if(bUseFast)
+			{
+				TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
+	
+				static FGlobalBoundShaderState BoundShaderState;
+				
+	
+				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	
+				VertexShader->SetVS(Context);
+				PixelShader->SetParameters(Context);
+			}
+			else
+			{
+				TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
+	
+				static FGlobalBoundShaderState BoundShaderState;
+				
+	
+				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	
+				VertexShader->SetVS(Context);
+				PixelShader->SetParameters(Context);
+			}
+	
+			// Draw a quad mapping scene color to the view's render target
+			DrawRectangle(
+				Context.RHICmdList,
+				0, 0,
+				SrcRect.Width(), SrcRect.Height(),
+				SrcRect.Min.X, SrcRect.Min.Y, 
+				SrcRect.Width(), SrcRect.Height(),
+				SrcRect.Size(),
+				SrcSize,
+				*VertexShader,
+				EDRF_UseTriangleOptimization);
+		}
+	}
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
 	ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
 	check( ViewState->TemporalAAHistoryRT );
 

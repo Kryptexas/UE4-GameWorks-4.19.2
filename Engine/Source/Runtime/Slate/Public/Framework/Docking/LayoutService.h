@@ -8,35 +8,29 @@ struct SLATE_API FLayoutSaveRestore
 	/** Gets the ini section label for the additional layout configs */
 	static const FString& GetAdditionalLayoutConfigIni();
 
-	/** Write the LayoutToSave out into a a config file uses GEditorUserSettingsIni
-	 *
-	 * @param LayoutToSave the layout to save.
-	 */
-	static void SaveTheLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave );
-
 	/** Write the layout out into a named config file.
 	 *
-	 * @param LayoutToSave the layout to save.
 	 * @param ConfigFileName file to be save to
+	 * @param LayoutToSave the layout to save.
 	 */
-	static void SaveToConfig( const TSharedRef<FTabManager::FLayout>& LayoutToSave, FString ConfigFileName );
-
-	/** Given a named DefaultLayout, return any saved versions of it. Otherwise return the default layout uses GEditorUserSettingsIni
-	 *
-	 * @param DefaultLayout the layout to be used if the file does not exist.
-	 *
-	 * @return Loaded layout or the default
-	 */
-	static TSharedRef<FTabManager::FLayout> LoadUserConfigVersionOf( const TSharedRef<FTabManager::FLayout>& DefaultLayout );
+	static void SaveToConfig( FString ConfigFileName, const TSharedRef<FTabManager::FLayout>& LayoutToSave );
 
 	/** Given a named DefualtLayout, return any saved version of it from the given ini file, otherwise return the default, also default to open tabs based on bool
 	 *
-	 * @param DefaultLayout the layout to be used if the file does not exist.
 	 * @param ConfigFileName file to be used to load an existing layout
+	 * @param DefaultLayout the layout to be used if the file does not exist.
 	 *
 	 * @return Loaded layout or the default
 	 */
-	static TSharedRef<FTabManager::FLayout> LoadFromConfig( const TSharedRef<FTabManager::FLayout>& DefaultLayout, FString ConfigFileName);
+	static TSharedRef<FTabManager::FLayout> LoadFromConfig( const FString& ConfigFileName, const TSharedRef<FTabManager::FLayout>& DefaultLayout );
+
+	/**
+	 * Migrates the layout configuration from one config file to another.
+	 *
+	 * @param OldConfigFileName The name of the old configuration file.
+	 * @param NewConfigFileName The name of the new configuration file.
+	 */
+	static void MigrateConfig( const FString& OldConfigFileName, const FString& NewConfigFileName );
 
 private:
 	/**

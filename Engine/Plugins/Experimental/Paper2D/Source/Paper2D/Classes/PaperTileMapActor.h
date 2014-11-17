@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
+
 #include "PaperTileMapActor.generated.h"
 
-UCLASS(DependsOn=UEngineTypes, MinimalAPI)
+UCLASS(MinimalAPI)
 class APaperTileMapActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -14,7 +16,7 @@ class APaperTileMapActor : public AActor
 
 	// AActor interface
 #if WITH_EDITOR
-	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 #endif
 	// End of AActor interface
 };

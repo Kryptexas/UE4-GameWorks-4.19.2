@@ -9,11 +9,41 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public abstract class UEToolChain
+	public interface IUEToolChain
 	{
-		static Dictionary<CPPTargetPlatform, UEToolChain> CPPToolChainDictionary = new Dictionary<CPPTargetPlatform, UEToolChain>();
+		void RegisterToolChain();
+		
+		CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		
+		CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles);
+		
+		FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		
+		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile);
+		
+		/** Converts the passed in path from UBT host to compiler native format. */
+		String ConvertPath(String OriginalPath);
+		
+		/// <summary>
+		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
+		/// </summary>
+		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
+		void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest);
+		
+		void PreBuildSync();
+		
+		void PostBuildSync(UEBuildTarget Target);
 
-		public static void RegisterPlatformToolChain(CPPTargetPlatform InPlatform, UEToolChain InToolChain)
+		ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment);
+
+		void SetUpGlobalEnvironment();
+	}
+
+	public abstract class UEToolChain : IUEToolChain
+	{
+		static Dictionary<CPPTargetPlatform, IUEToolChain> CPPToolChainDictionary = new Dictionary<CPPTargetPlatform, IUEToolChain>();
+
+		public static void RegisterPlatformToolChain(CPPTargetPlatform InPlatform, IUEToolChain InToolChain)
 		{
 			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
 			{
@@ -27,7 +57,12 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static UEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
+		public static void UnregisterPlatformToolChain(CPPTargetPlatform InPlatform)
+		{
+			CPPToolChainDictionary.Remove(InPlatform);
+		}
+
+		public static IUEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
 		{
 			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
 			{
@@ -71,7 +106,7 @@ namespace UnrealBuildTool
 						UnrealBuildTool.GetUProjectPath(), 
 						BuildConfiguration.PlatformIntermediateFolder,
 						Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile()),
-						LinkEnvironment.Config.TargetConfiguration.ToString(),
+						LinkEnvironment.Config.Target.Configuration.ToString(),
 						Path.GetFileName(OutputFile.AbsolutePath) + ".response");
 				}
 			}
@@ -104,10 +139,14 @@ namespace UnrealBuildTool
 		{
 		}
 
+		public virtual ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment)
+		{
+			return new List<FileItem> ();
+		}
+
 		public virtual void SetUpGlobalEnvironment()
 		{
 		}
-
 
 		protected void RunUnrealHeaderToolIfNeeded()
 		{

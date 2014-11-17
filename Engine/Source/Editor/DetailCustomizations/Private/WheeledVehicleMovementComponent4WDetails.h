@@ -11,7 +11,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 	
 private:
 
@@ -19,11 +19,11 @@ private:
 	{
 		FSteeringCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle = NULL);
 		/** FCurveOwnerInterface interface */
-		virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-		virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
-		virtual UObject* GetOwner() OVERRIDE;
-		virtual void ModifyOwner() OVERRIDE;
-		virtual void MakeTransactional() OVERRIDE;
+		virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+		virtual TArray<FRichCurveEditInfo> GetCurves() override;
+		virtual UObject* GetOwner() override;
+		virtual void ModifyOwner() override;
+		virtual void MakeTransactional() override;
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;
@@ -35,11 +35,11 @@ private:
 	{
 		FTorqueCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle = NULL);
 		/** FCurveOwnerInterface interface */
-		virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-		virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
-		virtual UObject* GetOwner() OVERRIDE;
-		virtual void ModifyOwner() OVERRIDE;
-		virtual void MakeTransactional() OVERRIDE;
+		virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+		virtual TArray<FRichCurveEditInfo> GetCurves() override;
+		virtual UObject* GetOwner() override;
+		virtual void ModifyOwner() override;
+		virtual void MakeTransactional() override;
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;

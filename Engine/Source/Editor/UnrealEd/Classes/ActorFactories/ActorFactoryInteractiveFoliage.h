@@ -11,7 +11,7 @@ class UActorFactoryInteractiveFoliage : public UActorFactoryStaticMesh
 
 
 	// Begin UActorFactory Interface
-	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) OVERRIDE { return false; };
+	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override { return false; };
 	// End UActorFactory Interface
 };
 

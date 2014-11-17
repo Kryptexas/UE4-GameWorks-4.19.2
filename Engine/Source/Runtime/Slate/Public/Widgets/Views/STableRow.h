@@ -50,7 +50,7 @@ DECLARE_DELEGATE_RetVal_OneParam(FReply, FOnTableRowDrop, FDragDropEvent const&)
 template<typename ItemType>
 class STableRow : public ITableRow, public SBorder
 {
-	checkAtCompileTime( TIsValidListItem<ItemType>::Value, ItemType_must_be_a_pointer_or_TSharedPtr );
+	static_assert(TIsValidListItem<ItemType>::Value, "Item type T must be a pointer or a TSharedPtr.");
 
 public:
 
@@ -82,8 +82,10 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	 void Construct(const typename STableRow<ItemType>::FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
+	void Construct(const typename STableRow<ItemType>::FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
+		/** Note: Please initialize any state in ConstructInternal, not here. This is because STableRow derivatives call ConstructInternal directly to avoid constructing children. **/
+
 		ConstructInternal(InArgs, InOwnerTableView);
 
 		ConstructChildren(
@@ -132,7 +134,7 @@ public:
 		}
 	}
 
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		int32 Result = SBorder::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
@@ -393,9 +395,77 @@ public:
 		return FReply::Unhandled();
 	}
 
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override
 	{
-		if ( HasMouseCapture() && ChangedSelectionOnMouseDown )
+		bProcessingSelectionTouch = true;
+
+		return
+			FReply::Handled()
+			// Drag detect because if this tap turns into a drag, we stop processing
+			// the selection touch.
+			.DetectDrag( SharedThis(this), EKeys::LeftMouseButton );
+	}
+
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override
+	{
+		if ( bProcessingSelectionTouch )
+		{
+			bProcessingSelectionTouch = false;
+			const TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
+			const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
+
+			switch( OwnerWidget->Private_GetSelectionMode() )
+			{
+				default:
+				case ESelectionMode::None:
+					return FReply::Unhandled();
+				break;
+
+				case ESelectionMode::Single:
+				{
+					OwnerWidget->Private_ClearSelection();
+					OwnerWidget->Private_SetItemSelection( *MyItem, true, true );
+					OwnerWidget->Private_SignalSelectionChanged(ESelectInfo::OnMouseClick);
+					return FReply::Handled();
+				}
+				break;
+
+				case ESelectionMode::SingleToggle:
+				{
+					const bool bShouldBecomeSelected = !OwnerWidget->Private_IsItemSelected(*MyItem);
+					OwnerWidget->Private_ClearSelection();
+					OwnerWidget->Private_SetItemSelection( *MyItem, bShouldBecomeSelected, true );
+					OwnerWidget->Private_SignalSelectionChanged(ESelectInfo::OnMouseClick);
+				}
+				break;
+
+				case ESelectionMode::Multi:
+				{
+					const bool bShouldBecomeSelected = !OwnerWidget->Private_IsItemSelected(*MyItem);
+					OwnerWidget->Private_SetItemSelection( *MyItem, bShouldBecomeSelected, true );
+					OwnerWidget->Private_SignalSelectionChanged(ESelectInfo::OnMouseClick);
+				}
+				break;
+			}
+			
+			return FReply::Handled();
+		}
+		else
+		{
+			return FReply::Unhandled();
+		}
+	}
+
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
+	{
+		if (bProcessingSelectionTouch)
+		{
+			// With touch input, dragging scrolls the list while selection requires a tap.
+			// If we are processing a touch and it turned into a drag; pass it on to the 
+			bProcessingSelectionTouch = false;
+			return FReply::Handled().CaptureMouse( OwnerTablePtr.Pin()->AsWidget() );
+		}
+		else if ( HasMouseCapture() && ChangedSelectionOnMouseDown )
 		{
 			TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 			OwnerWidget->Private_SignalSelectionChanged(ESelectInfo::OnMouseClick);
@@ -411,7 +481,7 @@ public:
 		}
 	}
 
-	virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDragEnter_Handler.IsBound())
 		{
@@ -423,7 +493,7 @@ public:
 		}
 	}
 
-	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDragLeave_Handler.IsBound())
 		{
@@ -435,7 +505,7 @@ public:
 		}
 	}
 
-	virtual FReply OnDrop(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual FReply OnDrop(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDrop_Handler.IsBound())
 		{
@@ -447,12 +517,12 @@ public:
 		}
 	}
 
-	virtual void SetIndexInList( int32 InIndexInList ) OVERRIDE
+	virtual void SetIndexInList( int32 InIndexInList ) override
 	{
 		IndexInList = InIndexInList;
 	}
 
-	virtual bool IsItemExpanded() const OVERRIDE
+	virtual bool IsItemExpanded() const override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
@@ -460,7 +530,7 @@ public:
 		return bIsItemExpanded;
 	}
 
-	virtual void ToggleExpansion() OVERRIDE
+	virtual void ToggleExpansion() override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 
@@ -474,22 +544,22 @@ public:
 		}
 	}
 
-	virtual int32 GetIndentLevel() const OVERRIDE
+	virtual int32 GetIndentLevel() const override
 	{
 		return OwnerTablePtr.Pin()->Private_GetNestingDepth( IndexInList );
 	}
 
-	virtual int32 DoesItemHaveChildren() const OVERRIDE
+	virtual int32 DoesItemHaveChildren() const override
 	{
 		return OwnerTablePtr.Pin()->Private_DoesItemHaveChildren( IndexInList );
 	}
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE
+	virtual TSharedRef<SWidget> AsWidget() override
 	{
 		return SharedThis(this);
 	}
 
-	virtual TSharedPtr<SWidget> GetContent() OVERRIDE
+	virtual TSharedPtr<SWidget> GetContent() override
 	{
 		if ( this->Content.IsValid() )
 		{
@@ -501,7 +571,7 @@ public:
 		}
 	}
 
-	virtual void Private_OnExpanderArrowShiftClicked() OVERRIDE
+	virtual void Private_OnExpanderArrowShiftClicked() override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 
@@ -603,6 +673,8 @@ protected:
 	 */
 	void ConstructInternal(FArguments const& InArgs, TSharedRef<STableViewBase> const& InOwnerTableView)
 	{
+		bProcessingSelectionTouch = false;
+
 		check(InArgs._Style);
 		Style = InArgs._Style;
 
@@ -678,6 +750,10 @@ protected:
 	TWeakPtr<SWidget> Content;
 
 	bool ChangedSelectionOnMouseDown;
+
+	/** Did the current a touch interaction start in this item?*/
+	bool bProcessingSelectionTouch;
+
 };
 
 
@@ -730,7 +806,7 @@ protected:
 		this->GenerateColumns( HeaderRow.ToSharedRef() );
 	}
 
-	virtual void ConstructChildren( ETableViewMode::Type InOwnerTableMode, const TAttribute<FMargin>& InPadding, const TSharedRef<SWidget>& InContent ) OVERRIDE
+	virtual void ConstructChildren( ETableViewMode::Type InOwnerTableMode, const TAttribute<FMargin>& InPadding, const TSharedRef<SWidget>& InContent ) override
 	{
 		STableRow<ItemType>::Content = InContent;
 

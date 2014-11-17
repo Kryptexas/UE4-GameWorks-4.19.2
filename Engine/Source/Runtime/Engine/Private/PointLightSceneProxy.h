@@ -148,7 +148,7 @@ public:
 		return true;
 	}
 
-	virtual void SetScissorRect(const FSceneView& View) const
+	virtual void SetScissorRect(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const
 	{
 		// Calculate a scissor rectangle for the light's radius.
 		if((GetLightToWorld().GetOrigin() - View.ViewMatrices.ViewOrigin).Size() > Radius)
@@ -189,11 +189,11 @@ public:
 				return;
 			}
 
-			RHISetScissorRect(true,ScissorMinX,ScissorMinY,ScissorMaxX,ScissorMaxY);
+			RHICmdList.SetScissorRect(true, ScissorMinX, ScissorMinY, ScissorMaxX, ScissorMaxY);
 		}
 		else
 		{
-			RHISetScissorRect(false,0,0,0,0);
+			RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 		}
 	}
 
@@ -233,31 +233,15 @@ public:
 		return true;
 	}
 
-	virtual float GetDepthBiasScale() const 
-	{ 
-		return FMath::Lerp(2.0f, 0.0f, SelfShadowingAccuracy);
-	}
-
-	virtual float GetShadowTransitionScale() const 
-	{ 
-		if (SelfShadowingAccuracy < .5f)
-		{
-			return FMath::Lerp(0.01f, 1.0f, SelfShadowingAccuracy * 2);
-		}
-		else
-		{
-			// Center an accuracy of .5 at 1
-			return FMath::Lerp(-10.0f, 12.0f, SelfShadowingAccuracy);
-		}
-	}
-
 private:
 
 	/** Updates the light scene info's radius from the component. */
 	void UpdateRadius(float ComponentRadius)
 	{
 		Radius = ComponentRadius;
-		InvRadius = 1.0f / ComponentRadius;
+
+		// Min to avoid div by 0 (NaN in InvRadius)
+		InvRadius = 1.0f / FMath::Max(0.00001f, ComponentRadius);
 	}
 };
 

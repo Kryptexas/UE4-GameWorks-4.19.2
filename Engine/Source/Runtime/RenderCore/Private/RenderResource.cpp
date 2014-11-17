@@ -67,7 +67,7 @@ FRenderResource::~FRenderResource()
 	if (bInitialized && !GIsCriticalError)
 	{
 		// Deleting an initialized FRenderResource will result in a crash later since it is still linked
-		UE_LOG(LogRendererCore, Fatal,TEXT("An FRenderResource was deleted without being released first!"));
+		UE_LOG(LogRendererCore, Fatal,TEXT("A FRenderResource was deleted without being released first!"));
 	}
 }
 
@@ -112,6 +112,47 @@ void ReleaseResourceAndFlush(FRenderResource* Resource)
 		});
 
 	FlushRenderingCommands();
+}
+
+FTextureReference::FTextureReference()
+	: TextureReferenceRHI(NULL)
+{
+}
+
+FTextureReference::~FTextureReference()
+{
+}
+
+void FTextureReference::BeginInit_GameThread()
+{
+	bInitialized_GameThread = true;
+	BeginInitResource(this);
+}
+
+void FTextureReference::BeginRelease_GameThread()
+{
+	BeginReleaseResource(this);
+	bInitialized_GameThread = false;
+}
+
+void FTextureReference::InvalidateLastRenderTime()
+{
+	LastRenderTimeRHI.SetLastRenderTime(-FLT_MAX);
+}
+
+void FTextureReference::InitRHI()
+{
+	TextureReferenceRHI = RHICreateTextureReference(&LastRenderTimeRHI);
+}
+	
+void FTextureReference::ReleaseRHI()
+{
+	TextureReferenceRHI.SafeRelease();
+}
+
+FString FTextureReference::GetFriendlyName() const
+{
+	return TEXT("FTextureReference");
 }
 
 /** The global null color vertex buffer, which is set with a stride of 0 on meshes without a color component. */
@@ -168,22 +209,23 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		check(!IsValidRef(VertexBufferRHI));
-		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, /*ResourceArray=*/ NULL, BUF_Volatile);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, BUF_Volatile, CreateInfo);
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		FVertexBuffer::ReleaseRHI();
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual FString GetFriendlyName() const OVERRIDE
+	virtual FString GetFriendlyName() const override
 	{
 		return TEXT("FDynamicVertexBuffer");
 	}
@@ -349,22 +391,23 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		check(!IsValidRef(IndexBufferRHI));
-		IndexBufferRHI = RHICreateIndexBuffer(Stride, BufferSize, /*ResourceArray=*/ NULL, BUF_Volatile);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(Stride, BufferSize, BUF_Volatile, CreateInfo);
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		FIndexBuffer::ReleaseRHI();
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual FString GetFriendlyName() const OVERRIDE
+	virtual FString GetFriendlyName() const override
 	{
 		return TEXT("FDynamicIndexBuffer");
 	}

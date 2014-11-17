@@ -57,11 +57,11 @@ class UArrowComponent : public UPrimitiveComponent
 	virtual void SetArrowColor_New(FLinearColor NewColor);
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 #if WITH_EDITORONLY_DATA

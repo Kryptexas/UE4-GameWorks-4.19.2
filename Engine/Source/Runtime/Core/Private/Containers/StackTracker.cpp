@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-StackTracker.cpp: Stack Tracking within Unreal Engine.
-=============================================================================*/
 #include "CorePrivate.h"
-
 #include "StackTracker.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogStackTracker, Log, All);
+
 
 /**
  * Captures the current stack and updates stack tracking information.
@@ -27,6 +25,8 @@ void FStackTracker::CaptureStackTrace(int32 EntriesToIgnore /*=2*/, void* UserDa
 		FullBackTrace = static_cast<uint64*>(FMemory_Alloca((MAX_BACKTRACE_DEPTH + EntriesToIgnore) * sizeof(uint64)));
 
 		FPlatformStackWalk::CaptureStackBackTrace( FullBackTrace, MAX_BACKTRACE_DEPTH + EntriesToIgnore );
+		CA_ASSUME(FullBackTrace);
+
 		// Skip first NUM_ENTRIES_TO_SKIP entries as they are inside this code
 		uint64* BackTrace = &FullBackTrace[EntriesToIgnore];
 		uint32 CRC = FCrc::MemCrc_DEPRECATED( BackTrace, MAX_BACKTRACE_DEPTH * sizeof(uint64) );

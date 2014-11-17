@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __IPACKAGEAUTOSAVER_H__
-#define __IPACKAGEAUTOSAVER_H__
+#pragma once
 
 /** An interface to handle the creation, destruction, and restoration of auto-saved packages */
 class UNREALED_API IPackageAutoSaver
@@ -56,6 +55,7 @@ public:
 
 	/** Offer the user the chance to restore any packages that were dirty and have auto-saves */
 	virtual void OfferToRestorePackages() = 0;
-};
 
-#endif // __IPACKAGEAUTOSAVER_H__
+	/** Called when packages are deleted in the editor */
+	virtual void OnPackagesDeleted(const TArray<UPackage*>& DeletedPackages) = 0;
+};

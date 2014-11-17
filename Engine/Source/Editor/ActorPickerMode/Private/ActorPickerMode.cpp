@@ -6,59 +6,35 @@ IMPLEMENT_MODULE( FActorPickerModeModule, ActorPickerMode );
 
 void FActorPickerModeModule::StartupModule()
 {
-	EdModeActorPicker = MakeShareable(new FEdModeActorPicker);
-	GEditorModeTools().RegisterMode(EdModeActorPicker.ToSharedRef());
-
-	// we want to be able to perform this action with all the built-in editor modes
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Default);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Placement);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Bsp);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Geometry);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_InterpEdit);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Texture);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_MeshPaint);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Landscape);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Foliage);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Level);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_StreamingLevel);
-	GEditorModeTools().RegisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Physics);
+	FEditorModeRegistry::Get().RegisterMode<FEdModeActorPicker>(FBuiltinEditorModes::EM_ActorPicker);
 }
 
 void FActorPickerModeModule::ShutdownModule()
 {
-	EndActorPickingMode();
-
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Default);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Placement);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Bsp);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Geometry);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_InterpEdit);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Texture);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_MeshPaint);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Landscape);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Foliage);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Level);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_StreamingLevel);
-	GEditorModeTools().UnregisterCompatibleModes(EdModeActorPicker->GetID(), FBuiltinEditorModes::EM_Physics);
-	GEditorModeTools().UnregisterMode(EdModeActorPicker.ToSharedRef());
-	EdModeActorPicker = nullptr;
+	FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_ActorPicker);
 }
 
 void FActorPickerModeModule::BeginActorPickingMode(FOnGetAllowedClasses InOnGetAllowedClasses, FOnShouldFilterActor InOnShouldFilterActor, FOnActorSelected InOnActorSelected)
 {
-	EndActorPickingMode();
-	EdModeActorPicker->BeginMode(InOnGetAllowedClasses, InOnShouldFilterActor, InOnActorSelected);
+	// Activate the mode
+	GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_ActorPicker);
+
+	// Set the required delegates
+	FEdModeActorPicker* Mode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeActorPicker>(FBuiltinEditorModes::EM_ActorPicker);
+	if (ensure(Mode))
+	{
+		Mode->OnActorSelected = InOnActorSelected;
+		Mode->OnGetAllowedClasses = InOnGetAllowedClasses;
+		Mode->OnShouldFilterActor = InOnShouldFilterActor;
+	}
 }
 
 void FActorPickerModeModule::EndActorPickingMode()
 {
-	if(IsInActorPickingMode())
-	{
-		EdModeActorPicker->EndMode();
-	}
+	GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_ActorPicker);
 }
 
 bool FActorPickerModeModule::IsInActorPickingMode() const
 {
-	return GEditorModeTools().IsModeActive(EdModeActorPicker->GetID());
+	return GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_ActorPicker);
 }

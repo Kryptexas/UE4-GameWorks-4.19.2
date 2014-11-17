@@ -33,6 +33,15 @@ namespace UnrealBuildTool
 		}
 	}
 
+	public enum XcodeTargetType
+	{
+		Project,
+		Legacy,
+		Native,
+		XCTest,
+		XcodeHelper
+	}
+
 	/// <summary>
 	/// Represents a build target
 	/// </summary>
@@ -47,7 +56,7 @@ namespace UnrealBuildTool
 		/// <param name="InTargetPlatform">Name of the target that may be built.</param>
 		/// <param name="InDependencies">Name of the target that may be built.</param>
 		/// <param name="bHasPlist">Name of the target that may be built.</param>
-		public XcodeProjectTarget(string InDisplayName, string InTargetName, string InType, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, bool bInIsMacOnly = false, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
+		public XcodeProjectTarget(string InDisplayName, string InTargetName, XcodeTargetType InType, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, bool bInIsMacOnly = false, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
 		{
 			DisplayName = InDisplayName;
 			TargetName = InTargetName;
@@ -78,7 +87,7 @@ namespace UnrealBuildTool
 
 		public string DisplayName;					// Name displayed in Xcode's UI.
 		public string TargetName;					// Actual name of the target.
-		public string Type;							// "Native", "Legacy" or "Project"
+		public XcodeTargetType Type;
 		public UnrealTargetPlatform TargetPlatform;	//Mac, IOS
 		public bool bIsMacOnly;
 		public string ProductName;
@@ -238,9 +247,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Contents">StringBuilder object to append groups string to</param>
 		/// <param name="Groups">Dictionary of all project groups</param>
-		/// <param name="UE4XcodeHelperTarget">Dummy target required for syntax highlighting etc. work</param>
         /// <param name="Frameworks">Frameworks referenced</param>
-		private void AppendGroups(ref StringBuilder Contents, ref Dictionary<string, XcodeFileGroup> Groups, List<XcodeProjectTarget> Targets, XcodeProjectTarget UE4XcodeHelperTarget, List<XcodeFramework> Frameworks)
+		private void AppendGroups(ref StringBuilder Contents, ref Dictionary<string, XcodeFileGroup> Groups, List<XcodeProjectTarget> Targets, List<XcodeFramework> Frameworks)
 		{
 			Contents.Append("/* Begin PBXGroup section */" + ProjectFileGenerator.NewLine);
 
@@ -283,16 +291,13 @@ namespace UnrealBuildTool
 			Contents.Append(string.Format("\t\t{0} = {{{1}", ProductRefGroupGuid, ProjectFileGenerator.NewLine));
 			Contents.Append("\t\t\tisa = PBXGroup;" + ProjectFileGenerator.NewLine);
 			Contents.Append("\t\t\tchildren = (" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t\t\t" + UE4XcodeHelperTarget.ProductGuid + " /* " + UE4XcodeHelperTarget.ProductName + " */," + ProjectFileGenerator.NewLine);
 
-			// Required for iOS. This removes some "Target is not Built to Run on this Device" errors.
 			foreach (XcodeProjectTarget Target in Targets)
 			{
-				if (Target.Type == "Project" || Target == UE4XcodeHelperTarget || Target.ProductName == "")
+				if (IsXcodeTargetTypeNative(Target.Type))
 				{
-					continue;
+					Contents.Append("\t\t\t\t" + Target.ProductGuid + " /* " + Target.ProductName + " */," + ProjectFileGenerator.NewLine);
 				}
-				Contents.Append("\t\t\t\t" + Target.ProductGuid + " /* " + Target.ProductName + " */," + ProjectFileGenerator.NewLine);
 			}
 			Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
 			Contents.Append("\t\t\tname = Products;" + ProjectFileGenerator.NewLine);
@@ -323,6 +328,11 @@ namespace UnrealBuildTool
 			Contents.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
 		}
 
+		private static bool IsXcodeTargetTypeNative(XcodeTargetType Type)
+		{
+			return Type == XcodeTargetType.Native || Type == XcodeTargetType.XcodeHelper || Type == XcodeTargetType.XCTest;
+		}
+
 		/// <summary>
 		/// Appends a target to targets section.
 		/// </summary>
@@ -330,12 +340,12 @@ namespace UnrealBuildTool
 		/// <param name="Target">Target to append</param>
 		private void AppendTarget(ref StringBuilder Contents, XcodeProjectTarget Target)
 		{
-            string XcodeTargetType = Target.Type == "XCTest" ? "Native" : Target.Type;
+			string TargetType = IsXcodeTargetTypeNative(Target.Type) ? "Native" : Target.Type.ToString();
 			Contents.Append(
 				"\t\t" + Target.Guid + " /* " + Target.DisplayName + " */ = {" + ProjectFileGenerator.NewLine +
-				"\t\t\tisa = PBX" + XcodeTargetType + "Target;" + ProjectFileGenerator.NewLine);
+				"\t\t\tisa = PBX" + TargetType + "Target;" + ProjectFileGenerator.NewLine);
 
-			if (Target.Type == "Legacy")
+			if (Target.Type == XcodeTargetType.Legacy)
 			{
 				string UProjectPath = "";
 				if (UnrealBuildTool.HasUProjectFile() && Target.TargetName.StartsWith(Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile())))
@@ -353,11 +363,11 @@ namespace UnrealBuildTool
 				Contents.Append("\t\t\tbuildArgumentsString = \"$(ACTION) " + Target.TargetName + " $(PLATFORM_NAME) $(CONFIGURATION)" + UProjectPath + "\";" + ProjectFileGenerator.NewLine);
 			}
 
-			Contents.Append("\t\t\tbuildConfigurationList = " + Target.BuildConfigGuild + " /* Build configuration list for PBX" + XcodeTargetType + "Target \"" + Target.DisplayName + "\" */;" + ProjectFileGenerator.NewLine);
+			Contents.Append("\t\t\tbuildConfigurationList = " + Target.BuildConfigGuild + " /* Build configuration list for PBX" + TargetType + "Target \"" + Target.DisplayName + "\" */;" + ProjectFileGenerator.NewLine);
 
 			Contents.Append("\t\t\tbuildPhases = (" + ProjectFileGenerator.NewLine);
 
-			if (Target.Type == "Native" || Target.Type == "XCTest")
+			if (IsXcodeTargetTypeNative(Target.Type))
 			{
 				Contents.Append("\t\t\t\t" + Target.SourcesPhaseGuid + " /* Sources */," + ProjectFileGenerator.NewLine);
 				//Contents.Append("\t\t\t\t" + Target.ResourcesPhaseGuid + " /* Resources */," + ProjectFileGenerator.NewLine);
@@ -367,7 +377,7 @@ namespace UnrealBuildTool
 
 			Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
 
-			if (Target.Type == "Legacy")
+			if (Target.Type == XcodeTargetType.Legacy)
 			{
 				string UE4Dir = Path.GetFullPath(Directory.GetCurrentDirectory() + "../../..");
 				if (bGeneratingRocketProjectFiles)
@@ -391,39 +401,37 @@ namespace UnrealBuildTool
 				"\t\t\t);" + ProjectFileGenerator.NewLine +
 				"\t\t\tname = \"" + Target.DisplayName + "\";" + ProjectFileGenerator.NewLine);
 
-			if (Target.Type == "Legacy")
+			if (Target.Type == XcodeTargetType.Legacy)
 			{
-				Contents.Append("\t\t\tpassBuildSettingsInEnvironment = 1;" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tpassBuildSettingsInEnvironment = 0;" + ProjectFileGenerator.NewLine);
 			}
 
 			Contents.Append("\t\t\tproductName = \"" + Target.DisplayName + "\";" + ProjectFileGenerator.NewLine);
 
-			if (Target.Type == "Native")
+			if (Target.Type == XcodeTargetType.XcodeHelper)
 			{
-				if (Target.DisplayName == "UE4XcodeHelper")
-				{
-					Contents.Append(
-						"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
-						"\t\t\tproductType = \"com.apple.product-type.library.static\";" + ProjectFileGenerator.NewLine);
-				}
-				else
-				{
-					Contents.Append(
-						"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
-						"\t\t\tproductType = \"com.apple.product-type.application\";" + ProjectFileGenerator.NewLine);
-				}
+				Contents.Append(
+					"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
+					"\t\t\tproductType = \"com.apple.product-type.library.static\";" + ProjectFileGenerator.NewLine);
 			}
-			if (Target.Type == "XCTest")
+			else if (Target.Type == XcodeTargetType.Native)
 			{
-					Contents.Append(
-						"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
-						"\t\t\tproductType = \"com.apple.product-type.bundle.unit-test\";" + ProjectFileGenerator.NewLine);
+				Contents.Append(
+					"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
+					"\t\t\tproductType = \"com.apple.product-type.application\";" + ProjectFileGenerator.NewLine);
+			}
+			else if (Target.Type == XcodeTargetType.XCTest)
+			{
+				Contents.Append(
+					"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
+					"\t\t\tproductType = \"com.apple.product-type.bundle.unit-test\";" + ProjectFileGenerator.NewLine);
 			}
 			Contents.Append("\t\t};" + ProjectFileGenerator.NewLine);
 		}
 
 		private void AppendProjectConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string PreprocessorDefinitions, string HeaderSearchPaths)
 		{
+			string EngineSubdir = (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles) ? "" : "Engine/";
 			Contents.Append(
 				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
 				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
@@ -436,7 +444,9 @@ namespace UnrealBuildTool
 				"\t\t\t\tGCC_WARN_CHECK_SWITCH_STATEMENTS = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSUPPORTED_PLATFORMS = \"macosx\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tUSE_HEADERMAP = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSYMROOT = " + EngineSubdir + "Intermediate/Build;" + ProjectFileGenerator.NewLine +
 				"\t\t\t};" + ProjectFileGenerator.NewLine +
 				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 				"\t\t};" + ProjectFileGenerator.NewLine);
@@ -444,6 +454,7 @@ namespace UnrealBuildTool
 
 		private void AppendMacBuildConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, bool bIsMacOnly)
 		{
+			string UE4Dir = Path.GetFullPath(Directory.GetCurrentDirectory() + "../../..");
 			if (bIsMacOnly)
 			{
 				Contents.Append(
@@ -456,6 +467,8 @@ namespace UnrealBuildTool
 					"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PREFIX_HEADER = \"" + UE4Dir + "/Engine/Source/Editor/UnrealEd/Public/UnrealEd.h\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 					"\t\t};" + ProjectFileGenerator.NewLine);
@@ -480,6 +493,8 @@ namespace UnrealBuildTool
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\t\"SDKROOT[arch=x86_64]\" = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\t\"SDKROOT[arch=arm*]\" = iphoneos;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PREFIX_HEADER = \"" + UE4Dir + "/Engine/Source/Editor/UnrealEd/Public/UnrealEd.h\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 					"\t\t};" + ProjectFileGenerator.NewLine);
@@ -548,12 +563,18 @@ namespace UnrealBuildTool
 			{
 				Contents.Append(
 					"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + TargetName + "/Resources/IOS/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + TargetName + "/Intermediate/IOS/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
 			}
 			Contents.Append(
+				"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tHEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
@@ -563,14 +584,14 @@ namespace UnrealBuildTool
 				"\t\t};" + ProjectFileGenerator.NewLine);
 		}
 
-		private void AppendIOSXCTestConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string TargetName, string EngineTarget, string EngineRelative)
+		private void AppendIOSXCTestConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string TargetName, string EngineSubdir, string EngineRelative)
 		{
 			Contents.Append(
 				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
 				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
 				"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + TargetName + ".app/" + TargetName + "\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tBUNDLE_LOADER = \"" + EngineSubdir + "Binaries/IOS/Payload/" + TargetName + ".app/" + TargetName + "\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
@@ -593,9 +614,9 @@ namespace UnrealBuildTool
 				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSYMROOT = \"" + EngineSubdir + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tOBJROOT = \"" + EngineSubdir + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineSubdir + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSUPPORTED_PLATFORMS = \"iphoneos iphonesimulator\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
@@ -603,6 +624,12 @@ namespace UnrealBuildTool
 				"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tHEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
 				"\t\t\t};" + ProjectFileGenerator.NewLine +
 				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 				"\t\t};" + ProjectFileGenerator.NewLine);
@@ -611,7 +638,7 @@ namespace UnrealBuildTool
 		private void AppendSingleConfig(ref StringBuilder Contents, XcodeProjectTarget Target, string ConfigName, string ConfigGuid, string PreprocessorDefinitions, string HeaderSearchPaths,
 			string EngineRelative, string GamePath, bool bIsUE4Game, bool IsAGame, bool bIsUE4Client)
 		{
-			if (Target.Type == "Project")
+			if (Target.Type == XcodeTargetType.Project)
 			{
 				AppendProjectConfig(ref Contents, ConfigName, ConfigGuid, PreprocessorDefinitions, HeaderSearchPaths);
 			}
@@ -623,45 +650,24 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					if (Target.Type == "Legacy")
+					if (Target.Type == XcodeTargetType.Legacy)
 					{
 						AppendIOSBuildConfig(ref Contents, ConfigName, ConfigGuid);
 					}
 					else
 					{
-						if (Target.Type != "XCTest")
+						if (Target.Type != XcodeTargetType.XCTest)
 						{
 							AppendIOSRunConfig(ref Contents, ConfigName, ConfigGuid, Target.TargetName, EngineRelative, GamePath, bIsUE4Game, IsAGame, bIsUE4Client);
 						}
 						else
 						{
-							string EngineTarget = "";
-							if (bIsUE4Game || bIsUE4Client)
-							{
-								if (!bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles)
-								{
-									EngineTarget = "Engine/";
-								}
-							}
-
-							AppendIOSXCTestConfig(ref Contents, ConfigName, ConfigGuid, Target.TargetName, EngineTarget, EngineRelative);
+							string EngineSubdir = (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles) ? "" : "Engine/";
+							AppendIOSXCTestConfig(ref Contents, ConfigName, ConfigGuid, Target.TargetName, EngineSubdir, EngineRelative);
 						}
 					}
 				}
 			}
-		}
-
-		private bool ContainsGameTarget(string Path, string TargetName)
-		{
-			bool retval = false;
-
-			if (File.Exists (Path + "/Source/" + TargetName + ".Target.cs")) 
-			{
-				// read the file
-				string Contents = File.ReadAllText(Path + "/Source/" + TargetName + ".Target.cs");
-				retval = Contents.Contains ("Type = TargetType.Game");
-			}
-			return retval;
 		}
 
 		/// <summary>
@@ -681,36 +687,19 @@ namespace UnrealBuildTool
 			bool bIsUE4Client = Target.TargetName.Equals("UE4Client", StringComparison.InvariantCultureIgnoreCase);
 			string EngineRelative = "";
 
-			foreach (string GameFolder in GameFolders )
+			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+			foreach (string GameFolder in GameFolders)
 			{
-				if (GameFolder.EndsWith(Target.TargetName) || ContainsGameTarget(GameFolder, Target.TargetName))
+				if (GameFolder.EndsWith(Target.TargetName))
 				{
 					IsAGame = true;
-					if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
-					{
-						UEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
-						GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
-					}
+					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
 					break;
 				}
 			}
-			if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
-			{
-				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
-			}
-			else if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-			{
-				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../../../../");
-				if (EngineRelative.IndexOf(':') == 1)
-				{
-					EngineRelative = EngineRelative.Substring(2);
-				}
-				if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
-				{
-					UEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
-					EngineRelative = Toolchain.ConvertPath(EngineRelative);
-				}
-			}
+
+			EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
+			EngineRelative = Toolchain.ConvertPath(EngineRelative);
 
 			if (!bGeneratingRocketProjectFiles)
 			{
@@ -729,8 +718,8 @@ namespace UnrealBuildTool
 		/// <param name="Target">Target for which we generate the build configuration list</param>
 		private void AppendConfigList(ref StringBuilder Contents, XcodeProjectTarget Target)
 		{
-			string XcodeTargetType = Target.Type == "XCTest" ? "Native" : Target.Type;
-			string TypeName = Target.Type == "Project" ? "PBXProject" : "PBX" + XcodeTargetType + "Target";
+			string TargetType = IsXcodeTargetTypeNative(Target.Type) ? "Native" : Target.Type.ToString();
+			string TypeName = Target.Type == XcodeTargetType.Project ? "PBXProject" : "PBX" + TargetType + "Target";
 
 			if (!bGeneratingRocketProjectFiles)
 			{
@@ -786,7 +775,7 @@ namespace UnrealBuildTool
 		{
 			foreach (XcodeProjectTarget Target in ProjectTargets)
 			{
-				if (Target.Type == "Native" || Target.Type == "XCTest")
+				if (IsXcodeTargetTypeNative(Target.Type))
 				{
 					// Generate Build references and Framework references for each Framework.
 					string FrameworkFiles = "";
@@ -807,7 +796,7 @@ namespace UnrealBuildTool
 
 					string Sources = null;
 
-					if (Target.Type == "XCTest")
+					if (Target.Type == XcodeTargetType.XCTest)
 					{
 						// Add the xctest framework.
 						FrameworkFiles += TestFrameworkFiles;
@@ -822,7 +811,7 @@ namespace UnrealBuildTool
 					AppendBuildPhase(ref PBXFrameworksBuildPhaseSection, Target.FrameworksPhaseGuid, "Frameworks", FrameworkFiles, null);
 
 					string PayloadDir = "Engine";
-					if (Target.Type == "Native" && Target.TargetName != "UE4Game")
+					if (Target.Type == XcodeTargetType.Native && Target.TargetName != "UE4Game")
 					{
 						PayloadDir = Target.TargetName;
 					}
@@ -933,7 +922,7 @@ namespace UnrealBuildTool
 				{
 					string Definition = CurDefinition;
 					string AlternateDefinition = Definition.Contains("=0") ? Definition.Replace("=0", "=1") : Definition.Replace("=1", "=0");
-					if (Definition.Equals("WITH_EDITORONLY_DATA=0"))
+					if (Definition.Equals("WITH_EDITORONLY_DATA=0") || Definition.Equals("WITH_DATABASE_SUPPORT=1"))
 					{
 						Definition = AlternateDefinition;
 					}
@@ -1084,7 +1073,7 @@ namespace UnrealBuildTool
 					// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
 					bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
 
-					XcodeProjectTarget BuildTarget = new XcodeProjectTarget(TargetName + " - Mac", TargetName, "Legacy", "", UnrealTargetPlatform.Mac, bIsMacOnly);
+					XcodeProjectTarget BuildTarget = new XcodeProjectTarget(TargetName + " - Mac", TargetName, XcodeTargetType.Legacy, "", UnrealTargetPlatform.Mac, bIsMacOnly);
 					if (!bGeneratingRunIOSProject)
 					{
 						ProjectTargets.Add(BuildTarget);
@@ -1101,14 +1090,14 @@ namespace UnrealBuildTool
 								FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
 							}
 
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
+							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, XcodeTargetType.Native, TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
 							ProjectTargets.Add(IOSDeployTarget);
 						}
 						else
 						{
 							XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, BuildTarget.Guid, BuildTarget.DisplayName);
 							XcodeTargetDependency TargetDependency = new XcodeTargetDependency(BuildTarget.DisplayName, BuildTarget.Guid, ContainerProxy.Guid);
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
+							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, XcodeTargetType.Native, TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
 							ProjectTargets.Add(IOSDeployTarget);
 							ContainerItemProxies.Add(ContainerProxy);
 							TargetDependencies.Add(TargetDependency);
@@ -1299,7 +1288,7 @@ namespace UnrealBuildTool
 			File.WriteAllText(SchemeFilePath, SchemeFileContent);
 		}
 
-		private void WriteSchemes(string XcodeProjectPath, List<XcodeProjectTarget> ProjectTargets, XcodeProjectTarget UE4ProjectTarget, XcodeProjectTarget UE4XcodeHelperTarget)
+		private void WriteSchemes(string XcodeProjectPath, List<XcodeProjectTarget> ProjectTargets)
 		{
 			// Delete obsolete schemes
 			string SchemesDir = XcodeProjectPath + "/xcuserdata/" + Environment.UserName + ".xcuserdatad/xcschemes";
@@ -1315,7 +1304,7 @@ namespace UnrealBuildTool
 			// write scheme files for targets
 			foreach (var Target in ProjectTargets)
 			{
-				if (Target == UE4ProjectTarget || Target == UE4XcodeHelperTarget)
+				if (Target.Type == XcodeTargetType.Project)
 				{
 					continue;
 				}
@@ -1360,7 +1349,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private void WriteProject(StringBuilder XcodeProjectFileContent, List<XcodeProjectTarget> ProjectTargets, XcodeProjectTarget UE4ProjectTarget, XcodeProjectTarget UE4XcodeHelperTarget)
+		private void WriteProject(StringBuilder XcodeProjectFileContent, List<XcodeProjectTarget> ProjectTargets)
 		{
 			// @todo: Windows and Mac should store the project in the same folder
 			string PathBranch = (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac) ? "/Engine/Intermediate/IOS" : "";
@@ -1394,7 +1383,7 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Skipping project file write, as it didn't change...");
 			}
 
-			WriteSchemes(XcodeProjectPath, ProjectTargets, UE4ProjectTarget, UE4XcodeHelperTarget);
+			WriteSchemes(XcodeProjectPath, ProjectTargets);
 		}
 
 		/// <summary>
@@ -1420,14 +1409,14 @@ namespace UnrealBuildTool
 			// attempt to determine targets for the project
 			List<XcodeProjectTarget> ProjectTargets = new List<XcodeProjectTarget> ();
 			// add mandatory ones
-			XcodeProjectTarget UE4ProjectTarget = new XcodeProjectTarget ("UE4", "UE4", "Project");
-			XcodeProjectTarget UE4XcodeHelperTarget = new XcodeProjectTarget ("UE4XcodeHelper", "UE4XcodeHelper", "Native", "libUE4XcodeHelper.a");
+			XcodeProjectTarget UE4ProjectTarget = new XcodeProjectTarget ("UE4", "UE4", XcodeTargetType.Project);
+			XcodeProjectTarget UE4XcodeHelperTarget = new XcodeProjectTarget ("UE4XcodeHelper", "UE4XcodeHelper", XcodeTargetType.XcodeHelper, "libUE4XcodeHelper.a");
 			ProjectTargets.AddRange(new XcodeProjectTarget[] { UE4ProjectTarget, UE4XcodeHelperTarget });
 
 			if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS))
 			{
-				XcodeProjectTarget UE4CmdLineRunTarget = new XcodeProjectTarget("UE4CmdLineRun", "UE4CmdLineRun", "XCTest", "UE4CmdLineRun.xctest", UnrealTargetPlatform.IOS);
-				ProjectTargets.AddRange(new XcodeProjectTarget[] { UE4ProjectTarget, UE4XcodeHelperTarget, UE4CmdLineRunTarget });
+				XcodeProjectTarget UE4CmdLineRunTarget = new XcodeProjectTarget("UE4CmdLineRun", "UE4CmdLineRun", XcodeTargetType.XCTest, "UE4CmdLineRun.xctest", UnrealTargetPlatform.IOS);
+				ProjectTargets.Add(UE4CmdLineRunTarget);
 				// This GUID will be referenced by each app's test action.
 				UE4CmdLineGuid = UE4CmdLineRunTarget.Guid;
 			}
@@ -1436,6 +1425,8 @@ namespace UnrealBuildTool
 			List<XcodeContainerItemProxy> ContainerItemProxies = new List<XcodeContainerItemProxy>();
             List<XcodeFramework> Frameworks = new List<XcodeFramework>();
             Frameworks.Add(new XcodeFramework("OpenGLES.framework", "System/Library/Frameworks/OpenGLES.framework", "SDKROOT"));
+			// @todo metal: putting this into the project will make for VERY slow Metal runtime by default...
+//			Frameworks.Add(new XcodeFramework("Metal.framework", "System/Library/Frameworks/Metal.framework", "SDKROOT"));
 
 			XcodeFramework XCTestFramework = new XcodeFramework("XCTest.framework", "Library/Frameworks/XCTest.framework", "DEVELOPER_DIR");
             Frameworks.Add(XCTestFramework);
@@ -1486,11 +1477,11 @@ namespace UnrealBuildTool
 
 			foreach (XcodeProjectTarget Target in ProjectTargets)
 			{
-				if ((Target.Type == "Native" || Target.Type == "XCTest") && Target != UE4XcodeHelperTarget)
+				if ((Target.Type == XcodeTargetType.Native || Target.Type == XcodeTargetType.XCTest))
 				{
-					string FileType = Target.Type == "Native" ? "wrapper.application" : "wrapper.cfbundle";
+					string FileType = Target.Type == XcodeTargetType.Native ? "wrapper.application" : "wrapper.cfbundle";
 					string PayloadDir = "Engine";
-					if (Target.Type == "Native" && Target.TargetName != "UE4Game")
+					if (Target.Type == XcodeTargetType.Native && Target.TargetName != "UE4Game")
 					{
 						PayloadDir = Target.TargetName;
 					}
@@ -1529,18 +1520,18 @@ namespace UnrealBuildTool
 			XcodeProjectFileContent.Append(PBXContainerItemProxySection);
 			XcodeProjectFileContent.Append(PBXTargetDependencySection);
 
-			AppendGroups(ref XcodeProjectFileContent, ref Groups, ProjectTargets, UE4XcodeHelperTarget, Frameworks);
+			AppendGroups(ref XcodeProjectFileContent, ref Groups, ProjectTargets , Frameworks);
 
 			XcodeProjectFileContent.Append(PBXShellScriptBuildPhaseSection);
 			XcodeProjectFileContent.Append(PBXSourcesBuildPhaseSection);
 			XcodeProjectFileContent.Append(PBXFrameworksBuildPhaseSection);
 
 			XcodeProjectFileContent.Append("/* Begin PBXLegacyTarget section */" + ProjectFileGenerator.NewLine);
-			foreach (var target in ProjectTargets)
+			foreach (var Target in ProjectTargets)
 			{
-				if (target.Type == "Legacy")
+				if (Target.Type == XcodeTargetType.Legacy)
 				{
-					AppendTarget (ref XcodeProjectFileContent, target);
+					AppendTarget (ref XcodeProjectFileContent, Target);
 				}
 			}
 			XcodeProjectFileContent.Append("/* End PBXLegacyTarget section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
@@ -1550,7 +1541,7 @@ namespace UnrealBuildTool
 
 			foreach (XcodeProjectTarget Target in ProjectTargets)
 			{
-				if ((Target.Type == "Native" || Target.Type == "XCTest") && Target != UE4XcodeHelperTarget)
+				if (Target.Type == XcodeTargetType.Native || Target.Type == XcodeTargetType.XCTest)
 				{
 					AppendTarget(ref XcodeProjectFileContent, Target);
 				}
@@ -1578,16 +1569,14 @@ namespace UnrealBuildTool
 				"\t\t\tprojectRoot = \"\";" + ProjectFileGenerator.NewLine +
 				"\t\t\ttargets = (" + ProjectFileGenerator.NewLine
 			);
-			foreach (var target in ProjectTargets)
-			{
-				if (target == UE4ProjectTarget || target == UE4XcodeHelperTarget)
-				{
-					continue;
-				}
-				XcodeProjectFileContent.AppendLine(string.Format ("\t\t\t\t{0} /* {1} */,", target.Guid, target.DisplayName));
-			}
 
-			XcodeProjectFileContent.Append("\t\t\t\t" + UE4XcodeHelperTarget.Guid + " /* " + UE4XcodeHelperTarget.DisplayName + " */" + ProjectFileGenerator.NewLine);
+			foreach (var Target in ProjectTargets)
+			{
+				if (Target != UE4ProjectTarget)
+				{
+					XcodeProjectFileContent.AppendLine(string.Format ("\t\t\t\t{0} /* {1} */,", Target.Guid, Target.DisplayName));
+				}
+			}
 
 			XcodeProjectFileContent.Append(
 				"\t\t\t);" + ProjectFileGenerator.NewLine +
@@ -1620,7 +1609,7 @@ namespace UnrealBuildTool
 			AppendBuildConfigs(ref XcodeProjectFileContent, UE4ProjectTarget, HeaderSearchPaths, PreprocessorDefinitionsString);
 			foreach (var Target in ProjectTargets)
 			{
-				if (Target != UE4ProjectTarget && Target != UE4XcodeHelperTarget)
+				if (Target.Type != XcodeTargetType.Project && Target.Type != XcodeTargetType.XcodeHelper)
 				{
 					AppendBuildConfigs(ref XcodeProjectFileContent, Target);
 				}
@@ -1634,7 +1623,7 @@ namespace UnrealBuildTool
 
 			foreach (var Target in ProjectTargets)
 			{
-				if (Target != UE4XcodeHelperTarget)
+				if (Target.Type != XcodeTargetType.XcodeHelper)
 				{
 					AppendConfigList(ref XcodeProjectFileContent, Target);
 				}
@@ -1649,7 +1638,7 @@ namespace UnrealBuildTool
 				"\trootObject = " + UE4ProjectTarget.Guid + " /* Project object */;" + ProjectFileGenerator.NewLine +
 				"}" + ProjectFileGenerator.NewLine);
 
-			WriteProject(XcodeProjectFileContent, ProjectTargets, UE4ProjectTarget, UE4XcodeHelperTarget);
+			WriteProject(XcodeProjectFileContent, ProjectTargets);
 
 			return true;
 		}

@@ -1,8 +1,9 @@
-// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "StereoRendering.h"
+#include "Layout/SlateRect.h"
 
 // depending on your kit and SDK, you may want to use this.
 // new distortion handling still in development.
@@ -70,7 +71,7 @@ public:
     /**
 	 * Calculates the FOV, based on the screen dimensions of the device
 	 */
-	virtual float	GetFieldOfViewInRadians() const = 0;
+	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const = 0;
 
 	/**
 	 * Whether or not the HMD supports positional tracking (either via camera or other means)
@@ -108,28 +109,28 @@ public:
      * If this is not done then the PC will face differently than the camera,
      * which might be good (depending on the game).
      */
-	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) = 0;
+	virtual void ApplyHmdRotation(class APlayerController* PC, FRotator& ViewRotation) = 0;
 
 	/**
 	 * Apply the orientation of the headset to the Camera's rotation.
 	 * This method is called for cameras with bFollowHmdOrientation set to 'true'.
 	 */
-	virtual void UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV) = 0;
+	virtual void UpdatePlayerCameraRotation(class APlayerCameraManager* Camera, struct FMinimalViewInfo& POV) = 0;
 
   	/**
 	 * Gets the scaling factor, applied to the post process warping effect
 	 */
-	virtual float GetDistortionScalingFactor() const = 0;
+	virtual float GetDistortionScalingFactor() const { return 0; }
 
 	/**
 	 * Gets the offset (in clip coordinates) from the center of the screen for the lens position
 	 */
-	virtual float GetLensCenterOffset() const = 0;
+	virtual float GetLensCenterOffset() const { return 0; }
 
 	/**
 	 * Gets the barrel distortion shader warp values for the device
 	 */
-	virtual void GetDistortionWarpValues(FVector4& K) const = 0;
+	virtual void GetDistortionWarpValues(FVector4& K) const  { }
 
 	/**
 	 * Returns 'false' if chromatic aberration correction is off.
@@ -140,7 +141,7 @@ public:
 	 * Gets the chromatic aberration correction shader values for the device. 
 	 * Returns 'false' if chromatic aberration correction is off.
 	 */
-	virtual bool GetChromaAbCorrectionValues(FVector4& K) const = 0;
+	virtual bool GetChromaAbCorrectionValues(FVector4& K) const  { return false; }
 
 	/**
 	 * Exec handler to allow console commands to be passed through to the HMD for debugging
@@ -167,11 +168,6 @@ public:
 	 * Returns the actual status of positional tracking. 
 	 */
 	virtual bool EnablePositionalTracking(bool enable) = 0;
-
-	/**
-	 * Acquires color info for latency tester rendering. Returns true if rendering should be performed.
-	 */
-	virtual bool GetLatencyTesterColor_RenderThread(FColor& Color, const FSceneView& View) {return false;}
 
 	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
@@ -207,6 +203,12 @@ public:
 	 */
 	virtual void UpdateScreenSettings(const FViewport* InViewport) = 0;
 
+	/**
+	 * Draw desired debug information related to the HMD system.
+	 * @param Canvas The canvas on which to draw.
+	 */
+	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) {}
+
 	/** 
 	 * Additional optional distorion rendering parameters
 	 * @todo:  Once we can move shaders into plugins, remove these!
@@ -223,6 +225,11 @@ public:
 	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
 	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
 #endif
+
+	/**
+	 * Record analytics
+	 */
+	virtual void RecordAnalytics() {}
 
 private:
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */

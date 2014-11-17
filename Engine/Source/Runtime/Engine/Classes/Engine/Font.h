@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/FontImportOptions.h"
 #include "Font.generated.h"
 
 /** this struct is serialized using native serialization so any changes to it require a package version bump */
@@ -73,7 +74,7 @@ struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase
  * the font database only contains the coordinates of the individual
  * glyph.
  */
-UCLASS(hidecategories=Object, dependson=UFontImportOptions, autoexpandcategories=Font, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, autoexpandcategories=Font, MinimalAPI, BlueprintType)
 class UFont : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -145,7 +146,7 @@ public:
 	 *
 	 * @return		Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	// UFont interface
 	FORCEINLINE TCHAR RemapChar(TCHAR CharCode) const
@@ -247,9 +248,9 @@ public:
 	}
 
 	// Begin UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool IsLocalizedResource() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
+	virtual bool IsLocalizedResource() override;
 	// End UObject interface
 
 	/**

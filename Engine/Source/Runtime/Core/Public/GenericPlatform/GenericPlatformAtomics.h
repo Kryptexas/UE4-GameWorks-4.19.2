@@ -14,14 +14,8 @@ struct MS_ALIGN(16) FInt128
 	int64 Low;
 	/** The high part of the 128-bit integer. */
 	int64 High;
-
-	/** Initialization constructor. */
-	FInt128( int64 InHigh, int64 InLow )
-		: Low( InLow )
-		, High( InHigh )
-	{}
-
-} GCC_ALIGN(16);
+} 
+GCC_ALIGN(16);
 
 /**
 * Generic implementation...you are required to implement at least FPlatformAtomics::InterlockedCompareExchange but they are listed here 
@@ -206,6 +200,16 @@ struct FGenericPlatformAtomics
 #endif // PLATFORM_HAS_128BIT_ATOMICS
 
 #endif // 0
+
+
+	/**
+	 * @return true, if the processor we are running on can execute compare and exchange 128-bit operation.
+	 * @see cmpxchg16b, early AMD64 processors don't support this operation.
+	 */
+	static FORCEINLINE bool CanUseCompareExchange128()
+	{
+		return false;
+	}
 
 protected:
 	/**

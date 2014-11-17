@@ -2,31 +2,62 @@
 
 #pragma once
 
+
 /**
- * Represents a texture atlas for use with RHI
+ * Represents a texture atlas for use with RHI.
  */
-class FSlateTextureAtlasRHI : public FSlateTextureAtlas
+class FSlateTextureAtlasRHI
+	: public FSlateTextureAtlas
 {
 public:
+
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param Width
+	 * @param Height
+	 * @param StrideBytes
+	 * @param Padding
+	 */
 	FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 SrideBytes, uint32 Padding );
-	~FSlateTextureAtlasRHI();
 
 	/**
-	 * Releases rendering resources from the texture
+	 * Destructor.
+	 */
+	~FSlateTextureAtlasRHI( );
+
+public:
+
+	/**
+	 * Gets the atlas' underlying texture resource.
+	 *
+	 * @return The texture resource.
+	 */
+	FSlateTexture2DRHIRef* GetAtlasTexture( ) const
+	{
+		return AtlasTexture;
+	}
+
+	/**
+	 * Releases rendering resources from the texture.
 	 */	
-	void ReleaseAtlasTexture();
+	void ReleaseAtlasTexture( );
 	
-	/** @return The texture resource for rendering */
-	FSlateTexture2DRHIRef* GetAtlasTexture() const { return AtlasTexture; }
-	
-	/** FSlateTextureAtlas interface */
-	virtual void ConditionalUpdateTexture();
-
 	/**
-	 * Updates the texture on the render thread
+	 * Updates the texture on the render thread.
+	 *
+	 * @param RenderThreadData
 	 */
 	void UpdateTexture_RenderThread( FSlateTextureData* RenderThreadData );
+
+public:
+
+	// FSlateTextureAtlas overrides.
+
+	virtual void ConditionalUpdateTexture( );
+
 private:
+
 	/** The texture rendering resource */
 	FSlateTexture2DRHIRef* AtlasTexture;
 };

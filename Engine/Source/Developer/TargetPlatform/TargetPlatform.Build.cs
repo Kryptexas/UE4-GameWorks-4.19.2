@@ -9,6 +9,8 @@ public class TargetPlatform : ModuleRules
 	{
 		PrivateDependencyModuleNames.Add("Core");
 
+		PublicIncludePathModuleNames.Add("DesktopPlatform");
+
 		if (!UEBuildConfiguration.bBuildRequiresCookedData)
 		{
             // these are needed by multiple platform specific target platforms, so we make sure they are built with the base editor

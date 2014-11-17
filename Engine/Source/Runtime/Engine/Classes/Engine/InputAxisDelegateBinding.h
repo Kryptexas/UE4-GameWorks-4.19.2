@@ -31,6 +31,6 @@ class ENGINE_API UInputAxisDelegateBinding : public UInputDelegateBinding
 	TArray<FBlueprintInputAxisDelegateBinding> InputAxisDelegateBindings;
 
 	// Begin UInputDelegateBinding interface
-	virtual void BindToInputComponent(UInputComponent* InputComponent) const OVERRIDE;
+	virtual void BindToInputComponent(UInputComponent* InputComponent) const override;
 	// End UInputDelegateBinding interface
 };

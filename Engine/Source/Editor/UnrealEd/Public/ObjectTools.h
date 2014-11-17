@@ -150,7 +150,7 @@ namespace ObjectTools
 	struct UNREALED_API FConsolidationResults : public FGCObject
 	{
 		/** FGCObject interface; Serialize any object references */
-		virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 		{
 			for( int32 Index = 0; Index < DirtiedPackages.Num(); Index++ )
 			{
@@ -407,7 +407,7 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	UNREALED_API void GenerateFactoryFileExtensions( const UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions );
+	UNREALED_API void GenerateFactoryFileExtensions( const UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory );
 	
 	/**
 	 * Populates two strings with all of the file types and extensions the provided factories support.
@@ -416,7 +416,7 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	UNREALED_API void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions );
+	UNREALED_API void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory );
 	
 	/**
 	 * Generates a list of file types for a given class.

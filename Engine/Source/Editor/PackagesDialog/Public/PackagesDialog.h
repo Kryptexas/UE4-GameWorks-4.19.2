@@ -108,7 +108,7 @@ public:
 	 *
 	 * @return	Whether the module supports shutdown separate from the rest of the engine.
 	 */
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -124,7 +124,7 @@ protected:
 	/**
 	 * Called when a module has been changed (unloaded, loaded, etc)
 	 */
-	void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange );
+	void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange );
 
 private:
 	/** A default window size for the package dialog */

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "ShaderCore.h"
+#include "Shader.h"
 #include "RenderResource.h"
 #include "SecureHash.h"
 
@@ -71,7 +72,7 @@ public:
 	virtual ~FVertexFactoryShaderParameters() {}
 	virtual void Bind(const class FShaderParameterMap& ParameterMap) = 0;
 	virtual void Serialize(FArchive& Ar) = 0;
-	virtual void SetMesh(FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const = 0;
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const = 0;
 	virtual uint32 GetSize() const { return sizeof(*this); }
 };
 
@@ -338,12 +339,12 @@ public:
 	/**
 	 * Activates the vertex factory.
 	 */
-	void Set() const;
+	void Set(FRHICommandList& RHICmdList) const;
 
 	/**
 	* Sets the position stream as the current stream source.
 	*/
-	void SetPositionStream() const;
+	void SetPositionStream(FRHICommandList& RHICmdList) const;
 
 	/**
 	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
@@ -471,11 +472,11 @@ public:
 		delete Parameters;
 	}
 
-	void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const class FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
+	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const class FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
 	{
 		if(Parameters)
 		{
-			Parameters->SetMesh(Shader,VertexFactory,View,BatchElement,DataFlags);
+			Parameters->SetMesh(RHICmdList, Shader,VertexFactory,View,BatchElement,DataFlags);
 		}
 	}
 

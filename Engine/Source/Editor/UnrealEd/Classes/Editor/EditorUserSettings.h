@@ -4,25 +4,6 @@
 
 #include "EditorUserSettings.generated.h"
 
-UENUM()
-enum EWASDType
-{
-	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
-	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
-	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
-	WASD_MAX,
-};
-
-
-UENUM()
-enum ERotationGridMode
-{
-	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ) */
-	GridMode_DivisionsOf360,
-
-	/** Uses the user defined grid values */
-	GridMode_Common,
-};
 
 UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup),
 	   hidecategories=(Object, Options, Grid, RotationGrid),
@@ -47,8 +28,16 @@ class UEditorUserSettings : public UObject
 	uint32 bDisplayActionListItemRefIds:1;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
-	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
+	UPROPERTY(EditAnywhere, config, Category=Performance)
 	uint32 bShowFrameRateAndMemory:1;
+
+	/** Lowers CPU usage when the editor is in the background and not the active application */
+	UPROPERTY(EditAnywhere, config, Category=Performance, meta=(DisplayName="Use Less CPU when in Background") )
+	uint32 bThrottleWhenNotForeground:1;
+
+	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
+	UPROPERTY(EditAnywhere, config, Category=Performance)
+	uint32 bMonitorEditorPerformance:1;
 
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)
@@ -57,162 +46,6 @@ class UEditorUserSettings : public UObject
 	/** Controls the minimum value at which the property matrix editor will display a loading bar when pasting values */
 	UPROPERTY(config)
 	int32 PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
-
-	/** The visual styling to use for graph editor pins (in Blueprints, materials, etc...) */
-	UPROPERTY(config, EditAnywhere, Category = Blueprint)
-	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
-
-	/**
-	* Blueprint editor settings; These are not config/visible/editable unless we need to tweak them.  Make ones you want to adjust 'config, EditAnywhere, Category=Blueprint'
-	*/
-
-	/** The default color is used only for types not specifically defined below.  Generally if it's seen, it means another type needs to be defined so that the wire in question can have an appropriate color. */
-	UPROPERTY()
-	FLinearColor DefaultPinTypeColor;
-	
-	/** Execution pin type color */
-	UPROPERTY()
-	FLinearColor ExecutionPinTypeColor;
-
-	/** Boolean pin type color */
-	UPROPERTY()
-	FLinearColor BooleanPinTypeColor;
-
-	/** Byte pin type color */
-	UPROPERTY()
-	FLinearColor BytePinTypeColor;
-
-	/** Class pin type color */
-	UPROPERTY()
-	FLinearColor ClassPinTypeColor;
-
-	/** Integer pin type color */
-	UPROPERTY()
-	FLinearColor IntPinTypeColor;
-
-	/** Floating-point pin type color */
-	UPROPERTY()
-	FLinearColor FloatPinTypeColor;
-
-	/** Name pin type color */
-	UPROPERTY()
-	FLinearColor NamePinTypeColor;
-
-	/** Delegate pin type color */
-	UPROPERTY()
-	FLinearColor DelegatePinTypeColor;
-
-	/** Object pin type color */
-	UPROPERTY()
-	FLinearColor ObjectPinTypeColor;
-
-	/** Interface pin type color */
-	UPROPERTY()
-	FLinearColor InterfacePinTypeColor;
-
-	/** String pin type color */
-	UPROPERTY()
-	FLinearColor StringPinTypeColor;
-
-	/** Text pin type color */
-	UPROPERTY()
-	FLinearColor TextPinTypeColor;
-
-	/** Struct pin type color */
-	UPROPERTY()
-	FLinearColor StructPinTypeColor;
-
-	/** Wildcard pin type color */
-	UPROPERTY()
-	FLinearColor WildcardPinTypeColor;
-
-	/** Vector pin type color */
-	UPROPERTY()
-	FLinearColor VectorPinTypeColor;
-
-	/** Rotator pin type color */
-	UPROPERTY()
-	FLinearColor RotatorPinTypeColor;
-
-	/** Transform pin type color */
-	UPROPERTY()
-	FLinearColor TransformPinTypeColor;
-
-	/** Index pin type color */
-	UPROPERTY()
-	FLinearColor IndexPinTypeColor;
-
-	/** Event node title color */
-	UPROPERTY()
-	FLinearColor EventNodeTitleColor;
-
-	/** CallFunction node title color */
-	UPROPERTY()
-	FLinearColor FunctionCallNodeTitleColor;
-
-	/** Pure function call node title color */
-	UPROPERTY()
-	FLinearColor PureFunctionCallNodeTitleColor;
-
-	/** Parent class function call node title color */
-	UPROPERTY()
-	FLinearColor ParentFunctionCallNodeTitleColor;
-
-	/** Function Terminator node title color */
-	UPROPERTY()
-	FLinearColor FunctionTerminatorNodeTitleColor;
-
-	/** Exec Branch node title color */
-	UPROPERTY()
-	FLinearColor ExecBranchNodeTitleColor;
-
-	/** Exec Sequence node title color */
-	UPROPERTY()
-	FLinearColor ExecSequenceNodeTitleColor;
-
-	/** Result node title color */
-	UPROPERTY()
-	FLinearColor ResultNodeTitleColor;
-
-	UPROPERTY()
-	FLinearColor TraceAttackColor;
-
-	UPROPERTY()
-	float TraceAttackWireThickness;
-
-	/** How long is the attack color fully visible */
-	UPROPERTY()
-	float TraceAttackHoldPeriod;
-
-	/** How long does it take to fade from the attack to the sustain color */
-	UPROPERTY()
-	float TraceDecayPeriod;
-
-	UPROPERTY()
-	float TraceDecayExponent;
-
-	UPROPERTY()
-	FLinearColor TraceSustainColor;
-
-	UPROPERTY()
-	float TraceSustainWireThickness;
-
-	/** How long is the sustain color fully visible */
-	UPROPERTY()
-	float TraceSustainHoldPeriod;
-
-	UPROPERTY()
-	FLinearColor TraceReleaseColor;
-
-	UPROPERTY()
-	float TraceReleaseWireThickness;
-
-	/** How long does it take to fade from the sustain to the release color */
-	UPROPERTY()
-	float TraceReleasePeriod;
-
-	UPROPERTY()
-	float TraceReleaseExponent;
 
 	UPROPERTY(config)
 	bool bSCSEditorShowGrid;
@@ -229,12 +62,6 @@ class UEditorUserSettings : public UObject
 	//
 	// The effective time at which an event occurs is it's most recent exec time plus a bonus based on the position in the execution trace
 
-	/** How much of a bonus does an exec get for being near the top of the trace stack, and how does that fall off with position? */
-	UPROPERTY()
-	float TracePositionBonusPeriod;
-
-	UPROPERTY()
-	float TracePositionExponent;
 
 	// =====================================================================
 	// The following options are NOT exposed in the preferences Editor
@@ -252,26 +79,6 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bAllowSelectTranslucent:1;
 
-	/** True if the actor count is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayActorCountInLevelBrowser:1;
-
-	/** True if the Lightmass Size is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayLightmassSizeInLevelBrowser:1;
-
-	/** True if the File Size is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayFileSizeInLevelBrowser:1;
-
-	/** True if Level Paths are displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayPathsInLevelBrowser:1;
-
-	/** True if the Editor Offset is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayEditorOffsetInLevelBrowser:1;
-
 	UPROPERTY()
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
 
@@ -287,8 +94,8 @@ public:
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
 	// Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 private:

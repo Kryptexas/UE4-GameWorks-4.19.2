@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPv4Endpoint.cpp: Implements the FIPv4Endpoint class.
-=============================================================================*/
-
 #include "NetworkingPrivatePCH.h"
 
 
@@ -11,7 +7,7 @@
  *****************************************************************************/
 
 const FIPv4Endpoint FIPv4Endpoint::Any(FIPv4Address(0), 0);
-ISocketSubsystem* FIPv4Endpoint::CachedSocketSubsystem = NULL;
+ISocketSubsystem* FIPv4Endpoint::CachedSocketSubsystem = nullptr;
 
 
 /* FIPv4Endpoint interface

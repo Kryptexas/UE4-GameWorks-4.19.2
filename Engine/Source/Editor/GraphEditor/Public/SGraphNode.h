@@ -33,7 +33,7 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphNode* InNode);
 
 	// SWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget interface
 
 	/** Returns the main title for the node */
@@ -65,30 +65,33 @@ class GRAPHEDITOR_API SGraphNode : public SNodePanel::SNode
 {
 public:
 	// SWidget interface
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 
-	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
-	virtual void OnToolTipClosing() OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() override;
+	virtual void OnToolTipClosing() override;
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilter ) OVERRIDE;
-	virtual FVector2D GetPosition() const OVERRIDE;
-	virtual FString GetNodeComment() const OVERRIDE;
-	virtual UObject* GetObjectBeingDisplayed() const OVERRIDE;
+	virtual void MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilter ) override;
+	virtual FVector2D GetPosition() const override;
+	virtual FString GetNodeComment() const override;
+	virtual UObject* GetObjectBeingDisplayed() const override;
 	// End of SNodePanel::SNode interface
 
 	/** Set attribute for determining if widget is editable */
 	void SetIsEditable(TAttribute<bool> InIsEditable);
+
+	/** Returns if widget is editable, additionally considers if the owning graph is read only */
+	bool IsNodeEditable() const;
 
 	/** Set event when node is double clicked */
 	void SetDoubleClickEvent(FSingleNodeEvent InDoubleClickEvent);
@@ -167,8 +170,16 @@ public:
 	void SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection);
 	/** returns true if a rename is pending on this node */
 	bool IsRenamePending() const { return bRenameIsPending; }
+
+	/** Requests a rename when the node was initially spawned */
+	virtual void RequestRenameOnSpawn()
+	{
+		RequestRename();
+	}
+
 	/** flags node as rename pending if supported */
 	void RequestRename();
+
 	/** Sets node into rename state if supported */
 	void ApplyRename();
 

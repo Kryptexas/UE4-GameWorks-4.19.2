@@ -1,39 +1,76 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	InterpCurve.h: Declares the FInterpCurve class.
+=============================================================================*/
+
 #pragma once
 
-template< class T > class FInterpCurve
+
+/**
+ * Template for interpolation curves.
+ *
+ * @see FInterpCurvePoint
+ * @todo Docs: FInterpCurve needs template and function documentation
+ */
+template<class T>
+class FInterpCurve
 {
 public:
-	TArray< FInterpCurvePoint<T> >	Points;
 
-	/** Constructor */
-	FInterpCurve();
+	/** Holds the collection of interpolation points. */
+	TArray<FInterpCurvePoint<T>> Points;
 
-	/** Add a new keypoint to the InterpCurve with the supplied In and Out value. Returns the index of the new key.*/
+public:
+
+	/**
+	 * Default constructor (no initialization).
+	 */
+	FInterpCurve( ) { }
+
+public:
+
+	/**
+	 * Adds a new keypoint to the InterpCurve with the supplied In and Out value.
+	 *
+	 * @param InVal
+	 * @param OutVal
+	 *
+	 * @return The index of the new key.
+	 */
 	int32 AddPoint( const float InVal, const T &OutVal );
 
-	/** Move a keypoint to a new In value. This may change the index of the keypoint, so the new key index is returned. */
+	/**
+	 * Moves a keypoint to a new In value.
+	 *
+	 * This may change the index of the keypoint, so the new key index is returned.
+	 *
+	 * @param PointIndex
+	 * @param NewInVal
+	 * @return
+	 */
 	int32 MovePoint( int32 PointIndex, float NewInVal );
 
-	/** Clear all keypoints from InterpCurve. */
+	/**
+	 * Clears all keypoints from InterpCurve.
+	 */
 	void Reset();
 
 	/** 
 	 *	Evaluate the output for an arbitary input value. 
 	 *	For inputs outside the range of the keys, the first/last key value is assumed.
 	 */
-	T Eval( const float InVal, const T& Default, int32* PtIdx = NULL ) const;
+	T Eval( const float InVal, const T& Default ) const;
 
 	/** 
 	 *	Evaluate the derivative at a point on the curve.
 	 */
-	T EvalDerivative( const float InVal, const T& Default, int32* PtIdx = NULL ) const;
+	T EvalDerivative( const float InVal, const T& Default ) const;
 
 	/** 
 	 *	Evaluate the second derivative at a point on the curve.
 	 */
-	T EvalSecondDerivative( const float InVal, const T& Default, int32* PtIdx = NULL ) const;
+	T EvalSecondDerivative( const float InVal, const T& Default ) const;
 
 	/** 
 	 * Find the nearest point on spline to the given point.
@@ -53,11 +90,12 @@ public:
 	float InaccurateFindNearestOnSegment( const T &PointInSpace, int32 PtIdx, float& OutSquaredDistance ) const;
 
 	/** Automatically set the tangents on the curve based on surrounding points */
-	void AutoSetTangents(float Tension = 0.f);
+	void AutoSetTangents(float Tension = 0.f, bool bStationaryEndpoints = true);
 
 	/** Calculate the min/max out value that can be returned by this InterpCurve. */
 	void CalcBounds(T& OutMin, T& OutMax, const T& Default) const;
 
+public:
 
 	/**
 	 * Serializes the interp curve.
@@ -77,10 +115,17 @@ public:
 		return Ar;
 	}
 
+private:
+
+	/**
+	 * Finds the lower index of the two points whose input values bound the supplied input value.
+	 */
+	int32 GetPointIndexForInputValue(const float InValue) const;
 };
 
-template< class T > 
-FORCEINLINE FInterpCurve<T>::FInterpCurve() {}
+
+/* FInterpCurve inline functions
+ *****************************************************************************/
 
 template< class T > 
 FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal )
@@ -90,6 +135,7 @@ FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal 
 	Points[i] = FInterpCurvePoint< T >(InVal, OutVal);
 	return i;
 }
+
 
 template< class T > 
 FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
@@ -112,254 +158,211 @@ FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
 	return NewPointIndex;
 }
 
+
 template< class T > 
 FORCEINLINE void FInterpCurve<T>::Reset()
 {
 	Points.Empty();
 }
 
+
+template< class T >
+int32 FInterpCurve<T>::GetPointIndexForInputValue(const float InValue) const
+{
+	const int32 NumPoints = Points.Num();
+
+	check(NumPoints > 0);
+
+	if (InValue < Points[0].InVal)
+	{
+		return -1;
+	}
+
+	if (InValue > Points[NumPoints - 1].InVal)
+	{
+		return NumPoints;
+	}
+
+	int32 MinIndex = 0;
+	int32 MaxIndex = NumPoints;
+
+	while (MaxIndex - MinIndex > 1)
+	{
+		int32 MidIndex = (MinIndex + MaxIndex) / 2;
+
+		if (Points[MidIndex].InVal <= InValue)
+		{
+			MinIndex = MidIndex;
+		}
+		else
+		{
+			MaxIndex = MidIndex;
+		}
+	}
+
+	return MinIndex;
+}
+
+
 template< class T > 
-FORCEINLINE T FInterpCurve<T>::Eval( const float InVal, const T& Default, int32* PtIdx ) const
+T FInterpCurve<T>::Eval( const float InVal, const T& Default ) const
 {
 	const int32 NumPoints = Points.Num();
 
 	// If no point in curve, return the Default value we passed in.
 	if( NumPoints == 0 )
 	{
-		if( PtIdx )
-		{
-			*PtIdx = -1;
-		}
 		return Default;
 	}
 
-	// If only one point, or before the first point in the curve, return the first points value.
-	if( NumPoints < 2 || (InVal <= Points[0].InVal) )
+	// Binary search to find index of lower bound of input value
+	const int32 Index = GetPointIndexForInputValue(InVal);
+
+	// If before the first point, return its value
+	if (Index == -1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = 0;
-		}
 		return Points[0].OutVal;
 	}
 
-	// If beyond the last point in the curve, return its value.
-	if( InVal >= Points[NumPoints-1].InVal )
+	// If on or beyond the last point, return its value.
+	if (Index >= NumPoints - 1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = NumPoints - 1;
-		}
-		return Points[NumPoints-1].OutVal;
+		return Points[NumPoints - 1].OutVal;
 	}
 
-	// Somewhere with curve range - linear search to find value.
-	for( int32 i=1; i<NumPoints; i++ )
-	{	
-		if( InVal < Points[i].InVal )
+	// Somewhere within curve range - interpolate.
+	check(Index >= 0 && Index < NumPoints - 1);
+	const auto& PrevPoint = Points[Index];
+	const auto& NextPoint = Points[Index + 1];
+	const float Diff = NextPoint.InVal - PrevPoint.InVal;
+
+	if (Diff > 0.0f && PrevPoint.InterpMode != CIM_Constant)
+	{
+		const float Alpha = (InVal - PrevPoint.InVal) / Diff;
+
+		if (PrevPoint.InterpMode == CIM_Linear)
 		{
-			const float Diff = Points[i].InVal - Points[i-1].InVal;
-
-			if( Diff > 0.f && Points[i-1].InterpMode != CIM_Constant )
-			{
-				const float Alpha = (InVal - Points[i-1].InVal) / Diff;
-
-				if( PtIdx )
-				{
-					*PtIdx = i - 1;
-				}
-
-				if( Points[i-1].InterpMode == CIM_Linear )
-				{
-					return FMath::Lerp( Points[i-1].OutVal, Points[i].OutVal, Alpha );
-				}
-				else
-				{
-					return FMath::CubicInterp( Points[i-1].OutVal, Points[i-1].LeaveTangent * Diff, Points[i].OutVal, Points[i].ArriveTangent * Diff, Alpha );
-				}
-			}
-			else
-			{
-				if( PtIdx )
-				{
-					*PtIdx = i - 1;
-				}
-
-				return Points[i-1].OutVal;
-			}
+			return FMath::Lerp(PrevPoint.OutVal, NextPoint.OutVal, Alpha);
+		}
+		else
+		{
+			return FMath::CubicInterp(PrevPoint.OutVal, PrevPoint.LeaveTangent * Diff, NextPoint.OutVal, NextPoint.ArriveTangent * Diff, Alpha);
 		}
 	}
-
-	// Shouldn't really reach here.
-	if( PtIdx )
+	else
 	{
-		*PtIdx = NumPoints - 1;
+		return Points[Index].OutVal;
 	}
-
-	return Points[NumPoints-1].OutVal;
 }
 
+
 template< class T > 
-FORCEINLINE T FInterpCurve<T>::EvalDerivative( const float InVal, const T& Default, int32* PtIdx ) const
+T FInterpCurve<T>::EvalDerivative( const float InVal, const T& Default ) const
 {
 	const int32 NumPoints = Points.Num();
 
 	// If no point in curve, return the Default value we passed in.
-	if( NumPoints == 0 )
+	if (NumPoints == 0)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = -1;
-		}
 		return Default;
 	}
 
-	// If only one point, or before the first point in the curve, return the first points value.
-	if( NumPoints < 2 || (InVal <= Points[0].InVal) )
+	// Binary search to find index of lower bound of input value
+	const int32 Index = GetPointIndexForInputValue(InVal);
+
+	// If before the first point, return its tangent value
+	if (Index == -1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = 0;
-		}
 		return Points[0].LeaveTangent;
 	}
 
-	// If beyond the last point in the curve, return its value.
-	if( InVal >= Points[NumPoints-1].InVal )
+	// If on or beyond the last point, return its tangent value.
+	if (Index >= NumPoints - 1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = NumPoints - 1;
-		}
-		return Points[NumPoints-1].ArriveTangent;
+		return Points[NumPoints - 1].ArriveTangent;
 	}
 
-	// Somewhere with curve range - linear search to find value.
-	for( int32 i=1; i<NumPoints; i++ )
-	{	
-		if( InVal < Points[i].InVal )
+	// Somewhere within curve range - interpolate.
+	check(Index >= 0 && Index < NumPoints - 1);
+	const auto& PrevPoint = Points[Index];
+	const auto& NextPoint = Points[Index + 1];
+	const float Diff = NextPoint.InVal - PrevPoint.InVal;
+
+	if (Diff > 0.0f && PrevPoint.InterpMode != CIM_Constant)
+	{
+		const float Alpha = (InVal - PrevPoint.InVal) / Diff;
+
+		if (PrevPoint.InterpMode == CIM_Linear)
 		{
-			const float Diff = Points[i].InVal - Points[i-1].InVal;
-
-			if( Diff > 0.f && Points[i-1].InterpMode != CIM_Constant )
-			{
-				if( PtIdx )
-				{
-					*PtIdx = NumPoints - 1;
-				}
-
-				const float Alpha = (InVal - Points[i-1].InVal) / Diff;
-
-				if( Points[i-1].InterpMode == CIM_Linear )
-				{
-					return FMath::Lerp( Points[i-1].OutVal, Points[i].OutVal, Alpha );
-				}
-				else
-				{
-					return FMath::CubicInterpDerivative( Points[i-1].OutVal, Points[i-1].LeaveTangent * Diff, Points[i].OutVal, Points[i].ArriveTangent * Diff, Alpha );
-				}
-			}
-			else
-			{
-				if( PtIdx )
-				{
-					*PtIdx = -1;
-				}
-
-				return T(0.f);
-			}
+			return NextPoint.OutVal - PrevPoint.OutVal;
+		}
+		else
+		{
+			return FMath::CubicInterpDerivative(PrevPoint.OutVal, PrevPoint.LeaveTangent * Diff, NextPoint.OutVal, NextPoint.ArriveTangent * Diff, Alpha);
 		}
 	}
-
-	if( PtIdx )
+	else
 	{
-		*PtIdx = NumPoints - 1;
+		return Points[Index].OutVal;
 	}
-
-	// Shouldn't really reach here.
-	return Points[NumPoints-1].OutVal;
 }
 
+
 template< class T > 
-FORCEINLINE T FInterpCurve<T>::EvalSecondDerivative( const float InVal, const T& Default, int32* PtIdx ) const
+T FInterpCurve<T>::EvalSecondDerivative( const float InVal, const T& Default ) const
 {
 	const int32 NumPoints = Points.Num();
 
 	// If no point in curve, return the Default value we passed in.
-	if( NumPoints == 0 )
+	if (NumPoints == 0)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = -1;
-		}
 		return Default;
 	}
 
-	// If only one point, or before the first point in the curve, return the first points value.
-	if( NumPoints < 2 || (InVal <= Points[0].InVal) )
+	// Binary search to find index of lower bound of input value
+	const int32 Index = GetPointIndexForInputValue(InVal);
+
+	// If before the first point, return 0
+	if (Index == -1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = 0;
-		}
-		return Points[0].OutVal;
+		return T();
 	}
 
-	// If beyond the last point in the curve, return its value.
-	if( InVal >= Points[NumPoints-1].InVal )
+	// If on or beyond the last point, return 0
+	if (Index >= NumPoints - 1)
 	{
-		if( PtIdx )
-		{
-			*PtIdx = NumPoints - 1;
-		}
-		return Points[NumPoints-1].OutVal;
+		return T();
 	}
 
-	// Somewhere with curve range - linear search to find value.
-	for( int32 i=1; i<NumPoints; i++ )
-	{	
-		if( InVal < Points[i].InVal )
+	// Somewhere within curve range - interpolate.
+	check(Index >= 0 && Index < NumPoints - 1);
+	const auto& PrevPoint = Points[Index];
+	const auto& NextPoint = Points[Index + 1];
+	const float Diff = NextPoint.InVal - PrevPoint.InVal;
+
+	if (Diff > 0.0f && PrevPoint.InterpMode != CIM_Constant)
+	{
+		const float Alpha = (InVal - PrevPoint.InVal) / Diff;
+
+		if (PrevPoint.InterpMode == CIM_Linear)
 		{
-			const float Diff = Points[i].InVal - Points[i-1].InVal;
-
-			if( Diff > 0.f && Points[i-1].InterpMode != CIM_Constant )
-			{
-				if( PtIdx )
-				{
-					*PtIdx = i - 1;
-				}
-				const float Alpha = (InVal - Points[i-1].InVal) / Diff;
-
-				if( Points[i-1].InterpMode == CIM_Linear )
-				{
-					return FMath::Lerp( Points[i-1].OutVal, Points[i].OutVal, Alpha );
-				}
-				else
-				{
-					return FMath::CubicInterpSecondDerivative( Points[i-1].OutVal, Points[i-1].LeaveTangent * Diff, Points[i].OutVal, Points[i].ArriveTangent * Diff, Alpha );
-				}
-			}
-			else
-			{
-				if( PtIdx )
-				{
-					*PtIdx = -1;
-				}
-				return Default;
-			}
+			// No change in tangent, return 0.
+			return T();
+		}
+		else
+		{
+			return FMath::CubicInterpSecondDerivative(PrevPoint.OutVal, PrevPoint.LeaveTangent * Diff, NextPoint.OutVal, NextPoint.ArriveTangent * Diff, Alpha);
 		}
 	}
-	if( PtIdx )
+	else
 	{
-		*PtIdx = NumPoints - 1;
+		return Points[Index].OutVal;
 	}
-
-	// Shouldn't really reach here.
-	return Points[NumPoints-1].OutVal;
 }
 
+
 template< class T > 
-FORCEINLINE float FInterpCurve<T>::InaccurateFindNearest( const T &PointInSpace, float& OutDistanceSq ) const
+float FInterpCurve<T>::InaccurateFindNearest( const T &PointInSpace, float& OutDistanceSq ) const
 {
 	const int32 NumPoints = Points.Num();
 	if(NumPoints > 1)
@@ -387,8 +390,9 @@ FORCEINLINE float FInterpCurve<T>::InaccurateFindNearest( const T &PointInSpace,
 	return 0.0f;
 }
 
+
 template< class T > 
-FORCEINLINE float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &PointInSpace, int32 PtIdx, float& OutSquaredDistance ) const
+float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &PointInSpace, int32 PtIdx, float& OutSquaredDistance ) const
 {
 	if( CIM_Constant == Points[PtIdx].InterpMode )
 	{
@@ -469,21 +473,24 @@ FORCEINLINE float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &Poin
 	}
 }
 
+
 template< class T > 
-FORCEINLINE void FInterpCurve<T>::AutoSetTangents(float Tension)
+void FInterpCurve<T>::AutoSetTangents(float Tension, bool bStationaryEndpoints)
 {
 	// Iterate over all points in this InterpCurve
 	for(int32 PointIndex=0; PointIndex<Points.Num(); PointIndex++)
 	{
-		T ArriveTangent = Points[PointIndex].ArriveTangent;
-		T LeaveTangent = Points[PointIndex].LeaveTangent;
+		auto& ThisPoint = Points[PointIndex];
 
-		if(PointIndex == 0)
+		T ArriveTangent = ThisPoint.ArriveTangent;
+		T LeaveTangent = ThisPoint.LeaveTangent;
+
+		if(PointIndex == 0 && bStationaryEndpoints)
 		{
 			if(PointIndex < Points.Num()-1) // Start point
 			{
 				// If first section is not a curve, or is a curve and first point has manual tangent setting.
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				if (ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped)
 				{
 					FMemory::Memset( &LeaveTangent, 0, sizeof(T) );
 				}
@@ -495,29 +502,32 @@ FORCEINLINE void FInterpCurve<T>::AutoSetTangents(float Tension)
 		}
 		else
 		{
-			if(PointIndex < Points.Num()-1) // Inner point
+			if(PointIndex < Points.Num()-1 || !bStationaryEndpoints) // Inner point
 			{
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				const auto& PrevPoint = Points[FMath::Max(0, PointIndex - 1)];
+				const auto& NextPoint = Points[FMath::Min(Points.Num() - 1, PointIndex + 1)];
+
+				if( ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped )
 				{
-					if( Points[PointIndex-1].IsCurveKey() && Points[PointIndex].IsCurveKey() )
+					if( PrevPoint.IsCurveKey() && ThisPoint.IsCurveKey() )
 					{
-						const bool bWantClamping = ( Points[ PointIndex ].InterpMode == CIM_CurveAutoClamped );
+						const bool bWantClamping = ( ThisPoint.InterpMode == CIM_CurveAutoClamped );
 
 						ComputeCurveTangent(
-							Points[ PointIndex - 1 ].InVal,		// Previous time
-							Points[ PointIndex - 1 ].OutVal,	// Previous point
-							Points[ PointIndex ].InVal,			// Current time
-							Points[ PointIndex ].OutVal,		// Current point
-							Points[ PointIndex + 1 ].InVal,		// Next time
-							Points[ PointIndex + 1 ].OutVal,	// Next point
-							Tension,							// Tension
-							bWantClamping,						// Want clamping?
-							ArriveTangent );					// Out
+							PrevPoint.InVal,	// Previous time
+							PrevPoint.OutVal,	// Previous point
+							ThisPoint.InVal,	// Current time
+							ThisPoint.OutVal,	// Current point
+							NextPoint.InVal,	// Next time
+							NextPoint.OutVal,	// Next point
+							Tension,			// Tension
+							bWantClamping,		// Want clamping?
+							ArriveTangent );	// Out
 
 						// In 'auto' mode, arrive and leave tangents are always the same
 						LeaveTangent = ArriveTangent;
 					}
-					else if( Points[PointIndex-1].InterpMode == CIM_Constant || Points[PointIndex].InterpMode == CIM_Constant )
+					else if( PrevPoint.InterpMode == CIM_Constant || ThisPoint.InterpMode == CIM_Constant )
 					{
 						FMemory::Memset( &ArriveTangent, 0, sizeof(T) );
 						FMemory::Memset( &LeaveTangent, 0, sizeof(T) );
@@ -527,20 +537,21 @@ FORCEINLINE void FInterpCurve<T>::AutoSetTangents(float Tension)
 			else // End point
 			{
 				// If last section is not a curve, or is a curve and final point has manual tangent setting.
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				if (ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped)
 				{
 					FMemory::Memset( &ArriveTangent, 0, sizeof(T) );
 				}
 			}
 		}
 
-		Points[PointIndex].ArriveTangent = ArriveTangent;
-		Points[PointIndex].LeaveTangent = LeaveTangent;
+		ThisPoint.ArriveTangent = ArriveTangent;
+		ThisPoint.LeaveTangent = LeaveTangent;
 	}
 }
 
+
 template< class T > 
-FORCEINLINE void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Default) const
+void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Default) const
 {
 	if(Points.Num() == 0)
 	{
@@ -565,9 +576,23 @@ FORCEINLINE void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Defa
 }
 
 
-typedef FInterpCurve<float>				FInterpCurveFloat;
-typedef FInterpCurve<FVector2D>			FInterpCurveVector2D;
-typedef FInterpCurve<FVector>			FInterpCurveVector;
-typedef FInterpCurve<FQuat>				FInterpCurveQuat;
-typedef FInterpCurve<FTwoVectors>		FInterpCurveTwoVectors;
-typedef FInterpCurve<FLinearColor>		FInterpCurveLinearColor;
+/* Common type definitions
+ *****************************************************************************/
+
+/** Type definition for floating point interpolation curves. */
+typedef FInterpCurve<float> FInterpCurveFloat;
+
+/** Type definition for 2D vector interpolation curves. */
+typedef FInterpCurve<FVector2D> FInterpCurveVector2D;
+
+/** Type definition for 3D vector interpolation curves. */
+typedef FInterpCurve<FVector> FInterpCurveVector;
+
+/** Type definition for quaternion interpolation curves. */
+typedef FInterpCurve<FQuat> FInterpCurveQuat;
+
+/** Type definition for vector pair interpolation curves. */
+typedef FInterpCurve<FTwoVectors> FInterpCurveTwoVectors;
+
+/** Type definition for color interpolation curves. */
+typedef FInterpCurve<FLinearColor> FInterpCurveLinearColor;

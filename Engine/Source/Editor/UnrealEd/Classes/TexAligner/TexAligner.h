@@ -57,7 +57,7 @@ class UTexAligner : public UObject
 
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	// @todo document

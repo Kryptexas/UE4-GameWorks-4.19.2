@@ -5,6 +5,9 @@
 #include "AssetThumbnail.h"
 #include "ActorEditorUtils.h"
 
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeComponent.h"
+
 #define LOCTEXT_NAMESPACE "SMaterialList"
 
 /**
@@ -338,23 +341,14 @@ void FActorMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial,
 					EditChangeObject = CastChecked<ULandscapeComponent>(CurrentComponent)->GetLandscapeProxy();
 				}
 
-				// we will unregister and register components to update materials so we have to notify NavigationSystem that this is "fake" operation and we don't have to update NavMesh
-				if (CurrentComponent && CurrentComponent->GetWorld() && CurrentComponent->GetWorld()->GetNavigationSystem())
-				{
-						CurrentComponent->GetWorld()->GetNavigationSystem()->BeginFakeComponentChanges();
-				}
+				FNavigationLockContext NavUpdateLock(Actor->GetWorld());
+
 				EditChangeObject->PreEditChange( MaterialProperty );
 
 				It.SwapMaterial( NewMaterial );
 
 				FPropertyChangedEvent PropertyChangedEvent( MaterialProperty );
 				EditChangeObject->PostEditChangeProperty( PropertyChangedEvent );
-
-				//components are updated and navigation system can work normally
-				if (CurrentComponent && CurrentComponent->GetWorld() && CurrentComponent->GetWorld()->GetNavigationSystem())
-				{
-					CurrentComponent->GetWorld()->GetNavigationSystem()->EndFakeComponentChanges();
-				}
 			}
 		}
 	}

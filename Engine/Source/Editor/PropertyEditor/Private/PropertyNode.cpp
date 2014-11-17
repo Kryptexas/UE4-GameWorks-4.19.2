@@ -226,14 +226,14 @@ void FPropertyNode::ClearCachedReadAddresses( bool bRecursive )
 
 
 // Follows the chain of items upwards until it finds the object window that houses this item.
-FObjectPropertyNode* FPropertyNode::FindObjectItemParent()
+FComplexPropertyNode* FPropertyNode::FindComplexParent()
 {
 	FPropertyNode* Cur = this;
-	FObjectPropertyNode* Found = NULL;
+	FComplexPropertyNode* Found = NULL;
 
 	while( true )
 	{
-		Found = Cur->AsObjectNode();
+		Found = Cur->AsComplexNode();
 		if( Found )
 		{
 			break;
@@ -251,14 +251,14 @@ FObjectPropertyNode* FPropertyNode::FindObjectItemParent()
 
 
 // Follows the chain of items upwards until it finds the object window that houses this item.
-const FObjectPropertyNode* FPropertyNode::FindObjectItemParent() const
+const FComplexPropertyNode* FPropertyNode::FindComplexParent() const
 {
 	const FPropertyNode* Cur = this;
-	const FObjectPropertyNode* Found = NULL;
+	const FComplexPropertyNode* Found = NULL;
 
 	while( true )
 	{
-		Found = Cur->AsObjectNode();
+		Found = Cur->AsComplexNode();
 		if( Found )
 		{
 			break;
@@ -275,6 +275,17 @@ const FObjectPropertyNode* FPropertyNode::FindObjectItemParent() const
 	return Found;
 }
 
+class FObjectPropertyNode* FPropertyNode::FindObjectItemParent()
+{
+	auto ComplexParent = FindComplexParent();
+	return ComplexParent ? ComplexParent->AsObjectNode() : NULL;
+}
+
+const class FObjectPropertyNode* FPropertyNode::FindObjectItemParent() const
+{
+	const auto ComplexParent = FindComplexParent();
+	return ComplexParent ? ComplexParent->AsObjectNode() : NULL;
+}
 
 /**
  * Follows the top-most object window that contains this property window item.
@@ -2017,12 +2028,12 @@ TSharedRef<FEditPropertyChain> FPropertyNode::BuildPropertyChain( UProperty* InP
 
 	FPropertyNode* ItemNode = this;
 
-	FObjectPropertyNode* ObjectNode = FindObjectItemParent();
+	FComplexPropertyNode* ComplexNode = FindComplexParent();
 	UProperty* MemberProperty = InProperty;
 
 	do
 	{
-		if ( ItemNode == ObjectNode )
+		if (ItemNode == ComplexNode)
 		{
 			MemberProperty = PropertyChain->GetHead()->GetValue();
 		}
@@ -2042,7 +2053,7 @@ TSharedRef<FEditPropertyChain> FPropertyNode::BuildPropertyChain( UProperty* InP
 	while( ItemNode != NULL );
 
 	// If the modified property was a property of the object at the root of this property window, the member property will not have been set correctly
-	if ( ItemNode == ObjectNode )
+	if (ItemNode == ComplexNode)
 	{
 		MemberProperty = PropertyChain->GetHead()->GetValue();
 	}
@@ -2051,6 +2062,20 @@ TSharedRef<FEditPropertyChain> FPropertyNode::BuildPropertyChain( UProperty* InP
 	PropertyChain->SetActiveMemberPropertyNode( MemberProperty );
 
 	return PropertyChain;
+}
+
+FPropertyChangedEvent& FPropertyNode::FixPropertiesInEvent(FPropertyChangedEvent& Event)
+{
+	ensure(Event.Property);
+
+	auto PropertyChain = BuildPropertyChain(Event.Property);
+	auto MemberProperty = PropertyChain->GetActiveMemberNode() ? PropertyChain->GetActiveMemberNode()->GetValue() : NULL;
+	if (ensure(MemberProperty))
+	{
+		Event.SetActiveMemberProperty(MemberProperty);
+	}
+
+	return Event;
 }
 
 /**

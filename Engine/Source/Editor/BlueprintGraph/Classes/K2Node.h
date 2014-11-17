@@ -68,16 +68,20 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
 	bool bCanToggleVisibility;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
+	bool bPropertyIsCustomized;
+
 	FOptionalPinFromProperty()
 	{
 	}
 	
-	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip)
+	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip, bool bInPropertyIsCustomized)
 		: PropertyName(InPropertyName)
 		, PropertyFriendlyName(InFriendlyName)
 		, PropertyTooltip(InTooltip)
 		, bShowPin(bInShowPin)
 		, bCanToggleVisibility(bInCanToggleVisibility)
+		, bPropertyIsCustomized(bInPropertyIsCustomized)
 	{
 	}
 };
@@ -124,14 +128,15 @@ class UK2Node : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	BLUEPRINTGRAPH_API virtual void ReconstructNode() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE { return GetReferencedLevelActor(); }
-	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const OVERRIDE { return true; }
+	BLUEPRINTGRAPH_API virtual void ReconstructNode() override;
+	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetReferencedLevelActor(); }
+	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
+	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
+	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
+	BLUEPRINTGRAPH_API virtual bool AllowSplitPins() const override;
 	// End of UEdGraphNode interface
 
 	// K2Node interface
@@ -197,8 +202,10 @@ class UK2Node : public UEdGraphNode
 	 */
 	bool CreatePinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry);
 
-	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) { };
+	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
 	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return NULL; }
+
+	BLUEPRINTGRAPH_API void ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
 
 	/**
 	 * Query if this is a node that is safe to ignore (e.g., a comment node or other non-structural annotation that can be pruned with no warnings).
@@ -233,7 +240,7 @@ class UK2Node : public UEdGraphNode
 	virtual AActor* GetReferencedLevelActor() const { return NULL; }
 
 	// Can this node be created under the specified schema
-	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 
 	/**
 	 * Searches the field redirect map for the specified named field in the scope, and returns the remapped field if found
@@ -274,6 +281,10 @@ class UK2Node : public UEdGraphNode
 
 	/** This function if used for nodes that needs CDO for validation (Called before expansion)*/
 	BLUEPRINTGRAPH_API virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const {}
+
+	/** This function returns an arbitrary number of attributes that describe this node for analytics events */
+	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
+
 protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up
@@ -377,7 +388,10 @@ protected:
 	UPROPERTY()
 	mutable bool bSelfContext;
 
-
+	/** Whether or not this property has been deprecated */
+	UPROPERTY()
+	mutable bool bWasDeprecated;
+	
 public:
 	FMemberReference()
 		: MemberParentClass(NULL)
@@ -393,6 +407,7 @@ public:
 		MemberParentClass = bIsConsideredSelfContext ? NULL : InField->GetOwnerClass();
 		MemberName = InField->GetFName();
 		bSelfContext = bIsConsideredSelfContext;
+		bWasDeprecated = false;
 
 		MemberGuid.Invalidate();
 		if (InField->GetOwnerClass())
@@ -517,6 +532,12 @@ public:
 		return MemberScope;
 	}
 
+	/** Returns whether or not the variable has been deprecated */
+	bool IsDeprecated() const
+	{
+		return bWasDeprecated;
+	}
+
 	/** 
 	 *	Returns the member UProperty/UFunction this reference is pointing to, or NULL if it no longer exists 
 	 *	Derives 'self' scope from supplied Blueprint node if required
@@ -591,6 +612,12 @@ public:
 					}
 				}
 			}
+		}
+
+		// Check to see if the member has been deprecated
+		if (UProperty* Property = Cast<UProperty>(ReturnField))
+		{
+			bWasDeprecated = Property->HasAnyPropertyFlags(CPF_Deprecated);
 		}
 
 		return ReturnField;

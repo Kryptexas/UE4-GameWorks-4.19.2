@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherCookCommands.h: Declares the FLauncherCookCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,22 +10,22 @@ class FLauncherCookGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookGameCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherCookTaskName", "Cooking content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherCookTaskDesc", "Cook content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -63,12 +59,12 @@ public:
 		return CommandLine;
 	}
 
-	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		return TEXT(" -skipcook");
 	}
 
-	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine = TEXT("");
 
@@ -95,22 +91,22 @@ class FLauncherCookServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookServerCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherCookTaskName", "Cooking content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherCookTaskDesc", "Cook content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -154,12 +150,12 @@ public:
 		return CommandLine;
 	}
 
-	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		return TEXT(" -skipcook");
 	}
 
-	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine = TEXT("");
 
@@ -186,6 +182,7 @@ class FLauncherCookOnTheFlyCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookOnTheFlyCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
@@ -201,17 +198,17 @@ public:
 		}
 	}
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployFileServerTaskName", "Starting file server").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployFileServerTaskDesc", "Start file server for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -222,8 +219,8 @@ public:
 			CommandLine += TEXT(" -iterate");
 		}
 
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceName='File Server (Cook on the fly)' -SessionId=%s -SessionName='%s' -Messaging -timeout=%d%s\""),
-//			*InstanceId.ToString(),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceName='File Server (Cook on the fly)' -InstanceId=%s -SessionId=%s -SessionName='%s' -Messaging -timeout=%d%s\""),
+			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			*ChainState.Profile->GetName(),
             ChainState.Profile->GetTimeout(),
@@ -233,24 +230,24 @@ public:
 		return CommandLine;
 	}
 
-	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 		CommandLine += TEXT(" -cookonthefly -skipserver");
 
 		// extract the port from the address list string
-/*		FString Address, Rest;
+		FString Address, Rest;
 		if(ChainState.FileServerAddressListString.Split(TEXT(":"), &Address, &Rest))
 		{
 			if (Rest.Split(TEXT("+"), &Address, &Rest))
 			{
 				CommandLine += FString::Printf(TEXT(" -port=%s"), *Address);
 			}
-		}*/
+		}
 		return CommandLine;
 	}
 
-	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetAdditionalArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -263,12 +260,12 @@ public:
 		return CommandLine;
 	}
 
-	virtual bool IsComplete() const OVERRIDE
+	virtual bool IsComplete() const override
 	{
-		return true;
+		return StartDetected;
 	}
 
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) override
 	{
 		if (StartDetected)
 		{
@@ -320,22 +317,22 @@ class FLauncherStandAloneCookOnTheFlyCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherStandAloneCookOnTheFlyCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployFileServerTaskName", "Starting file server").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployFileServerTaskDesc", "Start file server for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -349,7 +346,7 @@ public:
 		return CommandLine;
 	}
 
-	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetDependencyArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 		CommandLine += TEXT(" -cookonthefly -skipserver");

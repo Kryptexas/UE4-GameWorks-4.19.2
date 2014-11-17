@@ -5,11 +5,12 @@
 #include "Engine.h"
 #include "IAudioFormat.h"
 #include "AudioDecompress.h"
+#include "ContentStreaming.h"
 
 /*------------------------------------------------------------------------------------
 	FALSoundBuffer.
 ------------------------------------------------------------------------------------*/
-/** 
+/**
  * Constructor
  *
  * @param AudioDevice	audio device this sound buffer is going to be attached to.
@@ -20,17 +21,12 @@ FALSoundBuffer::FALSoundBuffer( FALAudioDevice* InAudioDevice )
 }
 
 /**
- * Destructor 
- * 
+ * Destructor
+ *
  * Frees wave data and detaches itself from audio device.
  */
 FALSoundBuffer::~FALSoundBuffer( void )
 {
-	if( ResourceID )
-	{
-		AudioDevice->WaveBufferMap.Remove( ResourceID );
-	}
-
 	// Delete AL buffers.
 	alDeleteBuffers( 1, BufferIds );
 }
@@ -92,6 +88,18 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioResourceCreationTime );
 
+	// This code is not relevant for now on HTML5 but adding this for consistency with other platforms.
+	// Check to see if thread has finished decompressing on the other thread
+
+	if (Wave->AudioDecompressor != NULL)
+	{
+		Wave->AudioDecompressor->EnsureCompletion();
+
+		// Remove the decompressor
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
+	}
+
 	// Can't create a buffer without any source data
 	if( Wave == NULL || Wave->NumChannels == 0 )
 	{
@@ -99,14 +107,14 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 	}
 	FWaveModInfo WaveInfo;
 
-	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat());
+	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat(Wave));
 
 	FALSoundBuffer* Buffer = NULL;
-	
+
 	// Find the existing buffer if any
 	if( Wave->ResourceID )
 	{
-		Buffer = AudioDevice->WaveBufferMap.FindRef( Wave->ResourceID );
+		Buffer = static_cast<FALSoundBuffer*>(AudioDevice->WaveBufferMap.FindRef( Wave->ResourceID ));
 	}
 
 	if( Buffer == NULL )
@@ -118,18 +126,9 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 
 		AudioDevice->alError( TEXT( "RegisterSound" ) );
 
-		// Allocate new resource ID and assign to USoundNodeWave. A value of 0 (default) means not yet registered.
-		int ResourceID = AudioDevice->NextResourceID++;
-		Buffer->ResourceID = ResourceID;
-		Wave->ResourceID = ResourceID;
+		AudioDevice->TrackResource(Wave, Buffer);
 
-		AudioDevice->Buffers.Add( Buffer );
-		AudioDevice->WaveBufferMap.FindOrAdd(ResourceID) =  Buffer ;
-
-		// Keep track of associated resource name.
-		Buffer->ResourceName = Wave->GetPathName();
-
-		Buffer->InternalFormat = AudioDevice->GetInternalFormat( Wave->NumChannels );		
+		Buffer->InternalFormat = AudioDevice->GetInternalFormat( Wave->NumChannels );
 		Buffer->NumChannels = Wave->NumChannels;
 		Buffer->SampleRate = Wave->SampleRate;
 

@@ -2,6 +2,8 @@
 
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
+#include "EditorSupportDelegates.h"
 #include "BusyCursor.h"
 #include "ScopedTransaction.h"
 #include "LevelUtils.h"
@@ -17,12 +19,19 @@
 #include "ISourceControlModule.h"
 #include "FbxExporter.h"
 #include "DesktopPlatformModule.h"
-#include "Landscape/LandscapeInfo.h"
 #include "SnappingUtils.h"
 #include "MessageLog.h"
 #include "AssetSelection.h"
 #include "HighResScreenshot.h"
 #include "ActorEditorUtils.h"
+#include "Matinee/InterpData.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeGizmoActiveActor.h"
+#include "Landscape/LandscapeComponent.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 
@@ -488,8 +497,8 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 	if (InWorld->GetWorldSettings())
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(InWorld, bShowWarnings);
-
-		// for removing
+				
+		// for removing 
 		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
 		for (FActorIterator It(InWorld); It; ++It)
 		{
@@ -591,6 +600,19 @@ bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutput
 					FComponentReregisterContext ReregisterContext(Comp);
 				}
 			}
+		}
+	}
+	return true;
+}
+
+bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld)
+{
+	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	{
+		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		{
+			ULandscapeInfo* Info = It.Value();
+			Info->RecreateCollisionComponents();
 		}
 	}
 	return true;
@@ -797,6 +819,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
 		UWorld* World = GetEditorWorldContext().World();
 		return HandleUpdateLandscapeMICCommand(Str, Ar, World);
+	}
+	else if (FParse::Command(&Str, TEXT("RecreateLandscapeCollision")))
+	{
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleRecreateLandscapeCollisionCommand(Str, Ar, World);
 	}
 #endif // WITH_EDITOR
 	else if( FParse::Command(&Str, TEXT("CONVERTMATINEES")) )
@@ -1057,9 +1085,9 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				const FString& SourceFilePath = Data->SourceFilePath;
 				if( !SourceFilePath.IsEmpty() )
 				{
-					for (const FString& Str : SearchTerms)
+					for (const FString& SearchTerm : SearchTerms)
 					{
-						if (SourceFilePath.Contains(Str))
+						if (SourceFilePath.Contains(SearchTerm))
 						{
 							Data->Modify();
 							UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *SourceFilePath);
@@ -1210,6 +1238,69 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			TakeHighResScreenShots();
 		}
 
+		return true;
+	}
+	else if( FParse::Command(&Str, TEXT("EditorShot")) || FParse::Command(&Str, TEXT("EditorScreenShot")) )
+	{
+		struct Local
+		{
+			static void TakeScreenShotOfWidget( TSharedRef<SWidget> InWidget )
+			{
+				TArray<FColor> OutImageData;
+				FIntVector OutImageSize;
+				FSlateApplication::Get().TakeScreenshot(InWidget,OutImageData,OutImageSize);
+
+				FString FileName;
+				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
+				FFileHelper::GenerateNextBitmapFilename(*BaseFileName, FileName);
+				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetTypedData());
+			}
+		};
+
+		if( FSlateApplication::IsInitialized() )
+		{
+			if( FParse::Command(&Str, TEXT("All") ))
+			{
+				TArray< TSharedRef<SWindow> > OpenWindows;
+				FSlateApplication::Get().GetAllVisibleWindowsOrdered(OpenWindows);
+				for( int32 WindowId = 0; WindowId < OpenWindows.Num(); ++WindowId )
+				{
+					Local::TakeScreenShotOfWidget(OpenWindows[WindowId]);
+				}
+			}
+			else
+			{
+				FString WindowNameStr;
+				if ( FParse::Value(Str, TEXT("Name="), WindowNameStr) )
+				{
+					TArray< TSharedRef<SWindow> > OpenWindows;
+					FSlateApplication::Get().GetAllVisibleWindowsOrdered(OpenWindows);
+					for( int32 WindowId = 0; WindowId < OpenWindows.Num(); ++WindowId )
+					{
+						FString CurrentWindowName = OpenWindows[WindowId]->GetTitle().ToString();
+
+						//Strip off the * from the end if it exists
+						if( CurrentWindowName.EndsWith(TEXT("*")) )
+						{
+							CurrentWindowName = CurrentWindowName.LeftChop(1);
+						}
+
+						if( CurrentWindowName == WindowNameStr )
+						{
+							Local::TakeScreenShotOfWidget(OpenWindows[WindowId]);
+						}
+					}
+				}
+				else
+				{
+					TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+					if( ActiveWindow.IsValid() )
+					{
+						Local::TakeScreenShotOfWidget(ActiveWindow.ToSharedRef());
+					}
+				}
+			}
+		}
 		return true;
 	}
 	return false;
@@ -1459,7 +1550,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	if( FParse::Command(&Str,TEXT("CUT")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCut())
@@ -1472,7 +1563,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	else if( FParse::Command(&Str,TEXT("COPY")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCopy())
@@ -1485,7 +1576,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	else if( FParse::Command(&Str,TEXT("PASTE")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditPaste())
@@ -1583,7 +1674,7 @@ static void MirrorActors(const FVector& MirrorScale)
 		AActor* Actor = static_cast<AActor*>( *It );
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-		const FVector PivotLocation = GEditorModeTools().PivotLocation;
+		const FVector PivotLocation = GLevelEditorModeTools().PivotLocation;
 		ABrush* Brush = Cast< ABrush >( Actor );
 		if( Brush )
 		{
@@ -1634,10 +1725,10 @@ static void MirrorActors(const FVector& MirrorScale)
 		LevelDirtyCallback.Request();
 	}
 
-	if ( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
+	if ( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
 	{
 		// If we are in geometry mode, make sure to update the mode with new source data for selected brushes
-		FEdModeGeometry* Mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
+		FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 		Mode->GetFromSource();
 	}
 
@@ -1783,9 +1874,9 @@ void CreateBoundingBoxBuilderBrush( UWorld* InWorld, const TArray<FPoly*> Select
 	CubeBuilder->Z = extent.Z * 2;
 	CubeBuilder->Build( InWorld );
 
-	InWorld->GetBrush()->SetActorLocation( bbox.GetCenter(), false );
+	InWorld->GetDefaultBrush()->SetActorLocation(bbox.GetCenter(), false);
 
-	InWorld->GetBrush()->ReregisterAllComponents();
+	InWorld->GetDefaultBrush()->ReregisterAllComponents();
 }
 
 /**
@@ -1938,7 +2029,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	else if( FParse::Command(&Str,TEXT("CREATE_BV_BOUNDINGBOX")) )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateBoundingBoxBlockingVolume", "Create Bounding Box Blocking Volume") );
-		InWorld->GetBrush()->Modify();
+		InWorld->GetDefaultBrush()->Modify();
 
 		bool bSnapToGrid=0;
 		FParse::Bool( Str, TEXT("SNAPTOGRID="), bSnapToGrid );
@@ -1969,7 +2060,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	else if( FParse::Command(&Str,TEXT("CREATE_BV_CONVEXVOLUME")) )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateConvexBlockingVolume", "Create Convex Blocking Volume") );
-		InWorld->GetBrush()->Modify();
+		InWorld->GetDefaultBrush()->Modify();
 
 		bool bSnapToGrid=0;
 		FParse::Bool( Str, TEXT("SNAPTOGRID="), bSnapToGrid );
@@ -1996,7 +2087,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		// Get a list of the polygons that make up the builder brush
 
 		FPoly* poly;
-		TArray<FPoly>* BuilderBrushPolys = new TArray<FPoly>( InWorld->GetBrush()->Brush->Polys->Element );
+		TArray<FPoly>* BuilderBrushPolys = new TArray<FPoly>( InWorld->GetDefaultBrush()->Brush->Polys->Element );
 
 		// Create a list of valid splitting planes
 
@@ -2035,7 +2126,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			{
 				// Move the plane into the same coordinate space as the builder brush
 
-				*SplittingPlane = SplittingPlane->TransformBy( InWorld->GetBrush()->ActorToWorld().ToMatrixWithScale().Inverse() );
+				*SplittingPlane = SplittingPlane->TransformBy(InWorld->GetDefaultBrush()->ActorToWorld().ToMatrixWithScale().Inverse());
 
 				// Before keeping this plane, make sure there aren't any existing planes that have a normal within the rejection tolerance.
 
@@ -2172,14 +2263,14 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Create a new builder brush from the freshly clipped polygons.
 
-		InWorld->GetBrush()->Brush->Polys->Element.Empty();
+		InWorld->GetDefaultBrush()->Brush->Polys->Element.Empty();
 
 		for( int x = 0 ; x < BuilderBrushPolys->Num() ; ++x )
 		{
-			InWorld->GetBrush()->Brush->Polys->Element.Add( (*BuilderBrushPolys)[x] );
+			InWorld->GetDefaultBrush()->Brush->Polys->Element.Add((*BuilderBrushPolys)[x]);
 		}
 
-		InWorld->GetBrush()->ReregisterAllComponents();
+		InWorld->GetDefaultBrush()->ReregisterAllComponents();
 
 		// Create the blocking volume
 
@@ -2225,7 +2316,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FVector DeltaMove = FVector::ZeroVector;
 		GetFVECTOR( Str, DeltaMove );
 
-		FEditorModeTools& Tools = GEditorModeTools();
+		FEditorModeTools& Tools = GLevelEditorModeTools();
 		Tools.SetPivotLocation( Tools.PivotLocation + DeltaMove, false );
 
 		if (GCurrentLevelEditingViewportClient)
@@ -2469,7 +2560,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	{
 		bool bHandled = false;
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			bHandled |= ActiveModes[ModeIndex]->ProcessEditDelete();
@@ -2521,7 +2612,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Bakes the current pivot position into all selected brushes as their PrePivot
 
-		FEditorModeTools& EditorModeTools = GEditorModeTools();
+		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
@@ -2551,7 +2642,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Resets the PrePivot of the selected brushes to 0,0,0 while leaving them in the same world location.
 
-		FEditorModeTools& EditorModeTools = GEditorModeTools();
+		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
@@ -2668,7 +2759,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	{
 		bool bHandled = false;
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			bHandled |= ActiveModes[ModeIndex]->ProcessEditDuplicate();
@@ -2822,7 +2913,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	if( FParse::Command(&Str, TEXT("WIDGETCOORDSYSTEMCYCLE")) )
 	{
 		const bool bGetRawValue = true;
-		int32 Wk = GEditorModeTools().GetCoordSystem(bGetRawValue);
+		int32 Wk = GLevelEditorModeTools().GetCoordSystem(bGetRawValue);
 		Wk++;
 
 		if( Wk == COORD_Max )
@@ -2830,14 +2921,14 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 			Wk -= COORD_Max;
 		}
 
-		GEditorModeTools().SetCoordSystem((ECoordSystem)Wk);
+		GLevelEditorModeTools().SetCoordSystem((ECoordSystem)Wk);
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 		FEditorSupportDelegates::UpdateUI.Broadcast();
 	}
 
 	if( FParse::Command(&Str, TEXT("WIDGETMODECYCLE")) )
 	{
-		GEditorModeTools().CycleWidgetMode();
+		GLevelEditorModeTools().CycleWidgetMode();
 	}
 
 	if( FParse::Value(Str, TEXT("GRID="), DWord1) )
@@ -2959,7 +3050,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	if ( EditorMode == FBuiltinEditorModes::EM_None )
 	{
 		FString CommandToken = FParse::Token(Str, false);
-		FEdMode* FoundMode = GEditorModeTools().FindMode( FName( *CommandToken ) );
+		FEdMode* FoundMode = GLevelEditorModeTools().FindMode( FName( *CommandToken ) );
 
 		if ( FoundMode != NULL )
 		{

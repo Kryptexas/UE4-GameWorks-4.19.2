@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherProfileSelector.h: Declares the SSessionLauncherProfileSelector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -21,7 +17,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherProfileSelector) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -36,14 +31,13 @@ public:
 		}
 	}
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel )
 	{
@@ -89,7 +83,6 @@ public:
 		Model->OnProfileSelected().AddSP(this, &SSessionLauncherProfileSelector::HandleProfileManagerProfileSelected);
 		Model->OnProfileListChanged().AddSP(this, &SSessionLauncherProfileSelector::HandleProfileManagerProfileListChanged);
 	}
-
 
 private:
 
@@ -194,7 +187,6 @@ private:
 	{
 		ProfileComboBox->SetSelectedItem(SelectedProfile);
 	}
-
 
 private:
 

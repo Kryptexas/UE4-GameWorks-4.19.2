@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "ITypedTableView.generated.h"
+
+UENUM()
 namespace ESelectionMode
 {
 	enum Type
@@ -21,6 +24,7 @@ namespace ESelectionMode
 }
 
 /** Lists can exist as regular lists or as backing widgets for a tree */
+UENUM()
 namespace ETableViewMode
 {
 	enum Type

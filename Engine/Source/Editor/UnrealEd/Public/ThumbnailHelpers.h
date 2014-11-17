@@ -43,7 +43,7 @@ public:
 
 protected:
 	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const OVERRIDE;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 protected:
 	/** The particle system component used to display all particle system thumbnails */
@@ -64,7 +64,7 @@ public:
 
 protected:
 	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const OVERRIDE;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 protected:
 	/** The static mesh actor used to display all material thumbnails */
@@ -82,7 +82,7 @@ public:
 
 protected:
 	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const OVERRIDE;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 private:
 	/** The skeletal mesh actor used to display all skeletal mesh thumbnails */
@@ -100,7 +100,7 @@ public:
 
 protected:
 	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const OVERRIDE;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 private:
 	/** The static mesh actor used to display all static mesh thumbnails */
@@ -125,11 +125,11 @@ public:
 	/** Refreshes components for the specified blueprint */
 	void BlueprintChanged(class UBlueprint* Blueprint);
 
-	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 protected:
 	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const OVERRIDE;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 	/** Returns a duplicate of the specified component whose outer is the transient package. If the component can not be created, a placeholder component is made in its place. */
 	UActorComponent* CreateComponentInstanceFromTemplate(UActorComponent* ComponentTemplate) const;

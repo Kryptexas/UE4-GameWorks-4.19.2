@@ -129,7 +129,7 @@ public:
 	 * @param	Property	Property being replicated
 	 * @param	NumBits		Number of bits used to replicate this property
 	 */
-	void TrackReplicateProperty( const UProperty* Property, bool bIsDynamicProperty, bool bIsComponentProperty, uint32 Cycles, uint16 NumPotentialBits, uint16 NumBits );
+	void TrackReplicateProperty( const UProperty* Property, uint16 NumBits );
 
 	/**
 	 * Track event occuring, like e.g. client join/ leave

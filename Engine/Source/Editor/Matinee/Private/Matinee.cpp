@@ -1,10 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Matinee.cpp: Interpolation/Cinema editing
-=============================================================================*/
-
 #include "MatineeModule.h"
+
+#include "Matinee/InterpFilter.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/MatineeAnimInterface.h"
+
 #include "Matinee.h"
 #include "MatineeActions.h"
 #include "MatineeFilterButton.h"
@@ -14,7 +23,6 @@
 
 #include "MatineeClasses.h"
 
-
 #include "CameraController.h"
 #include "MatineeConstants.h"
 
@@ -22,10 +30,12 @@
 #include "InterpolationHitProxy.h"
 
 #include "LevelEditorActions.h"
+#include "EditorSupportDelegates.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MessageLog.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
@@ -298,7 +308,7 @@ void FMatinee::SetAudioRealtimeOverride( bool bAudioIsRealtime ) const
 {
 	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
+		FEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
 		if (LevelVC)
 		{
 			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
@@ -1988,15 +1998,15 @@ void FMatinee::OnClose()
 	Opt->bAdjustingGroupKeyframes = false;
 
 	// When they close the window - change the mode away from InterpEdit.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 		// Only change mode if this window closing wasn't instigated by someone changing mode!
 		if( !InterpEditMode->bLeavingMode )
 		{
 			InterpEditMode->InterpEd = NULL;
-			GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+			GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 		}
 	}
 
@@ -2121,7 +2131,7 @@ static void DrawTransparentLine( FCanvas* Canvas, const FVector2D& Start, const 
 	}
 }
 
-void FMatinee::DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void FMatinee::DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 	if( ViewportClient->AllowMatineePreview() )
 	{

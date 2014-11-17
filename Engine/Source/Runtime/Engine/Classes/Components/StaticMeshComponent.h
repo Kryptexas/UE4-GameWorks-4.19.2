@@ -1,10 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
-#include "LightMap.h"
-#include "ShadowMap.h"
+
+#include "SceneTypes.h"
+#include "Components/MeshComponent.h"
+#include "Runtime/RenderCore/Public/PackedNormal.h"
+#include "Lightmass/LightmassPrimitiveSettingsObject.h"
+
 #include "StaticMeshComponent.generated.h"
+
+class FColorVertexBuffer;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -92,86 +97,8 @@ private:
 	FStaticMeshComponentLODInfo &operator=( const FStaticMeshComponentLODInfo &rhs ) { check(0); return *this; }
 };
 
-/** Used to store lightmap data during RerunConstructionScripts */
-class FLightMapInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName LightMapInstanceDataTypeName;
-
-	virtual ~FLightMapInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return LightMapInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
-
-	/** Mesh being used by component */
-	class UStaticMesh*	StaticMesh;
-	/** Transform of instance */
-	FTransform		Transform;
-	/** Lightmaps from LODData */
-	TArray<FLightMapRef>	LODDataLightMap;
-	TArray<FShadowMapRef>	LODDataShadowMap;
-	TArray<FGuid> IrrelevantLights;
-};
-
-/**
- * Vertex color information stored during RerunConstructionScripts
- */
-class FVertexColorInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName VertexColorInstanceDataName;
-
-	/** FComponentInstanceDataBase interface */
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return VertexColorInstanceDataName;
-	}
-
-	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
-	void AddVertexColorData( const struct FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex );
-
-	/** Re-apply vertex color data after RerunConstructionScripts is called */
-	bool ApplyVertexColorData( UStaticMeshComponent* StaticMeshComponent );
-
-	/** Check whether this vertex color data can match the specified component */
-	bool MatchesComponent( const UStaticMeshComponent* StaticMeshComponent ) const;
-
-	/** Vertex data stored per-LOD */
-	struct FVertexColorLODData
-	{
-		/** copy of painted vertex data */
-		TArray<FPaintedVertex> PaintedVertices;
-
-		/** Copy of vertex buffer colors */
-		TArray<FColor> VertexBufferColors;
-
-		/** Index of the LOD that this data came from */
-		uint32 LODIndex;
-
-		/** Check whether this contains valid data */
-		bool IsValid() const 
-		{ 
-			return PaintedVertices.Num() > 0 && VertexBufferColors.Num() > 0; 
-		}
-	};
-
-	/** Mesh being used by component */
-	class UStaticMesh* StaticMesh;
-
-	/** 'Stable' index into serialized components array */
-	int32 SerializedComponentsIndex;
-
-	/** Array of cached vertex colors for each LOD */
-	TArray<FVertexColorLODData> VertexColorLODs;
-};
-
 /** A StaticMeshComponent is a mesh that does not animate. */
-UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UStaticMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -253,6 +180,8 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lighting)
 	struct FLightmassPrimitiveSettings LightmassSettings;
 
+	virtual ~UStaticMeshComponent();
+
 	/** Change the StaticMesh used by this instance. */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
 	virtual bool SetStaticMesh(class UStaticMesh* NewMesh);
@@ -266,77 +195,79 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 public:
 
 	// Begin UObject interface.
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
-	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;	
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;	
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PreSave() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual void PreSave() override;
+	virtual void PostLoad() override;
+	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const override;
+	virtual FString GetDetailedInfoInternal() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual bool HasAnySockets() const OVERRIDE;
-	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
-	virtual bool ShouldCollideWhenPlacing() const OVERRIDE
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual bool HasAnySockets() const override;
+	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
+	virtual bool DoesSocketExist(FName InSocketName) const override;
+	virtual bool ShouldCollideWhenPlacing() const override
 	{
 		// Current Method of collision does not work with non-capsule shapes, enable when it works with static meshes
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
-	virtual TArray<FName> GetAllSocketNames() const OVERRIDE;
+	virtual TArray<FName> GetAllSocketNames() const override;
 	// End USceneComponent Interface
 
 	// Begin UActorComponent interface.
 protected: 
-	virtual void OnRegister() OVERRIDE; 
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 public:
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
-	virtual UObject const* AdditionalStatObject() const OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
+	virtual UObject const* AdditionalStatObject() const override;
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 	// End UActorComponent interface.
 
 
 
 	// Begin UPrimitiveComponent interface.
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
 #if WITH_EDITOR
-	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) OVERRIDE;
+	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
-	virtual float GetEmissiveBoost(int32 ElementIndex) const OVERRIDE;
-	virtual float GetDiffuseBoost(int32 ElementIndex) const OVERRIDE;
-	virtual bool GetShadowIndirectOnly() const OVERRIDE
+	virtual float GetEmissiveBoost(int32 ElementIndex) const override;
+	virtual float GetDiffuseBoost(int32 ElementIndex) const override;
+	virtual bool GetShadowIndirectOnly() const override
 	{
 		return LightmassSettings.bShadowIndirectOnly;
 	}
-	virtual ELightMapInteractionType GetStaticLightingType() const OVERRIDE;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual bool ShouldRecreateProxyOnUpdateTransform() const OVERRIDE;
-	virtual bool UsesOnlyUnlitMaterials() const OVERRIDE;
-	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const OVERRIDE;
-	virtual int32 GetStaticLightMapResolution() const OVERRIDE;
+	virtual ELightMapInteractionType GetStaticLightingType() const override;
+	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual class UBodySetup* GetBodySetup() override;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
+	virtual bool UsesOnlyUnlitMaterials() const override;
+	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
+	virtual int32 GetStaticLightMapResolution() const override;
 	/** Returns true if the component is static AND has the right static mesh setup to support lightmaps. */
-	virtual bool HasValidSettingsForStaticLighting() const OVERRIDE;
+	virtual bool HasValidSettingsForStaticLighting() const override;
 
-	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const OVERRIDE;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const OVERRIDE;
-	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const OVERRIDE;
+	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const;
 	// End UPrimitiveComponent interface.
@@ -396,7 +327,6 @@ public:
 		int32& VertexLightMapMemoryUsage, int32& VertexShadowMapMemoryUsage,
 		int32& StaticLightingResolution, bool& bIsUsingTextureMapping, bool& bHasLightmapTexCoords) const;
 
-
 	/**
 	 * Determines whether any of the component's LODs require override vertex color fixups
 	 *
@@ -439,24 +369,24 @@ private:
 
 	/** Update the vertex override colors */
 	void PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate );
+
+protected:
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		return true;
+	}
+
 public:
 
 	void ReleaseResources();
 
-
-
-
-
-
 	/** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */
 	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
 
-
-
-
 	/** Add or remove elements to have the size in the specified range. Reconstructs elements if MaxSize<MinSize */
 	void SetLODDataCount( const uint32 MinSize, const uint32 MaxSize );
-
 
 	/**
 	 *	Switches the static mesh component to use either Texture or Vertex static lighting.
@@ -469,11 +399,6 @@ public:
 	 *								If false, set it to use vertex light mapping.
 	 */
 	virtual bool SetStaticLightingMapping(bool bTextureMapping, int32 ResolutionToUse);
-
-	/** Socket support overrides. */
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
-
-	virtual bool DoesSocketExist(FName InSocketName) const OVERRIDE;
 
 	/**
 	 * Returns the named socket on the static mesh component.

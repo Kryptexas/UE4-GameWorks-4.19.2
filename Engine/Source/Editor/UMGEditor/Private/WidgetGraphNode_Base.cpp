@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
+#include "Animation/AnimNodeBase.h"
 #include "BlueprintEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "K2ActionMenuBuilder.h"
@@ -34,7 +35,7 @@ public:
 		}
 	}
 
-	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const OVERRIDE
+	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 	{
 		const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 
@@ -51,9 +52,11 @@ public:
 
 		Record.bCanToggleVisibility = bOptional_ShowByDefault || bOptional_HideByDefault;
 		Record.bShowPin = bAlwaysShow || bOptional_ShowByDefault;
+		// this was for anim node graph, not sure if widget graph node would need it
+		Record.bPropertyIsCustomized = false;
 	}
 
-	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE
+	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override
 	{
 		if ( BaseNode != NULL )
 		{
@@ -61,7 +64,7 @@ public:
 		}
 	}
 
-	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(Record.bShowPin);
@@ -86,7 +89,7 @@ public:
 		}
 	}
 
-	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(!Record.bShowPin);
@@ -181,7 +184,6 @@ TSharedPtr<FEdGraphSchemaAction_K2NewNode> UWidgetGraphNode_Base::CreateDefaultM
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = TemplateNode;
-	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 
 	return NodeAction;
 }

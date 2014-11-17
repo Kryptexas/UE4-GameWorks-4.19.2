@@ -62,9 +62,13 @@ class FAsyncTextureStreaming;
 class UActorComponent;
 class UPrimitiveComponent;
 class AActor;
+class UTexture2D;
 template<typename T>
 class FAsyncTask;
 struct FStreamingManagerTexture;
+
+/** Helper function to flush resource streaming. */
+void FlushResourceStreaming();
 
 /*-----------------------------------------------------------------------------
 	Base streaming classes.
@@ -593,7 +597,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param Ar	Output device for feedback
 	 * @return		true if the command was handled
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/** Adds a ULevel to the streaming manager. */
 	virtual void AddLevel( class ULevel* Level );
@@ -849,7 +853,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @param Ar	Output device for feedback
 	 * @return		true if the command was handled
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/**
 	 * Exec command handlers

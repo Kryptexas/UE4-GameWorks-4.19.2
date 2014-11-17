@@ -30,7 +30,7 @@ void SChatWindow::Construct( const FArguments& InArgs )
 			this->Cursor = EMouseCursor::CardinalCross;
 		}
 
-		virtual EWindowZone::Type GetWindowZoneOverride() const OVERRIDE
+		virtual EWindowZone::Type GetWindowZoneOverride() const override
 		{
 			return EWindowZone::TitleBar;
 		}

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-
+#include "GameFramework/FloatingPawnMovement.h"
 
 UFloatingPawnMovement::UFloatingPawnMovement(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -89,8 +89,8 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
-	const float MaxSpeed = GetModifiedMaxSpeed() * AnalogInputModifier;
-	const bool bExceedingMaxSpeed = IsExceedingMaxSpeed(MaxSpeed);
+	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;
+	const bool bExceedingMaxSpeed = IsExceedingMaxSpeed(MaxPawnSpeed);
 
 	if (AnalogInputModifier > 0.f && !bExceedingMaxSpeed)
 	{
@@ -110,15 +110,15 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 			Velocity = Velocity.SafeNormal() * VelSize;
 
 			// Don't allow braking to lower us below max speed if we started above it.
-			if (bExceedingMaxSpeed && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
+			if (bExceedingMaxSpeed && Velocity.SizeSquared() < FMath::Square(MaxPawnSpeed))
 			{
-				Velocity = OldVelocity.SafeNormal() * MaxSpeed;
+				Velocity = OldVelocity.SafeNormal() * MaxPawnSpeed;
 			}
 		}
 	}
 
 	// Apply acceleration and clamp velocity magnitude.
-	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxSpeed)) ? Velocity.Size() : MaxSpeed;
+	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxPawnSpeed)) ? Velocity.Size() : MaxPawnSpeed;
 	Velocity += ControlAcceleration * FMath::Abs(Acceleration) * DeltaTime;
 	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
 

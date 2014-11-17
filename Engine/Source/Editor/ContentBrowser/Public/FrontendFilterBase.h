@@ -48,7 +48,7 @@ public:
 
 	// IFilter implementation
 	DECLARE_DERIVED_EVENT( FFrontendFilter, IFilter<AssetFilterType>::FChangedEvent, FChangedEvent );
-	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
+	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 	TSharedPtr<FFrontendFilterCategory> GetCategory() { return FilterCategory; }
 

@@ -16,7 +16,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) OVERRIDE;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 protected:
 	static bool ShouldShowTargetLayers();
@@ -28,13 +28,13 @@ public:
 	FLandscapeEditorCustomNodeBuilder_TargetLayers(TSharedRef<FAssetThumbnailPool> ThumbnailPool);
 	~FLandscapeEditorCustomNodeBuilder_TargetLayers();
 
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE;
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE { return "TargetLayers"; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override;
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool RequiresTick() const override { return false; }
+	virtual bool InitiallyCollapsed() const override { return false; }
+	virtual FName GetName() const override { return "TargetLayers"; }
 
 protected:
 	TSharedRef<FAssetThumbnailPool> ThumbnailPool;

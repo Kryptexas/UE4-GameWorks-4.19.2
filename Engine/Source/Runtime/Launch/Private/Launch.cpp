@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "LaunchPrivatePCH.h"
+#include "PhysicsPublic.h"
 #include "ExceptionHandling.h"
 #include "ModuleManager.h"
 

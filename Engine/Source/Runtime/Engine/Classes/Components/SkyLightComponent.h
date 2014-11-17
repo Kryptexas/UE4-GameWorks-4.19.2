@@ -29,9 +29,9 @@ public:
 		Format = InFormat;
 	}
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		TextureCubeRHI.SafeRelease();
 		FTexture::ReleaseRHI();
@@ -112,18 +112,19 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 
 	// Begin UObject Interface
 	virtual void PostInitProperties();	
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject Interface
 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 
 	/** Called each tick to recapture and queued sky captures. */
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);
@@ -179,8 +180,8 @@ protected:
 	static TArray<USkyLightComponent*> SkyCapturesToUpdate;
 
 	// Begin UActorComponent Interface
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// Begin UActorComponent Interface
 
 	friend class FSkyLightSceneProxy;

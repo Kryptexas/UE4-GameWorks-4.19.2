@@ -29,7 +29,7 @@ public:
 	TSharedPtr<FAssetTypeActions_EditorUtilityBlueprint> EditorBlueprintAssetTypeActions;
 
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Register the asset type
 		EditorBlueprintAssetTypeActions = MakeShareable(new FAssetTypeActions_EditorUtilityBlueprint);
@@ -37,19 +37,17 @@ public:
 		
 		// Register the details customizer
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout("PlacedEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("GlobalEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("PlacedEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("GlobalEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
 
 		if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
 		{
 			RegisterBlutilityShelfTabSpawner();
 		}
-		
-		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FBlutilityModule::HandleExperimentalSettingChanged);
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (!UObjectInitialized())
 		{
@@ -57,8 +55,6 @@ public:
 		}
 
 		UnregisterBlutilityShelfTabSpawner();
-
-		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
 
 		// Only unregister if the asset tools module is loaded.  We don't want to forcibly load it during shutdown phase.
 		check( EditorBlueprintAssetTypeActions.IsValid() );
@@ -72,8 +68,8 @@ public:
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 		{
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyModule.UnregisterCustomPropertyLayout("PlacedEditorUtilityBase");
-			PropertyModule.UnregisterCustomPropertyLayout("GlobalEditorUtilityBase");
+			PropertyModule.UnregisterCustomClassLayout("PlacedEditorUtilityBase");
+			PropertyModule.UnregisterCustomClassLayout("GlobalEditorUtilityBase");
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
 	}
@@ -109,12 +105,10 @@ protected:
 			if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
 			{
 				RegisterBlutilityShelfTabSpawner();
-				EditorUtilityBlueprintFactory->bCreateNew = true;
 			}
 			else
 			{
 				UnregisterBlutilityShelfTabSpawner();
-				EditorUtilityBlueprintFactory->bCreateNew = false;
 			}
 		}
 	}

@@ -18,11 +18,6 @@
 struct FAndroidPlatformProperties
 	: public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android";
-	}
-
 	static FORCEINLINE const char* GetPhysicsFormat( )
 	{
 		return "PhysXPC";		//@todo android: physx format
@@ -92,15 +87,15 @@ struct FAndroidPlatformProperties
 	{
 		return true;
 	}
+
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
 };
 
 struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android (PVRTC)";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_PVRTC";
@@ -109,11 +104,6 @@ struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
 
 struct FAndroid_ATCCPlatformProperties : public FAndroidPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android (ATC)";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_ATC";
@@ -122,11 +112,6 @@ struct FAndroid_ATCCPlatformProperties : public FAndroidPlatformProperties
 
 struct FAndroid_DXTPlatformProperties : public FAndroidPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android (DXT)";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_DXT";
@@ -135,11 +120,6 @@ struct FAndroid_DXTPlatformProperties : public FAndroidPlatformProperties
 
 struct FAndroid_ETC1PlatformProperties : public FAndroidPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android (ETC1)";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_ETC1";
@@ -148,11 +128,6 @@ struct FAndroid_ETC1PlatformProperties : public FAndroidPlatformProperties
 
 struct FAndroid_ETC2PlatformProperties : public FAndroidPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Android (ETC2)";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_ETC2";

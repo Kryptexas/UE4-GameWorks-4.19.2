@@ -7,6 +7,20 @@
 
 #include "WidgetTemplate.h"
 
+/** View model for the items in the widget template list */
+class FWidgetViewModel : public TSharedFromThis<FWidgetViewModel>
+{
+public:
+	virtual FText GetName() const = 0;
+
+	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) = 0;
+
+	virtual void GetChildren(TArray< TSharedPtr<FWidgetViewModel> >& OutChildren)
+	{
+	}
+};
+
+/**  */
 class SUMGEditorWidgetTemplates : public SCompoundWidget
 {
 public:
@@ -23,18 +37,28 @@ private:
 	void BuildClassWidgetList();
 	void BuildSpecialWidgetList();
 
-	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetTemplate> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	void OnGetChildren(TSharedPtr<FWidgetViewModel> Item, TArray< TSharedPtr<FWidgetViewModel> >& Children);
+	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
-	FReply OnDraggingWidgetTemplateItem(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	/** Called when the filter text is changed. */
+	void OnSearchChanged(const FText& InFilterText);
 
 private:
+	void LoadItemExpanssion();
+	void SaveItemExpansion();
+
 	void AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template);
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
 	typedef TArray< TSharedPtr<FWidgetTemplate> > WidgetTemplateArray;
 	TMap< FString, WidgetTemplateArray > WidgetTemplateCategories;
-	WidgetTemplateArray WidgetTemplates;
 
-	TSharedPtr< SListView< TSharedPtr<FWidgetTemplate> > > WidgetsListView;
+	typedef TArray< TSharedPtr<FWidgetViewModel> > ViewModelsArray;
+	ViewModelsArray WidgetViewModels;
+
+	TSharedPtr< STreeView< TSharedPtr<FWidgetViewModel> > > WidgetTemplatesView;
+
+	bool bRefreshRequested;
+	FText SearchText;
 };

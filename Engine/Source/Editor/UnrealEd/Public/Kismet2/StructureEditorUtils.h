@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "Engine.h"
 #include "ListenerManager.h"
 #include "Editor/UnrealEd/Classes/UserDefinedStructure/UserDefinedStructEditorData.h"
 
@@ -44,41 +43,6 @@ public:
 		}
 	};
 
-	struct FStructOnScope
-	{
-	private:
-		UScriptStruct* ScriptStruct;
-		uint8* SampleStructMemory;
-
-		FStructOnScope(const FStructOnScope&);
-		FStructOnScope& operator=(const FStructOnScope&);
-
-	public:
-		FStructOnScope(UScriptStruct* InScriptStruct) 
-			: ScriptStruct(InScriptStruct)
-			, SampleStructMemory(NULL)
-		{
-			if(ScriptStruct)
-			{
-				SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-				ScriptStruct->InitializeScriptStruct(SampleStructMemory);
-			}
-		}
-
-		uint8* GetStructMemory() { return SampleStructMemory; }
-		const uint8* GetStructMemory() const { return SampleStructMemory; }
-
-		~FStructOnScope()
-		{
-			if(ScriptStruct)
-			{
-				ScriptStruct->DestroyScriptStruct(SampleStructMemory);
-				FMemory::Free(SampleStructMemory);
-				SampleStructMemory = NULL;
-			}
-		}
-	};
-
 	//STRUCTURE
 	static UUserDefinedStruct* CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags);
 
@@ -107,16 +71,37 @@ public:
 	
 	static bool ChangeVariableTooltip(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& InTooltip);
 
+	static bool ChangeEditableOnBPInstance(UUserDefinedStruct* Struct, FGuid VarGuid, bool bInIsEditable);
+
+	//3D Widget
+	static bool CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
+	static bool Change3dWidgetEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled);
+
+	static bool Is3dWidgetEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
 	//MISC
 	static TArray<FStructVariableDescription>& GetVarDesc(UUserDefinedStruct* Struct);
 
 	static const TArray<FStructVariableDescription>& GetVarDesc(const UUserDefinedStruct* Struct);
+
+	static FStructVariableDescription* GetVarDescByGuid(UUserDefinedStruct* Struct, FGuid VarGuid)
+	{
+		return Struct ? GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : NULL;
+	}
+
+	static const FStructVariableDescription* GetVarDescByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid)
+	{
+		return Struct ? GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : NULL;
+	}
 
 	static void ModifyStructData(UUserDefinedStruct* Struct);
 
 	static bool UserDefinedStructEnabled();
 
 	static void RemoveInvalidStructureMemberVariableFromBlueprint(UBlueprint* Blueprint);
+
+	static FGuid GetGuidForProperty(const UProperty* Property);
 
 	/*
 	 Default values for member variables in User Defined Structure are stored in meta data "MakeStructureDefaultValue"

@@ -3,7 +3,7 @@
 #include "CorePrivate.h"
 #include "IOSWindow.h"
 #include "IOSAppDelegate.h"
-#include "EAGLView.h"
+#include "IOSView.h"
 
 FIOSWindow::~FIOSWindow()
 {
@@ -46,8 +46,9 @@ FPlatformRect FIOSWindow::GetScreenRect()
 {
 	// get the main view's frame
 	IOSAppDelegate* AppDelegate = (IOSAppDelegate*)[[UIApplication sharedApplication] delegate];
-	CGRect Frame = [AppDelegate.GLView frame];
-	CGFloat Scale = AppDelegate.GLView.contentScaleFactor;
+	UIView* View = AppDelegate.IOSView;
+	CGRect Frame = [View frame];
+	CGFloat Scale = View.contentScaleFactor;
 
 	FPlatformRect ScreenRect;
 	ScreenRect.Top = Frame.origin.y * Scale;

@@ -195,7 +195,7 @@ void UGameUserSettings::ApplySettings()
 	}
 
 	// Request a resolution change
-	FSystemResolution::RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode);
+	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode);
 
 	// Update vsync cvar
 	{
@@ -229,25 +229,22 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 	ScalabilityQuality = Scalability::GetQualityLevels();
 
 	// Allow override using command-line settings
-	const EWindowMode::Type FullscreenWindowMode = GetFullscreenMode();
-	EWindowMode::Type OverrideFullscreenWindowMode = FullscreenWindowMode;
-	int32 OverrideResolutionSizeX = ResolutionSizeX;
-	int32 OverrideResolutionSizeY = ResolutionSizeY;
 	bool bDetectingResolution = ResolutionSizeX == 0 || ResolutionSizeY == 0;
-
-	UGameEngine::ConditionallyOverrideSettings(OverrideResolutionSizeX, OverrideResolutionSizeY, OverrideFullscreenWindowMode);
-
-	ResolutionSizeX = OverrideResolutionSizeX;
-	ResolutionSizeY = OverrideResolutionSizeY;
-	if (OverrideFullscreenWindowMode != FullscreenWindowMode)
-	{
-		SetFullscreenMode(OverrideFullscreenWindowMode);
-	}
 
 	if (bDetectingResolution)
 	{
 		ConfirmVideoMode();
 	}
+}
+
+void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode)
+{
+	UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
+	{
+		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+		CVar->Set(InWindowMode);
+	}
+	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
 
 void UGameUserSettings::SaveSettings()
@@ -307,8 +304,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 		CVar->Set((int32)WindowMode);
 	}
 
-	UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, WindowMode);
-	FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);
+	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }

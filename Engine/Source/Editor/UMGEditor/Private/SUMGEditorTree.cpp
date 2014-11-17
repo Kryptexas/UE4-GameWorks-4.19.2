@@ -12,56 +12,61 @@
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
+#include "WidgetTemplateClass.h"
+#include "WidgetBlueprintEditor.h"
 
-void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+#define LOCTEXT_NAMESPACE "UMG"
+
+void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
+	bRefreshRequested = false;
+	bIsFilterActive = false;
+
+	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SUMGEditorTree::TransformWidgetToString)));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
 
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorTree::OnObjectPropertyChanged);
+	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
+	.ItemHeight(20.0f)
+	.SelectionMode(ESelectionMode::Single)
+	.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
+	.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
+	.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
+	.OnContextMenuOpening(this, &SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening)
+	.TreeItemsSource(&RootWidgets);
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
-
-		+ SVerticalBox::Slot()
-		.AutoHeight()
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
-			SNew(SButton)
-			.OnClicked(this, &SUMGEditorTree::CreateTestUI)
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.Padding(4)
+			.AutoHeight()
 			[
-				SNew(STextBlock)
-				.Text(NSLOCTEXT("SUMGEditorTree", "CreateTestUI", "Create Test UI"))
+				SNew(SSearchBox)
+				.HintText(LOCTEXT("SearchWidgets", "Search Widgets"))
+				.OnTextChanged(this, &SUMGEditorTree::OnSearchChanged)
 			]
-		]
 
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SButton)
-			.OnClicked(this, &SUMGEditorTree::DeleteSelected)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			[
-				SNew(STextBlock)
-				.Text(NSLOCTEXT("SUMGEditorTree", "DeleteSelected", "Delete Selected"))
+				SNew(SScrollBorder, WidgetTreeView.ToSharedRef())
+				[
+					WidgetTreeView.ToSharedRef()
+				]
 			]
-		]
-
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		[
-			SAssignNew(WidgetTreeView, STreeView< USlateWrapperComponent* >)
-			.ItemHeight(20.0f)
-			.SelectionMode(ESelectionMode::Single)
-			.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
-			.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
-			.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
-			.TreeItemsSource(&RootWidgets)
 		]
 	];
 
-	RefreshTree();
+	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGEditorTree::OnEditorSelectionChanged);
+
+	bRefreshRequested = true;
 }
 
 SUMGEditorTree::~SUMGEditorTree()
@@ -72,7 +77,87 @@ SUMGEditorTree::~SUMGEditorTree()
 		Blueprint->OnChanged().RemoveAll(this);
 	}
 
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	if ( BlueprintEditor.IsValid() )
+	{
+		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+	}
+}
+
+void SUMGEditorTree::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if ( bRefreshRequested )
+	{
+		bRefreshRequested = false;
+
+		RefreshTree();
+	}
+}
+
+FReply SUMGEditorTree::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+{
+	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
+
+	if ( BlueprintEditor.Pin()->WidgetCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	{
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void SUMGEditorTree::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
+{
+	Array.Add( Widget->GetLabel() );
+}
+
+void SUMGEditorTree::OnSearchChanged(const FText& InFilterText)
+{
+	bRefreshRequested = true;
+	SearchBoxWidgetFilter->SetRawFilterText(InFilterText);
+}
+
+FText SUMGEditorTree::GetSearchText() const
+{
+	return SearchBoxWidgetFilter->GetRawFilterText();
+}
+
+void SUMGEditorTree::OnEditorSelectionChanged()
+{
+	WidgetTreeView->ClearSelection();
+
+	bool bFirst = true;
+
+	// Update the selection and expansion in the tree to match the new selection
+	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		UWidget* TemplateWidget = WidgetRef.GetTemplate();
+
+		if ( TemplateWidget )
+		{
+			WidgetTreeView->SetItemSelection(TemplateWidget, true);
+
+			// Attempt to scroll the first widget we find into view.
+			if ( bFirst )
+			{
+				bFirst = false;
+				WidgetTreeView->RequestScrollIntoView(TemplateWidget);
+			}
+
+			ExpandPathToWidget(TemplateWidget);
+		}
+	}
+}
+
+void SUMGEditorTree::ExpandPathToWidget(UWidget* TemplateWidget)
+{
+	// Expand the path leading to this widget in the tree.
+	UWidget* Parent = TemplateWidget->GetParent();
+	while ( Parent != NULL )
+	{
+		WidgetTreeView->SetItemExpansion(Parent, true);
+		Parent = Parent->GetParent();
+	}
 }
 
 UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
@@ -94,139 +179,115 @@ void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
+void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 {
-	if ( !ensure(ObjectBeingModified) )
+	TSet<FWidgetReference> SelectedWidgets;
+	for ( UWidget* TemplateWidget : TemplateWidgets )
 	{
-		return;
-	}
-}
-
-void SUMGEditorTree::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
-{
-	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle;
-	TArray<UObject*> InspectorObjects;
-	InspectorObjects.Empty(Widgets.Num());
-	for ( USlateWrapperComponent* Widget : Widgets )
-	{
-		//if ( NodePtr->CanEditDefaults() )
-		{
-			InspectorTitle = "Widget";// Widget->GetDisplayString();
-			InspectorObjects.Add(Widget);
-		}
+		FWidgetReference Selection = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), TemplateWidget);
+		SelectedWidgets.Add(Selection);
 	}
 
-	UWidgetBlueprint* Blueprint = GetBlueprint();
-
-	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren)
+TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
 {
-	USlateNonLeafWidgetComponent* Widget = Cast<USlateNonLeafWidgetComponent>(InParent);
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), FVector2D(0, 0));
+
+	return MenuBuilder.MakeWidget();
+}
+
+void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
+{
+	UPanelWidget* Widget = Cast<UPanelWidget>(InParent);
 	if ( Widget )
 	{
 		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
 		{
-			USlateWrapperComponent* Child = Widget->GetChildAt(i);
+			UWidget* Child = Widget->GetChildAt(i);
 			if ( Child )
 			{
+				if ( bIsFilterActive && !WidgetsPassingFilter.Contains(Child) )
+				{
+					continue;
+				}
+
 				OutChildren.Add(Child);
 			}
 		}
 	}
 }
 
-TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return
-		SNew(STableRow< USlateWrapperComponent* >, OwnerTable)
-		.Padding(2.0f)
-//		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
-		[
-			SNew(SUMGEditorTreeItem, BlueprintEditor.Pin(), InItem)
-		];
+	return SNew(SUMGEditorTreeItem, OwnerTable, BlueprintEditor.Pin(), InItem)
+		.HighlightText(this, &SUMGEditorTree::GetSearchText);
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo)
+void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)
 {
 	if ( SelectInfo != ESelectInfo::Direct )
 	{
-		TArray<USlateWrapperComponent*> Items;
+		TArray<UWidget*> Items;
 		Items.Add(SelectedItem);
 		ShowDetailsForObjects(Items);
 	}
 }
 
-FReply SUMGEditorTree::CreateTestUI()
+FReply SUMGEditorTree::HandleDeleteSelected()
 {
-	UWidgetBlueprint* BP = GetBlueprint();
-	TArray<USlateWrapperComponent*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
+	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	//TArray<UWidget*> SelectedWidgets = WidgetTreeView->GetSelectedItems();
 
-	if ( WidgetTemplates.Num() > 0 )
+	// Remove the selected items from the widget cache
+	for ( FWidgetReference& Item : SelectedWidgets )
 	{
-		UVerticalBoxComponent* Vertical = CastChecked<UVerticalBoxComponent>(WidgetTemplates[2]);
-
-		UButtonComponent* NewButton = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-
-		Vertical->AddChild(NewButton, FVector2D(0,0));
-	}
-	else
-	{
-		UCanvasPanelComponent* Canvas = BP->WidgetTree->ConstructWidget<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass());
-		UBorderComponent* Border = BP->WidgetTree->ConstructWidget<UBorderComponent>(UBorderComponent::StaticClass());
-		UVerticalBoxComponent* Vertical = BP->WidgetTree->ConstructWidget<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass());
-		UButtonComponent* Button1 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button2 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button3 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button4 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-
-		UTextBlockComponent* Text1 = BP->WidgetTree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
-		Text1->Text = FText::FromString(TEXT("Button!"));
-		Button4->SetContent(Text1);
-
-		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
-		Slot->Size.X = 200;
-		Slot->Size.Y = 300;
-		Slot->Position.X = 20;
-		Slot->Position.Y = 50;
-
-		Border->SetContent(Vertical);
-
-		Vertical->AddSlot(Button1);
-		Vertical->AddSlot(Button2);
-		Vertical->AddSlot(Button3);
-		Vertical->AddSlot(Button4);
+		CachedExpandedWidgets.Remove(Item.GetTemplate());
 	}
 
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	FWidgetBlueprintEditorUtils::DeleteWidgets(GetBlueprint(), SelectedWidgets);
 
 	return FReply::Handled();
 }
 
-FReply SUMGEditorTree::DeleteSelected()
+bool SUMGEditorTree::FilterWidgetHierarchy(UWidget* CurrentWidget)
 {
-	TArray<USlateWrapperComponent*> SelectedItems = WidgetTreeView->GetSelectedItems();
-	if ( SelectedItems.Num() > 0 )
+	bool bAnyChildrenPass = false;
+
+	// Iterate over children and check to see if any of them pass the current filter
+	UPanelWidget* Widget = Cast<UPanelWidget>(CurrentWidget);
+	if ( Widget )
 	{
-		UWidgetBlueprint* BP = GetBlueprint();
-
-		bool bRemoved = false;
-		for ( USlateWrapperComponent* Item : SelectedItems )
+		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
 		{
-			bRemoved = BP->WidgetTree->RemoveWidget(Item);
-		}
-
-		if ( bRemoved )
-		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+			UWidget* Child = Widget->GetChildAt(i);
+			if ( Child )
+			{
+				bAnyChildrenPass |= FilterWidgetHierarchy(Child);
+			}
 		}
 	}
 
-	return FReply::Handled();
+	// Check to see if I pass the filter
+	const bool bWidgetPass = SearchBoxWidgetFilter->PassesFilter(CurrentWidget);
+
+	// If this particular widget passes the filter, expand every widget leading up to it.
+	if ( bWidgetPass )
+	{
+		ExpandPathToWidget(CurrentWidget);
+	}
+
+	// If either the widget or the children pass, add the current widget
+	if ( bWidgetPass || bAnyChildrenPass )
+	{
+		WidgetsPassingFilter.Add(CurrentWidget);
+		return true;
+	}
+
+	return false;
 }
 
 void SUMGEditorTree::RefreshTree()
@@ -234,11 +295,42 @@ void SUMGEditorTree::RefreshTree()
 	RootWidgets.Reset();
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	TArray<USlateWrapperComponent*>& WidgetTemplates = Blueprint->WidgetTree->WidgetTemplates;
 
-	if ( WidgetTemplates.Num() > 0 )
+	if ( Blueprint->WidgetTree->RootWidget )
 	{
-		RootWidgets.Add(WidgetTemplates[0]);
+		bool bRootPassed = true;
+
+		const bool bWillFilterBeActive = !SearchBoxWidgetFilter->GetRawFilterText().IsEmpty();
+
+		// Save the expansion state when the filter becomes active
+		if ( !bIsFilterActive && bWillFilterBeActive )
+		{
+			CachedExpandedWidgets.Empty();
+			WidgetTreeView->GetExpandedItems(CachedExpandedWidgets);
+		}
+		// Restore the expansion state when the filter is removed
+		else if ( bIsFilterActive && !bWillFilterBeActive )
+		{
+			WidgetTreeView->ClearExpandedItems();
+			for ( UWidget* ExpandedWidget : CachedExpandedWidgets )
+			{
+				WidgetTreeView->SetItemExpansion(ExpandedWidget, true);
+			}
+			CachedExpandedWidgets.Empty();
+		}
+		
+		bIsFilterActive = bWillFilterBeActive;
+
+		WidgetsPassingFilter.Empty();
+		if ( bIsFilterActive )
+		{
+			bRootPassed = FilterWidgetHierarchy(Blueprint->WidgetTree->RootWidget);
+		}
+
+		if ( bRootPassed )
+		{
+			RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
+		}
 	}
 
 	WidgetTreeView->RequestTreeRefresh();
@@ -246,3 +338,5 @@ void SUMGEditorTree::RefreshTree()
 
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?
+
+#undef LOCTEXT_NAMESPACE

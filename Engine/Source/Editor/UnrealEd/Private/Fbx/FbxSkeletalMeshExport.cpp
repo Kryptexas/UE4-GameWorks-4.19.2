@@ -63,7 +63,7 @@ FbxNode* FFbxExporter::CreateSkeleton(const USkeletalMesh& SkelMesh, TArray<FbxN
 		const FMeshBoneInfo & CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
 		const FTransform & BoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
 
-		FbxString BoneName = Converter.ConvertToFbxString(CurrentBone.Name);
+		FbxString BoneName = Converter.ConvertToFbxString(CurrentBone.ExportName);
 
 
 		// Create the node's attributes

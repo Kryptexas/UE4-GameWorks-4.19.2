@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NewsFeedModule.cpp: Implements the FNewsFeedModule class.
-=============================================================================*/
-
 #include "NewsFeedPrivatePCH.h"
 
 
@@ -18,9 +14,9 @@ class FNewsFeedModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		// register settings
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
@@ -35,7 +31,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		// unregister settings
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
@@ -46,13 +42,11 @@ public:
 		}
 	}
 
-	// End IModuleInterface interface
-
 public:
 
-	// Begin INewsFeedModule interface
+	// INewsFeedModule interface
 
-	virtual TSharedRef<class SWidget> CreateNewsFeedButton( ) OVERRIDE
+	virtual TSharedRef<class SWidget> CreateNewsFeedButton( ) override
 	{
 		FNewsFeedCacheRef NewsFeedCache = MakeShareable(new FNewsFeedCache());
 
@@ -105,8 +99,6 @@ public:
 					]
 			];
 	}
-
-	// End INewsFeedModule interface
 
 private:
 

@@ -323,6 +323,13 @@ UClass* UField::GetClassMetaData(const TCHAR* Key) const
 	return FoundObject;
 }
 
+UClass* UField::GetClassMetaData(const FName& Key) const
+{
+	const FString & ClassName = GetMetaData(Key);
+	UClass* const FoundObject = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+	return FoundObject;
+}
+
 void UField::RemoveMetaData(const TCHAR* Key)
 {
 	UPackage* Package = GetOutermost();
@@ -340,7 +347,7 @@ void UField::RemoveMetaData(const FName& Key)
 #endif
 IMPLEMENT_CORE_INTRINSIC_CLASS(UField, UObject,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UField, Next ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UField, Next), TEXT("Next"));
 	}
 );
 
@@ -990,11 +997,44 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UArrayProperty>(Property)->Inner->GetID() )
 			{
-				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
-			}
-			else if (Tag.Type == NAME_AttributeProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UAttributeProperty>(Property)->Inner->GetID())
-			{
-				UE_LOG(LogClass, Warning, TEXT("Attribute Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UAttributeProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName());
+				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+				void* ArrayPropertyData = ArrayProperty->ContainerPtrToValuePtr<void>(Data);
+
+				int32 ElementCount = 0;
+				Ar << ElementCount;
+
+				FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ArrayPropertyData);
+				ScriptArrayHelper.EmptyAndAddValues(ElementCount);
+
+				if( Tag.InnerType==NAME_StrProperty && Cast<UTextProperty>(ArrayProperty->Inner) ) // Convert serialized string to text.
+				{ 
+					for(int32 i = 0; i < ElementCount; ++i)
+					{
+						FString str;
+						Ar << str;
+						FText Text = FText::FromString(str);
+						Text.Flags |= ETextFlag::ConvertedProperty;
+						CastChecked<UTextProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), Text);
+						AdvanceProperty = true;
+					}
+					continue;
+				}
+				else if( Tag.InnerType==NAME_TextProperty && Cast<UStrProperty>(ArrayProperty->Inner) ) // Convert serialized text to string.
+				{ 
+					for(int32 i = 0; i < ElementCount; ++i)
+					{
+						FText Text;  
+						Ar << Text;
+						FString String = FTextInspector::GetSourceString(Text) ? *FTextInspector::GetSourceString(Text) : TEXT("");
+						CastChecked<UStrProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), String);
+						AdvanceProperty = true;
+					}
+					continue; 
+				}
+				else
+				{
+					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+				}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
@@ -1050,14 +1090,14 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			else
 			{
-					uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
+				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
 
-					// This property is ok.			
-					Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+				// This property is ok.			
+				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
 
-					AdvanceProperty = true;
-					continue;
-				}
+				AdvanceProperty = true;
+				continue;
+			}
 
 			AdvanceProperty = false;
 
@@ -1202,6 +1242,7 @@ void UStruct::Serialize( FArchive& Ar )
 				TempScript.AddUninitialized(ScriptStorageSize);
 				int32 ScriptStart = Ar.Tell();
 				Ar.Serialize(TempScript.GetData(), ScriptStorageSize);
+				const int32 ScriptEnd = Ar.Tell();
 
 				bool bSkipByteCodeSerialization = false;
 #if WITH_EDITOR
@@ -1232,6 +1273,7 @@ void UStruct::Serialize( FArchive& Ar )
 					{	
 						SerializeExpr( iCode, Ar );
 					}
+					ensure(Ar.Tell() == ScriptEnd);
 				}
 				// and update the SHA (does nothing if not currently calculating SHA)
 				LinkerLoad->UpdateScriptSHAKey(TempScript);
@@ -1378,6 +1420,25 @@ bool UStruct::GetBoolMetaDataHierarchical(const FName& Key) const
 	}
 	return bResult;
 }
+
+bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue) const
+{
+	for (const UStruct* TestStruct = this; TestStruct != nullptr; TestStruct = TestStruct->GetSuperStruct())
+	{
+		if (TestStruct->HasMetaData(Key))
+		{
+			if (OutValue != nullptr)
+			{
+				*OutValue = TestStruct->GetMetaData(Key);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #endif
 //
 // Serialize an expression to an archive.
@@ -1415,13 +1476,13 @@ void UStruct::InstanceSubobjectTemplates( void* Data, void const* DefaultData, U
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStruct, UField,
 	{
 		Class->ClassAddReferencedObjects = &UStruct::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( UStruct, SuperStruct ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UStruct, Children ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UStruct, SuperStruct), TEXT("SuperStruct"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UStruct, Children), TEXT("Children"));
 
 		// Note: None of the *Link members need to be emitted, as they only contain properties
 		// that are in the Children chain or SuperStruct->Children chains.
 
-		Class->EmitObjectArrayReference( STRUCT_OFFSET( UStruct, ScriptObjectReferences ) );
+		Class->EmitObjectArrayReference(STRUCT_OFFSET(UStruct, ScriptObjectReferences), TEXT("ScriptObjectReferences"));
 	}
 );
 
@@ -1975,7 +2036,7 @@ void UScriptStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	}
 }
 
-bool UScriptStruct::CompareScriptStruct( const void* A, const void* B, uint32 PortFlags )
+bool UScriptStruct::CompareScriptStruct(const void* A, const void* B, uint32 PortFlags) const
 {
 	check(A);
 	if (StructFlags & STRUCT_IdenticalNative)
@@ -2004,7 +2065,7 @@ bool UScriptStruct::CompareScriptStruct( const void* A, const void* B, uint32 Po
 }
 
 
-void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 ArrayDim)
+void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2041,7 +2102,7 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 }
 
 
-void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim)
+void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2088,7 +2149,7 @@ void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim)
 	}
 }
 
-void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim)
+void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 {
 	uint8 *Data = (uint8*)Dest;
 	int32 Stride = GetStructureSize();
@@ -2134,7 +2195,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim)
 
 }
 
-void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim)
+void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim) const
 {
 	if (StructFlags & (STRUCT_IsPlainOldData | STRUCT_NoDestructor))
 	{
@@ -3530,13 +3591,23 @@ bool UClass::IsClassGroupName(const TCHAR* InGroupName) const
 
 #endif // WITH_EDITOR || HACK_HEADER_GENERATOR
 
+void UClass::PrependStreamWithSuperClass(UClass& SuperClass)
+{
+	ReferenceTokenStream.PrependStream(SuperClass.ReferenceTokenStream);
+
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+	DebugTokenMap.PrependWithSuperClass(SuperClass);
+#endif
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	{
 		Class->ClassAddReferencedObjects = &UClass::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassDefaultObject ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassWithin ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassGeneratedBy ) );
-		Class->EmitObjectArrayReference( STRUCT_OFFSET( UClass, NetFields ) );
+
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassDefaultObject), TEXT("ClassDefaultObject"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassWithin), TEXT("ClassWithin"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassGeneratedBy), TEXT("ClassGeneratedBy"));
+		Class->EmitObjectArrayReference(STRUCT_OFFSET(UClass, NetFields), TEXT("NetFields"));
 	}
 );
 

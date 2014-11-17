@@ -18,6 +18,7 @@
 #include "MovieSceneAudioSection.h"
 #include "CommonMovieSceneTools.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "Runtime/Engine/Public/Slate/SlateTextures.h"
 #include "ObjectTools.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
@@ -87,9 +88,9 @@ public:
 	~FAudioThumbnail();
 
 	/* ISlateViewport interface */
-	virtual FIntPoint GetSize() const OVERRIDE;
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
-	virtual bool RequiresVsync() const OVERRIDE;
+	virtual FIntPoint GetSize() const override;
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override;
+	virtual bool RequiresVsync() const override;
 
 	/** Returns whether this thumbnail has a texture to render */
 	virtual bool ShouldRender() const {return TextureSize > 0;}
@@ -171,7 +172,7 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 	{
 		// @todo Sequencer optimize - We might want to generate the data when we generate the texture
 		// and then discard the data afterwards, though that might be a perf hit traded for better memory usage
-		SoundWave->InitAudioResource(GEngine->GetAudioDevice()->GetRuntimeFormat());
+		SoundWave->InitAudioResource(GEngine->GetAudioDevice()->GetRuntimeFormat(SoundWave));
 		FAsyncAudioDecompress TempDecompress(SoundWave);
 		TempDecompress.StartSynchronousTask();
 	}
@@ -328,14 +329,14 @@ UMovieSceneSection* FAudioSection::GetSectionObject()
 	return &Section;
 }
 
-FString FAudioSection::GetDisplayName() const
+FText FAudioSection::GetDisplayName() const
 {
-	return bIsOnAMasterTrack ? TEXT("Master Audio") : TEXT("Audio");
+	return bIsOnAMasterTrack ? NSLOCTEXT("FAudioSection", "MasterAudioDisplayName", "Master Audio") :  NSLOCTEXT("FAudioSection", "AudioDisplayName", "Audio");
 }
 
-FString FAudioSection::GetSectionTitle() const
+FText FAudioSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneAudioSection>(&Section)->GetSound()->GetName();
+	return FText::FromString( Cast<UMovieSceneAudioSection>(&Section)->GetSound()->GetName() );
 }
 
 float FAudioSection::GetSectionHeight() const
@@ -497,9 +498,11 @@ void FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, T
 	{
 		UObject* Object = ObjectsToAttachTo[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
+			
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
 
 			if (ensure(Track))
 			{

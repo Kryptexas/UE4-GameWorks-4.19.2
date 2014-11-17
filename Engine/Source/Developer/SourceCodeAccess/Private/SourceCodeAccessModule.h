@@ -14,16 +14,16 @@ public:
 	FSourceCodeAccessModule();
 
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** ISourceCodeAccessModule implementation */
-	virtual bool CanAccessSourceCode() const OVERRIDE;
-	virtual ISourceCodeAccessor& GetAccessor() const OVERRIDE;
-	virtual void SetAccessor(const FName& InName) OVERRIDE;
-	virtual FLaunchingCodeAccessor& OnLaunchingCodeAccessor() OVERRIDE;
-	virtual FDoneLaunchingCodeAccessor& OnDoneLaunchingCodeAccessor() OVERRIDE;
-	virtual FOpenFileFailed& OnOpenFileFailed() OVERRIDE;
+	virtual bool CanAccessSourceCode() const override;
+	virtual ISourceCodeAccessor& GetAccessor() const override;
+	virtual void SetAccessor(const FName& InName) override;
+	virtual FLaunchingCodeAccessor& OnLaunchingCodeAccessor() override;
+	virtual FDoneLaunchingCodeAccessor& OnDoneLaunchingCodeAccessor() override;
+	virtual FOpenFileFailed& OnOpenFileFailed() override;
 
 private:
 	/** Handle when one of the modular features we are interested in is registered */

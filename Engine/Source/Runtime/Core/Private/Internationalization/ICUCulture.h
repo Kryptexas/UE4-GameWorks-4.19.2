@@ -132,7 +132,7 @@ class FCulture::FICUCultureImplementation
 
 	FString GetVariant() const;
 
-	TSharedRef<const icu::Collator> GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const;
+	TSharedRef<const icu::Collator, ESPMode::ThreadSafe> GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const;
 	TSharedRef<const icu::DecimalFormat> GetDecimalFormatter(const FNumberFormattingOptions* const Options = NULL) const;
 	TSharedRef<const icu::DecimalFormat> GetCurrencyFormatter(const FNumberFormattingOptions* const Options = NULL) const;
 	TSharedRef<const icu::DecimalFormat> GetPercentFormatter(const FNumberFormattingOptions* const Options = NULL) const;
@@ -141,7 +141,7 @@ class FCulture::FICUCultureImplementation
 	TSharedRef<const icu::DateFormat> GetDateTimeFormatter(const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const;
 
 	icu::Locale ICULocale;
-	const TSharedRef<const icu::Collator> ICUCollator;
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> ICUCollator;
 	const TSharedRef<const icu::DecimalFormat> ICUDecimalFormat;
 	const TSharedRef<const icu::DecimalFormat> ICUCurrencyFormat;
 	const TSharedRef<const icu::DecimalFormat> ICUPercentFormat;

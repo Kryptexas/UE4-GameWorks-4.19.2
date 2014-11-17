@@ -8,19 +8,19 @@ class FWinRTCursor : public ICursor
 {
 public:
 
-	virtual FVector2D GetPosition() const OVERRIDE;
+	virtual FVector2D GetPosition() const override;
 
-	virtual void SetPosition( const int32 X, const int32 Y ) OVERRIDE;
+	virtual void SetPosition( const int32 X, const int32 Y ) override;
 
 	void UpdatePosition( const FVector2D& NewPosition );
 
-	virtual void SetType( const EMouseCursor::Type InNewCursor ) OVERRIDE;
+	virtual void SetType( const EMouseCursor::Type InNewCursor ) override;
 
-	virtual void GetSize( int32& Width, int32& Height ) const OVERRIDE;
+	virtual void GetSize( int32& Width, int32& Height ) const override;
 
-	virtual void Show( bool bShow ) OVERRIDE;
+	virtual void Show( bool bShow ) override;
 
-	virtual void Lock( const RECT* const Bounds ) OVERRIDE;
+	virtual void Lock( const RECT* const Bounds ) override;
 
 
 private:
@@ -41,15 +41,15 @@ public:
 
 	virtual ~FWinRTApplication() {}
 
-	virtual void PollGameDeviceState( const float TimeDelta ) OVERRIDE;
+	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
-	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const OVERRIDE;
+	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
+	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
 	TSharedRef< class FGenericApplicationMessageHandler > GetMessageHandler() const;
 
-	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler ) OVERRIDE;
+	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler ) override;
 
 	TSharedRef< class FWinRTCursor > GetCursor() const;
 

@@ -5,13 +5,17 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Audio.h"
+#include "AudioDevice.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "AudioEffect.h"
 #include "Net/UnrealNetwork.h"
 #include "TargetPlatform.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY(LogAudio);
 

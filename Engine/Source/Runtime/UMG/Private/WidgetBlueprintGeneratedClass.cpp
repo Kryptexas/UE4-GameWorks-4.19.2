@@ -10,7 +10,20 @@
 UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+}
+
+void UWidgetBlueprintGeneratedClass::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Create a widget tree if one doesn't already exist.
+	if ( WidgetTree == NULL )
+	{
+		WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	}
+
+	//WidgetTree->SetFlags(RF_DefaultSubObject);
+	WidgetTree->SetFlags(RF_Transactional);
 }
 
 void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
@@ -33,22 +46,18 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 	}
 }
 
-void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
+void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
-	Super::CreateComponentsForActor(Actor);
+	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
 
-	// Duplicate the graph, keeping track of what was duplicated
-	TMap<UObject*, UObject*> DuplicatedObjectList;
+	UserWidget->WidgetTree = ClonedTree;
 
-	FObjectDuplicationParameters Parameters(const_cast<UWidgetTree*>( WidgetTree ), Actor);
-	Parameters.CreatedObjects = &DuplicatedObjectList;
+	UClass* ActorClass = UserWidget->GetClass();
 
-	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
+	TArray<UWidget*> ClonedWidgets;
+	ClonedTree->GetAllWidgets(ClonedWidgets);
 
-	AUserWidget* WidgetActor = CastChecked<AUserWidget>(Actor);
-	UClass* ActorClass = Actor->GetClass();
-
-	for ( USlateWrapperComponent* Widget : ClonedTree->WidgetTemplates )
+	for ( UWidget* Widget : ClonedWidgets )
 	{
 		// Not fatal if NULL, but shouldn't happen
 		if ( !ensure(Widget != NULL) )
@@ -56,19 +65,19 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 			continue;
 		}
 
-		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), Actor->SerializedComponents.Num()) );
+		//FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), UserWidget->Components.Num()) );
 
 		FString VariableName = Widget->GetName();
 
 		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		Actor->SerializedComponents.Add(Widget); // Add to array so it gets saved
-		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
+		UserWidget->Components.Add(Widget); // Add to array so it gets saved
+//		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
 		// Find property with the same name as the template and assign the new Timeline to it
 		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
 		if ( Prop )
 		{
-			Prop->SetObjectPropertyValue_InContainer(Actor, Widget);
+			Prop->SetObjectPropertyValue_InContainer(UserWidget, Widget);
 		}
 
 		// Perform binding
@@ -77,7 +86,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 			//TODO UMG Terrible performance, improve with Maps.
 			if ( Binding.ObjectName == VariableName )
 			{
-				UFunction* BoundFunction = WidgetActor->FindFunction(Binding.FunctionName);
+				UFunction* BoundFunction = UserWidget->FindFunction(Binding.FunctionName);
 
 				FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
 
@@ -88,7 +97,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 						if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
 						{
 							FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
-							ScriptDelegate->BindUFunction(WidgetActor, Binding.FunctionName);
+							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
 							break;
 						}
 					}
@@ -96,7 +105,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 			}
 		}
 
-		Widget->RegisterComponent();
+//		Widget->RegisterComponent();
 
 #if WITH_EDITOR
 		Widget->ConnectEditorData();

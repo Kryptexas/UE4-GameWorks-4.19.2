@@ -3,6 +3,7 @@
 #include "LogVisualizerPCH.h"
 #include "SLogBar.h"
 
+#if ENABLE_VISUAL_LOG
 void SLogsTableRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
 	Item = InArgs._Item;
@@ -26,10 +27,10 @@ TSharedRef<SWidget> SLogsTableRow::GenerateWidgetForColumn(const FName& ColumnNa
 				.Text(NSLOCTEXT("LogVisualizer", "RowCellError", "ERROR"));
 	}
 
-	FActorsVisLog& Log = *(OwnerVisualizerWidget->LogVisualizer->Logs[LogId]);
-
 	if (ColumnName == SLogVisualizer::NAME_LogName)
 	{	
+		FActorsVisLog& Log = *(OwnerVisualizerWidget->LogVisualizer->Logs[LogId]);
+
 		return SNew(SBox)
 				.VAlign(VAlign_Center)
 				.Padding(2)
@@ -49,6 +50,10 @@ TSharedRef<SWidget> SLogsTableRow::GenerateWidgetForColumn(const FName& ColumnNa
 			OwnerVisualizerWidget->OnZoomChanged().Remove(
 				SLogVisualizer::FOnZoomChanged::FDelegate::CreateSP(LogBar.Get(), &SLogBar::SetZoomAndOffset)
 				);
+
+			OwnerVisualizerWidget->OnHistogramWindowChanged().Remove(
+				SLogVisualizer::FOnHistogramWindowChanged::FDelegate::CreateSP(LogBar.Get(), &SLogBar::SetHistogramWindow)
+				);
 		}
 
 		LogBar = SNew( SLogBar )
@@ -63,9 +68,14 @@ TSharedRef<SWidget> SLogsTableRow::GenerateWidgetForColumn(const FName& ColumnNa
 		LogBar->SetZoom( OwnerVisualizerWidget->GetZoom() );
 		LogBar->SetOffset( OwnerVisualizerWidget->GetScrollbarOffset() );
 		LogBar->SetRowIndex(IndexInList);
+		LogBar->SetHistogramWindow(OwnerVisualizerWidget->GetHistogramPreviewWindow() );
 
 		OwnerVisualizerWidget->OnZoomChanged().Add(
 			SLogVisualizer::FOnZoomChanged::FDelegate::CreateSP(LogBar.Get(), &SLogBar::SetZoomAndOffset)
+			);
+
+		OwnerVisualizerWidget->OnHistogramWindowChanged().Add(
+			SLogVisualizer::FOnHistogramWindowChanged::FDelegate::CreateSP(LogBar.Get(), &SLogBar::SetHistogramWindow)
 			);
 
 		return LogBar.ToSharedRef();
@@ -108,3 +118,4 @@ void SLogsTableRow::OnBarGeometryChanged( FGeometry Geometry )
 		OwnerVisualizerWidget->GetTimeline()->SetDrawingGeometry( Geometry );
 	}
 }
+#endif //ENABLE_VISUAL_LOG

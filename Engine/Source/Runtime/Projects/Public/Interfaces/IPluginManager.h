@@ -3,7 +3,7 @@
 #pragma once
 
 
-#include "IPluginManagerShared.h"
+#include "ModuleDescriptor.h"
 
 
 /**
@@ -41,6 +41,9 @@ public:
 	/** True if plugin is currently enabled */
 	bool bIsEnabled;
 
+	/** True if plugin is enabled by default in all projects */
+	bool bIsEnabledByDefault;
+
 	/** True if the plugin is a 'built-in' engine plugin */
 	bool bIsBuiltIn;
 
@@ -50,9 +53,25 @@ public:
 	/** Marks the plugin as beta in the UI */
 	bool bIsBetaVersion;
 
+	/** Whether the plugin has a content folder */
+	bool bHasContentFolder;
+
 };
 
+/**
+ * Structure holding information about a plugin content folder
+ */
+struct FPluginContentFolder
+{
+	/** Name of the plugin */
+	FString Name;
 
+	/** Virtual root path for asset paths */
+	FString RootPath;
+
+	/** Content path on disk */
+	FString ContentPath;
+};
 
 /**
  * PluginManager manages available code and content extensions (both loaded and not loaded.)
@@ -112,12 +131,9 @@ public:
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const = 0;
 
 	/**
-	 * Sets the enabled state for the specified plugin. This change may not take effect until the editor is restarted.
+	 * Gets a list of plugin content folders
+	 *
+	 * @return	 Array of plugin content folders
 	 */
-	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) = 0;
-
-	/**
-	 * @return true if plugin changes have been made that will only take effect after a restart
-	 */
-	virtual bool IsRestartRequired() const = 0;
+	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const = 0;
 };

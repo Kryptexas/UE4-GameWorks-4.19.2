@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherCookPage.h: Declares the SSessionLauncherCookPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherCookPage) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -26,17 +21,15 @@ public:
 	 */
 	~SSessionLauncherCookPage( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 private:
 
@@ -57,7 +50,6 @@ private:
 
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
-
 
 private:
 

@@ -2,7 +2,15 @@
 
 
 #pragma once
+#include "Engine/BlendableInterface.h"
+#include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "SceneTypes.h"
 #include "MaterialInterface.generated.h"
+
+class UMaterial;
+class FMaterialResource;
+class FMaterialCompiler;
+struct FPrimitiveViewRelevance;
 
 UENUM()
 enum EMaterialUsage
@@ -18,6 +26,63 @@ enum EMaterialUsage
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
 	MATUSAGE_MAX,
+};
+
+USTRUCT()
+struct ENGINE_API FMaterialRelevance
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	uint32 bOpaque : 1;
+
+	UPROPERTY()
+		uint32 bMasked : 1;
+
+	UPROPERTY()
+		uint32 bDistortion : 1;
+
+	UPROPERTY()
+		uint32 bSeparateTranslucency : 1;
+
+	UPROPERTY()
+		uint32 bNormalTranslucency : 1;
+
+	UPROPERTY()
+		uint32 bDisableDepthTest : 1;
+
+	/** Default constructor. */
+	FMaterialRelevance()
+		: bOpaque(false)
+		, bMasked(false)
+		, bDistortion(false)
+		, bSeparateTranslucency(false)
+		, bNormalTranslucency(false)
+		, bDisableDepthTest(false)
+	{}
+
+	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
+	FMaterialRelevance& operator|=(const FMaterialRelevance& B)
+	{
+		bOpaque |= B.bOpaque;
+		bMasked |= B.bMasked;
+		bDistortion |= B.bDistortion;
+		bSeparateTranslucency |= B.bSeparateTranslucency;
+		bNormalTranslucency |= B.bNormalTranslucency;
+		bDisableDepthTest |= B.bDisableDepthTest;
+		return *this;
+	}
+
+	/** Binary bitwise OR operator. */
+	friend FMaterialRelevance operator|(const FMaterialRelevance& A, const FMaterialRelevance& B)
+	{
+		FMaterialRelevance Result(A);
+		Result |= B;
+		return Result;
+	}
+
+	/** Copies the material's relevance flags to a primitive's view relevance flags. */
+	void SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const;
 };
 
 /** 
@@ -111,7 +176,7 @@ public:
 	FStringAssetReference PreviewMesh;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 private:
@@ -130,12 +195,12 @@ public:
 	ENGINE_API void SetFeatureLevelToCompile(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
 
 	// Begin UObject interface.
-	ENGINE_API virtual void BeginDestroy() OVERRIDE;
-	ENGINE_API virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	ENGINE_API virtual void PostLoad() OVERRIDE;
-	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 
@@ -175,12 +240,13 @@ public:
 	*						@note: only valid in the editor!
 	* @return	The resource to use for rendering this material instance.
 	*/
-	virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const PURE_VIRTUAL(UMaterialInterface::GetRenderProxy,return NULL;);
+	virtual class FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const PURE_VIRTUAL(UMaterialInterface::GetRenderProxy,return NULL;);
 
 	/**
 	* Return a pointer to the physical material used by this material instance.
 	* @return The physical material.
 	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Material")
 	virtual UPhysicalMaterial* GetPhysicalMaterial() const PURE_VIRTUAL(UMaterialInterface::GetPhysicalMaterial,return NULL;);
 
 	/** Return the textures used to render this material. */
@@ -439,13 +505,13 @@ public:
 	*/
 	ENGINE_API float GetOpacityMaskClipValue() const;
 	ENGINE_API EBlendMode GetBlendMode() const;
-	ENGINE_API EMaterialLightingModel GetLightingModel() const;
+	ENGINE_API EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API bool IsTwoSided() const;
 
 	/** Game thread versions of the accessors. On the render thread there are equivelant getters in FMaterial. */
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialLightingModel GetLightingModel_Internal() const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and

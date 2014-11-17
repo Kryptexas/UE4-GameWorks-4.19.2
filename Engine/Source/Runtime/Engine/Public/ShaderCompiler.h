@@ -277,6 +277,11 @@ public:
 	 */
 	ENGINE_API void AddJobs(TArray<FShaderCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency);
 
+	/**
+	* Removes all outstanding compile jobs for the passed shader maps.
+	*/
+	ENGINE_API void CancelCompilation(const TCHAR* MaterialName, const TArray<int32>& ShaderMapIdsToCancel);
+
 	/** 
 	 * Blocks until completion of the requested shader maps.  
 	 * This will not assign the shader map to any materials, the caller is responsible for that.

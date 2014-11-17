@@ -5,11 +5,17 @@ Level.cpp: Level-related functions
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelScriptBlueprint.h"
+#include "Engine/WorldComposition.h"
+#include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
+#include "Model.h"
+#include "StaticLighting.h"
 #include "SoundDefinitions.h"
 #include "PrecomputedLightVolume.h"
 #include "TickTaskManagerInterface.h"
 #include "BlueprintUtilities.h"
+#include "DynamicMeshBuilder.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -17,6 +23,7 @@ Level.cpp: Level-related functions
 #include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY(LogLevel);
 
@@ -592,6 +599,10 @@ void ULevel::PostLoad()
 	}
 #endif //WITH_EDITOR
 
+#if WITH_EDITOR
+	Actors.Remove(nullptr);
+#endif
+
 	// in the Editor, sort Actor list immediately (at runtime we wait for the level to be added to the world so that it can be delayed in the level streaming case)
 	if (GIsEditor)
 	{
@@ -605,7 +616,20 @@ void ULevel::PostLoad()
 	if (Model == NULL || Model->NumUniqueVertices == 0)
 	{
 		StaticNavigableGeometry.Empty();
-	} 
+	}
+
+#if WITH_EDITOR
+	if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
+	{
+		// Rename the LevelScriptBlueprint after the outer world.
+		UWorld* OuterWorld = Cast<UWorld>(GetOuter());
+		if (LevelScriptBlueprint && OuterWorld && LevelScriptBlueprint->GetFName() != OuterWorld->GetFName())
+		{
+			// Use LevelScriptBlueprint->GetOuter() instead of NULL to make sure the generated top level objects are moved appropriately
+			LevelScriptBlueprint->Rename(*OuterWorld->GetName(), LevelScriptBlueprint->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+		}
+	}
+#endif
 }
 
 UWorld* ULevel::GetWorld() const
@@ -1110,13 +1134,18 @@ void ULevel::PostEditUndo()
 		}
 	}
 
-	// Add the levelscriptactor back into the actors array
-	if (LevelScriptActor)
+	// Non-transactional actors may disappear from the actors list but still exist, so we need to re-add them
+	// Likewise they won't get recreated if we undo to before they were deleted, so we'll have nulls in the actors list to remove
+	//Actors.Remove(nullptr); // removed because TTransArray exploded (undo followed by redo ends up with a different ArrayNum to originally)
+	TSet<AActor*> ActorsSet(Actors);
+	TArray<UObject *> InnerObjects;
+	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_PendingKill);
+	for (UObject* InnerObject : InnerObjects)
 	{
-		// LSA is transient so won't track the actors list
-		if (!Actors.Contains(LevelScriptActor))
+		AActor* InnerActor = Cast<AActor>(InnerObject);
+		if (InnerActor && !ActorsSet.Contains(InnerActor))
 		{
-			Actors.Add(LevelScriptActor);
+			Actors.Add(InnerActor);
 		}
 	}
 
@@ -1473,14 +1502,25 @@ TArray<FStreamableTextureInstance>* ULevel::GetStreamableTextureInstances(UTextu
 	return NULL;
 }
 
-
 ABrush* ULevel::GetBrush() const
 {
-	checkf( Actors.Num() >= 2, *GetPathName() );
-	ABrush* DefaultBrush = Cast<ABrush>( Actors[1] );
-	checkf( DefaultBrush != NULL, *GetPathName() );
-	checkf( DefaultBrush->BrushComponent, *GetPathName() );
-	checkf( DefaultBrush->Brush != NULL, *GetPathName() );
+	return GetDefaultBrush();
+}
+
+ABrush* ULevel::GetDefaultBrush() const
+{
+	ABrush* DefaultBrush = nullptr;
+	if (Actors.Num() >= 2)
+	{
+		// If the builder brush exists then it will be the 2nd actor in the actors array.
+		DefaultBrush = Cast<ABrush>(Actors[1]);
+		// If the second actor is not a brush then it certainly cannot be the builder brush.
+		if (DefaultBrush != nullptr)
+		{
+			checkf(DefaultBrush->BrushComponent, *GetPathName());
+			checkf(DefaultBrush->Brush != nullptr, *GetPathName());
+		}
+	}
 	return DefaultBrush;
 }
 
@@ -1572,7 +1612,7 @@ void ULevel::RouteActorInitialize()
 		AActor* const Actor = Actors[ActorIndex];
 		if( Actor )
 		{
-			if( !Actor->bActorInitialized && Actor->bWantsInitialize )
+			if( !Actor->bActorInitialized )
 			{
 				Actor->PreInitializeComponents();
 			}
@@ -1593,17 +1633,10 @@ void ULevel::RouteActorInitialize()
 				// Call Initialize on Components.
 				Actor->InitializeComponents();
 
-				if(Actor->bWantsInitialize)
+				Actor->PostInitializeComponents(); // should set Actor->bActorInitialized = true
+				if (!Actor->bActorInitialized && !Actor->IsPendingKill())
 				{
-					Actor->PostInitializeComponents(); // should set Actor->bActorInitialized = true
-					if (!Actor->bActorInitialized && !Actor->IsPendingKill())
-					{
-						UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
-					}
-				}
-				else
-				{
-					Actor->bActorInitialized = true;
+					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
 
 				if (bCallBeginPlay)
@@ -1864,26 +1897,6 @@ void ULevel::PushPendingAutoReceiveInput(APlayerController* InPlayerController)
 	}
 }
 
-void ULevel::IncStreamingLevelRefs()
-{
-	if (NumStreamingLevelRefs == 0)
-	{
-		// Remove from pending unload list if any
-		FLevelStreamingGCHelper::CancelUnloadRequest(this);
-	}
-	NumStreamingLevelRefs++;
-}
-	
-void ULevel::DecStreamingLevelRefs()
-{
-	NumStreamingLevelRefs--;
-}
-
-int32 ULevel::GetStreamingLevelRefs() const
-{
-	return NumStreamingLevelRefs;
-}
-
 void ULevel::AddAssetUserData(UAssetUserData* InUserData)
 {
 	if(InUserData != NULL)
@@ -1947,7 +1960,7 @@ public:
 	  * @param	PDI - draw interface to render to
 	  * @param	View - current view
 	  */
-	  virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	  virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	  {
 		  QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_DrawDynamicElements );
 

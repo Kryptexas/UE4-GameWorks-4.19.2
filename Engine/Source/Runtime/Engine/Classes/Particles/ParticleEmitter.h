@@ -6,8 +6,11 @@
 //=============================================================================
 
 #pragma once
+
+#include "ParticleLODLevel.h"
 #include "ParticleHelper.h"
 #include "ParticleEmitterInstances.h"
+
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================
@@ -44,7 +47,8 @@ enum EEmitterRenderMode
 	ERM_Normal UMETA(DisplayName="Normal"),
 	ERM_Point UMETA(DisplayName="Point"),
 	ERM_Cross UMETA(DisplayName="Cross"),
-	ERM_None UMETA(DisplayName="None"),
+	ERM_LightsOnly UMETA(DisplayName = "Lights Only"),
+	ERM_None UMETA(DisplayName = "None"),
 	ERM_MAX,
 };
 
@@ -76,7 +80,7 @@ struct FParticleBurst
 	
 };
 
-UCLASS(dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
+UCLASS(hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -165,9 +169,9 @@ class UParticleEmitter : public UObject
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// @todo document

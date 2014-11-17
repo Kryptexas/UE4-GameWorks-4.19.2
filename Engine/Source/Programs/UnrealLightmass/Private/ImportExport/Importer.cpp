@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Importer.cpp: Lightmass importer implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightmassSwarm.h"
 #include "Importer.h"

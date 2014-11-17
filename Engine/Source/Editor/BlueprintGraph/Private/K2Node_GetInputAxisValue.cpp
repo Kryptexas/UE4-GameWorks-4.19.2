@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_GetInputAxisValue.h"
 #include "CompilerResultsLog.h"
 
 UK2Node_GetInputAxisValue::UK2Node_GetInputAxisValue(const class FPostConstructInitializeProperties& PCIP)
@@ -29,12 +29,6 @@ FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
 	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get {InputAxisName}"), Args);
-}
-
-FString UK2Node_GetInputAxisValue::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("Get %s"), *InputAxisName.ToString());
 }
 
 FString UK2Node_GetInputAxisValue::GetTooltip() const

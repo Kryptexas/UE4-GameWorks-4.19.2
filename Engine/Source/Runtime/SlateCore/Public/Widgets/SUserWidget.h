@@ -31,7 +31,7 @@
  *   class SMyWidget : public ::SMyWidget
  *   {
  *     public:
- *     virtual void Construct( const FArguments& InArgs ) OVERRIDE
+ *     virtual void Construct( const FArguments& InArgs ) override
  *     {
  *        SUserWidget::Construct( SUserWidget::FArguments()
  *        [

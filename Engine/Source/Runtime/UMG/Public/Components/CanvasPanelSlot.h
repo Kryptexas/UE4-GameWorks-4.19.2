@@ -2,53 +2,76 @@
 
 #pragma once
 
+#include "Anchors.h"
+
 #include "CanvasPanelSlot.generated.h"
+
+USTRUCT()
+struct FAnchorData
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	/** Offset. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FMargin Offsets;
+	
+	/** Anchors. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FAnchors Anchors;
+
+	/** Alignment. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FVector2D Alignment;
+};
 
 UCLASS()
 class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Position. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D Position;
+	/** The anchoring information for the slot */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FAnchorData LayoutData;
 
-	/** Size. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D Size;
+	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
-	/**
-	* Horizontal pivot position
-	*  Given a top aligned slot, where '+' represents the
-	*  anchor point defined by PositionAttr.
-	*
-	*   Left				Center				Right
-	+ _ _ _ _            _ _ + _ _          _ _ _ _ +
-	|		  |		   | 		   |	  |		    |
-	| _ _ _ _ |        | _ _ _ _ _ |	  | _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported.
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
+	virtual void SetDesiredPosition(FVector2D InPosition) override;
 
-	/**
-	* Vertical pivot position
-	*   Given a left aligned slot, where '+' represents the
-	*   anchor point defined by PositionAttr.
-	*
-	*   Top					Center			  Bottom
-	*	+_ _ _ _ _		 _ _ _ _ _		 _ _ _ _ _
-	*	|         |		| 		  |		|		  |
-	*	|         |     +		  |		|		  |
-	*	| _ _ _ _ |		| _ _ _ _ |		+ _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported.
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+	virtual void SetDesiredSize(FVector2D InSize) override;
 
-	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) OVERRIDE;
+	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) override;
 
-	virtual bool CanResize(const FVector2D& Direction) const OVERRIDE;
+	virtual bool CanResize(const FVector2D& Direction) const override;
+
+	/** Sets the position of the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetOffset(FMargin InOffset);
+	
+	/** Sets the anchors on the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetAnchors(FAnchors InAnchors);
+
+	/** Sets the alignment on the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetAlignment(FVector2D InAlignment);
+
+	// UPanelSlot interface
+	virtual void SyncronizeProperties() override;
+	// End of UPanelSlot interface
+
+#if WITH_EDITOR
+	// UObject interface
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
+	// End of UObject interface
+#endif
+
+private:
+	SConstraintCanvas::FSlot* Slot;
+
+#if WITH_EDITOR
+	FGeometry PreEditGeometry;
+	FAnchorData PreEditLayoutData;
+#endif
 };

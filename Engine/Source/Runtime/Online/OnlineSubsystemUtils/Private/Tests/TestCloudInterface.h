@@ -191,7 +191,7 @@
 
 	// FTickerObjectBase
 
-	bool Tick( float DeltaTime ) OVERRIDE;
+	bool Tick( float DeltaTime ) override;
 
 	// FTestCloudInterface
 

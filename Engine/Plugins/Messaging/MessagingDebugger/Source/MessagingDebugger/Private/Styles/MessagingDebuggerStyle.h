@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerStyle.h: Declares the FMessagingDebuggerStyle class.
-=============================================================================*/
-
 #pragma once
 
 

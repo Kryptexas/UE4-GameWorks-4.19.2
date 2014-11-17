@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileDetails.cpp: Implements the FDeviceProfileDetails class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "DeviceProfileDetails.h"
 
 

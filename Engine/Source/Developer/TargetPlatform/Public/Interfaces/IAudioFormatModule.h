@@ -18,10 +18,12 @@ public:
 	/**
 	 * Gets the audio format.
 	 */
-	virtual IAudioFormat* GetAudioFormat() = 0;
+	virtual IAudioFormat* GetAudioFormat( ) = 0;
 
+public:
 
-protected:
-
-	IAudioFormatModule() { }
+	/**
+	 * Virtual destructor.
+	 */
+	~IAudioFormatModule( ) { }
 };

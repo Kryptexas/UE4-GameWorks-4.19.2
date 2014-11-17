@@ -171,7 +171,7 @@ bool FLightSceneInfo::ShouldRenderLight(const FViewInfo& View) const
 
 	return bLocalVisible
 		// Only render lights with static shadowing for reflection captures, since they are only captured at edit time
-		&& (!View.bIsReflectionCapture || Proxy->HasStaticShadowing());
+		&& (!View.bStaticSceneOnly || Proxy->HasStaticShadowing());
 }
 
 void FLightSceneInfo::ReleaseRHI()

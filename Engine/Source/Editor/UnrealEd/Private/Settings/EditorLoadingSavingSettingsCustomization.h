@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 
@@ -21,10 +20,11 @@ class FEditorLoadingSavingSettingsCustomization
 	: public IDetailCustomization
 {
 public:
+	virtual ~FEditorLoadingSavingSettingsCustomization() {}
 
 	// Begin IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) OVERRIDE
+	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		CustomizeStartupCategory(LayoutBuilder);
 	}
@@ -63,5 +63,6 @@ protected:
 		}
 	}
 };
+
 
 #undef LOCTEXT_NAMESPACE

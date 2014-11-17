@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WorldSettingsDetails.cpp: Implements the FWorldSettingsDetails class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "WorldSettingsDetails.h"
 #include "SAssetDropTarget.h"
@@ -64,6 +60,7 @@ FLightmapCustomNodeBuilder::~FLightmapCustomNodeBuilder()
 {
 	FEditorDelegates::OnLightingBuildKept.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
+	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 }
 
 
@@ -73,6 +70,7 @@ void FLightmapCustomNodeBuilder::SetOnRebuildChildren(FSimpleDelegate InOnRegene
 
 	FEditorDelegates::OnLightingBuildKept.AddSP(this, &FLightmapCustomNodeBuilder::HandleLightingBuildKept);
 	FEditorDelegates::MapChange.AddSP(this, &FLightmapCustomNodeBuilder::HandleMapChanged);
+	FEditorDelegates::NewCurrentLevel.AddSP(this, &FLightmapCustomNodeBuilder::HandleNewCurrentLevel);
 }
 
 
@@ -124,6 +122,12 @@ void FLightmapCustomNodeBuilder::HandleLightingBuildKept()
 
 
 void FLightmapCustomNodeBuilder::HandleMapChanged(uint32 MapChangeFlags)
+{
+	OnRegenerateChildren.ExecuteIfBound();
+}
+
+
+void FLightmapCustomNodeBuilder::HandleNewCurrentLevel()
 {
 	OnRegenerateChildren.ExecuteIfBound();
 }
@@ -253,14 +257,13 @@ void FLightmapCustomNodeBuilder::RefreshLightmapItems()
 	UWorld* World = Context.World();
 	if ( World )
 	{
-		TArray<UObject*> WorldPackageObjects;
-		const bool bIncludeNestedObjects = false;
-		GetObjectsWithOuter(World->GetOutermost(), WorldPackageObjects, bIncludeNestedObjects);
+		TArray<UTexture2D*> LightMapsAndShadowMaps;
+		World->GetLightMapsAndShadowMaps(World->GetCurrentLevel(), LightMapsAndShadowMaps);
 
-		for ( auto ObjIt = WorldPackageObjects.CreateConstIterator(); ObjIt; ++ObjIt )
+		for ( auto ObjIt = LightMapsAndShadowMaps.CreateConstIterator(); ObjIt; ++ObjIt )
 		{
-			UObject* CurrentObject = *ObjIt;
-			if ( CurrentObject->IsA(ULightMapTexture2D::StaticClass()) || CurrentObject->IsA(UShadowMapTexture2D::StaticClass()) )
+			UTexture2D* CurrentObject = *ObjIt;
+			if (CurrentObject)
 			{
 				FAssetData AssetData = FAssetData(CurrentObject);
 				const uint32 ThumbnailResolution = 64;

@@ -12,8 +12,8 @@ public:
 
 protected:
 	// Begin SGraphPin interface
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
-	virtual const FSlateBrush* GetPinIcon() const OVERRIDE;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
+	virtual const FSlateBrush* GetPinIcon() const override;
 	// End SGraphPin interface
 
 	void CachePinBrushes(bool bForceCache = false) const;

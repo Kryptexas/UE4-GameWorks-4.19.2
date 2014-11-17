@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherPackagePage.cpp: Implements the SSessionLauncherPackagePage class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 

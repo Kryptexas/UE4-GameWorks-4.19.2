@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleAccelerationBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Acceleration"), abstract)
@@ -17,7 +18,7 @@ class UParticleModuleAccelerationBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	// End UParticleModule Interface
 };
 

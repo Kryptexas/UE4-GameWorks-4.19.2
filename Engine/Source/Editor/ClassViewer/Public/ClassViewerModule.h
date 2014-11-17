@@ -73,6 +73,9 @@ public:
 	/** true allows class dynamic loading on selection */
 	bool bEnableClassDynamicLoading;
 
+	/** true shows display names of classes rather than full class names */
+	bool bShowDisplayNames;
+
 	/** the title string of the class viewer if required. */
 	FString ViewerTitleString;
 
@@ -92,6 +95,7 @@ public:
 		, bShowObjectRootClass(false)
 		, bExpandRootNodes(true)
 		, bEnableClassDynamicLoading(true)
+		, bShowDisplayNames(false)
 	{
 	}
 };

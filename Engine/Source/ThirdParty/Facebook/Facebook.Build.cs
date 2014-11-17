@@ -10,7 +10,7 @@ public class Facebook : ModuleRules
 
         Definitions.Add("WITH_FACEBOOK=1");
 
-		string FacebookPath = UEBuildConfiguration.UEThirdPartyDirectory + "Facebook/";
+		string FacebookPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Facebook/";
         if (Target.Platform == UnrealTargetPlatform.IOS)
         {
             FacebookPath += "Facebook-IOS-3.7/";

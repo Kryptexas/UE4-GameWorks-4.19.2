@@ -2,6 +2,7 @@
 
  
 #pragma once
+#include "Sound/SoundNode.h"
 #include "SoundNodeMature.generated.h"
 
 /**
@@ -16,14 +17,14 @@ class USoundNodeMature : public USoundNode
 
 public:
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// Begin USoundNode interface.
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual void CreateStartingConnectors( void ) OVERRIDE;
-	virtual int32 GetMaxChildNodes() const OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual void CreateStartingConnectors( void ) override;
+	virtual int32 GetMaxChildNodes() const override;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface.
 };
 

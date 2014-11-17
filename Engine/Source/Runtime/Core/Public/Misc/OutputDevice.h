@@ -193,9 +193,9 @@ namespace ELogVerbosity
 		BreakOnLog		= 0x80
 	};
 }
-checkAtCompileTime(ELogVerbosity::NumVerbosity - 1 < ELogVerbosity::VerbosityMask, bad_ELogVerbosity_VerbosityMask);
-checkAtCompileTime(!(ELogVerbosity::VerbosityMask & ELogVerbosity::BreakOnLog), bad_ELogVerbosity_VerbosityMask2);
-checkAtCompileTime((ELogVerbosity::VerbosityMask | ELogVerbosity::BreakOnLog) < 256, bad_ELogVerbosity_VerbosityMask3); // we use a byte for storage
+static_assert(ELogVerbosity::NumVerbosity - 1 < ELogVerbosity::VerbosityMask, "Bad verbosity mask.");
+static_assert(!(ELogVerbosity::VerbosityMask & ELogVerbosity::BreakOnLog), "Bad verbosity mask.");
+static_assert((ELogVerbosity::VerbosityMask | ELogVerbosity::BreakOnLog) < 256, "Bad verbosity mask."); // we use a byte for storage
 
 /**
  * Enum that defines how the log times are to be displayed.
@@ -409,13 +409,22 @@ struct CORE_API FDebug
  **/
 struct CORE_API FMessageDialog
 {
-	/** Pops up a message dialog box containing the input string. */
-	static void Debugf( const FText& Message );
+	/** Pops up a message dialog box containing the input string.
+	 * @param Message Text of message to show
+	 * @param OptTitle Optional title to use (defaults to "Message")
+	*/
+	static void Debugf( const FText& Message, const FText* OptTitle = nullptr );
 
 	/** Pops up a message dialog box containing the last system error code in string form. */
 	static void ShowLastError();
 
-	static EAppReturnType::Type Open( EAppMsgType::Type MessageType, const FText& Message );
+	/**
+	 * Open a modal message box dialog
+	 * @param MessageType Controls buttons dialog should have
+	 * @param Message Text of message to show
+	 * @param OptTitle Optional title to use (defaults to "Message")
+	*/
+	static EAppReturnType::Type Open( EAppMsgType::Type MessageType, const FText& Message, const FText* OptTitle = nullptr );
 };
 
 
@@ -440,6 +449,8 @@ struct CORE_API FError
 class CORE_API FExec
 {
 public:
+	virtual ~FExec() {}
+
 	/**
 	* Exec handler
 	*

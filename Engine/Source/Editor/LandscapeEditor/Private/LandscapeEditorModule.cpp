@@ -14,30 +14,34 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "LandscapeRender.h"
 
+#include "Landscape/Landscape.h"
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor"
 
 class FLandscapeEditorModule : public ILandscapeEditorModule
 {
-private:
-	TSharedPtr<FEdModeLandscape> EdModeLandscape;
 public:
 	
 	/**
 	 * Called right after the module's DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		FLandscapeEditorCommands::Register();
 
 		// register the editor mode
-		TSharedRef<FEdModeLandscape> NewEditorMode = MakeShareable(new FEdModeLandscape);
-		GEditorModeTools().RegisterMode(NewEditorMode);
-		EdModeLandscape = NewEditorMode;
+		FEditorModeRegistry::Get().RegisterMode<FEdModeLandscape>(
+			FBuiltinEditorModes::EM_Landscape,
+			NSLOCTEXT("EditorModes", "LandscapeMode", "Landscape"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.LandscapeMode", "LevelEditor.LandscapeMode.Small"),
+			true,
+			300
+			);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout("LandscapeEditorObject", FOnGetDetailCustomizationInstance::CreateStatic(&FLandscapeEditorDetails::MakeInstance));
-		PropertyModule.RegisterStructPropertyLayout("GizmoImportLayer", FOnGetStructCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FGizmoImportLayer::MakeInstance));
-		PropertyModule.RegisterStructPropertyLayout("LandscapeImportLayer", FOnGetStructCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FLandscapeImportLayer::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("LandscapeEditorObject", FOnGetDetailCustomizationInstance::CreateStatic(&FLandscapeEditorDetails::MakeInstance));
+		PropertyModule.RegisterCustomPropertyTypeLayout("GizmoImportLayer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FGizmoImportLayer::MakeInstance));
+		PropertyModule.RegisterCustomPropertyTypeLayout("LandscapeImportLayer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FLandscapeImportLayer::MakeInstance));
 
 		TSharedRef<FUICommandList> CommandList = MakeShareable(new FUICommandList);
 		const FLandscapeEditorCommands& LandscapeActions = FLandscapeEditorCommands::Get();
@@ -64,31 +68,30 @@ public:
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FLandscapeEditorCommands::Unregister();
 
 		// unregister the editor mode
-		GEditorModeTools().UnregisterMode(EdModeLandscape.ToSharedRef());
-		EdModeLandscape = NULL;
+		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Landscape);
 	}
 
 	static void ConstructLandscapeViewportMenu(FMenuBuilder& MenuBuilder)
 	{
 		struct Local
 		{
-			static void BuildLandscapeVisualizersMenu(FMenuBuilder& MenuBuilder)
+			static void BuildLandscapeVisualizersMenu(FMenuBuilder& InMenuBuilder)
 			{
 				const FLandscapeEditorCommands& LandscapeActions = FLandscapeEditorCommands::Get();
 
-				MenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
+				InMenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
 				{
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeNormal,       NAME_None, LOCTEXT("LandscapeViewModeNormal", "Normal"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLOD,          NAME_None, LOCTEXT("LandscapeViewModeLOD", "LOD"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDensity, NAME_None, LOCTEXT("LandscapeViewModeLayerDensity", "Layer Density"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDebug,   NAME_None, LOCTEXT("LandscapeViewModeLayerDebug", "Layer Debug"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeNormal, NAME_None, LOCTEXT("LandscapeViewModeNormal", "Normal"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLOD, NAME_None, LOCTEXT("LandscapeViewModeLOD", "LOD"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDensity, NAME_None, LOCTEXT("LandscapeViewModeLayerDensity", "Layer Density"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDebug, NAME_None, LOCTEXT("LandscapeViewModeLayerDebug", "Layer Debug"));
 				}
-				MenuBuilder.EndSection();
+				InMenuBuilder.EndSection();
 			}
 		};
 		MenuBuilder.AddSubMenu(LOCTEXT("LandscapeSubMenu", "Visualizers"), LOCTEXT("LandscapeSubMenu_ToolTip", "Select a Landscape visualiser"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeVisualizersMenu));

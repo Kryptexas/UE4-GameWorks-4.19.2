@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleToolbar.h: Declares the SSessionConsoleToolbar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,35 +22,10 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param CommandList - The command list to use.
+	 * @param InArgs The construction arguments.
+	 * @param CommandList The command list to use.
 	 */
-	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct( const FArguments& InArgs, const TSharedRef<FUICommandList>& CommandList )
-	{
-		FSessionConsoleCommands::Register();
-
-		// create the toolbar
-		FToolBarBuilder Toolbar(CommandList, FMultiBoxCustomization::None);
-		{
-			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionCopy);
-			Toolbar.AddSeparator();
-
-			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().Clear);
-			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionSave);
-		}
-
-		ChildSlot
-		[
-			SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.Padding(0.0f)
-				[
-					Toolbar.MakeWidget()
-				]
-		];
-	}
-	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	void Construct( const FArguments& InArgs, const TSharedRef<FUICommandList>& CommandList );
 };
 
 

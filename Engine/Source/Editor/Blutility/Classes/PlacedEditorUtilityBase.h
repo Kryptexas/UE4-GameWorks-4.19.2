@@ -17,6 +17,6 @@ class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 	FString HelpText;
 
 	// AActor interface
-	virtual void TickActor(float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
+	virtual void TickActor(float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 	// End of AActor interface
 };

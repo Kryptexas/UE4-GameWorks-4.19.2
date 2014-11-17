@@ -4,6 +4,12 @@
 
 #include "UnrealEd.h"
 
+#include "EnvironmentQuery/EnvQuery.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/EnvQueryOption.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "SGraphNode.h"

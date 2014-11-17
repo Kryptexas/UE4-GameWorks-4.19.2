@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherLaunchRole.h: Declares the ILauncherLaunchRole interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,24 +10,16 @@ namespace ELauncherProfileRoleInstanceTypes
 	 */
 	enum Type
 	{
-		/**
-		 * The instance is a dedicated server.
-		 */
+		/** The instance is a dedicated server. */
 		DedicatedServer,
 
-		/**
-		 * The instance is a listen server.
-		 */
+		/** The instance is a listen server. */
 		ListenServer,
 
-		/**
-		 * The instance is a game client.
-		 */
+		/** The instance is a game client. */
 		StandaloneClient,
 
-		/**
-		 * The instance is an Unreal Editor.
-		 */
+		/** The instance is an Unreal Editor. */
 		UnrealEditor
 	};
 
@@ -65,14 +53,10 @@ namespace ELauncherProfileRoleInstanceTypes
 }
 
 
-/**
- * Type definition for shared pointers to instances of ILauncherProfileLaunchRole.
- */
+/** Type definition for shared pointers to instances of ILauncherProfileLaunchRole. */
 typedef TSharedPtr<class ILauncherProfileLaunchRole> ILauncherProfileLaunchRolePtr;
 
-/**
- * Type definition for shared references to instances of ILauncherProfileLaunchRole.
- */
+/** Type definition for shared references to instances of ILauncherProfileLaunchRole. */
 typedef TSharedRef<class ILauncherProfileLaunchRole> ILauncherProfileLaunchRoleRef;
 
 
@@ -198,7 +182,6 @@ public:
 	 * @see IsVsyncEnabled
 	 */
 	virtual void SetVsyncEnabled( bool Enabled ) = 0;
-
 
 public:
 

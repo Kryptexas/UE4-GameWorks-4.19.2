@@ -9,7 +9,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 private:
 	ESlateCheckBoxState::Type IsMobilityActive(TSharedRef<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
@@ -29,6 +29,7 @@ private:
 
 	FText OnGetBodyMass() const;
 	bool IsBodyMassReadOnly() const { return true; }
+	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
 
 private:
 	/** Objects being customized so we can update the 'Simulate Physics' state if physics geometry is added/removed */

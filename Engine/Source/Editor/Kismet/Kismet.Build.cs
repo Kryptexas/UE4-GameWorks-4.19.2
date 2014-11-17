@@ -13,7 +13,8 @@ public class Kismet : ModuleRules
 				"AssetRegistry", 
 				"AssetTools",
 				"EditorWidgets",
-				"Analytics"
+				"Analytics",
+                "DerivedDataCache",
 			}
 			);
 
@@ -35,7 +36,10 @@ public class Kismet : ModuleRules
 				"SourceControl",
 				"LevelEditor",
                 "InputCore",
-				"EngineSettings"
+				"EngineSettings",
+                "Projects",
+                "JsonUtilities",
+                "DerivedDataCache",
 			}
 			);
 

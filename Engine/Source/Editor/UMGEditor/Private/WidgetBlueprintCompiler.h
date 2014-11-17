@@ -17,7 +17,7 @@ public:
 	virtual ~FWidgetBlueprintCompiler();
 
 	// FKismetCompilerContext
-	virtual void Compile() OVERRIDE;
+	virtual void Compile() override;
 	// End FKismetCompilerContext
 
 protected:
@@ -26,15 +26,15 @@ protected:
 	void ValidateWidgetNames();
 
 	// FKismetCompilerContext
-	//virtual UEdGraphSchema_K2* CreateSchema() OVERRIDE;
-	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) OVERRIDE;
-	virtual void SpawnNewClass(const FString& NewClassName) OVERRIDE;
-	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) OVERRIDE;
-	virtual void CreateClassVariablesFromBlueprint() OVERRIDE;
-	virtual void FinishCompilingClass(UClass* Class) OVERRIDE;
-	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) OVERRIDE;
-	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class) OVERRIDE;
-	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) OVERRIDE;
+	//virtual UEdGraphSchema_K2* CreateSchema() override;
+	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) override;
+	virtual void SpawnNewClass(const FString& NewClassName) override;
+	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;
+	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
+	virtual void CreateClassVariablesFromBlueprint() override;
+	virtual void FinishCompilingClass(UClass* Class) override;
+	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class) override;
+	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) override;
 	// End FKismetCompilerContext
 
 protected:
@@ -119,7 +119,7 @@ protected:
 	UWidgetBlueprintGeneratedClass* NewWidgetBlueprintClass;
 
 	// Map of properties created for widgets; to aid in debug data generation
-	TMap<class USlateWrapperComponent*, class UProperty*> WidgetToMemberVariableMap;
+	TMap<class UWidget*, class UProperty*> WidgetToMemberVariableMap;
 
 	///----------------------------------------------------------------
 	// Callback system properties.

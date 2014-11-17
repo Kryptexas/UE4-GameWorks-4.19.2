@@ -114,7 +114,7 @@ bool UCookOnTheFlyServer::BroadcastFileserverPresence( const FGuid &InstanceId )
 {
 	TArray<TSharedPtr<FInternetAddr> > AddressList;
 
-	if ((NetworkFileServer == NULL) || !NetworkFileServer->GetAddressList(AddressList))
+	if ((NetworkFileServer == NULL || !NetworkFileServer->IsItReadyToAcceptConnections() || !NetworkFileServer->GetAddressList(AddressList)))
 	{
 		UE_LOG(LogCookOnTheFly, Error, TEXT("Failed to create network file server"));
 
@@ -311,9 +311,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					const FString FullPath = FPaths::ConvertRelativePathToFull(PackageFilename);
 
 					bool AlreadyCooked = true;
-					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
+					for ( const FName TargetPlatformName : AllTargetPlatformNames )
 					{
-						if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(PackageFilename, AllTargetPlatformNames[Index])) )
+						if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(PackageFilename, TargetPlatformName)) )
 						{
 							AlreadyCooked = false;
 							break;
@@ -321,9 +321,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					}
 					if ( !AlreadyCooked )
 					{
-						for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
+						for (const FName TargetPlatformName : AllTargetPlatformNames)
 						{
-							const FFilePlatformRequest Request( PackageFilename, AllTargetPlatformNames[Index] );
+							const FFilePlatformRequest Request( PackageFilename, TargetPlatformName );
 							UnsolicitedFileRequests.EnqueueUnique(Request);
 						}
 					}
@@ -547,17 +547,14 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 
 		if ( TargetPlatformNames.Num() )
 		{
-			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+			const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();
+
+			for (const FName TargetPlatformFName : TargetPlatformNames)
 			{
-				const FString TargetPlatformName = TargetPlatformNames[Index].ToString();
+				const FString TargetPlatformName = TargetPlatformFName.ToString();
 
-
-				const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();	
-
-
-				for ( int Index = 0; Index < TargetPlatforms.Num(); ++Index )
+				for (ITargetPlatform *TargetPlatform  : TargetPlatforms)
 				{
-					ITargetPlatform *TargetPlatform = TargetPlatforms[ Index ];
 					if ( TargetPlatform->PlatformName() == TargetPlatformName )
 					{
 						Platforms.Add( TargetPlatform );
@@ -569,16 +566,15 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 		{
 			Platforms = ActiveStartupPlatforms;
 
-			for ( int Index = 0; Index < Platforms.Num(); ++Index )
+			for (ITargetPlatform *Platform : Platforms)
 			{
-				TargetPlatformNames.Add( FName(*Platforms[Index]->PlatformName()) );
+				TargetPlatformNames.Add(FName(*Platform->PlatformName()));
 			}
 		}
 		
 
-		for (int32 Index = 0; Index < Platforms.Num(); Index++)
+		for (ITargetPlatform* Target : Platforms)
 		{
-			ITargetPlatform* Target = Platforms[Index];
 			FString PlatFilename = Filename.Replace(TEXT("[Platform]"), *Target->PlatformName());
 
 			// If we are not iterative cooking, then cook the package
@@ -701,7 +697,7 @@ void UCookOnTheFlyServer::Initialize( bool inCompressed, bool inIterativeCooking
 	FString OutputDirectory = GetOutputDirectoryOverride(OutputDirectoryOverride);
 
 	// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
+	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
 
 	CleanSandbox(Platforms);
 
@@ -727,14 +723,16 @@ FString UCookOnTheFlyServer::GetOutputDirectoryOverride( const FString &OutputDi
 {
 	FString OutputDirectory = OutputDirectoryOverride;
 	// Output directory override.	
-	if ( OutputDirectory.Len() <= 0 )
+	if (OutputDirectory.Len() <= 0)
 	{
-		OutputDirectory = TEXT("Cooked-[Platform]");
+		// Full path so that the sandbox wrapper doesn't try to re-base it under Sandboxes
+		OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+		OutputDirectory = FPaths::ConvertRelativePathToFull(OutputDirectory);
 	}
 	else if (!OutputDirectory.Contains(TEXT("[Platform]"), ESearchCase::IgnoreCase, ESearchDir::FromEnd) )
 	{
 		// Output directory needs to contain [Platform] token to be able to cook for multiple targets.
-		OutputDirectory += TEXT("/Cooked-[Platform]");
+		OutputDirectory = FPaths::Combine(*OutputDirectory, TEXT("[Platform]"));
 	}
 	FPaths::NormalizeDirectoryName(OutputDirectory);
 
@@ -895,14 +893,13 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	if (!bIsCookable)
 	{
-		TArray<FFilePlatformRequest> FileRequests;
-		UnsolicitedCookedPackages.DequeueAll(FileRequests);
-		for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+		TArray<FFilePlatformRequest> UnsolicitedRequests;
+		UnsolicitedCookedPackages.DequeueAll(UnsolicitedRequests);
+		for (const FFilePlatformRequest &Request : UnsolicitedRequests)
 		{
-			const FFilePlatformRequest &Request = FileRequests[Index];
 			if ( Request.Platformname == PlatformFname )
 			{
-				FString StandardFilename = FileRequests[Index].Filename;
+				FString StandardFilename = Request.Filename;
 				FPaths::MakeStandardFilename( StandardFilename );
 				UnsolicitedFiles.Add( StandardFilename );
 			}
@@ -927,11 +924,10 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	UE_LOG( LogCookOnTheFly, Display, TEXT("Cook complete %s"), *FileRequest.Filename)
 
-	TArray<FFilePlatformRequest> FileRequests;
-	UnsolicitedCookedPackages.DequeueAll(FileRequests);
-	for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+	TArray<FFilePlatformRequest> UnsolicitedRequests;
+	UnsolicitedCookedPackages.DequeueAll(UnsolicitedRequests);
+	for (const FFilePlatformRequest &Request : UnsolicitedRequests)
 	{
-		const FFilePlatformRequest &Request = FileRequests[Index];
 		if ( Request.Filename == FileRequest.Filename )
 		{
 			// don't do anything we don't want this guy
@@ -993,5 +989,6 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 		RecompileData.MaterialsToLoad, 
 		RecompileData.SerializedShaderResources, 
 		RecompileData.MeshMaterialMaps, 
-		RecompileData.ModifiedFiles);
+		RecompileData.ModifiedFiles,
+		RecompileData.bCompileChangedShaders);
 }

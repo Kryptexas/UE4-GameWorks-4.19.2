@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceToolbar.h: Declares the SDeviceToolbar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,9 +19,9 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InModel - The view model to use.
-	 * @param InUICommandList - The UI command list to use.
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
+	 * @param InUICommandList The UI command list to use.
 	 */
 	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const TSharedPtr<FUICommandList>& InUICommandList );
 

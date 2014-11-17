@@ -83,7 +83,7 @@ void FLandscapeEditorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuild
 		.ButtonContent()
 		[
 			SNew(STextBlock)
-			.Text(GetTargetLandscapeName())
+			.Text_Static(&FLandscapeEditorDetails::GetTargetLandscapeName)
 		]
 	];
 

@@ -20,11 +20,11 @@ public:
 class SLATECORE_API FNullSlateSoundDevice : public ISlateSoundDevice
 {
 public:
-	virtual void PlaySound(const FSlateSound&, int32) const OVERRIDE
+	virtual void PlaySound(const FSlateSound&, int32) const override
 	{
 	}
 
-	virtual float GetSoundDuration(const FSlateSound& Sound) const OVERRIDE
+	virtual float GetSoundDuration(const FSlateSound& Sound) const override
 	{
 		return 0.0f;
 	}

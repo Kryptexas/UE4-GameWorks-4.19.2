@@ -22,7 +22,7 @@ struct FCableParticle
 };
 
 /** Component that allows you to specify custom triangle mesh geometry */
-UCLASS(hidecategories=(Object, LOD, Physics, Collision, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
+UCLASS(hidecategories=(Object, Physics, Collision, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
 class UCableComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -30,21 +30,21 @@ class UCableComponent : public UMeshComponent
 public:
 
 	// Begin UActorComponent interface.
-	virtual void OnRegister() OVERRIDE;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void SendRenderDynamicData_Concurrent() override;
 	// Begin UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent interface.
 
 	// Begin UMeshComponent interface.
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
 	// End UMeshComponent interface.
 
 

@@ -24,9 +24,9 @@ public:
 	int AnimSegmentIndex;
 
 	virtual void InitAnimSegment(int AnimSegmentIndex);
-	virtual bool ApplyChangesToMontage() OVERRIDE;
+	virtual bool ApplyChangesToMontage() override;
 
-	virtual bool PropertyChangeRequiresRebuild(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual bool PropertyChangeRequiresRebuild(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 private:
 	//FAnimTrack* GetAnimTrack

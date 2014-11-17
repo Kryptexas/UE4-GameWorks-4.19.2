@@ -58,6 +58,13 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"),STAT_D3D11TexturesA
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"),STAT_D3D11TexturesReleased,STATGROUP_D3D11RHI, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture object pool memory"),STAT_D3D11TexturePoolMemory,STATGROUP_D3D11RHI, );
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Commit resource tables"),STAT_D3D11CommitResourceTables,STATGROUP_D3D11RHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Cache resource tables"),STAT_D3D11CacheResourceTables,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num cached resource tables"),STAT_D3D11CacheResourceTableCalls,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num textures in tables"),STAT_D3D11SetTextureInTableCalls,STATGROUP_D3D11RHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("SetShaderTexture time"),STAT_D3D11SetShaderTextureTime,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("SetShaderTexture calls"),STAT_D3D11SetShaderTextureCalls,STATGROUP_D3D11RHI, );
+
 // This class has multiple inheritance but really FGPUTiming is a static class
 class FD3D11BufferedGPUTiming : public FRenderResource, public FGPUTiming
 {
@@ -92,12 +99,12 @@ public:
 	/**
 	 * Initializes all D3D resources.
 	 */
-	virtual void InitDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all D3D resources.
 	 */
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void ReleaseDynamicRHI() override;
 
 private:
 	/**
@@ -135,12 +142,12 @@ public:
 	/**
 	 * Initializes all D3D resources.
 	 */
-	virtual void InitDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all D3D resources.
 	 */
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void ReleaseDynamicRHI() override;
 
 
 private:
@@ -171,15 +178,15 @@ public:
 	 * Returns the time in ms that the GPU spent in this draw event.  
 	 * This blocks the CPU if necessary, so can cause hitching.
 	 */
-	virtual float GetTiming() OVERRIDE;
+	virtual float GetTiming() override;
 
 
-	virtual void StartTiming() OVERRIDE
+	virtual void StartTiming() override
 	{
 		Timing.StartTiming();
 	}
 
-	virtual void StopTiming() OVERRIDE
+	virtual void StopTiming() override
 	{
 		Timing.EndTiming();
 	}
@@ -210,15 +217,15 @@ public:
 	}
 
 	/** Start this frame of per tracking */
-	virtual void StartFrame() OVERRIDE;
+	virtual void StartFrame() override;
 
 	/** End this frame of per tracking, but do not block yet */
-	virtual void EndFrame() OVERRIDE;
+	virtual void EndFrame() override;
 
 	/** Calculates root timing base frequency (if needed by this RHI) */
-	virtual float GetRootTimingResults() OVERRIDE;
+	virtual float GetRootTimingResults() override;
 
-	virtual void LogDisjointQuery() OVERRIDE;
+	virtual void LogDisjointQuery() override;
 
 	/** Timer tracking inclusive time spent in the root nodes. */
 	FD3D11BufferedGPUTiming RootEventTiming;
@@ -274,14 +281,14 @@ struct FD3DGPUProfiler : public FGPUProfiler
 		FrameTiming.InitResource();
 	}
 
-	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) OVERRIDE
+	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
 		FD3D11EventNode* EventNode = new FD3D11EventNode(InName, InParent, D3D11RHI);
 		return EventNode;
 	}
 
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE;
-	virtual void PopEvent() OVERRIDE;
+	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PopEvent() override;
 
 	void BeginFrame(class FD3D11DynamicRHI* InRHI);
 
@@ -318,10 +325,10 @@ public:
 	virtual void InitD3DDevice();
 
 	// FDynamicRHI interface.
-	virtual void Init() OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE { GPUProfilingData.PushEvent(Name); }
-	virtual void PopEvent() OVERRIDE { GPUProfilingData.PopEvent(); }
+	virtual void Init() override;
+	virtual void Shutdown() override;
+	virtual void PushEvent(const TCHAR* Name) override { GPUProfilingData.PushEvent(Name); }
+	virtual void PopEvent() override { GPUProfilingData.PopEvent(); }
 
 	/**
 	 * Reads a D3D query's data into the provided buffer.
@@ -334,7 +341,7 @@ public:
 	 */
 	bool GetQueryData(ID3D11Query* Query,void* Data,SIZE_T DataSize,bool bWait, ERenderQueryType QueryType);
 
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type Name ParameterTypesAndNames
+	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 	
@@ -352,7 +359,6 @@ public:
 	{
 		return DXGIFactory;
 	}
-
 private:
 	template <EShaderFrequency ShaderFrequency>
 	void ClearShaderResourceViews(FD3D11BaseShaderResource* Resource);
@@ -440,6 +446,32 @@ protected:
 	uint32 NumSimultaneousRenderTargets;
 	uint32 NumUAVs;
 
+	friend class FD3D11UniformBuffer;
+	uint32 CommitResourceTableCycles;
+	uint32 CacheResourceTableCalls;
+	uint32 CacheResourceTableCycles;
+	uint32 SetShaderTextureCycles;
+	uint32 SetShaderTextureCalls;
+	uint32 SetTextureInTableCalls;
+	
+	/** Internal frame counter, incremented on each call to RHIBeginScene. */
+	uint32 SceneFrameCounter;
+
+	/**
+	 * Internal counter used for resource table caching.
+	 * INDEX_NONE means caching is not allowed.
+	 */
+	uint32 ResourceTableFrameCounter;
+
+	/** D3D11 defines a maximum of 14 constant buffers per shader stage. */
+	enum { MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14 };
+
+	/** Track the currently bound uniform buffers. */
+	FUniformBufferRHIRef BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
+
+	/** Bit array to track which uniform buffers have changed since the last draw call. */
+	uint16 DirtyUniformBuffers[SF_NumFrequencies];
+
 	/** Tracks the current depth stencil access type. */
 	EDepthStencilAccessType CurrentDSVAccessType;
 
@@ -483,9 +515,9 @@ protected:
 
 	template<typename BaseResourceType>
 	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,
-		uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
+		uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& CreateInfo);
 
-	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData);
+	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo);
 
 	/** Initializes the constant buffers.  Called once at RHI initialization time. */
 	void InitConstantBuffers();
@@ -495,6 +527,10 @@ protected:
 
 	/** needs to be called before each dispatch call */
 	virtual void CommitComputeShaderConstants();
+
+	template <class ShaderType> void SetResourcesFromTables(const ShaderType* RESTRICT);
+	void CommitGraphicsResourceTables();
+	void CommitComputeResourceTables(FD3D11ComputeShader* ComputeShader);
 
 	/** 
 	 * Gets the best supported MSAA settings from the provided MSAA count to check against. 
@@ -587,11 +623,11 @@ class FD3D11DynamicRHIModule : public IDynamicRHIModule
 {
 public:
 	// IModuleInterface
-	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
+	virtual bool SupportsDynamicReloading() override { return false; }
 
 	// IDynamicRHIModule
-	virtual bool IsSupported() OVERRIDE;
-	virtual FDynamicRHI* CreateRHI() OVERRIDE;
+	virtual bool IsSupported() override;
+	virtual FDynamicRHI* CreateRHI() override;
 
 private:
 	FD3D11Adapter ChosenAdapter;
@@ -693,13 +729,13 @@ class FVector4VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float4,0));
+		Elements.Add(FVertexElement(0,0,VET_Float4,0,sizeof(FVector4)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -749,5 +785,357 @@ public:
 
 	static FFastVRAMAllocator* GetFastVRAMAllocator();
 };
+
+
+
+
+
+// 1d, 31 bit (uses the sign bit for internal use), O(n) where n is the amount of elements stored
+// does not enforce any alignment
+// unoccupied regions get compacted but occupied don't get compacted
+class FRangeAllocator
+{
+public:
+
+	struct FRange
+	{
+		// not valid
+		FRange()
+			: Start(0)
+			, Size(0)
+		{
+			check(!IsValid());
+		}
+
+		void SetOccupied(int32 InStart, int32 InSize)
+		{
+			check(InStart >= 0);
+			check(InSize > 0);
+
+			Start = InStart;
+			Size = InSize;
+			check(IsOccupied());
+		}
+
+		void SetUnOccupied(int32 InStart, int32 InSize)
+		{
+			check(InStart >= 0);
+			check(InSize > 0);
+
+			Start = InStart;
+			Size = -InSize;
+			check(!IsOccupied());
+		}
+
+		bool IsValid() { return Size != 0; }
+
+		bool IsOccupied() const { return Size > 0; }
+		uint32 ComputeSize() const { return (Size > 0) ? Size : -Size; }
+
+		// @apram InSize can be <0 to remove from the size
+		void ExtendUnoccupied(int32 InSize) { check(!IsOccupied()); Size -= InSize; }
+
+		void MakeOccupied(int32 InSize) { check(InSize > 0); check(!IsOccupied()); Size = InSize; }
+		void MakeUnOccupied() { check(IsOccupied()); Size = -Size; }
+
+		bool operator==(const FRange& rhs) const { return Start == rhs.Start && Size == rhs.Size; }
+
+		int32 GetStart() { return Start; }
+		int32 GetEnd() { return Start + ComputeSize(); }
+
+	private:
+		// in bytes
+		int32 Start;
+		// in bytes, 0:not valid, <0:unoccupied, >0:occupied
+		int32 Size;
+	};
+public:
+
+	// constructor
+	FRangeAllocator(uint32 TotalSize)
+	{
+		FRange NewRange;
+
+		NewRange.SetUnOccupied(0, TotalSize);
+
+		Entries.Add(NewRange);
+	}
+
+	// specified range must be non occupied
+	void OccupyRange(FRange InRange)
+	{
+		check(InRange.IsValid());
+		check(InRange.IsOccupied());
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				int32 OverlapSize = ref.GetEnd() - InRange.GetStart();
+
+				if(OverlapSize > 0)
+				{
+					int32 FrontCutSize = InRange.GetStart() - ref.GetStart();
+
+					// there is some front part we cut off
+					if(FrontCutSize > 0)
+					{
+						FRange NewFrontRange;
+
+						NewFrontRange.SetUnOccupied(InRange.GetStart(), ref.ComputeSize() - FrontCutSize);
+
+						ref.SetUnOccupied(ref.GetStart(), FrontCutSize);
+
+						++i;
+
+						// remaining is added behind the found element
+						Entries.Insert(NewFrontRange, i);
+
+						// don't access ref or Num any more - Entries[] might be reallocated
+					}
+
+					check(Entries[i].GetStart() == InRange.GetStart());
+
+					int32 BackCutSize = Entries[i].ComputeSize() - InRange.ComputeSize();
+
+					// otherwise the range was already occupied or not enough space was left (internal error)
+					check(BackCutSize >= 0);
+
+					// there is some back part we cut off
+					if(BackCutSize > 0)
+					{
+						FRange NewBackRange;
+
+						NewBackRange.SetUnOccupied(Entries[i].GetStart() + InRange.ComputeSize(), BackCutSize);
+
+						Entries.Insert(NewBackRange, i + 1);
+					}
+
+					Entries[i] = InRange;
+					return;
+				}
+			}
+		}
+	}
+
+
+	// All resources in ESRAM must be 64KiB aligned
+//	uint32 AlignedByteOffset = FFastVRAMAllocator::RoundUpToNextMultiple(ESRAMByteOffset, ESRAMMinumumAlignment );
+
+
+	// @param InSize >0
+	FRange AllocRange(uint32 InSize)//, uint32 Alignment)
+	{
+		check(InSize > 0);
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				uint32 RefSize = ref.ComputeSize();
+
+				// take the first fitting one - later we could optimize for minimal fragmentation
+				if(RefSize >= InSize)
+				{
+					ref.MakeOccupied(InSize);
+
+					FRange Ret = ref;
+
+					if(RefSize > InSize)
+					{
+						FRange NewRange;
+
+						NewRange.SetUnOccupied(ref.GetEnd(), RefSize - InSize);
+
+						// remaining is added behind the found element
+						Entries.Insert(NewRange, i + 1);
+					}
+					return Ret;
+				}
+			}
+		}
+
+		// nothing found
+		return FRange();
+	}
+
+	// @param In needs to be what was returned by AllocRange()
+	void ReleaseRange(FRange In)
+	{
+		int32 Index = Entries.Find(In);
+
+		check(Index != INDEX_NONE);
+
+		FRange& refIndex = Entries[Index];
+
+		refIndex.MakeUnOccupied();
+
+		Compacten(Index);
+	}
+
+	// for debugging
+	uint32 GetNumEntries() const { return Entries.Num(); }
+
+	// for debugging
+	uint32 ComputeUnoccupiedSize() const
+	{
+		uint32 Ret = 0;
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			const FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				uint32 RefSize = ref.ComputeSize();
+
+				Ret += RefSize;
+			}
+		}
+
+		return Ret;
+	}
+
+private:
+	// compact unoccupied ranges
+	void Compacten(uint32 StartIndex)
+	{
+		check(!Entries[StartIndex].IsOccupied());
+
+		if(StartIndex && !Entries[StartIndex-1].IsOccupied())
+		{
+			// Seems we can combine with the element before,
+			// searching further is not needed as we assume the buffer was compact before the last change.
+			--StartIndex;
+		}
+
+		uint32 ElementsToRemove = 0;
+		uint32 SizeGained = 0;
+
+		for(uint32 i = StartIndex + 1, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				++ElementsToRemove;
+				SizeGained += ref.ComputeSize();
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if(ElementsToRemove)
+		{
+			Entries.RemoveAt(StartIndex + 1, ElementsToRemove, false);
+			Entries[StartIndex].ExtendUnoccupied(SizeGained);
+		}
+	}
+
+public:
+	static void Test()
+	{
+		// testing code
+#if !UE_BUILD_SHIPPING
+		{
+			// create
+			FRangeAllocator A(10);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// successfully alloc
+			FRangeAllocator::FRange a = A.AllocRange(3);
+			check(a.GetStart() == 0);
+			check(a.GetEnd() == 3);
+			check(a.IsOccupied());
+			check(A.GetNumEntries() == 2);
+			check(A.ComputeUnoccupiedSize() == 7);
+
+			// successfully alloc
+			FRangeAllocator::FRange b = A.AllocRange(4);
+			check(b.GetStart() == 3);
+			check(b.GetEnd() == 7);
+			check(b.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 3);
+
+			// failed alloc
+			FRangeAllocator::FRange c = A.AllocRange(4);
+			check(!c.IsValid());
+			check(!c.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 3);
+
+			// successfully alloc
+			FRangeAllocator::FRange d = A.AllocRange(3);
+			check(d.GetStart() == 7);
+			check(d.GetEnd() == 10);
+			check(d.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 0);
+
+			A.ReleaseRange(b);
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 4);
+
+			A.ReleaseRange(a);
+			check(A.GetNumEntries() == 2);
+			check(A.ComputeUnoccupiedSize() == 7);
+
+			A.ReleaseRange(d);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// we are back to a clean start
+
+			FRangeAllocator::FRange e = A.AllocRange(10);
+			check(e.GetStart() == 0);
+			check(e.GetEnd() == 10);
+			check(e.IsOccupied());
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 0);
+
+			A.ReleaseRange(e);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// we are back to a clean start
+
+			// create define range we want to block out
+			FRangeAllocator::FRange f;
+			f.SetOccupied(2, 4);
+			A.OccupyRange(f);
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 6);
+
+			FRangeAllocator::FRange g = A.AllocRange(2);
+			check(g.GetStart() == 0);
+			check(g.GetEnd() == 2);
+			check(g.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 4);
+
+			FRangeAllocator::FRange h = A.AllocRange(4);
+			check(h.GetStart() == 6);
+			check(h.GetEnd() == 10);
+			check(h.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 0);
+		}
+#endif // !UE_BUILD_SHIPPING
+	}
+
+private:
+
+	// ordered from small to large (for efficient compactening)
+	TArray<FRange> Entries;
+};
+
 
 #endif

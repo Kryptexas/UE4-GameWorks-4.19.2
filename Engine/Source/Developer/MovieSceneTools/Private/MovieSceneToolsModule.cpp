@@ -30,7 +30,7 @@
 class FMovieSceneToolsModule : public IMovieSceneTools
 {
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		MovieSceneAssetTypeActions = MakeShareable( new FAssetTypeActions_MovieScene );
 		FModuleManager::LoadModuleChecked< FAssetToolsModule >( "AssetTools" ).Get().RegisterAssetTypeActions( MovieSceneAssetTypeActions.ToSharedRef() );
@@ -47,7 +47,7 @@ class FMovieSceneToolsModule : public IMovieSceneTools
 	}
 
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		// Only unregister if the asset tools module is loaded.  We don't want to forcibly load it during shutdown phase.
 		check( MovieSceneAssetTypeActions.IsValid() );

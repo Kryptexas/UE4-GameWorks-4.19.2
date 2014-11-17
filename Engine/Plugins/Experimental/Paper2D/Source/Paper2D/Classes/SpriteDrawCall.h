@@ -24,7 +24,7 @@ public:
 	// Render triangle list (stored as loose vertices)
 	TArray< FVector4, TInlineAllocator<6> > RenderVerts;
 
-	void BuildFromSprite(class UPaperSprite* Sprite);
+	void BuildFromSprite(const class UPaperSprite* Sprite);
 
 	FSpriteDrawCallRecord()
 		: Texture(NULL)

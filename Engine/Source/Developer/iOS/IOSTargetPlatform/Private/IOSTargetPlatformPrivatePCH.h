@@ -17,6 +17,7 @@
 #include "Messaging.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 #include "IOSPlatformProperties.h"
 
 #if WITH_ENGINE

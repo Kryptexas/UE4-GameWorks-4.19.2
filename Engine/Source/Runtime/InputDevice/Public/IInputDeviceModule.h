@@ -19,7 +19,7 @@ public:
 		return FeatureName;
 	}
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		IModularFeatures::Get().RegisterModularFeature( GetModularFeatureName(), this );
 	}

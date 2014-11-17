@@ -7,7 +7,7 @@
 #pragma once
 #include "LevelBase.generated.h"
 
-UCLASS(Abstract, customConstructor, dependsOn=UGameEngine)
+UCLASS(Abstract, customConstructor)
 class ULevelBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -22,7 +22,7 @@ class ULevelBase : public UObject
 	ULevelBase( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL );
 
 	// Begin UObject Interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 

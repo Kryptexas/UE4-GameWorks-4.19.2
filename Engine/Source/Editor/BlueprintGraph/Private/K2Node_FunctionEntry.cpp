@@ -40,16 +40,15 @@ public:
 		Context.NetMap.Add(Net, Term);
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Node);
 
 		UFunction* Function = FindField<UFunction>(EntryNode->SignatureClass, EntryNode->SignatureName);
 
-		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+		for (UEdGraphPin* Pin : Node->Pins)
 		{
-			UEdGraphPin* Pin = Node->Pins[PinIndex];
-			if (!CompilerContext.GetSchema()->IsMetaPin(*Pin))
+			if (Pin->ParentPin == nullptr && !CompilerContext.GetSchema()->IsMetaPin(*Pin))
 			{
 				UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(Pin);
 
@@ -66,7 +65,7 @@ public:
 		}
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Node);
 		//check(EntryNode->SignatureName != NAME_None);
@@ -121,16 +120,6 @@ FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
 	return DisplayInfo.DisplayName;
-}
-
-FString UK2Node_FunctionEntry::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UEdGraph* Graph = GetGraph();
-	FGraphDisplayInfo DisplayInfo;
-	Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
-
-	return DisplayInfo.DisplayName.ToString();
 }
 
 void UK2Node_FunctionEntry::AllocateDefaultPins()

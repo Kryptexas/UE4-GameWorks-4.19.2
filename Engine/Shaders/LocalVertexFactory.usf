@@ -12,7 +12,6 @@ float4 LightMapCoordinateScaleBias;
 float4 ShadowMapCoordinateScaleBias;
 
 #if USE_INSTANCING
-float4 InstancedViewTranslation;
 float4 InstancingFadeOutParams;
 #endif
 
@@ -43,13 +42,33 @@ float3 SplineMeshY;
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
+#if METAL_PROFILE
+		//@todo-rco: FIXME!
+		float3	TangentX	: ATTRIBUTE1;
+		float4	TangentZ	: ATTRIBUTE2;
+		float4	Color		: ATTRIBUTE3;
+#else
 	half3	TangentX	: ATTRIBUTE1;
 	// TangentZ.w contains sign of tangent basis determinant
 	half4	TangentZ	: ATTRIBUTE2;
 	half4	Color		: ATTRIBUTE3;
+#endif
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
-	float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE4;
+
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+		float4	PackedTexCoords4[NUM_MATERIAL_TEXCOORDS_VERTEX/2] : ATTRIBUTE4;
+	#endif
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
+		float2	PackedTexCoords2 : ATTRIBUTE4;
+	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 3
+		float2	PackedTexCoords2 : ATTRIBUTE5;
+	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 5
+		float2	PackedTexCoords2 : ATTRIBUTE6;
+	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 7
+		float2	PackedTexCoords2 : ATTRIBUTE7;
+	#endif
+
 #elif USE_PARTICLE_SUBUVS
 	float2	TexCoords[1] : ATTRIBUTE4;
 #endif
@@ -165,15 +184,27 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 	Result.TangentToWorld = Intermediates.TangentToWorld;
 
 #if USE_INSTANCING
-	Result.InstanceLocalToWorld = float4x4(Input.InstanceTransform1, Input.InstanceTransform2, Input.InstanceTransform3, float4(0, 0, 0, 1));
+	Result.InstanceLocalToWorld = mul(transpose(float4x4(Input.InstanceTransform1, Input.InstanceTransform2, Input.InstanceTransform3, float4(0, 0, 0, 1))), Primitive.LocalToWorld);
+	Result.InstanceWorldToLocal = mul(float3x3(Primitive.WorldToLocal[0].xyz,Primitive.WorldToLocal[1].xyz,Primitive.WorldToLocal[2].xyz), transpose(float3x3(Input.InstanceInverseTransform1.xyz, Input.InstanceInverseTransform2.xyz, Input.InstanceInverseTransform3.xyz)));
+	Result.InstanceLocalPosition = Input.Position.xyz;
 	Result.PerInstanceParams = Intermediates.PerInstanceParams;
 #endif
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
-	for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
-	{
-		Result.TexCoords[CoordinateIndex] = Input.TexCoords[CoordinateIndex];
-	}
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+		UNROLL
+		for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX-1; CoordinateIndex+=2)
+		{
+			Result.TexCoords[CoordinateIndex] = Input.PackedTexCoords4[CoordinateIndex/2].xy;
+			if( CoordinateIndex+1 < NUM_MATERIAL_TEXCOORDS_VERTEX )
+			{
+				Result.TexCoords[CoordinateIndex+1] = Input.PackedTexCoords4[CoordinateIndex/2].zw;
+			}
+		}
+	#endif
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+		Result.TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX-1] = Input.PackedTexCoords2;
+	#endif
 #endif
 	return Result;
 }
@@ -283,8 +314,8 @@ float4 CalcWorldPosition(float4 Position)
 #endif
 {
 #if USE_INSTANCING
-	float4x4 InstanceTransform = float4x4(InstanceTransform1, InstanceTransform2, InstanceTransform3, float4(0, 0, 0, 1));
-	return mul(InstanceTransform, Position) + InstancedViewTranslation;
+	float4x4 InstanceTransform = transpose(float4x4(InstanceTransform1, InstanceTransform2, InstanceTransform3, float4(0, 0, 0, 1)));
+	return TransformLocalToTranslatedWorld(mul(Position, InstanceTransform));
 #elif USE_SPLINEDEFORM
 	// Make transform for this point along spline
 	float4x3 SliceTransform = CalcSliceTransform(dot(Position.xyz, SplineMeshDir));
@@ -331,8 +362,9 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 half3x3 CalcTangentToWorld(FVertexFactoryInput Input, half3x3 TangentToLocal)
 {
 #if USE_INSTANCING
-	half3x3 InstanceTransform = float3x3(Input.InstanceInverseTransform1.xyz, Input.InstanceInverseTransform2.xyz, Input.InstanceInverseTransform3.xyz);
-	half3x3 TangentToWorld = mul(TangentToLocal, InstanceTransform);
+	half3x3 TangentToPrimitive = mul(TangentToLocal, transpose(float3x3(Input.InstanceTransform1.xyz, Input.InstanceTransform2.xyz, Input.InstanceTransform3.xyz)));
+	half3x3 TangentToWorldWithScaling = mul(TangentToPrimitive, (float3x3)Primitive.LocalToWorld); 
+	half3x3 TangentToWorld = float3x3(normalize(TangentToWorldWithScaling[0]), normalize(TangentToWorldWithScaling[1]), normalize(TangentToWorldWithScaling[2]));
 #else
 	half3x3 TangentToWorld = CalcTangentToWorldNoScale(TangentToLocal);
 #endif
@@ -350,7 +382,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	// Swizzle vertex color.
 	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE;
 #if USE_INSTANCING
-	float3 InstanceLocation = float3(Input.InstanceTransform1.w, Input.InstanceTransform2.w, Input.InstanceTransform3.w) + InstancedViewTranslation.xyz;
+	float3 InstanceLocation = TransformLocalToTranslatedWorld(float3(Input.InstanceTransform1.w, Input.InstanceTransform2.w, Input.InstanceTransform3.w)).xyz;
 	// x = per-instance random, y = per-instance fade out factor
 	Intermediates.PerInstanceParams.x = Input.InstanceInverseTransform3.w;
 	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
@@ -407,9 +439,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
 
-#endif
-
-#if USE_PARTICLE_SUBUVS
+#elif USE_PARTICLE_SUBUVS
 	SetUV(Interpolants, 0, Input.TexCoords[0]);
 #endif
 
@@ -465,9 +495,8 @@ float4 VertexFactoryGetWorldPosition(FPositionOnlyVertexFactoryInput Input)
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if USE_INSTANCING
-	// @todo: THIS IS SO VERY WRONG, WE DON'T HAVE PRECALCED PreviousLocalToWorld for instance sigh
-	float4x4 InstanceTransform = float4x4(Input.InstanceTransform1, Input.InstanceTransform2, Input.InstanceTransform3, float4(0, 0, 0, 1));
-	return mul(InstanceTransform, Input.Position);
+	float4x4 InstanceTransform = transpose(float4x4(Input.InstanceTransform1, Input.InstanceTransform2, Input.InstanceTransform3, float4(0, 0, 0, 1)));
+	return mul(mul(Input.Position, InstanceTransform), PreviousLocalToWorld);
 #elif USE_SPLINEDEFORM
 	// Just like CalcWorldPosition...
 	float4x3 SliceTransform = CalcSliceTransform(dot(Input.Position.xyz, SplineMeshDir));

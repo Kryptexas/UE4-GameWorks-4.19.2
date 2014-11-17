@@ -46,8 +46,8 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,8 +61,8 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,8 +78,8 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -95,9 +95,9 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual UFunction* FindFunction(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void CheckIfFunctionIsCallable(UFunction* Function, FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE { }
-	virtual void AdditionalCompiledStatementHandling(FKismetFunctionContext& Context, UEdGraphNode* Node, FBlueprintCompiledStatement& Statement) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual UFunction* FindFunction(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void CheckIfFunctionIsCallable(UFunction* Function, FKismetFunctionContext& Context, UEdGraphNode* Node) override { }
+	virtual void AdditionalCompiledStatementHandling(FKismetFunctionContext& Context, UEdGraphNode* Node, FBlueprintCompiledStatement& Statement) override;
 };

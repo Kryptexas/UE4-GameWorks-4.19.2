@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	3DVisualizer.cpp: Helper class to visualize simple 3D geometry
-=============================================================================*/
-
 #include "stdafx.h"
 
 #if PLATFORM_WINDOWS

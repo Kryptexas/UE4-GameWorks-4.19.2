@@ -1,13 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SceneOutlinerModule.h: Declares the FSceneOutlinerModule class.
-=============================================================================*/
-
 #pragma once
 
 #include "ModuleInterface.h"
-
 #include "ISceneOutliner.h"
 #include "SceneOutlinerInitializationOptions.h"
 
@@ -48,10 +43,8 @@ public:
 
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule() { }
 	virtual void ShutdownModule() { }
-
-	// End IModuleInterface interface
 };

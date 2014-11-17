@@ -29,7 +29,7 @@ public:
 	 * @param	InViewportClient	The viewport client in which the drag event occurred.
 	 * @param	InStart				Where the mouse was when the drag started.
 	 */
-	virtual void StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen) OVERRIDE;
+	virtual void StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen) override;
 	
 	/**
 	 * Ends a mouse drag behavior (the user has let go of the mouse button).

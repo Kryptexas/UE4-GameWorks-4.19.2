@@ -49,6 +49,7 @@ typedef TSharedPtr<class IOnlineSharing, ESPMode::ThreadSafe> IOnlineSharingPtr;
 typedef TSharedPtr<class IOnlineUser, ESPMode::ThreadSafe> IOnlineUserPtr;
 typedef TSharedPtr<class IOnlineMessage, ESPMode::ThreadSafe> IOnlineMessagePtr;
 typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePtr;
+typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
 
 /**
  * Called when the connection state as reported by the online platform changes
@@ -92,6 +93,21 @@ public:
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
 		return OSSModule.DestroyOnlineSubsystem(SubsystemName);
+	}
+
+	/**
+	 * Determine if an instance of the subsystem already exists
+	 * @param SubsystemName - Name of the requested online service
+	 * @return true if instance exists, false otherwise
+	 */
+	static bool DoesInstanceExist(const FName& SubsystemName = NAME_None)
+	{
+		if (FModuleManager::Get().IsModuleLoaded("OnlineSubsystem"))
+		{
+			FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
+			return OSSModule.DoesInstanceExist(SubsystemName);
+		}
+		return false;
 	}
 
 	/** 
@@ -168,6 +184,12 @@ public:
 	 * @return Interface pointer for the appropriate identity service
 	 */
 	virtual IOnlineIdentityPtr GetIdentityInterface() const = 0;
+
+	/** 
+	 * Get the interface for accessing party online services
+	 * @return Interface pointer for the appropriate party service
+	 */
+	virtual IOnlinePartyPtr GetPartyInterface() const = 0;
 
 	/** 
 	 * Get the interface for accessing title file online services

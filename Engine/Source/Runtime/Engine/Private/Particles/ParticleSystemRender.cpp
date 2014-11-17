@@ -4,9 +4,20 @@
 	ParticleSystemRender.cpp: Particle system rendering functions.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "DiagnosticTable.h"
 #include "ParticleResources.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "Particles/Rotation/ParticleModuleRotation.h"
+#include "Particles/Rotation/ParticleModuleRotation_Seeded.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 /** 
  * Whether to track particle rendering stats.  
@@ -810,8 +821,8 @@ void FDynamicSpriteEmitterData::Init( bool bInSelected )
 FVector2D GetParticleSize(const FBaseParticle& Particle, const FDynamicSpriteEmitterReplayDataBase& Source)
 {
 	FVector2D Size;
-	Size.X = Particle.Size.X * Source.Scale.X;
-	Size.Y = Particle.Size.Y * Source.Scale.Y;
+	Size.X = FMath::Abs(Particle.Size.X * Source.Scale.X);
+	Size.Y = FMath::Abs(Particle.Size.Y * Source.Scale.Y);
 	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition)
 	{
 		Size.Y = Size.X;
@@ -1119,7 +1130,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	{
 		// Determine how many vertices and indices are needed to render.
 		const int32 ParticleCount = SourceData->ActiveParticleCount;
-		const int32 VertexSize = GetDynamicVertexStride();
+		const int32 VertexSize = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 		const int32 DynamicParameterVertexSize = sizeof(FParticleVertexDynamicParameter);
 		const int32 VertexPerParticle = bInstanced ? 1 : 4;
 		const int32 ViewCount = ViewFamily->Views.Num();
@@ -1189,7 +1200,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 				FVector2D ObjectMacroUVScales;
 				Proxy->GetObjectPositionAndScale(*View,ObjectNDCPosition, ObjectMacroUVScales);
 				PerViewUniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
-				*SpriteUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleUse);
+				*SpriteUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 			}
 		}
 	}
@@ -1358,7 +1369,7 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			// Set the sprite uniform buffer for this view.
 			check( SpriteVertexFactory );
 			SpriteVertexFactory->SetSpriteUniformBuffer( PerViewUniformBuffers[ViewIndex] );
-			SpriteVertexFactory->SetInstanceBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(), bInstanced );
+			SpriteVertexFactory->SetInstanceBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()), bInstanced );
 			SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation->VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
 			// Construct the mesh element to render.
@@ -1389,7 +1400,6 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			}
 			BatchElement.MinVertexIndex = 0;
 			BatchElement.MaxVertexIndex = (ParticleCount * 4) - 1;
-			Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
 			Mesh.CastShadow = Proxy->GetCastShadow();
 			Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
 
@@ -1549,7 +1559,6 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 	, StaticMesh( NULL )
 	, MeshTypeDataOffset(0xFFFFFFFF)
 	, bApplyPreRotation(false)
-	, RollPitchYaw(0.0f, 0.0f, 0.0f)
 	, bUseMeshLockedAxis(false)
 	, bUseCameraFacing(false)
 	, bApplyParticleRotationAsSpin(false)
@@ -1605,11 +1614,14 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 		// offset to the mesh emitter type data
 		MeshTypeDataOffset = InEmitterInstance->TypeDataOffset;
 
-		// Setup pre-rotation values...
-		if ((MeshTD->Pitch != 0.0f) || (MeshTD->Roll != 0.0f) || (MeshTD->Yaw != 0.0f))
+
+		FVector Mins, Maxs;
+		MeshTD->RollPitchYawRange.Distribution->GetRange(Mins, Maxs);
+
+		// Enable/Disable pre-rotation
+		if (Mins.SizeSquared() || Maxs.SizeSquared())
 		{
 			bApplyPreRotation = true;
-			RollPitchYaw = FVector(MeshTD->Roll, MeshTD->Pitch, MeshTD->Yaw);
 		}
 		else
 		{
@@ -1680,7 +1692,7 @@ void FDynamicMeshEmitterData::CreateRenderThreadResources(const FParticleSystemS
 		const uint32 TexCoordWeight = (SourceData->SubUVDataOffset > 0) ? 1 : 0;
 		UniformParameters.TexCoordWeightA = TexCoordWeight;
 		UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
-		UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleUse );
+		UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleFrame );
 	}
 }
 
@@ -1729,7 +1741,7 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 			check(!bUsesDynamicParameter || DynamicParameterDataAllocations[InstanceBufferIndex].IsValid());
 
 			// Set the particle instance data. This buffer is generated in PreRenderView.
-			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
+			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()));
 			MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
 		}
 
@@ -1788,7 +1800,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		ParticleCount = Source.MaxDrawCount;
 	}
 
-	const int32 InstanceVertexStride  = GetDynamicVertexStride();
+	const int32 InstanceVertexStride  = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 	const int32 DynamicParameterVertexStride  = GetDynamicParameterVertexStride();
 	const int32 ViewCount = ViewFamily->Views.Num();
 	if(bInstanced)
@@ -2204,16 +2216,14 @@ void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, co
 				kRotator = FRotator(MeshRotation);
 		}
 	}
-	else if (Source.bMeshRotationActive)
-	{
-		FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&InParticle + Source.MeshRotationOffset);
-		kRotator = FRotator::MakeFromEuler(PayloadData->Rotation);
-	}
 	else
 	{
 		float fRot = InParticle.Rotation * 180.0f / PI;
 		FVector kRotVec = FVector(fRot, fRot, fRot);
 		kRotator = FRotator::MakeFromEuler(kRotVec);
+
+		FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&InParticle + Source.MeshRotationOffset);
+		kRotator += FRotator::MakeFromEuler(PayloadData->Rotation);
 	}
 
 	FRotationMatrix kRotMat(kRotator);
@@ -2221,11 +2231,11 @@ void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, co
 	{
 		if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
 		{
-			OutTransformMat = FRotationMatrix(FRotator::MakeFromEuler(RollPitchYaw)) * kScaleMat * FRotationMatrix(kLockedAxisRotator) * kRotMat * kTransMat;
+			OutTransformMat = kScaleMat * FRotationMatrix(kLockedAxisRotator) * kRotMat * kTransMat;
 		}
 		else
 		{
-			OutTransformMat = FRotationMatrix(FRotator::MakeFromEuler(RollPitchYaw)) * kScaleMat * kRotMat * kTransMat;
+			OutTransformMat = kScaleMat * kRotMat * kTransMat;
 		}
 	}
 	else if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
@@ -2622,7 +2632,7 @@ FParticleBeamTrailUniformBufferRef CreateBeamTrailUniformBuffer(
 	// Screen alignment.
 	UniformParameters.ScreenAlignment = FVector4( (float)SourceData->ScreenAlignment, 0.0f, 0.0f, 0.0f );
 
-	return FParticleBeamTrailUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleUse );
+	return FParticleBeamTrailUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleFrame );
 }
 
 int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View)
@@ -2674,7 +2684,7 @@ int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimit
 
 			if( Allocation && IndexAllocation && Allocation->IsValid() && IndexAllocation->IsValid() )
 			{
-				BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride() );
+				BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()) );
 				BeamTrailVertexFactory->SetDynamicParameterBuffer( NULL, 0, 0 );
 
 				FMeshBatch Mesh;
@@ -5469,7 +5479,7 @@ int32 FDynamicTrailsEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			// Create and set the uniform buffer for this emitter.
 			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)VertexFactory;
 			BeamTrailVertexFactory->SetBeamTrailUniformBuffer( CreateBeamTrailUniformBuffer( Proxy, SourcePointer, View ) );
-			BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride() );
+			BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()) );
 			BeamTrailVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation ? DynamicParameterAllocation->VertexOffset : 0, GetDynamicParameterVertexStride() );
 
 			FMeshBatch Mesh;
@@ -5564,7 +5574,7 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		int32 VertexStride = GetDynamicVertexStride();
+		int32 VertexStride = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 		int32 DynamicParameterVertexStride = 0;
 		if (bUsesDynamicParameter == true)
 		{
@@ -5992,11 +6002,13 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 
 				float InvCount = 1.0f / InterpCount;
 				float Diff = PrevTrailPayload->SpawnTime - TrailPayload->SpawnTime;
-
-				if (bFillDynamic == true)
+				
+				FVector4 CurrDynParam;
+				FVector4 PrevDynParam;
+				if (bFillDynamic)
 				{
-					CurrDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PackingParticle) + Source.DynamicParameterDataOffset));
-					PrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
+					GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *PackingParticle, CurrDynParam);
+					GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *PrevParticle, PrevDynParam);
 				}
 
 				FVector4 InterpDynamic(1.0f, 1.0f, 1.0f, 1.0f);
@@ -6007,9 +6019,9 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					FVector InterpUp = FMath::Lerp<FVector>(CurrUp, PrevUp, TimeStep);
 					FLinearColor InterpColor = FMath::Lerp<FLinearColor>(CurrColor, PrevColor, TimeStep);
 					float InterpSize = FMath::Lerp<float>(CurrSize, PrevSize, TimeStep);
-					if (CurrDynPayload && PrevDynPayload)
+					if (bFillDynamic)
 					{
-						InterpDynamic = FMath::Lerp<FVector4>(CurrDynPayload->DynamicParameterValue, PrevDynPayload->DynamicParameterValue, TimeStep);
+						InterpDynamic = FMath::Lerp<FVector4>(CurrDynParam, PrevDynParam, TimeStep);
 					}
 
 					if (bTextureTileDistance == true)	
@@ -6105,10 +6117,10 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
 					{
-						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue.X;
-						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue.Y;
-						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue.Z;
-						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue.W;
+						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue[0];
+						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue[1];
+						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue[2];
+						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue[3];
 					}
 					else
 					{
@@ -6139,10 +6151,10 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
 					{
-						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue.X;
-						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue.Y;
-						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue.Z;
-						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue.W;
+						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue[0];
+						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue[1];
+						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue[2];
+						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue[3];
 					}
 					else
 					{
@@ -6318,8 +6330,7 @@ struct FAnimTrailParticleRenderData
 			OutColor = Particle->Color;
 			if( OutDynamicParameters )
 			{
-				FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
-				*OutDynamicParameters = DynPayload->DynamicParameterValue;
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *Particle, *OutDynamicParameters);
 			}
 			return;
 		}
@@ -6334,8 +6345,7 @@ struct FAnimTrailParticleRenderData
 			OutColor = PrevParticle->Color;
 			if( OutDynamicParameters )
 			{
-				FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
-				*OutDynamicParameters = DynPayload->DynamicParameterValue;
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *PrevParticle, *OutDynamicParameters);
 			}
 			return;
 		}
@@ -6352,7 +6362,7 @@ struct FAnimTrailParticleRenderData
 			float PrevPrevTiledU;
 			float PrevPrevSize;
 			FLinearColor PrevPrevColor;
-			FEmitterDynamicParameterPayload* PrevPrevDynPayload;
+			FBaseParticle* PrevPrevDynParamParticle;
 			if( PrevPrevParticle )
 			{
 				PrevPrevLocation = PrevPrevParticle->Location;
@@ -6361,7 +6371,7 @@ struct FAnimTrailParticleRenderData
 				PrevPrevTiledU = PrevPrevPayload->TiledU;
 				PrevPrevSize = PrevPrevParticle->Size.X * Source.Scale.X;
 				PrevPrevColor = PrevPrevParticle->Color;
-				PrevPrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevPrevParticle) + Source.DynamicParameterDataOffset));
+				PrevPrevDynParamParticle = PrevPrevParticle;
 			}
 			else
 			{
@@ -6371,7 +6381,7 @@ struct FAnimTrailParticleRenderData
 				PrevPrevTiledU = PrevPayload->TiledU;
 				PrevPrevSize = PrevParticle->Size.X * Source.Scale.X;
 				PrevPrevColor = PrevParticle->Color;
-				PrevPrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
+				PrevPrevDynParamParticle = PrevParticle;
 			}
 
 			FVector NextLocation;
@@ -6380,7 +6390,7 @@ struct FAnimTrailParticleRenderData
 			float NextTiledU;
 			float NextSize;
 			FLinearColor NextColor;
-			FEmitterDynamicParameterPayload* NextDynPayload;
+			FBaseParticle* NextDynParamParticle;
 			if( NextParticle )
 			{
 				NextLocation = NextParticle->Location;
@@ -6389,7 +6399,7 @@ struct FAnimTrailParticleRenderData
 				NextTiledU = NextPayload->TiledU;
 				NextSize = NextParticle->Size.X * Source.Scale.X;
 				NextColor = NextParticle->Color;
-				NextDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(NextParticle) + Source.DynamicParameterDataOffset));
+				NextDynParamParticle = NextParticle;
 			}
 			else
 			{
@@ -6399,12 +6409,8 @@ struct FAnimTrailParticleRenderData
 				NextTiledU = Payload->TiledU;
 				NextSize = Particle->Size.X * Source.Scale.X;
 				NextColor = Particle->Color;
-				NextDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
+				NextDynParamParticle = Particle;
 			}
-
-			const FEmitterDynamicParameterPayload* PrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
-			const FEmitterDynamicParameterPayload* CurrDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
-
 
 			float NextT = 0.0f;
 			float CurrT = NextParticle ? Payload->InterpolationParameter : GCatmullRomEndParamOffset;
@@ -6424,10 +6430,20 @@ struct FAnimTrailParticleRenderData
 
 			if( OutDynamicParameters )
 			{
-				*OutDynamicParameters = FMath::CubicCRSplineInterpSafe(PrevPrevDynPayload->DynamicParameterValue,
-					PrevDynPayload->DynamicParameterValue,
-					CurrDynPayload->DynamicParameterValue,
-					NextDynPayload->DynamicParameterValue, PrevPrevT, PrevT, CurrT, NextT, T);
+				FVector4 PrevPrevDynamicParam;
+				FVector4 PrevDynamicParam;
+				FVector4 CurrDynamicParam;
+				FVector4 NextDynamicParam;
+				
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *PrevPrevDynParamParticle, PrevPrevDynamicParam);
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *PrevParticle, PrevDynamicParam);
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *Particle, CurrDynamicParam);
+				GetDynamicValueFromPayload(Source.DynamicParameterDataOffset, *NextDynParamParticle, NextDynamicParam);
+
+				*OutDynamicParameters = FMath::CubicCRSplineInterpSafe(PrevPrevDynamicParam,
+					PrevDynamicParam,
+					CurrDynamicParam,
+					NextDynamicParam, PrevPrevT, PrevT, CurrT, NextT, T);
 			}
 
 			FVector Offset = (InterpDir * InterpLength);
@@ -7208,6 +7224,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer()
 			GetBounds(),
 			GetLocalBounds(),
 			ReceivesDecals(),
+			false,
 			1.0f			// LPV bias
 			);
 		WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);

@@ -1,15 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 
 #include "CableComponentPluginPrivatePCH.h"
+#include "DynamicMeshBuilder.h"
 
 
 /** Vertex Buffer */
 class FCableVertexBuffer : public FVertexBuffer 
 {
 public:
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FDynamicMeshVertex), NULL, BUF_Dynamic);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FDynamicMeshVertex), BUF_Dynamic, CreateInfo);
 	}
 
 	int32 NumVerts;
@@ -19,9 +21,10 @@ public:
 class FCableIndexBuffer : public FIndexBuffer 
 {
 public:
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), NumIndices * sizeof(int32), NULL, BUF_Dynamic);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), NumIndices * sizeof(int32), BUF_Dynamic, CreateInfo);
 	}
 
 	int32 NumIndices;
@@ -276,6 +279,11 @@ public:
 		Mesh.Type = PT_TriangleList;
 		Mesh.DepthPriorityGroup = SDPG_World;
 		PDI->DrawMesh(Mesh);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Render bounds
+		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
+#endif
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
@@ -535,8 +543,6 @@ FBoxSphereBounds UCableComponent::CalcBounds(const FTransform & LocalToWorld) co
 	}
 
 	// Expand by cable width
-	CableBox.ExpandBy(CableWidth);
-
-	return FBoxSphereBounds(CableBox);
+	return FBoxSphereBounds(CableBox.ExpandBy(CableWidth));
 }
 

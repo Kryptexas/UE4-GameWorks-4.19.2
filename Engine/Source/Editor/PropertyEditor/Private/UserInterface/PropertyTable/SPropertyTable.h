@@ -106,24 +106,24 @@ public:
 		}
 	}
 
-	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		Table->Tick();
 		STreeView< TSharedRef< IPropertyTableRow > >::Tick( AllottedGeometry, InCurrentTime, InDeltaTime  );
 	}
 
-	virtual void RequestRefresh() OVERRIDE
+	virtual void RequestRefresh() override
 	{
 		WidgetGenerator.Clear();
 		RequestTreeRefresh();
 	}
 
-	virtual TSharedRef<SWidget> GetWidget() OVERRIDE
+	virtual TSharedRef<SWidget> GetWidget() override
 	{
 		return SharedThis(this);
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		FReply Reply = FReply::Unhandled();
 		const ESelectionMode::Type SelectionMode = Table->GetSelectionMode();
@@ -454,7 +454,7 @@ public:
 		return STreeView< TSharedRef< IPropertyTableRow > >::OnKeyDown( MyGeometry, InKeyboardEvent );
 	}
 
-	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const FKey Key = InKeyboardEvent.GetKey();
 		if ( Key == EKeys::Enter )
@@ -542,7 +542,7 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		FReply Reply = FReply::Unhandled();
 
@@ -741,12 +741,12 @@ public:
 	// These handle selection, expansion, and other such properties common to ItemsWidgets.
 	//
 
-	virtual bool Private_UsesSelectorFocus() const OVERRIDE
+	virtual bool Private_UsesSelectorFocus() const override
 	{
 		return false;
 	}
 
-	virtual bool Private_HasSelectorFocus( const TSharedRef< IPropertyTableRow >& TheItem ) const OVERRIDE
+	virtual bool Private_HasSelectorFocus( const TSharedRef< IPropertyTableRow >& TheItem ) const override
 	{
 		return false;
 	}

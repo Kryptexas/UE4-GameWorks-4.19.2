@@ -32,40 +32,40 @@ public:
 	~FMessageLogListingViewModel();
 
 	/** Begin IMessageLogListing interface */
-	virtual void AddMessage( const TSharedRef< class FTokenizedMessage >& NewMessage ) OVERRIDE;
-	virtual void AddMessages( const TArray< TSharedRef< class FTokenizedMessage > >& NewMessages ) OVERRIDE;
-	virtual void ClearMessages() OVERRIDE;
-	virtual TSharedPtr<FTokenizedMessage> GetMessageFromData(const struct FTokenizedMiscData& MessageData) const OVERRIDE;
-	virtual const TArray< TSharedRef<class FTokenizedMessage> >& GetSelectedMessages() const OVERRIDE;
-	virtual void SelectMessages( const TArray< TSharedRef<class FTokenizedMessage> >& InSelectedMessages ) OVERRIDE;
-	virtual const TArray< TSharedRef<class FTokenizedMessage> >& GetFilteredMessages() const OVERRIDE;
-	virtual void SelectMessage(const TSharedRef<class FTokenizedMessage>& Message, bool bSelected) OVERRIDE;
-	virtual bool IsMessageSelected(const TSharedRef<class FTokenizedMessage>& Message) const OVERRIDE;
-	virtual void ClearSelectedMessages() OVERRIDE;
-	virtual void InvertSelectedMessages() OVERRIDE;
-	virtual FText GetSelectedMessagesAsText() const OVERRIDE;
-	virtual FText GetAllMessagesAsText() const OVERRIDE;
-	virtual const FName& GetName() const OVERRIDE;
-	virtual void SetLabel( const FText& InLogLabel ) OVERRIDE;
-	virtual const FText& GetLabel() const OVERRIDE;
-	virtual const TArray< TSharedRef< class FMessageFilter> >& GetMessageFilters() const OVERRIDE;
-	virtual void ExecuteToken( const TSharedRef<class IMessageToken>& Token ) const OVERRIDE;
-	virtual void NewPage( const FText& Title ) OVERRIDE;
-	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter = EMessageSeverity::Info, bool bForce = false ) OVERRIDE;
-	virtual void Open() OVERRIDE;
-	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) OVERRIDE;
+	virtual void AddMessage( const TSharedRef< class FTokenizedMessage >& NewMessage ) override;
+	virtual void AddMessages( const TArray< TSharedRef< class FTokenizedMessage > >& NewMessages ) override;
+	virtual void ClearMessages() override;
+	virtual TSharedPtr<FTokenizedMessage> GetMessageFromData(const struct FTokenizedMiscData& MessageData) const override;
+	virtual const TArray< TSharedRef<class FTokenizedMessage> >& GetSelectedMessages() const override;
+	virtual void SelectMessages( const TArray< TSharedRef<class FTokenizedMessage> >& InSelectedMessages ) override;
+	virtual const TArray< TSharedRef<class FTokenizedMessage> >& GetFilteredMessages() const override;
+	virtual void SelectMessage(const TSharedRef<class FTokenizedMessage>& Message, bool bSelected) override;
+	virtual bool IsMessageSelected(const TSharedRef<class FTokenizedMessage>& Message) const override;
+	virtual void ClearSelectedMessages() override;
+	virtual void InvertSelectedMessages() override;
+	virtual FText GetSelectedMessagesAsText() const override;
+	virtual FText GetAllMessagesAsText() const override;
+	virtual const FName& GetName() const override;
+	virtual void SetLabel( const FText& InLogLabel ) override;
+	virtual const FText& GetLabel() const override;
+	virtual const TArray< TSharedRef< class FMessageFilter> >& GetMessageFilters() const override;
+	virtual void ExecuteToken( const TSharedRef<class IMessageToken>& Token ) const override;
+	virtual void NewPage( const FText& Title ) override;
+	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter = EMessageSeverity::Info, bool bForce = false ) override;
+	virtual void Open() override;
+	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) override;
 
 	DECLARE_DERIVED_EVENT(FMessageLogListingViewModel, IMessageLogListing::IMessageTokenClickedEvent, IMessageTokenClickedEvent)
-	virtual IMessageLogListing::IMessageTokenClickedEvent& OnMessageTokenClicked() OVERRIDE { return TokenClickedEvent; }
+	virtual IMessageLogListing::IMessageTokenClickedEvent& OnMessageTokenClicked() override { return TokenClickedEvent; }
 
 	DECLARE_DERIVED_EVENT(FMessageLogListingViewModel, IMessageLogListing::FChangedEvent, FChangedEvent)
-	virtual IMessageLogListing::FChangedEvent& OnDataChanged() OVERRIDE { return ChangedEvent; }
+	virtual IMessageLogListing::FChangedEvent& OnDataChanged() override { return ChangedEvent; }
 
 	DECLARE_DERIVED_EVENT(FMessageLogListingViewModel, IMessageLogListing::FOnSelectionChangedEvent, FOnSelectionChangedEvent)
-	virtual IMessageLogListing::FOnSelectionChangedEvent& OnSelectionChanged() OVERRIDE { return SelectionChangedEvent; }
+	virtual IMessageLogListing::FOnSelectionChangedEvent& OnSelectionChanged() override { return SelectionChangedEvent; }
 
 	DECLARE_DERIVED_EVENT(FMessageLogListingViewModel, IMessageLogListing::FOnPageSelectionChangedEvent, FOnPageSelectionChangedEvent )
-	virtual IMessageLogListing::FOnPageSelectionChangedEvent& OnPageSelectionChanged() OVERRIDE { return PageSelectionChangedEvent; }
+	virtual IMessageLogListing::FOnPageSelectionChangedEvent& OnPageSelectionChanged() override { return PageSelectionChangedEvent; }
 	/** End IMessageLogListing interface */
 
 	/** Initializes the FMessageLogListingViewModel for use */

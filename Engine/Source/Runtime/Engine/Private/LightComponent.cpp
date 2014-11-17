@@ -10,6 +10,53 @@
 #endif
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "ComponentInstanceDataCache.h"
+#include "TargetPlatform.h"
+
+void FStaticShadowDepthMap::InitRHI()
+{
+	if (ShadowMapSizeX > 0 && ShadowMapSizeY > 0 && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(ShadowMapSizeX, ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
+		TextureRHI = Texture2DRHI;
+
+		uint32 DestStride = 0;
+		uint8* TextureData = (uint8*)RHILockTexture2D(Texture2DRHI, 0, RLM_WriteOnly, DestStride, false);
+		uint32 RowSize = ShadowMapSizeX * GPixelFormats[PF_R16F].BlockBytes;
+
+		for (int32 Y = 0; Y < ShadowMapSizeY; Y++)
+		{
+			FMemory::Memcpy(TextureData + DestStride * Y, ((uint8*)DepthSamples.GetData()) + RowSize * Y, RowSize);
+		}
+
+		RHIUnlockTexture2D(Texture2DRHI, 0, false);
+	}
+}
+
+void FStaticShadowDepthMap::Empty()
+{
+	DEC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, DepthSamples.GetAllocatedSize());
+
+	ShadowMapSizeX = 0;
+	ShadowMapSizeY = 0;
+	DepthSamples.Empty();
+}
+
+FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
+{
+	Ar << ShadowMap.WorldToLight;
+	Ar << ShadowMap.ShadowMapSizeX;
+	Ar << ShadowMap.ShadowMapSizeY;
+	Ar << ShadowMap.DepthSamples;
+
+	if (Ar.IsLoading())
+	{
+		INC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, ShadowMap.DepthSamples.GetAllocatedSize());
+	}
+
+	return Ar;
+}
 
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
@@ -143,7 +190,6 @@ FBoxSphereBounds ULightComponentBase::GetPlacementExtent() const
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
-	, SelfShadowingAccuracy(InLightComponent->SelfShadowingAccuracy)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
 	, MinRoughness(InLightComponent->MinRoughness)
@@ -192,6 +238,8 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	LightFunctionScale = LightComponent->LightFunctionScale;
 	LightFunctionFadeDistance = LightComponent->LightFunctionFadeDistance;
 	LightFunctionDisabledBrightness = LightComponent->DisabledBrightness;
+
+	StaticShadowDepthMap = &LightComponent->StaticShadowDepthMap;
 }
 
 bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
@@ -241,7 +289,6 @@ ULightComponent::ULightComponent(const class FPostConstructInitializeProperties&
 	ShadowMapChannel = INDEX_NONE;
 	PreviewShadowMapChannel = INDEX_NONE;
 	IndirectLightingIntensity = 1.0f;
-	SelfShadowingAccuracy = 0.5f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
 	bUseIESBrightness = (GetLinkerUE4Version() < VER_UE4_LIGHTS_USE_IES_BRIGHTNESS_DEFAULT_CHANGED);
@@ -314,6 +361,25 @@ float ULightComponent::ComputeLightBrightness() const
 	return LightBrightness;
 }
 
+void ULightComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.UE4Ver() >= VER_UE4_STATIC_SHADOW_DEPTH_MAPS)
+	{
+		if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::HighQualityLightmaps))
+		{
+			// Toss lighting data only needed for high quality lightmaps
+			FStaticShadowDepthMap EmptyDepthMap;
+			Ar << EmptyDepthMap;
+		}
+		else
+		{
+			Ar << StaticShadowDepthMap;
+		}
+	}
+}
+
 /**
  * Called after this UObject has been serialized
  */
@@ -348,6 +414,11 @@ void ULightComponent::PostLoad()
 				IESBrightnessScale /= IESTextureObject->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
 			}
 		}
+	}
+
+	if (HasStaticShadowing() && !HasStaticLighting())
+	{
+		BeginInitResource(&StaticShadowDepthMap);
 	}
 }
 
@@ -432,7 +503,6 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionFadeDistance) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness) &&
-		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, SelfShadowingAccuracy) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowBias) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowSharpen) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bEnableLightShaftBloom) &&
@@ -489,6 +559,26 @@ void ULightComponent::UpdateLightSpriteTexture()
 }
 
 #endif // WITH_EDITOR
+
+void ULightComponent::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (HasStaticShadowing() && !HasStaticLighting())
+	{
+		BeginReleaseResource(&StaticShadowDepthMap);
+		StaticShadowDepthMap.Empty();
+	}
+
+	// Use a fence to keep track of when the rendering thread executes the release command
+	DestroyFence.BeginFence();
+}
+
+bool ULightComponent::IsReadyForFinishDestroy()
+{
+	// Don't allow the light component to be destroyed until its rendering resources have been released
+	return Super::IsReadyForFinishDestroy() && DestroyFence.IsFenceComplete();
+}
 
 void ULightComponent::OnRegister()
 {
@@ -733,6 +823,15 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 	// Save the light state for transactions.
 	Modify();
 
+	// Detach the component from the scene for the duration of this function.
+	FComponentReregisterContext ReregisterContext(this);
+
+	// Block until the RT processes the unregister before modifying variables that it may need to access
+	FlushRenderingCommands();
+
+	StaticShadowDepthMap.Empty();
+	BeginReleaseResource(&StaticShadowDepthMap);
+
 	bPrecomputedLightingIsValid = false;
 
 	if (bRecreateLightGuids)
@@ -750,53 +849,64 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 	MarkRenderStateDirty();
 }
 
-// Init type name static
-const FName FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
-
-void ULightComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+/** Used to store lightmap data during RerunConstructionScripts */
+class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
 {
-	// Allocate new struct for holding light map data
-	TSharedRef<FPrecomputedLightInstanceData> LightMapData = MakeShareable(new FPrecomputedLightInstanceData());
+public:
+	FPrecomputedLightInstanceData(const ULightComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+		, Transform(SourceComponent->ComponentToWorld)
+		, LightGuid(SourceComponent->LightGuid)
+		, ShadowMapChannel(SourceComponent->ShadowMapChannel)
+		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
+		, bPrecomputedLightingIsValid(SourceComponent->bPrecomputedLightingIsValid)
+	{}
+			
+	virtual ~FPrecomputedLightInstanceData()
+	{}
 
-	// Fill in info
-	LightMapData->Transform = ComponentToWorld;
-	LightMapData->LightGuid = LightGuid;
-	LightMapData->ShadowMapChannel = ShadowMapChannel;
-	LightMapData->PreviewShadowMapChannel = PreviewShadowMapChannel;
-	LightMapData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
+	// Begin FComponentInstanceDataBase interface
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	{
+		return Transform.Equals(CastChecked<ULightComponent>(Component)->ComponentToWorld);
+	}
+	// End FComponentInstanceDataBase interface
 
-	// Add to cache
-	Cache.AddInstanceData(LightMapData);
+	FTransform Transform;
+	FGuid LightGuid;
+	int32 ShadowMapChannel;
+	int32 PreviewShadowMapChannel;
+	bool bPrecomputedLightingIsValid;
+};
+
+FName ULightComponent::GetComponentInstanceDataType() const
+{
+	static const FName PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
+	return PrecomputedLightInstanceDataTypeName;
 }
 
-void ULightComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> ULightComponent::GetComponentInstanceData() const
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName, CachedData);
+	// Allocate new struct for holding light map data
+	return MakeShareable(new FPrecomputedLightInstanceData(this));
+}
 
-	for (int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++)
-	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName);
-		TSharedPtr<FPrecomputedLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedLightInstanceData>(CachedData[DataIdx]);
+void ULightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	check(ComponentInstanceData.IsValid());
+	TSharedPtr<FPrecomputedLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedLightInstanceData>(ComponentInstanceData);
 
-		// See if data matches current state
-		//@todo - compare all state that affects static lighting like radius, indirect lighting intensity, etc
-		if (LightMapData->Transform.Equals(ComponentToWorld))
-		{
-			LightGuid = LightMapData->LightGuid;
-			ShadowMapChannel = LightMapData->ShadowMapChannel;
-			PreviewShadowMapChannel = LightMapData->PreviewShadowMapChannel;
-			bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
+	LightGuid = LightMapData->LightGuid;
+	ShadowMapChannel = LightMapData->ShadowMapChannel;
+	PreviewShadowMapChannel = LightMapData->PreviewShadowMapChannel;
+	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
 
-			MarkRenderStateDirty();
+	MarkRenderStateDirty();
 
 #if WITH_EDITOR
-			// Update the icon with the new state of PreviewShadowMapChannel
-			UpdateLightSpriteTexture();
+	// Update the icon with the new state of PreviewShadowMapChannel
+	UpdateLightSpriteTexture();
 #endif
-		}
-	}
 }
 
 int32 ULightComponent::GetNumMaterials() const

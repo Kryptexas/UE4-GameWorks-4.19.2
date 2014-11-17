@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserDeviceAdder.cpp: Implements the SDeviceBrowserDeviceAdder class.
-=============================================================================*/
-
 #include "DeviceManagerPrivatePCH.h"
 
 
@@ -303,6 +299,8 @@ FString SDeviceBrowserDeviceAdder::HandlePlatformComboBoxContentText( ) const
 
 TSharedRef<SWidget> SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWidget( TSharedPtr<FString> Item )
 {
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**Item);
+
 	return
 		SNew(SHorizontalBox)
 
@@ -310,8 +308,13 @@ TSharedRef<SWidget> SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWid
 			.AutoWidth()
 			.HAlign(HAlign_Left)
 			[
-				SNew(SImage)
-					.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), **Item)))
+				SNew(SBox)
+					.WidthOverride(24)
+					.HeightOverride(24)
+					[
+						SNew(SImage)
+							.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+					]
 			]
 
 		+ SHorizontalBox::Slot()

@@ -76,8 +76,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Emulated Uniform buffer time"), STAT_OpenGLEmula
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Uniform buffer pool num free"),STAT_OpenGLNumFreeUniformBuffers,STATGROUP_OpenGLRHI, );
 
 #if OPENGLRHI_DETAILED_STATS
-DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitive Time"),STAT_OpenGLDrawPrimitiveTime,STATGROUP_OpenGLRHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitiveUP Time"),STAT_OpenGLDrawPrimitiveUPTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrimitive Time"),STAT_OpenGLDrawPrimitiveTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrimitiveUP Time"),STAT_OpenGLDrawPrimitiveUPTime,STATGROUP_OpenGLRHI, );
 #endif
 
 enum EOpenGLCurrentContext
@@ -204,8 +204,9 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 /**
  * Main function for transferring data to on-screen buffers.
  * On Windows it temporarily switches OpenGL context, on Mac only context's output view.
+ * Should return true if frame was presented and it is necessary to finish frame rendering.
  */
-void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval );
+bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval );
 
 /**
  * Resize the GL context for platform.
@@ -232,6 +233,9 @@ void PlatformRestoreDesktopDisplayMode();
  * Get current backbuffer dimensions.
  */
 void PlatformGetBackbufferDimensions( uint32& OutWidth, uint32& OutHeight );
+
+// Returns native window handle.
+void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam);
 
 /*------------------------------------------------------------------------------
 	OpenGL texture format table.
@@ -463,13 +467,13 @@ class FVector4VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float4,0));
+		Elements.Add(FVertexElement(0,0,VET_Float4,0,sizeof(FVector4)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}

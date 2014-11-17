@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+#include "UnrealExporter.h"
 
 class FSelectedActorExportObjectInnerContext : public FExportObjectInnerContext
 {
@@ -59,7 +59,7 @@ public:
 	int32 NumActors;
 
 	/** The widget decorator to use */
-	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	//{
 		
 	//}

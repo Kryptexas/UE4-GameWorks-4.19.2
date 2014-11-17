@@ -3,8 +3,9 @@
 #pragma once
 
 
-#include "IPluginManagerShared.h"
 #include "EngineVersion.h"
+#include "ModuleDescriptor.h"
+#include "ProjectDescriptor.h"
 
 /**
  * Simple data structure that is filled when querying information about projects
@@ -31,11 +32,34 @@ public:
 	/** True if this project needs to be updated */
 	bool bRequiresUpdate;
 
+	/** Array of platforms that this project is targeting */
+	TArray<FName> TargetPlatforms;
+
 	FProjectStatus()
 		: bSignedSampleProject(false)
 		, bCodeBasedProject(false)
 		, bRequiresUpdate(false)
 	{}
+
+	/**
+	 * Check to see if the given platform name is supported as a target by the current project
+	 *
+	 * @param	InPlatformName				Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bAllowSupportedIfEmptyList	Consider an empty list to mean that all platforms are supported targets?
+	 */
+	bool IsTargetPlatformSupported(const FName& InPlatformName, const bool bAllowSupportedIfEmptyList = true) const
+	{
+		// An empty list is considered the same as supporting all platforms
+		return (bAllowSupportedIfEmptyList && TargetPlatforms.Num() == 0) || TargetPlatforms.Contains(InPlatformName);
+	}
+
+	/**
+	 * Check to see if the given the current project supports all platforms
+	 */
+	bool SupportsAllPlatforms() const
+	{
+		return TargetPlatforms.Num() == 0;
+	}
 };
 
 /**
@@ -52,6 +76,13 @@ public:
 	 * @return	Reference to the singleton object
 	 */
 	static PROJECTS_API IProjectManager& Get();
+
+	/**
+	 * Gets the current project descriptor.
+	 *
+	 * @return Pointer to the currently loaded project descriptor. NULL if none is loaded.
+	 */
+	virtual const FProjectDescriptor* GetCurrentProject() const = 0;
 
 	/**
 	 * Loads the specified project file.
@@ -147,12 +178,78 @@ public:
 	 * Gets status about the specified project
 	 *
 	 * @param FilePath				The filepath where the project is stored.
-	 * @param EngineIdentifier		Identifier for the current engine installation
 	 * @param OutProjectStatus		The status for the project.
 	 *
 	 * @return	 true if the file was successfully open and read
 	 */
 	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const = 0;
+
+	/**
+	 * Gets status about the current project
+	 *
+	 * @param OutProjectStatus		The status for the project.
+	 *
+	 * @return	 true if the file was successfully open and read
+	 */
+	virtual bool QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const = 0;
+
+	/**
+	 * Update the list of supported target platforms for the target project based upon the parameters provided
+	 * 
+	 * @param	FilePath			The filepath where the project is stored.
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	virtual void UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported) = 0;
+
+	/**
+	 * Update the list of supported target platforms for the current project based upon the parameters provided
+	 * 
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) = 0;
+
+	/** Clear the list of supported target platforms for the target project */
+	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) = 0;
+
+	/** Clear the list of supported target platforms for the current project */
+	virtual void ClearSupportedTargetPlatformsForCurrentProject() = 0;
+
+	/** Called when the target platforms for the current project are changed */
+	DECLARE_MULTICAST_DELEGATE(FOnTargetPlatformsForCurrentProjectChangedEvent);
+	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() = 0;
+
+	/**
+	 * Gets a list of plugins enabled for the current project.
+	 * 
+	 * @param	OutPluginNames		Array to receive the list of plugin names
+	 */
+	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const = 0;
+
+	/**
+	 * Hack to checks whether the current project has a non-default plugin enabled (ie. one which is not included by default in UE4Game).
+	 * 
+	 * @return	True if the project has a non-default plugin enabled.
+	 */
+	virtual bool IsNonDefaultPluginEnabled() const = 0;
+
+	/**
+	 * Sets whether a plugin is enabled, and updates the project descriptor on disk. May require restarting to load it.
+	 * 
+	 * @param	PluginName		Name of the plugin
+	 * @param	bEnabled		Whether to enable or disable the plugin
+	 * @param	OutFailReason	On failure, gives an error message
+	 * @return	True if the plugin has been marked as enabled, and the project descriptor has been saved.
+	 */
+	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) = 0;
+
+	/**
+	 * Returns whether a restart is required to reflect changes to the project.
+	 * 
+	 * @return	True if the application needs to be restarted.
+	 */
+	virtual bool IsRestartRequired() const = 0;
 
 	/** Helper functions to reduce the syntax complexity of commonly used functions */
 	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }

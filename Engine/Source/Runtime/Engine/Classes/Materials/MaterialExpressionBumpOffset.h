@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionBumpOffset.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
@@ -30,8 +31,8 @@ class UMaterialExpressionBumpOffset : public UMaterialExpression
 	uint32 ConstCoordinate;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	// End UMaterialExpression Interface
 };
 

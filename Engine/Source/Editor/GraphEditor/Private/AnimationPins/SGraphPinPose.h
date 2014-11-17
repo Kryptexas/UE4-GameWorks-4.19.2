@@ -12,6 +12,6 @@ public:
 
 protected:
 	// Begin SGraphPin interface
-	virtual const FSlateBrush* GetPinIcon() const OVERRIDE;
+	virtual const FSlateBrush* GetPinIcon() const override;
 	// End SGraphPin interface
 };

@@ -53,7 +53,7 @@ FText SNodeTitle::GetNodeTitle() const
 
 FText SNodeTitle::GetHeadTitle() const
 {
-	return GraphNode->bCanRenameNode? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
+	return GraphNode->bCanRenameNode ? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
 }
 
 void SNodeTitle::RebuildWidget()
@@ -108,6 +108,12 @@ bool SGraphNode::CanAllowInteractionUsingDragDropOp( const UEdGraphNode* GraphNo
 void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 {
 	IsEditable = InIsEditable;
+}
+
+bool SGraphNode::IsNodeEditable() const
+{
+	bool bIsEditable = OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->IsGraphEditable() : true;
+	return IsEditable.Get() && bIsEditable;
 }
 
 /** Set event when node is double clicked */
@@ -221,6 +227,8 @@ FReply SGraphNode::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			bool bOkIcon = false;
 			FString TooltipText;
 			GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->AssetData, GraphNode, TooltipText, bOkIcon);
+			bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? !OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
+			bOkIcon = bReadOnly ? false : bOkIcon;
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
 			AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 		}
@@ -247,8 +255,9 @@ FVector2D SGraphNode::NodeCoordToGraphCoord( const FVector2D& NodeSpaceCoordinat
 
 FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? !OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || bReadOnly)
 	{
 		return FReply::Unhandled();
 	}
@@ -473,7 +482,7 @@ FText SGraphNode::GetNodeTooltip() const
 		// Display the native title of the node when alt is held
 		if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
 		{
-			return FText::FromString(GraphNode->GetNodeNativeTitle(ENodeTitleType::ListView));
+			return FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::ListView).BuildSourceString());
 		}
 
 		FText TooltipText = FText::FromString(GraphNode->GetTooltip());
@@ -1110,11 +1119,11 @@ bool SGraphNode::IsNameReadOnly() const
 	return !GraphNode->bCanRenameNode;
 }
 
-bool SGraphNode::OnVerifyNameTextChanged ( const FText& InText, FText& OutErrorMessage ) 
+bool SGraphNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
 	bool bValid(true);
 
-	if( GetEditableNodeTitle() != InText.ToString() && OnVerifyTextCommit.IsBound() )
+	if ((GetEditableNodeTitle() != InText.ToString()) && OnVerifyTextCommit.IsBound())
 	{
 		bValid = OnVerifyTextCommit.Execute(InText, GraphNode);
 	}
@@ -1127,12 +1136,15 @@ bool SGraphNode::OnVerifyNameTextChanged ( const FText& InText, FText& OutErrorM
 	return bValid;
 }
 
-void SGraphNode::OnNameTextCommited ( const FText& InText, ETextCommit::Type CommitInfo ) 
+void SGraphNode::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
 	OnTextCommitted.ExecuteIfBound(InText, CommitInfo, GraphNode);
 	
 	UpdateErrorInfo();
-	ErrorReporting->SetError(ErrorMsg);
+	if (ErrorReporting.IsValid())
+	{
+		ErrorReporting->SetError(ErrorMsg);
+	}
 }
 
 void SGraphNode::RequestRename()

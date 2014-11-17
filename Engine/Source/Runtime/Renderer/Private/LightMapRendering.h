@@ -8,7 +8,7 @@
 #define __LIGHTMAPRENDERING_H__
 
 extern ENGINE_API bool GShowDebugSelectedLightmap;
-extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
+extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 extern bool GVisualizeMipLevels;
 
 /**
@@ -42,6 +42,7 @@ public:
 	{}
 
 	void Set(
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -52,10 +53,11 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set();
+		VertexFactory->Set(RHICmdList);
 	}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -103,11 +105,11 @@ public:
 			LightMapCoordinateScaleBiasParameter.Bind(ParameterMap,TEXT("LightMapCoordinateScaleBias"));
 		}
 
-		void SetLightMapScale(FShader* VertexShader,const FLightMapInteraction& LightMapInteraction) const
+		void SetLightMapScale(FRHICommandList& RHICmdList, FShader* VertexShader,const FLightMapInteraction& LightMapInteraction) const
 		{
 			const FVector2D LightmapCoordinateScale = LightMapInteraction.GetCoordinateScale();
 			const FVector2D LightmapCoordinateBias = LightMapInteraction.GetCoordinateBias();
-			SetShaderValue(VertexShader->GetVertexShader(),LightMapCoordinateScaleBiasParameter,FVector4(
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LightMapCoordinateScaleBiasParameter,FVector4(
 				LightmapCoordinateScale.X,
 				LightmapCoordinateScale.Y,
 				LightmapCoordinateBias.X,
@@ -137,7 +139,7 @@ public:
 			LightMapAddParameter.Bind(ParameterMap,TEXT("LightMapAdd"));
 		}
 
-		void SetLightMapTexture(FShader* PixelShader, const UTexture2D* LightMapTexture) const
+		void SetLightMapTexture(FRHICommandList& RHICmdList, FShader* PixelShader, const UTexture2D* LightMapTexture) const
 		{
 			FTexture* TextureResource = GBlackTexture;
 
@@ -147,6 +149,7 @@ public:
 			}
 
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShader->GetPixelShader(),
 				LightMapTextureParameter,
 				LightMapSamplerParameter,
@@ -154,7 +157,7 @@ public:
 				);
 		}
 
-		void SetSkyOcclusionTexture(FShader* PixelShader, const UTexture2D* SkyOcclusionTextureValue) const
+		void SetSkyOcclusionTexture(FRHICommandList& RHICmdList, FShader* PixelShader, const UTexture2D* SkyOcclusionTextureValue) const
 		{
 			FTexture* TextureResource = GWhiteTexture;
 
@@ -164,6 +167,7 @@ public:
 			}
 
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShader->GetPixelShader(),
 				SkyOcclusionTexture,
 				SkyOcclusionSampler,
@@ -171,10 +175,10 @@ public:
 				);
 		}
 
-		void SetLightMapScale(FShader* PixelShader,const FLightMapInteraction& LightMapInteraction) const
+		void SetLightMapScale(FRHICommandList& RHICmdList, FShader* PixelShader,const FLightMapInteraction& LightMapInteraction) const
 		{
-			SetShaderValueArray(PixelShader->GetPixelShader(),LightMapScaleParameter,LightMapInteraction.GetScaleArray(),LightMapInteraction.GetNumLightmapCoefficients());
-			SetShaderValueArray(PixelShader->GetPixelShader(),LightMapAddParameter,LightMapInteraction.GetAddArray(),LightMapInteraction.GetNumLightmapCoefficients());
+			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),LightMapScaleParameter,LightMapInteraction.GetScaleArray(),LightMapInteraction.GetNumLightmapCoefficients());
+			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),LightMapAddParameter,LightMapInteraction.GetAddArray(),LightMapInteraction.GetNumLightmapCoefficients());
 		}
 
 		void Serialize(FArchive& Ar)
@@ -218,7 +222,7 @@ public:
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 
 		// GetValueOnAnyThread() as it's possible that ShouldCache is called from rendering thread. That is to output some error message.
-		return Material->GetLightingModel() != MLM_Unlit 
+		return Material->GetShadingModel() != MSM_Unlit 
 			&& VertexFactoryType->SupportsStaticLighting() 
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0)
 			&& (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());
@@ -228,6 +232,7 @@ public:
 	}
 
 	void Set(
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -238,10 +243,11 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set();
+		VertexFactory->Set(RHICmdList);
 	}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -255,14 +261,14 @@ public:
 	{
 		if(VertexShaderParameters)
 		{
-			VertexShaderParameters->SetLightMapScale(VertexShader,LightMapInteraction);
+			VertexShaderParameters->SetLightMapScale(RHICmdList, VertexShader,LightMapInteraction);
 		}
 
 		if(PixelShaderParameters)
 		{
-			PixelShaderParameters->SetLightMapScale(PixelShader,LightMapInteraction);
-			PixelShaderParameters->SetLightMapTexture(PixelShader, LightMapInteraction.GetTexture());
-			PixelShaderParameters->SetSkyOcclusionTexture(PixelShader, LightMapInteraction.GetSkyOcclusionTexture());
+			PixelShaderParameters->SetLightMapScale(RHICmdList, PixelShader,LightMapInteraction);
+			PixelShaderParameters->SetLightMapTexture(RHICmdList, PixelShader, LightMapInteraction.GetTexture());
+			PixelShaderParameters->SetSkyOcclusionTexture(RHICmdList, PixelShader, LightMapInteraction.GetSkyOcclusionTexture());
 		}
 	}
 
@@ -318,9 +324,9 @@ public:
 			Super::VertexParametersType::Bind(ParameterMap);
 		}
 
-		void SetMesh(FShader* VertexShader, const FShadowMapInteraction& ShadowMapInteraction) const
+		void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader, const FShadowMapInteraction& ShadowMapInteraction) const
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), ShadowMapCoordinateScaleBias, FVector4(ShadowMapInteraction.GetCoordinateScale(), ShadowMapInteraction.GetCoordinateBias()));
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), ShadowMapCoordinateScaleBias, FVector4(ShadowMapInteraction.GetCoordinateScale(), ShadowMapInteraction.GetCoordinateBias()));
 		}
 
 		void Serialize(FArchive& Ar)
@@ -347,11 +353,11 @@ public:
 			Super::PixelParametersType::Bind(ParameterMap);
 		}
 
-		void SetMesh(FShader* PixelShader, const FShadowMapInteraction& ShadowMapInteraction, const FVector4& DistanceFieldValues) const
+		void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FShadowMapInteraction& ShadowMapInteraction, const FVector4& DistanceFieldValues) const
 		{
-			SetShaderValue(PixelShader->GetPixelShader(), DistanceFieldParameters, DistanceFieldValues);
+			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), DistanceFieldParameters, DistanceFieldValues);
 			
-			SetShaderValue(PixelShader->GetPixelShader(), StaticShadowMapMasks, FVector4(
+			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), StaticShadowMapMasks, FVector4(
 				ShadowMapInteraction.GetChannelValid(0),
 				ShadowMapInteraction.GetChannelValid(1),
 				ShadowMapInteraction.GetChannelValid(2),
@@ -359,6 +365,7 @@ public:
 				));
 
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShader->GetPixelShader(),
 				StaticShadowTexture,
 				StaticShadowSampler,
@@ -392,6 +399,7 @@ public:
 	TDistanceFieldShadowsAndLightMapPolicy() {}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -405,15 +413,15 @@ public:
 	{
 		if (VertexShaderParameters)
 		{
-			VertexShaderParameters->SetMesh(VertexShader, ElementData.ShadowMapInteraction);
+			VertexShaderParameters->SetMesh(RHICmdList, VertexShader, ElementData.ShadowMapInteraction);
 		}
 
 		if (PixelShaderParameters)
 		{
-			PixelShaderParameters->SetMesh(PixelShader, ElementData.ShadowMapInteraction, ElementData.DistanceFieldValues);
+			PixelShaderParameters->SetMesh(RHICmdList, PixelShader, ElementData.ShadowMapInteraction, ElementData.DistanceFieldValues);
 		}
 
-		Super::SetMesh(View, PrimitiveSceneProxy, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, ElementData.SuperElementData);
+		Super::SetMesh(RHICmdList, View, PrimitiveSceneProxy, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, ElementData.SuperElementData);
 	}
 };
 
@@ -426,10 +434,11 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetLightingModel() != MLM_Unlit && VertexFactoryType->SupportsStaticLighting();
+		return Material->GetShadingModel() != MSM_Unlit && VertexFactoryType->SupportsStaticLighting();
 	}
 
 	void Set(
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -440,10 +449,11 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set();
+		VertexFactory->Set(RHICmdList);
 	}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -457,12 +467,12 @@ public:
 	{
 		if(VertexShaderParameters)
 		{
-			VertexShaderParameters->SetLightMapScale(VertexShader,LightMapInteraction);
+			VertexShaderParameters->SetLightMapScale(RHICmdList, VertexShader,LightMapInteraction);
 		}
 
 		if(PixelShaderParameters)
 		{
-			PixelShaderParameters->SetLightMapScale(PixelShader,LightMapInteraction);
+			PixelShaderParameters->SetLightMapScale(RHICmdList, PixelShader,LightMapInteraction);
 		}
 	}
 
@@ -528,7 +538,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetLightingModel() != MLM_Unlit && IsTranslucentBlendMode(Material->GetBlendMode()) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return Material->GetShadingModel() != MSM_Unlit && IsTranslucentBlendMode(Material->GetBlendMode()) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -541,6 +551,7 @@ public:
 	FSelfShadowedTranslucencyPolicy() {}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -555,25 +566,25 @@ public:
 		if (PixelShaderParameters)
 		{
 			// Set these even if ElementData.TranslucentSelfShadow is NULL to avoid a d3d debug error from the shader expecting texture SRV's when a different type are bound
-			PixelShaderParameters->TranslucencyShadowParameters.Set(PixelShader);
+			PixelShaderParameters->TranslucencyShadowParameters.Set(RHICmdList, PixelShader);
 
 			if (ElementData.TranslucentSelfShadow)
 			{
 				FVector4 ShadowmapMinMax;
 				FMatrix WorldToShadowMatrixValue = ElementData.TranslucentSelfShadow->GetWorldToShadowMatrix(ShadowmapMinMax);
 
-				SetShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->WorldToShadowMatrix, WorldToShadowMatrixValue);
-				SetShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->ShadowUVMinMax, ShadowmapMinMax);
-				SetShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightDirection, ElementData.TranslucentSelfShadow->LightSceneInfo->Proxy->GetDirection());
+				SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->WorldToShadowMatrix, WorldToShadowMatrixValue);
+				SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->ShadowUVMinMax, ShadowmapMinMax);
+				SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightDirection, ElementData.TranslucentSelfShadow->LightSceneInfo->Proxy->GetDirection());
 				//@todo - support fading from both views
 				const float FadeAlpha = ElementData.TranslucentSelfShadow->FadeAlphas[0];
 				// Incorporate the diffuse scale of 1 / PI into the light color
 				const FVector4 DirectionalLightColorValue(FVector(ElementData.TranslucentSelfShadow->LightSceneInfo->Proxy->GetColor() * FadeAlpha / PI), FadeAlpha);
-				SetShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightColor, DirectionalLightColorValue);
+				SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightColor, DirectionalLightColorValue);
 			}
 			else
 			{
-				SetShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightColor, FVector4(0, 0, 0, 0));
+				SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->DirectionalLightColor, FVector4(0, 0, 0, 0));
 			}
 		}
 	}
@@ -638,7 +649,7 @@ public:
 	{
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 
-		return Material->GetLightingModel() != MLM_Unlit 
+		return Material->GetShadingModel() != MSM_Unlit 
 			&& !IsTranslucentBlendMode(Material->GetBlendMode()) 
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0)
 			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
@@ -654,6 +665,7 @@ public:
 	FCachedVolumeIndirectLightingPolicy() {}
 
 	void Set(
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -664,6 +676,7 @@ public:
 		) const;
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -720,7 +733,7 @@ public:
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		
 		// @todo Mac OS X: For GL 3.3 devices which don't support volume-texture rendering we need to cache the simpler point indirect lighting shaders.
-		return Material->GetLightingModel() != MLM_Unlit 
+		return Material->GetShadingModel() != MSM_Unlit 
 			&& (IsTranslucentBlendMode(Material->GetBlendMode()) || GetMaxSupportedFeatureLevel(Platform) == ERHIFeatureLevel::ES2
 				|| (PLATFORM_MAC && GetMaxSupportedFeatureLevel(Platform) == ERHIFeatureLevel::SM4))
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0);
@@ -736,6 +749,7 @@ public:
 	FCachedPointIndirectLightingPolicy() {}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -781,7 +795,7 @@ public:
 	{
 		static IConsoleVariable* AllowStaticLightingVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowStaticLighting"));
 
-		return Material->GetLightingModel() != MLM_Unlit 
+		return Material->GetShadingModel() != MSM_Unlit 
 			&& IsTranslucentBlendMode(Material->GetBlendMode()) 
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetInt() != 0)
 			&& FSelfShadowedTranslucencyPolicy::ShouldCache(Platform, Material, VertexFactoryType);
@@ -797,6 +811,7 @@ public:
 	FSelfShadowedCachedPointIndirectLightingPolicy() {}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -818,7 +833,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetLightingModel() != MLM_Unlit;
+		return Material->GetShadingModel() != MSM_Unlit;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -896,6 +911,7 @@ public:
 	}
 
 	void Set(
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -906,10 +922,11 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set();
+		VertexFactory->Set(RHICmdList);
 	}
 
 	void SetMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -924,6 +941,7 @@ public:
 		if (VertexShaderParameters && PixelShaderParameters)
 		{
 			CachedPointIndirectLightingPolicy.SetMesh(
+				RHICmdList, 
 				View, 
 				PrimitiveSceneProxy, 
 				&VertexShaderParameters->CachedPointIndirectParameters, 

@@ -258,7 +258,7 @@ bool UMulticastDelegateProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UMulticastDelegateProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UMulticastDelegateProperty, SignatureFunction ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UMulticastDelegateProperty, SignatureFunction), TEXT("SignatureFunction"));
 	}
 );
 

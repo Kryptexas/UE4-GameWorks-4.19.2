@@ -16,7 +16,8 @@ const int32 GParticleScratchVertexBufferSize = 64 * (1 << 10); // 64KB
 void FParticleTexCoordVertexBuffer::InitRHI()
 {
 	const uint32 Size = sizeof(FVector2D) * 4 * MAX_PARTICLES_PER_INSTANCE;
-	VertexBufferRHI = RHICreateVertexBuffer( Size, NULL, BUF_Static );
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer( Size, BUF_Static, CreateInfo);
 	FVector2D* Vertices = (FVector2D*)RHILockVertexBuffer( VertexBufferRHI, 0, Size, RLM_WriteOnly );
 	for (uint32 SpriteIndex = 0; SpriteIndex < MAX_PARTICLES_PER_INSTANCE; ++SpriteIndex)
 	{
@@ -42,7 +43,8 @@ void FParticleIndexBuffer::InitRHI()
 	const uint32 MaxParticles = 65536 / 4;
 	const uint32 Size = sizeof(uint16) * 6 * MaxParticles;
 	const uint32 Stride = sizeof(uint16);
-	IndexBufferRHI = RHICreateIndexBuffer( Stride, Size, NULL, BUF_Static );
+	FRHIResourceCreateInfo CreateInfo;
+	IndexBufferRHI = RHICreateIndexBuffer( Stride, Size, BUF_Static, CreateInfo);
 	uint16* Indices = (uint16*)RHILockIndexBuffer( IndexBufferRHI, 0, Size, RLM_WriteOnly );
 	for (uint32 SpriteIndex = 0; SpriteIndex < MaxParticles; ++SpriteIndex)
 	{
@@ -70,7 +72,8 @@ void FParticleScratchVertexBuffer::InitRHI()
 	{
 		Flags |= BUF_ShaderResource;
 	}
-	VertexBufferRHI = RHICreateVertexBuffer(GParticleScratchVertexBufferSize, NULL, Flags);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(GParticleScratchVertexBufferSize, Flags, CreateInfo);
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		VertexBufferSRV_G32R32F = RHICreateShaderResourceView( VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F );

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingTypes.h: Declares the SMessagingTypes class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,10 +26,10 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InModel - The view model to use.
-	 * @param InStyle - The visual style to use for this widget.
-	 * @param InTracer - The message tracer.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InModel The view model to use.
+	 * @param InStyle The visual style to use for this widget.
+	 * @param InTracer The message tracer.
 	 */
 	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
 
@@ -42,7 +38,7 @@ protected:
 	/**
 	 * Adds the given message to the history.
 	 *
-	 * @param TypeInfo - The information about the message type to add.
+	 * @param TypeInfo The information about the message type to add.
 	 */
 	void AddType( const FMessageTracerTypeInfoRef& TypeInfo );
 
@@ -92,5 +88,5 @@ private:
 	TArray<FMessageTracerTypeInfoPtr> TypeList;
 
 	// Holds the message type list view.
-	TSharedPtr<SListView<FMessageTracerTypeInfoPtr> > TypeListView;
+	TSharedPtr<SListView<FMessageTracerTypeInfoPtr>> TypeListView;
 };

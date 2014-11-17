@@ -45,11 +45,11 @@ class UCurveFloat : public UCurveBase
 	ENGINE_API float GetFloatValue(float InTime) const;
 
 	// UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 	// Begin FCurveOwnerInterface
-	virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-	virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
 
 	/** Determine if Curve is the same */
 	ENGINE_API bool operator == (const UCurveFloat& Curve) const;

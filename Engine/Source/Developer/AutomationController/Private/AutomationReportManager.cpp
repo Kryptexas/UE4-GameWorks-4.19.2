@@ -21,6 +21,10 @@ void FAutomationReportManager::Empty()
 	ReportRoot->Empty();
 }
 
+void FAutomationReportManager::ClustersUpdated( const int32 NumClusters )
+{
+	ReportRoot->ClustersUpdated(NumClusters);
+}
 
 void FAutomationReportManager::ResetForExecution(const int32 NumTestPasses)
 {
@@ -121,6 +125,13 @@ const bool FAutomationReportManager::ExportReport(uint32 FileExportTypeMask, con
 	}
 
 	return ReportGenerated;
+}
+
+
+void FAutomationReportManager::TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
+{
+	// push this request straight to the reports.
+	ReportRoot->TrackHistory(bShouldTrack, NumReportsToTrack);
 }
 
 

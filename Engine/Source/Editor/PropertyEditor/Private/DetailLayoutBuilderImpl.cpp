@@ -7,7 +7,7 @@
 #include "IPropertyUtilities.h"
 
 
-FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl( FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< SDetailsView >& InDetailsView )
+FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
 	: PropertyMap( InPropertyMap )
 	, PropertyDetailsUtilities( InPropertyUtilities )
 	, CurrentCustomizationClass( NULL )
@@ -21,8 +21,8 @@ IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryNa
 	// Use the base class name if the user did not specify a name
 	if( CategoryName == NAME_None )
 	{
-		const UClass* BaseClass = GetDetailsView().GetBaseClass();
-		CategoryName = BaseClass ? BaseClass->GetFName() : FName("Generic");
+		const UStruct* BaseStruct = GetDetailsView().GetBaseStruct();
+		CategoryName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 	}
 
 	TSharedPtr<FDetailCategoryImpl> CategoryImpl;
@@ -407,6 +407,23 @@ TSharedPtr<FAssetThumbnailPool> FDetailLayoutBuilderImpl::GetThumbnailPool() con
 	return DetailsView.GetThumbnailPool();
 }
 
+bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const
+{
+	if( PropertyHandle->IsValidHandle() )
+	{
+		FPropertyAndParent PropertyAndParent(*PropertyHandle->GetProperty(), PropertyHandle->GetParentHandle().IsValid() ? PropertyHandle->GetParentHandle()->GetProperty() : nullptr );
+
+		return IsPropertyVisible(PropertyAndParent);
+	}
+	
+	return false;
+}
+
+bool FDetailLayoutBuilderImpl::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
+{
+	return DetailsView.IsPropertyVisible( PropertyAndParent );
+}
+
 const IDetailsView& FDetailLayoutBuilderImpl::GetDetailsView() const
 { 
 	return DetailsView; 
@@ -433,10 +450,13 @@ void FDetailLayoutBuilderImpl::GetObjectsBeingCustomized( TArray< TWeakObjectPtr
 			if( PropertyNodeMapPtr )
 			{
 				FPropertyNodeMap& PropertyNodeMap = *PropertyNodeMapPtr;
-
-				for( int32 ObjectIndex = 0; ObjectIndex < PropertyNodeMap.ParentObjectProperty->GetNumObjects(); ++ObjectIndex )
+				FObjectPropertyNode* ParentObjectProperty = PropertyNodeMap.ParentProperty ? PropertyNodeMap.ParentProperty->AsObjectNode() : NULL;
+				if (ParentObjectProperty)
 				{
-					OutObjects.Add( PropertyNodeMap.ParentObjectProperty->GetUObject( ObjectIndex ) );
+					for (int32 ObjectIndex = 0; ObjectIndex < ParentObjectProperty->GetNumObjects(); ++ObjectIndex)
+					{
+						OutObjects.Add(ParentObjectProperty->GetUObject(ObjectIndex));
+					}
 				}
 			}
 		}

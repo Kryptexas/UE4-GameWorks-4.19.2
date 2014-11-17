@@ -30,14 +30,39 @@ public:
 		return FModuleManager::Get().IsModuleLoaded( "PlacementMode" );
 	}
 
+	/**
+	 * Add the specified assets to the recently placed items list
+	 */
 	virtual void AddToRecentlyPlaced( const TArray< UObject* >& Assets, UActorFactory* FactoryUsed = NULL ) = 0;
-
+	
+	/**
+	 * Add the specified asset to the recently placed items list
+	 */
 	virtual void AddToRecentlyPlaced( UObject* Asset, UActorFactory* FactoryUsed = NULL ) = 0;
 
+	/**
+	 * Get a copy of the recently placed items
+	 */
 	virtual const TArray< FActorPlacementInfo >& GetRecentlyPlaced() const = 0;
 
-	virtual bool IsPlacementModeAvailable() const = 0;
+	/**
+	 * @return the event that is broadcast whenever the list of recently placed assets changes
+	 */
+	DECLARE_EVENT_OneParam( IPlacementMode, FOnRecentlyPlacedChanged, const TArray< FActorPlacementInfo >& /*NewRecentlyPlaced*/ );
+	virtual FOnRecentlyPlacedChanged& OnRecentlyPlacedChanged() = 0;
 
-	virtual TSharedRef< class IPlacementMode > GetPlacementMode() const = 0;
+	/**
+	 * @return the event that is broadcast whenever a placement mode enters a placing session
+	 */
+	DECLARE_EVENT_OneParam( IPlacementMode, FOnStartedPlacingEvent, const TArray< UObject* >& /*Assets*/ );
+	virtual FOnStartedPlacingEvent& OnStartedPlacing() = 0;
+	virtual void BroadcastStartedPlacing( const TArray< UObject* >& Assets ) = 0;
+
+	/**
+	 * @return the event that is broadcast whenever a placement mode exits a placing session
+	 */
+	DECLARE_EVENT_OneParam( IPlacementMode, FOnStoppedPlacingEvent, bool /*bWasSuccessfullyPlaced*/ );
+	virtual FOnStoppedPlacingEvent& OnStoppedPlacing() = 0;
+	virtual void BroadcastStoppedPlacing( bool bWasSuccessfullyPlaced ) = 0;
 };
 

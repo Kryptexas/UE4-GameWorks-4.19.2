@@ -67,7 +67,7 @@ void SSplitter::Construct( const SSplitter::FArguments& InArgs )
 * Panels arrange their children in a space described by the AllottedGeometry parameter. The results of the arrangement
 * should be returned by appending a FArrangedWidget pair for every child widget. See StackPanel for an example
 */
-void SSplitter::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SSplitter::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const int32 AxisIndex = (Orientation == Orient_Horizontal) ? 0 : 1;
 
@@ -665,7 +665,7 @@ void SSplitter2x2::Construct( const FArguments& InArgs )
 }
 
 
-void SSplitter2x2::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SSplitter2x2::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	int32 NumNonCollapsedChildren = 0;
 	FVector2D CoefficientTotal(0,0);

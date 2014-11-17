@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/VectorField/ParticleModuleVectorFieldBase.h"
 #include "ParticleModuleVectorFieldGlobal.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Global Vector Fields"))
@@ -26,7 +26,7 @@ class UParticleModuleVectorFieldGlobal : public UParticleModuleVectorFieldBase
 	float GlobalVectorFieldTightness;
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// Begin UParticleModule Interface
 };
 

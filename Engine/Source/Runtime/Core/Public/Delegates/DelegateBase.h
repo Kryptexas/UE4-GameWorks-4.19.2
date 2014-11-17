@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DelegateBase.h: Declares the FDelegateBase class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,9 +23,9 @@ public:
 public:
 
 	/**
-	 * If this is a UFunction or UObject delegate, return the UObject
+	 * If this is a UFunction or UObject delegate, return the UObject.
 	 *
-	 * @return  the object associated with this delegate if there is one
+	 * @return The object associated with this delegate if there is one.
 	 */
 	inline class UObject* GetUObject( ) const
 	{
@@ -46,9 +42,9 @@ public:
 	}
 
 	/**
-	 * Checks to see if the user object bound to this delegate is still valid
+	 * Checks to see if the user object bound to this delegate is still valid.
 	 *
-	 * @return  True if the user object is still valid and it's safe to execute the function call
+	 * @return True if the user object is still valid and it's safe to execute the function call.
 	 */
 	inline bool IsBound( ) const
 	{
@@ -58,7 +54,7 @@ public:
 	/** 
 	 * Checks to see if this delegate is bound to the given user object.
 	 *
-	 * @return	True if this delegate is bound to InUserObject, false otherwise.
+	 * @return True if this delegate is bound to InUserObject, false otherwise.
 	 */
 	inline bool IsBoundToObject( void const* InUserObject ) const
 	{
@@ -83,7 +79,6 @@ protected:
 	 * Gets the delegate instance.
 	 *
 	 * @return The delegate instance.
-	 *
 	 * @see SetDelegateInstance
 	 */
 	IDelegateInstance* GetDelegateInstance( ) const
@@ -95,7 +90,6 @@ protected:
 	 * Sets the delegate instance.
 	 *
 	 * @param InDelegateInstance The delegate instance to set.
-	 *
 	 * @see GetDelegateInstance.
 	 */
 	inline void SetDelegateInstance( IDelegateInstance* InDelegateInstance )

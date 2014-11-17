@@ -23,12 +23,12 @@ class UBehaviorTreeDecoratorGraphNode_Logic : public UBehaviorTreeDecoratorGraph
 	UPROPERTY()
 	TEnumAsByte<EDecoratorLogicMode::Type> LogicMode;
 
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE;
-	virtual EBTDecoratorLogic::Type GetOperationType() const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
+	virtual bool CanUserDeleteNode() const override;
+	virtual EBTDecoratorLogic::Type GetOperationType() const override;
 
-	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
+	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 
 	bool CanRemovePins() const;
 	bool CanAddPins() const;

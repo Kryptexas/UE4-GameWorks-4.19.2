@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TcpListener.h: Declares the FTcpListener class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,8 +24,8 @@ public:
 	/**
 	 * Creates and initializes a new instance from the specified IP endpoint.
 	 *
-	 * @param LocalEndpoint - The local IP endpoint to listen on.
-	 * @param SleepTime - The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param LocalEndpoint The local IP endpoint to listen on.
+	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
 	FTcpListener( const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::Zero())
 		: DeleteSocket(true)
@@ -38,14 +34,14 @@ public:
 		, Socket(NULL)
 		, Stopping(false)
 	{
-		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), false, false, 8 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
 	}
 
 	/**
 	 * Creates and initializes a new instance from the specified socket.
 	 *
-	 * @param InSocket - The socket to listen on.
-	 * @param SleepTime - The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param InSocket The socket to listen on.
+	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
 	FTcpListener( FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::Zero() )
 		: DeleteSocket(false)
@@ -57,7 +53,7 @@ public:
 		Socket->GetAddress(*LocalAddress);
 		Endpoint = FIPv4Endpoint(LocalAddress);
 
-		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), false, false, 8 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
 	}
 
 	/**
@@ -77,7 +73,6 @@ public:
 			Socket = NULL;
 		}
 	}
-
 
 public:
 
@@ -111,7 +106,6 @@ public:
 		return ((Socket != NULL) && !Stopping);
 	}
 
-
 public:
 
 	/**
@@ -121,21 +115,18 @@ public:
 	 * To temporarily disable accepting connections, use the Enable() and Disable() methods.
 	 *
 	 * @return The delegate.
-	 *
-	 * @see Enable
-	 * @see Disable
+	 * @see Enable, Disable
 	 */
 	FOnTcpListenerConnectionAccepted& OnConnectionAccepted( )
 	{
 		return ConnectionAcceptedDelegate;
 	}
 
-
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		if (Socket == NULL)
 		{
@@ -151,7 +142,7 @@ public:
 		return (Socket != NULL);
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		TSharedRef<FInternetAddr> RemoteAddress = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -187,15 +178,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit( ) OVERRIDE { }
-
-	// End FRunnable interface
-
+	virtual void Exit( ) override { }
 
 private:
 
@@ -216,7 +204,6 @@ private:
 
 	// Holds the thread object.
 	FRunnableThread* Thread;
-
 
 private:
 

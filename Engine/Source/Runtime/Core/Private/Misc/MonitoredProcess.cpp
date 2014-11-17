@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	MonitoredProcess.cpp: Implements the FMonitoredProcess class
-==============================================================================================*/
-
 #include "CorePrivate.h"
 
 
@@ -68,7 +64,7 @@ bool FMonitoredProcess::Launch( )
 		return false;
 	}
 
-	Thread = FRunnableThread::Create(this, TEXT("FMonitoredProcess"), false, false, 128 * 1024, TPri_AboveNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FMonitoredProcess"), 128 * 1024, TPri_AboveNormal);
 
 	return true;
 }

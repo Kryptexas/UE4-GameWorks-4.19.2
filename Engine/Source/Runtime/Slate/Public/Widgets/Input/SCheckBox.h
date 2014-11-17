@@ -2,22 +2,22 @@
 
 #pragma once
 
+#include "SCheckBox.generated.h"
 
 /** Current state of the check box */
+UENUM()
 namespace ESlateCheckBoxState
 {
-	typedef uint8 Type;
-	
+	enum Type
+	{
 		/** Unchecked */
-	const Type Unchecked = 0;
-
+		Unchecked,
 		/** Checked */
-	const Type Checked = 1;
-
+		Checked,
 		/** Neither checked nor unchecked */
-	const Type Undetermined = 2;
-	
-};
+		Undetermined
+	};
+}
 
 
 /** Delegate that is executed when the check box state changes */
@@ -42,8 +42,16 @@ public:
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
 		, _ForegroundColor()
 		, _BorderBackgroundColor ()
-		, _ReadOnly( false )
 		, _IsFocusable( true )
+		, _UncheckedImage( NULL )
+		, _UncheckedHoveredImage( NULL )
+		, _UncheckedPressedImage( NULL )
+		, _CheckedImage( NULL )
+		, _CheckedHoveredImage( NULL )
+		, _CheckedPressedImage( NULL )
+		, _UndeterminedImage( NULL )
+		, _UndeterminedHoveredImage( NULL )
+		, _UndeterminedPressedImage( NULL )
 		{}
 
 		/** Content to be placed next to the check box, or for a toggle button, the content to be placed inside the button */
@@ -61,6 +69,22 @@ public:
 		/** Whether the check box is currently in a checked state */
 		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
 
+		// TODO Remove this function when IsChecked(bool InIsChecked) is removed.  It has to be here to prevent ambiguous conversions.
+		/** Whether the check box is currently in a checked state */
+		FArguments& IsChecked(ESlateCheckBoxState::Type InIsChecked)
+		{
+			_IsChecked = InIsChecked;
+			return Me();
+		}
+
+		/** Whether the check box is currently in a checked state */
+		DEPRECATED(4.3, "Please use IsChecked(TAttribute<ESlateCheckBoxState::Type>)")
+		FArguments& IsChecked(bool InIsChecked)
+		{
+			_IsChecked = InIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return Me();
+		}
+
 		/** How the content of the toggle button should align within the given space*/
 		SLATE_ARGUMENT( EHorizontalAlignment, HAlign )
 
@@ -76,8 +100,6 @@ public:
 		/** The color of the background border (set by the Style arg but the Style can be overridden with this) */
 		SLATE_ATTRIBUTE( FSlateColor, BorderBackgroundColor )
 
-		SLATE_ATTRIBUTE( bool, ReadOnly )
-
 		SLATE_ARGUMENT( bool, IsFocusable )
 		
 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
@@ -91,6 +113,33 @@ public:
 		/** The sound to play when the check box is hovered */
 		SLATE_ARGUMENT( TOptional<FSlateSound>, HoveredSoundOverride )
 
+		/** The unchecked image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedImage)
+
+		/** The unchecked hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedHoveredImage)
+
+		/** The unchecked pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedPressedImage)
+
+		/** The checked image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedImage)
+
+		/** The checked hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedHoveredImage)
+
+		/** The checked pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedPressedImage)
+
+		/** The undetermined image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedImage)
+
+		/** The undetermined hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedHoveredImage)
+
+		/** The undetermined pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedPressedImage)
+
 	SLATE_END_ARGS()
 
 
@@ -102,13 +151,13 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// SWidget interface
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 	// End of SWidget interface
 
 	/**
@@ -120,6 +169,9 @@ public:
 	{
 		return (IsCheckboxChecked.Get() == ESlateCheckBoxState::Checked);
 	}
+
+	/** @return The current checked state of the checkbox. */
+	ESlateCheckBoxState::Type GetCheckedState() const;
 
 	/**
 	 * Returns true if this button is currently pressed
@@ -136,6 +188,36 @@ public:
 	 */
 	void ToggleCheckedState();
 
+	/** See the IsChecked attribute */
+	void SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked);
+	
+	/** See the Content slot */
+	void SetContent(const TSharedRef< SWidget >& InContent);
+	
+	/** See the Style attribute */
+	void SetStyle(const FCheckBoxStyle* InStyle);
+	
+	/** See the UncheckedImage attribute */
+	void SetUncheckedImage(const FSlateBrush* Brush);
+	/** See the UncheckedHoveredImage attribute */
+	void SetUncheckedHoveredImage(const FSlateBrush* Brush);
+	/** See the UncheckedPressedImage attribute */
+	void SetUncheckedPressedImage(const FSlateBrush* Brush);
+	
+	/** See the CheckedImage attribute */
+	void SetCheckedImage(const FSlateBrush* Brush);
+	/** See the CheckedHoveredImage attribute */
+	void SetCheckedHoveredImage(const FSlateBrush* Brush);
+	/** See the CheckedPressedImage attribute */
+	void SetCheckedPressedImage(const FSlateBrush* Brush);
+	
+	/** See the UndeterminedImage attribute */
+	void SetUndeterminedImage(const FSlateBrush* Brush);
+	/** See the UndeterminedHoveredImage attribute */
+	void SetUndeterminedHoveredImage(const FSlateBrush* Brush);
+	/** See the UndeterminedPressedImage attribute */
+	void SetUndeterminedPressedImage(const FSlateBrush* Brush);
+
 protected:
 
 	/**
@@ -143,9 +225,22 @@ protected:
 	 * @return	The name of the image to display
 	 */
 	const FSlateBrush* OnGetCheckImage() const;
-
-
+	
+	const FSlateBrush* GetUncheckedImage() const;
+	const FSlateBrush* GetUncheckedHoveredImage() const;
+	const FSlateBrush* GetUncheckedPressedImage() const;
+	
+	const FSlateBrush* GetCheckedImage() const;
+	const FSlateBrush* GetCheckedHoveredImage() const;
+	const FSlateBrush* GetCheckedPressedImage() const;
+	
+	const FSlateBrush* GetUndeterminedImage() const;
+	const FSlateBrush* GetUndeterminedHoveredImage() const;
+	const FSlateBrush* GetUndeterminedPressedImage() const;
+	
 protected:
+	
+	const FCheckBoxStyle* Style;
 
 	/** True if this check box is currently in a pressed state */
 	bool bIsPressed;
@@ -178,9 +273,6 @@ protected:
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;
 
-	/** When true, this checkbox will not be toggleable */
-	bool bReadOnly;
-
 	/** When true, this checkbox will be keyboard focusable. Defaults to true. */
 	bool bIsFocusable;
 
@@ -204,4 +296,8 @@ protected:
 
 	/** The Sound to play when the check box is unchecked */
 	FSlateSound UncheckedSound;
+
+protected:
+	/** When in toggle button mode, this will hold the pointer to the toggle button's border */
+	TSharedPtr<SBorder> ContentContainer;
 };

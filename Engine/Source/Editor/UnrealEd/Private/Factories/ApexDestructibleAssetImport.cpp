@@ -15,11 +15,14 @@
 DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 
 #include "Engine.h"
+#include "PhysicsPublic.h"
+#include "Engine/DestructibleFractureSettings.h"
 #include "TextureLayout.h"
 #include "SkelImport.h"
 #include "EditorPhysXSupport.h"
 #include "ApexDestructibleAssetImport.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_APEX
 
@@ -720,7 +723,7 @@ NxDestructibleAsset* CreateApexDestructibleAssetFromFile(const FString& Filename
 	return ApexDestructibleAsset;
 }
 
-bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EImportOptions::Type Options)
+bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options)
 {
 	DestructibleMesh.PreEditChange(NULL);
 
@@ -746,7 +749,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 	// Removing const cast ... we'll have to make it non-const anyway when we modify it
 	DestructibleMesh.ApexDestructibleAsset = &ApexDestructibleAsset;
 
-	if ( !(Options&EImportOptions::PreserveSettings) )
+	if ( !(Options&EDestructibleImportOptions::PreserveSettings) )
 	{
 		// Resize the depth parameters array to the appropriate size
 		DestructibleMesh.DefaultDestructibleParameters.DepthParameters.Init(FDestructibleDepthParameters(), ApexDestructibleAsset.getDepthCount());
@@ -969,14 +972,14 @@ UNREALED_API bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& D
 
 	if (NewApexDestructibleAsset != NULL)
 	{
-		Success = SetApexDestructibleAsset(DestructibleMesh, *NewApexDestructibleAsset, OutData, EImportOptions::PreserveSettings);
+		Success = SetApexDestructibleAsset(DestructibleMesh, *NewApexDestructibleAsset, OutData, EDestructibleImportOptions::PreserveSettings);
 	}
 #endif // WITH_APEX
 
 	return Success;
 }
 
-UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, NxDestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EImportOptions::Type Options)
+UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, NxDestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options)
 {
 	// The APEX Destructible Asset contains an APEX Render Mesh Asset, get a pointer to this
 	const physx::NxRenderMeshAsset* ApexRenderMesh = ApexDestructibleAsset.getRenderMeshAsset();
@@ -1002,7 +1005,7 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 		DestructibleMesh = CastChecked<UDestructibleMesh>(StaticConstructObject(UDestructibleMesh::StaticClass(), InParent, Name, Flags));
 	}
 	
-	if (!(Options & EImportOptions::PreserveSettings))
+	if (!(Options & EDestructibleImportOptions::PreserveSettings))
 	{
 		// Store the current file path and timestamp for re-import purposes
 		// @todo AssetImportData make a data class for Apex destructible assets
@@ -1027,6 +1030,10 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 
 	if (!SetApexDestructibleAsset(*DestructibleMesh, ApexDestructibleAsset, OutData, Options))
 	{
+		// should remove this destructible mesh. if not, this object causes a crash when ticking because it doesn't have proper rendering resources
+		// @TODO : creates this destructible mesh after loading data completely
+		DestructibleMesh->PostEditChange();
+		DestructibleMesh->ConditionalBeginDestroy();
 		return NULL;
 	}
 

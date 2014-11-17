@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UMG.h: UMG module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -17,52 +13,72 @@
 #include "Slate.h"
 #include "SlateCore.h"
 
+#include "Anchors.h"
+#include "SConstraintCanvas.h"
 
-/* Components
+#include "Slate/SlateBrushAsset.h"
+
+/* Public Includes
  *****************************************************************************/
 
+// Components
 #include "SlateWrapperTypes.h"
+
+#include "Visual.h"
 
 #include "PanelSlot.h"
 
-#include "SlateWrapperComponent.h"
+#include "Widget.h"
 
-#include "SlateLeafWidgetComponent.h"
-#include "SlateNonLeafWidgetComponent.h"
-
+#include "PanelWidget.h"
 #include "ContentWidget.h"
 
-#include "BoxPanelComponent.h"
-
 #include "CanvasPanelSlot.h"
-#include "CanvasPanelComponent.h"
+#include "CanvasPanel.h"
 
 #include "HorizontalBoxSlot.h"
-#include "HorizontalBoxComponent.h"
+#include "HorizontalBox.h"
 
 #include "VerticalBoxSlot.h"
-#include "VerticalBoxComponent.h"
+#include "VerticalBox.h"
 
-#include "TextBlockComponent.h"
-#include "BorderComponent.h"
-#include "ButtonComponent.h"
-#include "CheckBoxComponent.h"
+#include "UniformGridSlot.h"
+#include "UniformGridPanel.h"
+
+#include "OverlaySlot.h"
+#include "Overlay.h"
+
+#include "ScrollBoxSlot.h"
+#include "ScrollBox.h"
+
+#include "WidgetSwitcherSlot.h"
+#include "WidgetSwitcher.h"
+
+#include "TextBlock.h"
+#include "Border.h"
+#include "Button.h"
+#include "CheckBox.h"
 #include "EditableText.h"
-#include "EditableTextBlockComponent.h"
-#include "ImageComponent.h"
+#include "EditableTextBox.h"
+#include "Image.h"
 #include "Slider.h"
+#include "ProgressBar.h"
+#include "ComboBox.h"
 
-#include "GridPanelComponent.h"
-#include "ScrollBoxComponent.h"
-#include "SpacerComponent.h"
-#include "SpinningImageComponent.h"
-#include "ThrobberComponent.h"
-#include "CircularThrobberComponent.h"
+#include "Spacer.h"
+#include "MenuAnchor.h"
 
+#include "Throbber.h"
+#include "CircularThrobber.h"
 
-/* Blueprint
- *****************************************************************************/
+#include "TableViewBase.h"
+#include "ListView.h"
+#include "TileView.h"
 
+// Slate
+#include "SObjectWidget.h"
+
+// Blueprint
 #include "WidgetTree.h"
 #include "UserWidget.h"
 
@@ -71,9 +87,8 @@
 
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintGeneratedClass.h"
- 
 
-/* Interfaces
- *****************************************************************************/
+#include "WidgetActor.h"
 
+// Interfaces
 #include "IUMGModule.h"

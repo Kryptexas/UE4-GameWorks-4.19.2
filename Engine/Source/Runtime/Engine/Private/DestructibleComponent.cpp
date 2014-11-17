@@ -6,10 +6,12 @@
 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
 #include "ParticleDefinitions.h"
 #include "ObjectEditorUtils.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -317,6 +319,8 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	// Start asleep if requested
 	PxRigidDynamic* PRootActor = ApexDestructibleActor->getChunkPhysXActor(0);
+
+
 	//  Put to sleep or wake up only if the component is physics-simulated
 	if (PRootActor != NULL && BodyInstance.bSimulatePhysics)
 	{
@@ -353,6 +357,14 @@ void UDestructibleComponent::DestroyPhysicsState()
 		}
 		
 		ApexDestructibleActor = NULL;
+		
+		//Destructible component uses the BodyInstance in PrimitiveComponent in a very dangerous way. It assigns PxRigidDynamic to it as it needs it.
+		//Destructible PxRigidDynamic actors can be deleted from under us as PhysX sees fit.
+		//Ideally we wouldn't ever have a dangling pointer, but in practice this is hard to avoid.
+		//In theory anyone using BodyInstance on a PrimitiveComponent should be using functions like GetBodyInstance - in which case we properly fix up the dangling pointer
+		BodyInstance.RigidActorSync = NULL;
+		BodyInstance.RigidActorAsync = NULL;
+
 	}
 #endif	// #if WITH_APEX
 	Super::DestroyPhysicsState();
@@ -614,6 +626,15 @@ void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDam
 
 void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& InDamageEvent)
 {
+	FVector HitPosition = P2UVector(InDamageEvent.hitPosition);
+	FVector HitDirection = P2UVector(InDamageEvent.hitDirection);
+
+	OnComponentFracture.Broadcast(HitPosition, HitDirection);
+	if (ADestructibleActor * DestructibleActor = Cast<ADestructibleActor>(GetOwner()))
+	{
+		DestructibleActor->OnActorFracture.Broadcast(HitPosition, HitDirection);
+	}
+
 	SpawnFractureEffectsFromDamageEvent(InDamageEvent);
 
 	// After receiving damage, no longer receive decals.
@@ -623,54 +644,22 @@ void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& In
 		MarkRenderStateDirty();
 	}
 }
+
+void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData & InVisibilityEvent)
+{
+	for (uint32 EventIndex = 0; EventIndex < InVisibilityEvent.stateEventListSize; ++EventIndex)
+	{
+		const NxDestructibleChunkEvent &  Event = InVisibilityEvent.stateEventList[EventIndex];
+		// Right now the only events are visibility changes.  So as an optimization we won't check for the event type.
+		//				if (Event.event & physx::NxDestructibleChunkEvent::VisibilityChanged)
+		const bool bVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
+		SetChunkVisible(Event.chunkIndex, bVisible);
+	}
+}
 #endif // WITH_APEX
 
-void UDestructibleComponent::RefreshBoneTransforms()
+void UDestructibleComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
-#if WITH_APEX
-	if(ApexDestructibleActor != NULL && SkeletalMesh)
-	{
-		UDestructibleMesh* TheDestructibleMesh = GetDestructibleMesh();
-
-		// Save a pointer to the APEX NxDestructibleAsset
-		physx::NxDestructibleAsset* ApexDestructibleAsset = TheDestructibleMesh->ApexDestructibleAsset;
-		check(ApexDestructibleAsset);
-
-		{
-			// Lock here so we don't encounter race conditions with the destruction processing
-			FPhysScene* PhysScene = World->GetPhysicsScene();
-			check(PhysScene);
-			const uint32 SceneType = (BodyInstance.bUseAsyncScene && PhysScene->HasAsyncScene()) ? PST_Async : PST_Sync;
-			PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
-			check(PScene);
-			SCOPED_SCENE_WRITE_LOCK(PScene);
-			SCOPED_SCENE_READ_LOCK(PScene);
-
-			// Try to acquire event buffer
-			const physx::NxDestructibleChunkEvent* EventBuffer;
-			physx::PxU32 EventBufferSize;
-			if (ApexDestructibleActor->acquireChunkEventBuffer(EventBuffer, EventBufferSize))
-			{
-				// Buffer acquired
-				while (EventBufferSize--)
-				{
-					const physx::NxDestructibleChunkEvent& Event = *EventBuffer++;
-					// Right now the only events are visibility changes.  So as an optimization we won't check for the event type.
-	//				if (Event.event & physx::NxDestructibleChunkEvent::VisibilityChanged)
-					const bool bVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
-					SetChunkVisible(Event.chunkIndex, bVisible);
-				}
-				// Release buffer (will be cleared)
-				ApexDestructibleActor->releaseChunkEventBuffer();
-			}
-		}
-
-
-
-		// Send bones to render thread at end of frame
-		MarkRenderDynamicDataDirty();
-}
-#endif	// #if WITH_APEX
 }
 
 void UDestructibleComponent::SetDestructibleMesh(class UDestructibleMesh* NewMesh)
@@ -801,6 +790,7 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 
 				PActor->userData = UserData;
 
+
 				// Set collision response to non-root chunks
 				if (GetDestructibleMesh()->ApexDestructibleAsset->getChunkParentIndex(ChunkIndex) >= 0)
 				{
@@ -850,6 +840,9 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
 	MarkRenderTransformDirty();
+
+	// New bone positions need to be sent to render thread
+	MarkRenderDynamicDataDirty();
 
 #if 0
 	// Scale is already applied to the ComponentToWorld transform, and is carried into the bones _locally_.
@@ -1000,20 +993,6 @@ void UDestructibleComponent::Deactivate()
 		bIsActive = false;
 	}
 }
-void UDestructibleComponent::PostPhysicsTick( FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction )
-{
-	Super::PostPhysicsTick(ThisTickFunction);
-
-	if (IsRegistered())
-	{
-		if (BodyInstance.bSimulatePhysics)
-		{
-			SyncComponentToRBPhysics();
-		}
-
-		RefreshBoneTransforms();
-	}
-}
 
 bool UDestructibleComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
@@ -1088,6 +1067,12 @@ bool UDestructibleComponent::SweepComponent(FHitResult& OutHit, const FVector St
 #if WITH_APEX
 void UDestructibleComponent::SetupFakeBodyInstance( physx::PxRigidActor* NewRigidActor, int32 InstanceIdx, FFakeBodyInstanceState* PrevState )
 {
+	//This code is very dangerous, but at the moment I have no better solution:
+	//Destructible component assigns PxRigidDynamic to the BodyInstance as it needs it.
+	//Destructible PxRigidDynamic actors can be deleted from under us as PhysX sees fit.
+	//Ideally we wouldn't ever have a dangling pointer, but in practice this is hard to avoid.
+	//In theory anyone using BodyInstance on a PrimitiveComponent should be using functions like GetBodyInstance - in which case we properly fix up the dangling pointer
+
 	if (PrevState != NULL)
 	{
 		PrevState->ActorSync = BodyInstance.RigidActorSync;

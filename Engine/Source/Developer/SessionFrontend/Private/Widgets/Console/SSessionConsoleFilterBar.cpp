@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleFilterBar.cpp: Implements the SSessionConsoleFilterBar class.
-=============================================================================*/
-
 #include "SessionFrontendPrivatePCH.h"
 
 

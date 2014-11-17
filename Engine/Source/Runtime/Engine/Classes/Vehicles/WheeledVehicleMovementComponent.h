@@ -3,9 +3,11 @@
 #pragma once
 
 #include "VehicleWheel.h"
+#include "Curves/CurveBase.h"
+
 #include "WheeledVehicleMovementComponent.generated.h"
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 namespace physx
 {
 	class PxVehicleDrive;
@@ -160,7 +162,7 @@ struct FVehicleInputRate
 /**
  * Component to handle the vehicle simulation for an actor.
  */
-UCLASS(Abstract, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
+UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -240,7 +242,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
 	float GetMaxSpringForce() const;
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	// The instanced PhysX vehicle
 	physx::PxVehicleWheels* PVehicle;
@@ -265,14 +267,14 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	virtual void UpdateDrag( float DeltaTime );
 
 	/** Used to create any physics engine information for this component */
-	virtual void CreatePhysicsState() OVERRIDE;
+	virtual void CreatePhysicsState() override;
 
 	/** Used to shut down and pysics engine structure for this component */
-	virtual void DestroyPhysicsState() OVERRIDE;
+	virtual void DestroyPhysicsState() override;
 
-	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
+	virtual bool ShouldCreatePhysicsState() const override;
 
-	virtual bool HasValidPhysicsState() const OVERRIDE;
+	virtual bool HasValidPhysicsState() const override;
 
 	/** Draw debug text for the wheels and suspension */
 	virtual void DrawDebug(UCanvas* Canvas, float& YL, float& YPos);
@@ -285,10 +287,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 #if WITH_EDITOR
 	/** Respond to a property change in editor */
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 	/** Set the user input for the vehicle throttle */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -437,7 +439,7 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerUpdateState(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 CurrentGear);
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	int32 GearToPhysXGear(const int32 Gear) const;
 
@@ -476,7 +478,7 @@ protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 	
 
 };

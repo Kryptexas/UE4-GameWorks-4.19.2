@@ -9,8 +9,8 @@ public class SDL : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "SDL");
-			PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartyDirectory + "SDL/lib/x86/SDL.lib");
+			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "SDL");
+			PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "SDL/lib/x86/SDL.lib");
 			PublicDelayLoadDLLs.Add("SDL.dll");
 		}
 	}

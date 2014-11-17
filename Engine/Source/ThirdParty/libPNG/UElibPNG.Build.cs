@@ -8,7 +8,7 @@ public class UElibPNG : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string libPNGPath = UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2";
+		string libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2";
 		PublicIncludePaths.Add(libPNGPath);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -37,12 +37,12 @@ public class UElibPNG : ModuleRules
 			if (Target.Architecture == "-simulator")
             {
                 PublicLibraryPaths.Add(libPNGPath + "/lib/ios/Simulator");
-                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2/lib/ios/Simulator/libpng152.a");
+                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/ios/Simulator/libpng152.a");
             }
             else
             {
                 PublicLibraryPaths.Add(libPNGPath + "/lib/ios/Device");
-                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2/lib/ios/Device/libpng152.a");
+                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/ios/Device/libpng152.a");
             }
 
             PublicAdditionalLibraries.Add("png152");
@@ -69,9 +69,9 @@ public class UElibPNG : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/libpng.a");
+            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
 
-            if (UEBuildConfiguration.bBuildDedicatedServer)
+            if (Target.Type == TargetRules.TargetType.Server)
             {
                 string Err = string.Format("{0} dedicated server is made to depend on {1}. We want to avoid this, please correct module dependencies.", Target.Platform.ToString(), this.ToString());
                 System.Console.WriteLine(Err);
@@ -81,7 +81,15 @@ public class UElibPNG : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             PublicLibraryPaths.Add(libPNGPath + "/lib/HTML5");
-            PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng.bc");
+
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng_Oz.bc");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng.bc");
+			}
         } 
     }
 }

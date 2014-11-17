@@ -67,7 +67,7 @@ public abstract class BaseWinPlatform : Platform
 
         if (Params.bUsesSteam)
         {
-			string SteamVersion = "Steamv129";
+			string SteamVersion = "Steamv129a";
 
 			// Check that the TPS directory exists. We don't distribute binaries for Steam in Rocket.
 			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))
@@ -98,7 +98,7 @@ public abstract class BaseWinPlatform : Platform
         // Copy the splash screen, windows specific
         SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
-		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
+        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
 
 		List<string> Exes = GetExecutableNames(SC);
 
@@ -111,7 +111,7 @@ public abstract class BaseWinPlatform : Platform
             if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
             {
                 // remap the project root. For Rocket executables, rename the executable to the game name.
-				if ((Params.Rocket || !Params.IsCodeBasedProject) && Exe == Exes[0])
+				if (!Params.IsCodeBasedProject && Exe == Exes[0])
 				{
 					StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
 				}
@@ -123,7 +123,7 @@ public abstract class BaseWinPlatform : Platform
             else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
             {
 				// Move the executable for non-code rocket projects into the game directory, using the game name, so it can figure out the UProject to look for and is consitent with code projects.
-				if ((Params.Rocket || !Params.IsCodeBasedProject) && Exe == Exes[0])
+				if (!Params.IsCodeBasedProject && Exe == Exes[0])
 				{
 					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
 				}
@@ -193,7 +193,7 @@ public abstract class BaseWinPlatform : Platform
 				foreach (var StageExecutable in SC.StageExecutables)
 				{
 					string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(StageExecutable);
-					if(!SC.IsCodeBasedProject && !bIsRun)
+					if(!SC.IsCodeBasedProject && (!bIsRun || !SC.Stage))
 					{
 						ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
 					}

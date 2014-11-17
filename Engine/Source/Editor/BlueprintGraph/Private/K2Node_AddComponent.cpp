@@ -6,6 +6,7 @@
 #include "ParticleDefinitions.h"
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 
@@ -20,7 +21,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		FKCHandler_CallFunction::RegisterNets(Context, Node);
 

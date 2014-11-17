@@ -148,7 +148,7 @@ public:
 	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/** Return the name of the bone */
-	virtual FName GetRowItemName() const OVERRIDE {return BoneName;}
+	virtual FName GetRowItemName() const override {return BoneName;}
 
 	/** Set Translation Retargeting Mode for this bone. */
 	void SetBoneTranslationRetargetingMode(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
@@ -227,7 +227,7 @@ public:
 	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/** Return the name of the socket */
-	virtual FName GetRowItemName() const OVERRIDE {return SocketData->SocketName;}
+	virtual FName GetRowItemName() const override {return SocketData->SocketName;}
 
 	/** Handle double clicking a socket */
 	virtual void OnItemDoubleClicked();
@@ -240,7 +240,7 @@ public:
 	FOnRenameRequested OnRenameRequested;
 
 	/** Requests a rename on the socket item */
-	virtual void RequestRename() OVERRIDE;
+	virtual void RequestRename() override;
 
 	/** Return socket name as FText for display in skeleton tree */
 	FText GetSocketNameAsText() const { return FText::FromName(SocketData->SocketName); }
@@ -317,7 +317,7 @@ public:
 	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn();
 
 	/** Return the name of the asset */
-	virtual FName GetRowItemName() const OVERRIDE {return FName( *Asset->GetName() ) ;}
+	virtual FName GetRowItemName() const override {return FName( *Asset->GetName() ) ;}
 
 	/** Return the name used to attach to this item (in assets case return the item we are attached to */
 	virtual FName GetAttachName() const { return GetParentName(); }

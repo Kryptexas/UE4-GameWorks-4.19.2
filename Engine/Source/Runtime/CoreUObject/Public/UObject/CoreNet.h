@@ -13,7 +13,7 @@ DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
 //
 // Information about a field.
 //
-class FFieldNetCache
+class COREUOBJECT_API FFieldNetCache
 {
 public:
 	UField* Field;
@@ -28,9 +28,9 @@ public:
 //
 // Information about a class, cached for network coordination.
 //
-class FClassNetCache
+class COREUOBJECT_API FClassNetCache
 {
-	friend class UPackageMap;
+	friend class FClassNetCacheMgr;
 public:
 	FClassNetCache();
 	FClassNetCache( UClass* Class );
@@ -62,11 +62,22 @@ public:
 		return NULL;
 	}
 private:
-	int32 FieldsBase;
-	FClassNetCache* Super;
-	UClass* Class;
-	TArray<FFieldNetCache> Fields;
-	TMap<UObject*,FFieldNetCache*> FieldMap;
+	int32								FieldsBase;
+	FClassNetCache *					Super;
+	TWeakObjectPtr< UClass >			Class;
+	TArray< FFieldNetCache >			Fields;
+	TMap< UObject *, FFieldNetCache * > FieldMap;
+};
+
+class COREUOBJECT_API FClassNetCacheMgr
+{
+public:
+	/** get the cached field to index mappings for the given class */
+	FClassNetCache *	GetClassNetCache( UClass * Class );
+	void				ClearClassNetCache();
+
+private:
+	TMap< TWeakObjectPtr< UClass >, FClassNetCache * > ClassFieldIndices;
 };
 
 //
@@ -94,157 +105,53 @@ public:
 	friend COREUOBJECT_API FArchive& operator<<( FArchive& Ar, FPackageInfo& I );
 };
 
-/** maximum index that may ever be used to serialize an object over the network
- * this affects the number of bits used to send object references
- */
-#define MAX_OBJECT_INDEX (uint32(1) << 31)
-
-/** Stores an object with path associated with FNetworkGUID */
-class FNetGuidCacheObject
-{
-public:
-	TWeakObjectPtr< UObject >		Object;
-	FString							FullPath;
-};
-
-class COREUOBJECT_API UNetGUIDCache : public UObject
-{
-	DECLARE_CLASS_INTRINSIC(UNetGUIDCache,UObject,CLASS_Transient|0,CoreUObject);
-
-	virtual void PostInitProperties();
-
-	// Fixme: use a single data structure for this
-	TMap<FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
-	TMap<TWeakObjectPtr<UObject>, FNetworkGUID>		NetGUIDLookup;
-
-	int32	UniqueNetIDs[2];
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// History for debugging entries in the packagemap
-	TMap<FNetworkGUID, FString>	History;
-#endif
-};
-
-
 //
 // Maps objects and names to and from indices for network communication.
 //
 class COREUOBJECT_API UPackageMap : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UPackageMap,UObject,CLASS_Transient|0,CoreUObject);
+	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
 
-	
-	UPackageMap( const class FPostConstructInitializeProperties& PCIP, FNetObjectIsDynamic Delegate ) :
-		UObject(PCIP), ObjectIsDynamicDelegate(Delegate)
-	{
-	}
-
-	// Begin UObject interface.
-	virtual void	PostInitProperties();
-	virtual void	Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void	FinishDestroy() OVERRIDE;
-	static void		AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
-	
-	// @todo document
-	virtual bool CanSerializeObject(const UObject* Obj);
-	
-	// @todo document
-	virtual bool SupportsPackage( UObject* InOuter );
+	virtual bool		WriteObject( FArchive & Ar, UObject * Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
 	// @todo document
-	virtual bool SupportsObject( const UObject* Obj );
-
-	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName );
+	virtual bool		SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
 
 	// @todo document
-	virtual bool SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL );
+	virtual bool		SerializeName( FArchive& Ar, FName& Name );
 
-	// @todo document
-	virtual bool SerializeName( FArchive& Ar, FName& Name );
+	virtual UObject *	ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) { return NULL; }
 
-	/** get the cached field to index mappings for the given class */
-	FClassNetCache* GetClassNetCache(UClass* Class);
-	void	ClearClassNetCache();
+	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }
 
-	virtual UObject * NetGUIDAssign(FNetworkGUID NetGUID, FString Path, UObject *ObjOuter = NULL) { return NULL; }
-	
-	virtual void HandleUnAssignedObject(const UObject* Obj) { }
+	virtual void		ReceivedNak( const int32 NakPacketId ) { }
+	virtual void		ReceivedAck( const int32 AckPacketId ) { }
+	virtual void		NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
 
-	virtual FNetworkGUID GetObjectNetGUID(const UObject* Obj);
+	virtual void		GetNetGUIDStats(int32 & AckCount, int32 & UnAckCount, int32 & PendingCount) { }
 
-	virtual UObject * GetObjectFromNetGUID(FNetworkGUID NetGUID);
+	virtual void		NotifyStreamingLevelUnload( UObject * UnloadedLevel ) { }
 
-	virtual void ResetPackageMap();
+	virtual bool		PrintExportBatch() { return false; }
 
-	/** Removes deleted objects from the package map lookup tables */
-	virtual void CleanPackageMap();
+	void				SetDebugContextString( const FString & Str ) { DebugContextString = Str; }
+	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	/**
-	 * logs debug info (package list, etc) to the specified output device
-	 * @param Ar - the device to log to
-	 */
-	virtual void LogDebugInfo(FOutputDevice& Ar);
+	void				ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
+	bool				GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
+	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
 
-	virtual void SetLocked(bool L) { }
-
-	// Variables.
-
-	virtual FNetworkGUID AssignNewNetGUID(const UObject* Object);
-	virtual FNetworkGUID AssignNetGUID(const UObject* Object, FNetworkGUID NewNetworkGUID);
-
-	void ResetUnAckedObject() { bSerializedUnAckedObject = false; }
-	bool SerializedUnAckedObject() { return bSerializedUnAckedObject; }
-
-	void ResetHasSerializedCDO() { bSerializedCDO = false; }
-	bool HasSerializedCDO() const { return bSerializedCDO; }
-	
-	virtual bool SerializeNewActor(FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor) { return false; }
-
-	virtual bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID) { return false; }
-	virtual void ReceivedNak( const int32 NakPacketId ) { }
-	virtual void ReceivedAck( const int32 AckPacketId ) { }
-	virtual void NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
-
-	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) { }
-
-	UNetGUIDCache * GetNetGUIDCache() { return Cache; }
-
-	FNetObjectIsDynamic ObjectIsDynamicDelegate;
-
-	virtual void NotifyStreamingLevelUnload(UObject* UnloadedLevel) { }
-
-	virtual bool PrintExportBatch() { return false; }
-
-	void	SetDebugContextString(FString Str) { DebugContextString = Str; }
-	void	ClearDebugContextString() { DebugContextString.Empty(); }
-
-	void			ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
-	bool			GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
-	FNetworkGUID	GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
+	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
+	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
 
 protected:
 
-	virtual bool IsDynamicObject(const UObject* Object);
-	virtual bool IsNetGUIDAuthority() { return true; }
+	bool				bSuppressLogs;
 
-	UNetGUIDCache * Cache;
+	bool				bLoadedUnmappedObject;
+	FNetworkGUID		LastUnmappedNetGUID;
 
-	/** map from package names to their index in List */
-	TMap<FName, int32> PackageListMap;
-
-	// @todo document
-	TMap<TWeakObjectPtr<UClass>, FClassNetCache*> ClassFieldIndices;
-
-	bool	bSuppressLogs;
-	bool	bShouldSerializeUnAckedObjects;
-	bool	bSerializedUnAckedObject;
-	bool	bSerializedCDO;
-
-	bool			bLoadedUnmappedObject;
-	FNetworkGUID	LastUnmappedNetGUID;
-
-	FString	DebugContextString;
+	FString				DebugContextString;
 };
 
 /** Represents a range of PacketIDs, inclusive */
@@ -292,14 +199,13 @@ enum ELifetimeCondition
 	COND_None				= 0,		// This property has no condition, and will send anytime it changes
 	COND_InitialOnly		= 1,		// This property will only attempt to send on the initial bunch
 	COND_OwnerOnly			= 2,		// This property will only send to the actor's owner
-	COND_OwnerOrNotNull		= 3,		// This property will only send to the actor's owner (or anyone if it's not NULL for their copy)
-	COND_SkipOwner			= 4,		// This property send to every connection EXCEPT the owner
-	COND_SimulatedOnly		= 5,		// This property will only send to simulated actors
-	COND_AutonomousOnly		= 6,		// This property will only send to autonomous actors
-	COND_SimulatedOrPhysics	= 7,		// This property will send to simulated OR bRepPhysics actors
-	COND_InitialOrOwner		= 8,		// This property will send on the initial packet, or to the actors owner
-	COND_Custom				= 9,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
-	COND_Max				= 10,
+	COND_SkipOwner			= 3,		// This property send to every connection EXCEPT the owner
+	COND_SimulatedOnly		= 4,		// This property will only send to simulated actors
+	COND_AutonomousOnly		= 5,		// This property will only send to autonomous actors
+	COND_SimulatedOrPhysics	= 6,		// This property will send to simulated OR bRepPhysics actors
+	COND_InitialOrOwner		= 7,		// This property will send on the initial packet, or to the actors owner
+	COND_Custom				= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
+	COND_Max				= 9,
 };
 
 /** FLifetimeProperty

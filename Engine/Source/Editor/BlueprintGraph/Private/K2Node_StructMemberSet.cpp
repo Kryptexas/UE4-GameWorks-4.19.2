@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_StructMemberSet.h"
 #include "StructMemberNodeHandlers.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,13 +54,6 @@ FText UK2Node_StructMemberSet::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("VariableName"), FText::FromName(VariableReference.GetMemberName()));
 	return FText::Format(LOCTEXT("SetMembersInVariable", "Set members in {VariableName}"), Args);
-}
-
-FString UK2Node_StructMemberSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	return FString::Printf(TEXT("Set members in %s"), *VariableReference.GetMemberName().ToString());
 }
 
 UK2Node::ERedirectType UK2Node_StructMemberSet::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const

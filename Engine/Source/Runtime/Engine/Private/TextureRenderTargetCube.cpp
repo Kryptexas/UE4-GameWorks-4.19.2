@@ -209,28 +209,36 @@ void FTextureRenderTargetCubeResource::InitDynamicRHI()
 
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
 		uint32 TexCreateFlags = bSRGB ? TexCreate_SRGB : 0;
-		RHICreateTargetableShaderResourceCube(
-			Owner->SizeX,
-			Owner->GetFormat(), 
-			Owner->GetNumMips(),
-			TexCreateFlags, 
-			TexCreate_RenderTargetable,
-			false,
-			RenderTargetCubeRHI,
-			TextureCubeRHI );
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			RHICreateTargetableShaderResourceCube(
+				Owner->SizeX,
+				Owner->GetFormat(), 
+				Owner->GetNumMips(),
+				TexCreateFlags, 
+				TexCreate_RenderTargetable,
+				false,
+				CreateInfo,
+				RenderTargetCubeRHI,
+				TextureCubeRHI );
+		}
 
 		TextureRHI = TextureCubeRHI;
+		RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 		// Create the RHI target surface used for rendering to
-		CubeFaceSurfaceRHI = RHICreateTexture2D(
-			Owner->SizeX, 
-			Owner->SizeX, 
-			Owner->GetFormat(),
-			Owner->GetNumMips(), 
-			/* NumSamples =*/ 1,
-			TexCreate_RenderTargetable|TexCreateFlags,
-			NULL
-			);
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			CubeFaceSurfaceRHI = RHICreateTexture2D(
+				Owner->SizeX, 
+				Owner->SizeX, 
+				Owner->GetFormat(),
+				Owner->GetNumMips(), 
+				/* NumSamples =*/ 1,
+				TexCreate_RenderTargetable|TexCreateFlags,
+				CreateInfo
+				);
+		}
 
 		// Set render target to 2D surface.
 		RenderTargetTextureRHI = CubeFaceSurfaceRHI;
@@ -259,6 +267,7 @@ void FTextureRenderTargetCubeResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 	CubeFaceSurfaceRHI.SafeRelease();
 	RenderTargetCubeRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
@@ -272,18 +281,20 @@ void FTextureRenderTargetCubeResource::ReleaseDynamicRHI()
  */
 void FTextureRenderTargetCubeResource::UpdateResource()
 {
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 	const FIntPoint Dims = GetSizeXY();
 	for(int32 FaceIdx = CubeFace_PosX; FaceIdx < CubeFace_MAX; FaceIdx++)
 	{
 		// clear each face of the cube target texture to ClearColor
-		RHISetRenderTarget(RenderTargetTextureRHI, FTextureRHIParamRef());
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef());
 
-		RHISetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
-		RHIClear(true, Owner->ClearColor, false, 0.f, false, 0, FIntRect());
+		RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
+		RHICmdList.Clear(true, Owner->ClearColor, false, 0.f, false, 0, FIntRect());
 		// copy surface to the texture for use
 		FResolveParams ResolveParams;
 		ResolveParams.CubeFace = (ECubeFace)FaceIdx;
-		RHICopyToResolveTarget(RenderTargetTextureRHI, TextureCubeRHI, true, ResolveParams);
+		RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureCubeRHI, true, ResolveParams);
 	}
 }
 
@@ -346,7 +357,7 @@ bool FTextureRenderTargetCubeResource::ReadPixels(TArray< FColor >& OutImageData
 	  ReadSurfaceCommand,
 	  FReadSurfaceContext, Context, ReadSurfaceContext,
 	{
-		RHIReadSurfaceData(
+		RHICmdList.ReadSurfaceData(
 		  Context.SrcRenderTarget->TextureCubeRHI,
 		  Context.Rect,
 		  *Context.OutData,
@@ -392,7 +403,7 @@ bool FTextureRenderTargetCubeResource::ReadPixels(TArray<FFloat16Color>& OutImag
 	  ReadSurfaceFloatCommand,
 	  FReadSurfaceFloatContext, Context, ReadSurfaceFloatContext,
 	{
-		RHIReadSurfaceFloatData(
+		RHICmdList.ReadSurfaceFloatData(
 		  Context.SrcRenderTarget->TextureCubeRHI,
 		  Context.Rect,
 		  *Context.OutData,

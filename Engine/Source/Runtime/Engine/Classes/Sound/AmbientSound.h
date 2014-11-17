@@ -29,11 +29,11 @@ class AAmbientSound : public AActor
 
 	// Begin AActor interface.
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
-	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const OVERRIDE;
+	virtual void CheckForErrors() override;
+	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostRegisterAllComponents() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostRegisterAllComponents() override;
 	// End AActor interface.
 
 	// BEGIN DEPRECATED (use component functions now in level script)

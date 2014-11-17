@@ -77,9 +77,9 @@ class ENGINE_API UWorldComposition : public UObject
 	/** Returns currently visible and hidden levels based on distance based streaming */
 	void GetDistanceVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
 
-	/** Opens world composition from specified folder (long PackageName)*/
-	bool OpenWorldRoot(const FString& InPathToRoot);
-	
+	/** @returns Whether specified streaming level is distance dependent */
+	bool IsDistanceDependentLevel(FName PackageName) const;
+
 	/** @returns Currently opened world composition root folder (long PackageName)*/
 	FString GetWorldRoot() const;
 	
@@ -107,6 +107,9 @@ class ENGINE_API UWorldComposition : public UObject
 	/** @returns Level bounding box in current shifted space */
 	FBox GetLevelBounds(ULevel* InLevel) const;
 
+	/** Scans world root folder for relevant packages and initializes world composition structures */
+	void Rescan();
+
 #if WITH_EDITOR
 	/** @returns FWorldTileInfo associated with specified package */
 	FWorldTileInfo GetTileInfo(const FName& InPackageName) const;
@@ -121,18 +124,23 @@ class ENGINE_API UWorldComposition : public UObject
 	void RestoreDirtyTilesInfo(const FTilesList& TilesPrevState);
 	
 	/** Collect tiles package names to cook  */
-	static bool CollectTilesToCook(const FString& CmdLineMapEntry, TArray<FString>& FilesInPath);
+	void CollectTilesToCook(TArray<FString>& PackageNames);
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FWorldCompositionEvent, UWorld*);
+	// Callback on world composition creation
+	static FWorldCompositionEvent OnWorldCompositionCreated;
+	// Callback on world composition destruction 
+	static FWorldCompositionEvent OnWorldCompositionDestroyed;
 
 #endif //WITH_EDITOR
 
 private:
 	// UObject interface
-	/** Handles WorldComposition duplication for PIE */
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostLoad() override;
 	// UObject interface
-
-	/** Scans world root folder for relevant packages and initializes world composition structures */
-	void Rescan();
 
 	/** Populate streaming level objects using tiles information */
 	void PopulateStreamingLevels();
@@ -160,8 +168,12 @@ private:
 
 public:
 #if WITH_EDITOR
-	// Last location from where streaming state was updated
-	mutable FVector				LastViewLocation;
+	// Last view from where streaming state was updated
+	mutable FMatrix				LastWorldToViewMatrix;
+
+	// Hack for a World Browser to be able to temporally show hidden levels 
+	// regardless of current world origin and without offsetting them temporally 
+	bool						bTemporallyDisableOriginTracking;
 #endif //WITH_EDITOR
 
 private:
@@ -173,7 +185,7 @@ private:
 
 public:
 	// Streaming level objects for each tile
-	UPROPERTY()
+	UPROPERTY(transient)
 	TArray<ULevelStreaming*>	TilesStreaming;
 
 	// Time threshold between tile streaming state changes

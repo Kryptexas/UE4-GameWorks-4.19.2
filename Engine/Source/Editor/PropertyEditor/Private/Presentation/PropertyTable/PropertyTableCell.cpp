@@ -114,12 +114,12 @@ bool FPropertyTableCell::IsValid() const
 
 FString FPropertyTableCell::GetValueAsString() const
 {
-	return PropertyEditor->GetValueAsString();
+	return IsBound() ? PropertyEditor->GetValueAsString() : FString();
 }
 
 FText FPropertyTableCell::GetValueAsText() const
 {
-	return PropertyEditor->GetValueAsText();
+	return IsBound() ? PropertyEditor->GetValueAsText() : FText::GetEmpty();
 }
 
 void FPropertyTableCell::SetValueFromString( const FString& InString )
@@ -150,7 +150,7 @@ TSharedRef< class IPropertyTable > FPropertyTableCell::GetTable() const
 
 TSharedPtr< class IPropertyHandle > FPropertyTableCell::GetPropertyHandle() const 
 { 
-	if( PropertyEditor.IsValid() ) 
+	if( IsBound() ) 
 	{
 		return PropertyEditor->GetPropertyHandle(); 
 	}

@@ -6,6 +6,10 @@
 
 #pragma once
 
+#if WITH_ENGINE
+#include "ISessionService.h"
+#endif
+class FEngineService;
 
 /**
  * Implements the main engine loop.	
@@ -66,7 +70,7 @@ public:
 	 *
 	 * @return The error level; 0 if successful, > 0 if there were errors.
 	 */ 
-	virtual int32 Init() OVERRIDE;
+	virtual int32 Init() override;
 
 	/**
 	 * Initialize the timing options from the command line.
@@ -84,10 +88,10 @@ public:
 	/**
 	 * Advances the main loop.
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	/** Removes references to any objects pending cleanup by deleting them. */
-	virtual void ClearPendingCleanupObjects() OVERRIDE;
+	virtual void ClearPendingCleanupObjects() override;
 
 #if PLATFORM_XBOXONE
 	void OnResuming(_In_ Platform::Object^ Sender, _In_ Platform::Object^ Args);

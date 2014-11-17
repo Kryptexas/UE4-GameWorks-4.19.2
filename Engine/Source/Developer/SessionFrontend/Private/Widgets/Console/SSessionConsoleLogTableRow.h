@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleLogTableRow.h: Declares the SSessionConsoleLogTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,13 +16,12 @@ public:
 		SLATE_ARGUMENT(FSessionLogMessagePtr, LogMessage)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
+	 * @param InArgs The construction arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -36,10 +31,11 @@ public:
 		SMultiColumnTableRow<FSessionLogMessagePtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
-
 public:
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	// SMultiColumnTableRow interface
+
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "Instance")
 		{
@@ -114,7 +110,6 @@ public:
 		return SNullWidget::NullWidget;
 	}
 
-
 private:
 
 	// Gets the border color for this row.
@@ -140,7 +135,6 @@ private:
 			return FSlateColor::UseForeground();
 		}
 	}
-
 
 private:
 

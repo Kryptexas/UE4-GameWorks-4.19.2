@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformTime.cpp: Generic implementations of Time platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformTime, Log, All);

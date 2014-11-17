@@ -11,6 +11,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
+#include "RHICommandList.h"
 
 
 DEFINE_LOG_CATEGORY(LogShaders);
@@ -907,7 +908,8 @@ void FShader::FinishCleanup()
 void FShader::VerifyBoundUniformBufferParameters()
 {
 	// Support being called on a NULL pointer
-	if (this)
+// TODO: doesn't work with uniform buffer parameters on helper structs like FDeferredPixelShaderParameters
+	if (0&&this)
 	{
 		for (int32 StructIndex = 0; StructIndex < UniformBufferParameters.Num(); StructIndex++)
 		{
@@ -1032,23 +1034,25 @@ FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
 
 
 void DispatchComputeShader(
+	FRHICommandListImmediate& RHICmdList,
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,
 	uint32 ThreadGroupCountZ)
-{	
+{
 	Shader->VerifyBoundUniformBufferParameters();
-	RHIDispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+	RHICmdList.DispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 
 
 void DispatchIndirectComputeShader(
+	FRHICommandListImmediate& RHICmdList,
 	FShader* Shader,
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset)
-{	
+{
 	Shader->VerifyBoundUniformBufferParameters();
-	RHIDispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);
+	RHICmdList.DispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);
 }
 
 
@@ -1090,7 +1094,7 @@ FName GetRuntimeShaderFormat()
 	return RuntimeFormat;
 }
 
-void ShaderMapAppendKeyString(FString& KeyString)
+void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 {
 	// Globals that should cause all shaders to recompile when changed must be appended to the key here
 	// Key should be kept as short as possible while being somewhat human readable for debugging
@@ -1119,5 +1123,24 @@ void ShaderMapAppendKeyString(FString& KeyString)
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_DBuf") : TEXT("_NoDBuf");
+	}
+
+	if( Platform == SP_PS4 )
+	{
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4MixedModeShaderDebugInfo"));
+			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			{
+				KeyString += TEXT("_MMDBG");
+			}
+		}
+
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4DumpShaderSDB"));
+			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			{
+				KeyString += TEXT("_SDB");
+			}
+		}
 	}
 }

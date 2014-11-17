@@ -44,24 +44,24 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	/**
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE;
+	virtual void Finalize() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /** 
@@ -96,23 +96,23 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	/**
 	 * Write out the state of the request
 	 */
-	virtual void Finalize() OVERRIDE;
+	virtual void Finalize() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /**
@@ -157,12 +157,12 @@ public:
 	}
 
 	// IOnlineSharedCloud
-	virtual bool GetSharedFileContents(const FSharedContentHandle& SharedHandle, TArray<uint8>& FileContents) OVERRIDE;
-	virtual bool ClearSharedFiles() OVERRIDE;
-	virtual bool ClearSharedFile(const FSharedContentHandle& SharedHandle) OVERRIDE;
-	virtual bool ReadSharedFile(const FSharedContentHandle& SharedHandle) OVERRIDE;
-	virtual bool WriteSharedFile(const FUniqueNetId& UserId, const FString& Filename, TArray<uint8>& FileContents) OVERRIDE;
-	virtual void GetDummySharedHandlesForTest(TArray< TSharedRef<FSharedContentHandle> > & OutHandles) OVERRIDE;
+	virtual bool GetSharedFileContents(const FSharedContentHandle& SharedHandle, TArray<uint8>& FileContents) override;
+	virtual bool ClearSharedFiles() override;
+	virtual bool ClearSharedFile(const FSharedContentHandle& SharedHandle) override;
+	virtual bool ReadSharedFile(const FSharedContentHandle& SharedHandle) override;
+	virtual bool WriteSharedFile(const FUniqueNetId& UserId, const FString& Filename, TArray<uint8>& FileContents) override;
+	virtual void GetDummySharedHandlesForTest(TArray< TSharedRef<FSharedContentHandle> > & OutHandles) override;
 };
 
 typedef TSharedPtr<FOnlineSharedCloudSteam, ESPMode::ThreadSafe> FOnlineSharedCloudSteamPtr;

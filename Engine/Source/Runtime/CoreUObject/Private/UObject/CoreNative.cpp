@@ -9,7 +9,7 @@
 class FCoreUObjectModule : public FDefaultModuleImpl
 {
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		void InitUObject();
 		FCoreDelegates::OnInit.AddStatic(InitUObject);

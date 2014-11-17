@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
+#include "Runtime/MovieSceneCore/Classes/MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -21,6 +22,7 @@ UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 {
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	WidgetTree->SetFlags(RF_Transactional);
 }
 
 void UWidgetBlueprint::PostLoad()
@@ -28,12 +30,26 @@ void UWidgetBlueprint::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	for ( USlateWrapperComponent* Widget : WidgetTree->WidgetTemplates )
+	TArray<UWidget*> Widgets;
+	WidgetTree->GetAllWidgets(Widgets);
+	for ( UWidget* Widget : Widgets )
 	{
 		Widget->ConnectEditorData();
 	}
 #endif
 }
+
+UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
+{
+	return Super::RegenerateClass(ClassToRegenerate, PreviousCDO, ObjLoaded);
+}
+
+#if WITH_EDITOR
+UClass* UWidgetBlueprint::GetBlueprintClass() const
+{
+	return UWidgetBlueprintGeneratedClass::StaticClass();
+}
+#endif
 
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {

@@ -47,7 +47,7 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 		if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Blueprint->GetAnimBlueprintSkeletonClass())
 		{
-			if (UAnimStateTransitionNode* TransNode = AnimBlueprintClass->GetAnimBlueprintDebugData().GetTransitionNodeFromGraph(ContextMenuBuilder.CurrentGraph))
+			if (UAnimStateTransitionNode* TransNode = GetTransitionNodeFromGraph(AnimBlueprintClass->GetAnimBlueprintDebugData(), ContextMenuBuilder.CurrentGraph))
 			{
 				if (UAnimStateNode* SourceStateNode = Cast<UAnimStateNode>(TransNode->GetPreviousState()))
 				{
@@ -96,7 +96,6 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 								TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_AssetPlayer, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 								Action->NodeTemplate = NodeTemplate;
-								Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 							}
 						}
 					}
@@ -120,7 +119,6 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_Transition, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 						Action->NodeTemplate = NodeTemplate;
-						Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 					}
 				}
 			}
@@ -150,7 +148,7 @@ void UAnimationTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Grap
 		UAnimBlueprint* Blueprint = CastChecked<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForGraph(&Graph));
 		if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Blueprint->GetAnimBlueprintSkeletonClass())
 		{
-			TransNode = AnimBlueprintClass->GetAnimBlueprintDebugData().GetTransitionNodeFromGraph(&Graph);
+			TransNode = GetTransitionNodeFromGraph(AnimBlueprintClass->GetAnimBlueprintDebugData(), &Graph);
 		}
 	}
 
@@ -162,6 +160,31 @@ void UAnimationTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Grap
 	}
 
 	DisplayInfo.DisplayName = DisplayInfo.PlainName;
+}
+
+UAnimStateTransitionNode* UAnimationTransitionSchema::GetTransitionNodeFromGraph(const FAnimBlueprintDebugData& DebugData, const UEdGraph* Graph)
+{
+	if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = DebugData.TransitionGraphToNodeMap.Find(Graph))
+	{
+		return TransNodePtr->Get();
+	}
+
+	if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = DebugData.TransitionBlendGraphToNodeMap.Find(Graph))
+	{
+		return TransNodePtr->Get();
+	}
+
+	return NULL;
+}
+
+UAnimStateNode* UAnimationTransitionSchema::GetStateNodeFromGraph(const FAnimBlueprintDebugData& DebugData, const UEdGraph* Graph)
+{
+	if (const TWeakObjectPtr<UAnimStateNode>* StateNodePtr = DebugData.StateGraphToNodeMap.Find(Graph))
+	{
+		return StateNodePtr->Get();
+	}
+
+	return NULL;
 }
 
 #undef LOCTEXT_NAMESPACE

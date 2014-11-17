@@ -63,6 +63,15 @@ public:
 			GetTypeHash(Key.GeometryShader);
 	}
 
+	/**
+	 * Get the RHI shader for the given frequency.
+	 */
+	FORCEINLINE FVertexShaderRHIParamRef   GetVertexShader() const   { return VertexShader; }
+	FORCEINLINE FPixelShaderRHIParamRef    GetPixelShader() const    { return PixelShader; }
+	FORCEINLINE FHullShaderRHIParamRef     GetHullShader() const     { return HullShader; }
+	FORCEINLINE FDomainShaderRHIParamRef   GetDomainShader() const   { return DomainShader; }
+	FORCEINLINE FGeometryShaderRHIParamRef GetGeometryShader() const { return GeometryShader; }
+
 private:
 	/**
 	 * Note: We intentionally do use ...Ref, not ...ParamRef to get 
@@ -123,6 +132,15 @@ public:
 
 	/** Destructor.  Removes the bound shader state from the cache. */
 	~FCachedBoundShaderStateLink();
+
+	/**
+	 * Get the RHI shader for the given frequency.
+	 */
+	FORCEINLINE FVertexShaderRHIParamRef   GetVertexShader() const   { return Key.GetVertexShader(); }
+	FORCEINLINE FPixelShaderRHIParamRef    GetPixelShader() const    { return Key.GetPixelShader(); }
+	FORCEINLINE FHullShaderRHIParamRef     GetHullShader() const     { return Key.GetHullShader(); }
+	FORCEINLINE FDomainShaderRHIParamRef   GetDomainShader() const   { return Key.GetDomainShader(); }
+	FORCEINLINE FGeometryShaderRHIParamRef GetGeometryShader() const { return Key.GetGeometryShader(); }
 
 private:
 

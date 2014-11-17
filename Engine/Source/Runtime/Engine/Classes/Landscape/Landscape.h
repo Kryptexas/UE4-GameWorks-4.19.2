@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "LandscapeInfo.h"
+#include "LandscapeProxy.h"
+#include "Components/LightComponent.h"
+
 #include "Landscape.generated.h"
 
 UENUM()
@@ -17,7 +21,7 @@ enum ELandscapeSetupErrors
 	LSE_MAX,
 };
 
-UCLASS(dependson=ULightComponent, Placeable, hidecategories=LandscapeProxy, showcategories=(Display, Movement, Collision, Lighting, LOD, Input), MinimalAPI)
+UCLASS(Placeable, hidecategories=LandscapeProxy, showcategories=(Display, Movement, Collision, Lighting, LOD, Input), MinimalAPI)
 class ALandscape : public ALandscapeProxy
 {
 	GENERATED_UCLASS_BODY()
@@ -28,16 +32,16 @@ class ALandscape : public ALandscapeProxy
 
 	// Begin AActor Interface
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
+	virtual void CheckForErrors() override;
+	virtual void Destroyed() override;
 #endif
 	// End AActor Interface
 
 	// Begin ALandscapeProxy Interface
-	virtual ALandscape* GetLandscapeActor() OVERRIDE;
+	ENGINE_API virtual ALandscape* GetLandscapeActor() override;
 #if WITH_EDITOR
-	virtual UMaterialInterface* GetLandscapeMaterial() const OVERRIDE;
-	virtual UMaterialInterface* GetLandscapeHoleMaterial() const OVERRIDE;
+	virtual UMaterialInterface* GetLandscapeMaterial() const override;
+	virtual UMaterialInterface* GetLandscapeHoleMaterial() const override;
 	// End ALandscapeProxy Interface
 
 	ENGINE_API bool HasAllComponent(); // determine all component is in this actor
@@ -53,11 +57,11 @@ class ALandscape : public ALandscapeProxy
 	static void SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLevel = false);
 	
 	// Begin UObject interface.
-	virtual void PreSave() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
+	virtual void PreSave() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
 #endif
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 

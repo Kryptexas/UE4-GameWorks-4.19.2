@@ -1,13 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	      SPlistEditor.h: Definition for PList editor app/menu
-=============================================================================*/
-
 #pragma once
-
-#ifndef __SPListEditor_h__
-#define __SPListEditor_h__
 
 #include "Slate.h"
 #include "XmlParser.h"
@@ -17,6 +10,7 @@
 #include "../Private/PListNodeDictionary.h"
 #include "../Private/PListNodeFile.h"
 #include "../Private/PListNodeString.h"
+
 
 // Type of notification to spawn
 enum ENTF_Types
@@ -93,7 +87,7 @@ public:
 	TSharedPtr<FUICommandInfo> AddBooleanCommand;
 
 	/** Initialize Commands */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND( NewCommand, "New", "Creates a new plist file", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::N) );
 		UI_COMMAND( OpenCommand, "Open", "Opens an existing plist file", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::O) );
@@ -123,9 +117,9 @@ public:
 	}
 	
 	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	// End of SWidget interface
 
 	/** Construct the widget when opened */
@@ -265,5 +259,3 @@ private:
 	/** Helper function to search through nodes to find a specific node's parent */
 	bool FindParent(const TSharedPtr<IPListNode>& InChildNode, TSharedPtr<IPListNode>& OutFoundNode) const;
 };
-
-#endif

@@ -16,7 +16,7 @@ public:
 	void Construct( const FArguments& InArgs, UEdGraphNode_Reference* InNode );
 
 	// SGraphNode implementation
-	virtual void UpdateGraphNode() OVERRIDE;
+	virtual void UpdateGraphNode() override;
 	// End SGraphNode implementation
 
 private:

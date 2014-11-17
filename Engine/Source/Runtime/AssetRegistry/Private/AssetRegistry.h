@@ -14,65 +14,65 @@ public:
 	virtual ~FAssetRegistry();
 
 	// IAssetRegistry implementation
-	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const OVERRIDE;
-	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false) const OVERRIDE;
-	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const OVERRIDE;
-	virtual bool GetAssetsByTagValues(const TMultiMap<FName, FString>& AssetTagsAndValues, TArray<FAssetData>& OutAssetData) const OVERRIDE;
-	virtual bool GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssetData) const OVERRIDE;
-	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath ) const OVERRIDE;
-	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData) const OVERRIDE;
-	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies) const OVERRIDE;
-	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const OVERRIDE;
-	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const OVERRIDE;
-	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const OVERRIDE;
-	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const OVERRIDE;
-	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const OVERRIDE;
-	virtual void RunAssetsThroughFilter (TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const OVERRIDE;
-	virtual EAssetAvailability::Type GetAssetAvailability(const FAssetData& AssetData) const OVERRIDE;	
-	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const OVERRIDE;
-	virtual bool GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const OVERRIDE;
-	virtual void PrioritizeAssetInstall(const FAssetData& AssetData) const OVERRIDE;
-	virtual bool AddPath(const FString& PathToAdd) OVERRIDE;
-	virtual bool RemovePath(const FString& PathToRemove) OVERRIDE;
-	virtual void SearchAllAssets(bool bSynchronousSearch) OVERRIDE;
-	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount) OVERRIDE;
+	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const override;
+	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false) const override;
+	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const override;
+	virtual bool GetAssetsByTagValues(const TMultiMap<FName, FString>& AssetTagsAndValues, TArray<FAssetData>& OutAssetData) const override;
+	virtual bool GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssetData) const override;
+	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath ) const override;
+	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData) const override;
+	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies) const override;
+	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const override;
+	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const override;
+	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const override;
+	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const override;
+	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const override;
+	virtual void RunAssetsThroughFilter (TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const override;
+	virtual EAssetAvailability::Type GetAssetAvailability(const FAssetData& AssetData) const override;	
+	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const override;
+	virtual bool GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const override;
+	virtual void PrioritizeAssetInstall(const FAssetData& AssetData) const override;
+	virtual bool AddPath(const FString& PathToAdd) override;
+	virtual bool RemovePath(const FString& PathToRemove) override;
+	virtual void SearchAllAssets(bool bSynchronousSearch) override;
+	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount) override;
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
-	virtual FPathAddedEvent& OnPathAdded() OVERRIDE { return PathAddedEvent; }
+	virtual FPathAddedEvent& OnPathAdded() override { return PathAddedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathRemovedEvent, FPathRemovedEvent);
-	virtual FPathRemovedEvent& OnPathRemoved() OVERRIDE { return PathRemovedEvent; }
+	virtual FPathRemovedEvent& OnPathRemoved() override { return PathRemovedEvent; }
 
-	virtual void AssetCreated(UObject* NewAsset) OVERRIDE;
-	virtual void AssetDeleted(UObject* DeletedAsset) OVERRIDE;
-	virtual void AssetRenamed(const UObject* RenamedAsset, const FString& OldObjectPath) OVERRIDE;
+	virtual void AssetCreated(UObject* NewAsset) override;
+	virtual void AssetDeleted(UObject* DeletedAsset) override;
+	virtual void AssetRenamed(const UObject* RenamedAsset, const FString& OldObjectPath) override;
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetAddedEvent, FAssetAddedEvent);
-	virtual FAssetAddedEvent& OnAssetAdded() OVERRIDE { return AssetAddedEvent; }
+	virtual FAssetAddedEvent& OnAssetAdded() override { return AssetAddedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetRemovedEvent, FAssetRemovedEvent);
-	virtual FAssetRemovedEvent& OnAssetRemoved() OVERRIDE { return AssetRemovedEvent; }
+	virtual FAssetRemovedEvent& OnAssetRemoved() override { return AssetRemovedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetRenamedEvent, FAssetRenamedEvent);
-	virtual FAssetRenamedEvent& OnAssetRenamed() OVERRIDE { return AssetRenamedEvent; }
+	virtual FAssetRenamedEvent& OnAssetRenamed() override { return AssetRenamedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FInMemoryAssetCreatedEvent, FInMemoryAssetCreatedEvent );
-	virtual FInMemoryAssetCreatedEvent& OnInMemoryAssetCreated() OVERRIDE { return InMemoryAssetCreatedEvent; }
+	virtual FInMemoryAssetCreatedEvent& OnInMemoryAssetCreated() override { return InMemoryAssetCreatedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FInMemoryAssetDeletedEvent, FInMemoryAssetDeletedEvent );
-	virtual FInMemoryAssetDeletedEvent& OnInMemoryAssetDeleted() OVERRIDE { return InMemoryAssetDeletedEvent; }
+	virtual FInMemoryAssetDeletedEvent& OnInMemoryAssetDeleted() override { return InMemoryAssetDeletedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FFilesLoadedEvent, FFilesLoadedEvent );
-	virtual FFilesLoadedEvent& OnFilesLoaded() OVERRIDE { return FileLoadedEvent; }
+	virtual FFilesLoadedEvent& OnFilesLoaded() override { return FileLoadedEvent; }
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FFileLoadProgressUpdatedEvent, FFileLoadProgressUpdatedEvent );
-	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() OVERRIDE { return FileLoadProgressUpdatedEvent; }
+	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() override { return FileLoadProgressUpdatedEvent; }
 
-	virtual bool IsLoadingAssets() const OVERRIDE;
+	virtual bool IsLoadingAssets() const override;
 
-	virtual void Tick (float DeltaTime) OVERRIDE;
+	virtual void Tick (float DeltaTime) override;
 
 private:
 

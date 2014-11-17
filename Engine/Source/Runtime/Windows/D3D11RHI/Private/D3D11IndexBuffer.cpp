@@ -6,7 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 
-FIndexBufferRHIRef FD3D11DynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 Size,FResourceArrayInterface* ResourceArray,uint32 InUsage)
+FIndexBufferRHIRef FD3D11DynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 Size,uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	// Explicitly check that the size is nonzero before allowing CreateIndexBuffer to opaquely fail.
 	check(Size > 0);
@@ -38,10 +38,10 @@ FIndexBufferRHIRef FD3D11DynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 S
 	// If a resource array was provided for the resource, create the resource pre-populated
 	D3D11_SUBRESOURCE_DATA InitData;
 	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
-		InitData.pSysMem = ResourceArray->GetResourceData();
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		InitData.pSysMem = CreateInfo.ResourceArray->GetResourceData();
 		InitData.SysMemPitch = Size;
 		InitData.SysMemSlicePitch = 0;
 		pInitData = &InitData;
@@ -52,10 +52,10 @@ FIndexBufferRHIRef FD3D11DynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 S
 
 	UpdateBufferStats(IndexBufferResource, true);
 
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
 		// Discard the resource array's contents.
-		ResourceArray->Discard();
+		CreateInfo.ResourceArray->Discard();
 	}
 
 	return new FD3D11IndexBuffer(IndexBufferResource, Stride, Size, InUsage);
@@ -65,6 +65,9 @@ void* FD3D11DynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRH
 {
 	DYNAMIC_CAST_D3D11RESOURCE(IndexBuffer,IndexBuffer);
 	
+	// If this resource is bound to the device, unbind it
+	ConditionalClearShaderResource(IndexBuffer);
+
 	// Determine whether the index buffer is dynamic or not.
 	D3D11_BUFFER_DESC Desc;
 	IndexBuffer->Resource->GetDesc(&Desc);

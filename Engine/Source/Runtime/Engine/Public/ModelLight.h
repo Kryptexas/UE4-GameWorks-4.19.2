@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "StaticLighting.h"
+#include "Model.h"
+
 /** Represents a BSP surface to the static lighting system. */
 class FBSPSurfaceStaticLighting : public FStaticLightingTextureMapping, public FStaticLightingMesh
 {
@@ -38,7 +41,7 @@ public:
 	virtual FLightRayIntersection IntersectLightRay(const FVector& Start,const FVector& End,bool bFindNearestIntersection) const;
 	//FStaticLightingTextureMapping interface.
 
-	virtual bool IsValidMapping() const OVERRIDE
+	virtual bool IsValidMapping() const override
 	{
 		return Model.IsValid() && !Model->bInvalidForStaticLighting;
 	}

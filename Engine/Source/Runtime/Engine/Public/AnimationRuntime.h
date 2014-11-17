@@ -6,6 +6,12 @@
 =============================================================================*/ 
 
 #pragma once
+#include "Animation/AnimInstance.h"
+
+struct FInputBlendPose;
+struct FA2Pose;
+struct FAnimTrack;
+class UBlendSpaceBase;
 
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
@@ -14,6 +20,8 @@ class ENGINE_API FAnimationRuntime
 {
 public:
 	static void NormalizeRotations(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
+	static void NormalizeRotations(FTransformArrayA2 & Atoms);
+
 	static void InitializeTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
 #if DO_GUARD_SLOW
 	static bool ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices, FA2Pose & Pose);

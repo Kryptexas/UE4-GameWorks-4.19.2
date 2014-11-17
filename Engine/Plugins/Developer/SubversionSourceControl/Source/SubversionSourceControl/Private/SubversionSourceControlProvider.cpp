@@ -80,11 +80,7 @@ ECommandResult::Type FSubversionSourceControlProvider::GetState( const TArray<FS
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	if(InStateCacheUsage == EStateCacheUsage::ForceUpdate)
 	{
@@ -133,11 +129,7 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	// Query to see if the we allow this operation
 	TSharedPtr<ISubversionSourceControlWorker, ESPMode::ThreadSafe> Worker = CreateWorker(InOperation->GetName());
@@ -157,7 +149,6 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		FSubversionSourceControlCommand* Command = new FSubversionSourceControlCommand(InOperation, Worker.ToSharedRef());
 		Command->bAutoDelete = false;
 		Command->Files = AbsoluteFiles;
-		SubversionSourceControlUtils::QuoteFilenames(Command->Files);
 		Command->OperationCompleteDelegate = InOperationCompleteDelegate;
 		return ExecuteSynchronousCommand(*Command, InOperation->GetInProgressString(), true);
 	}
@@ -166,7 +157,6 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		FSubversionSourceControlCommand* Command = new FSubversionSourceControlCommand(InOperation, Worker.ToSharedRef());
 		Command->bAutoDelete = true;
 		Command->Files = AbsoluteFiles;
-		SubversionSourceControlUtils::QuoteFilenames(Command->Files);
 		Command->OperationCompleteDelegate = InOperationCompleteDelegate;
 		return IssueCommand(*Command, false);
 	}
@@ -259,6 +249,16 @@ void FSubversionSourceControlProvider::SetWorkingCopyRoot(const FString& InWorki
 	WorkingCopyRoot = InWorkingCopyRoot;
 }
 
+const FString& FSubversionSourceControlProvider::GetRepositoryRoot() const
+{
+	return RepositoryRoot;
+}
+
+void FSubversionSourceControlProvider::SetRepositoryRoot(const FString& InRepositoryRoot)
+{
+	RepositoryRoot = InRepositoryRoot;
+}
+
 bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryName, const FString& UserName, const FString& Password)
 {
 	FMessageLog SourceControlLog("SourceControl");
@@ -273,7 +273,7 @@ bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryN
 	bool bResult = SubversionSourceControlUtils::RunCommand(TEXT("info"), Files, TArray<FString>(), ResultsXml, Errors, UserName, Password);
 	if(bResult)
 	{
-		SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot);
+		SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot, RepositoryRoot);
 	}
 
 	// output any errors/results
@@ -457,10 +457,12 @@ TArray< TSharedRef<ISourceControlLabel> > FSubversionSourceControlProvider::GetL
 	return Labels;
 }
 
+#if SOURCE_CONTROL_WITH_SLATE
 TSharedRef<class SWidget> FSubversionSourceControlProvider::MakeSettingsWidget() const
 {
 	return SNew(SSubversionSourceControlSettings);
 }
+#endif
 
 ECommandResult::Type FSubversionSourceControlProvider::ExecuteSynchronousCommand(FSubversionSourceControlCommand& InCommand, const FText& Task, bool bSuppressResponseMsg)
 {

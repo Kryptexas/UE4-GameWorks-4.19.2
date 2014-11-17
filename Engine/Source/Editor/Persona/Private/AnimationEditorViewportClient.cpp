@@ -67,7 +67,7 @@ IMPLEMENT_HIT_PROXY( HPersonaBoneProxy, HHitProxy );
 // FAnimationViewportClient
 
 FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr )
-	: FEditorViewportClient(&InPreviewScene)
+	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 	, PersonaPtr( InPersonaPtr )
 	, bManipulating(false)
 	, bInTransaction(false)
@@ -184,6 +184,24 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	if(World)
 	{
 		World->bAllowAudioPlayback = !ConfigOption->bMuteAudio;
+	}
+}
+
+FAnimationViewportClient::~FAnimationViewportClient()
+{
+	if (PersonaPtr.IsValid())
+	{
+		if (EditorFloorComp)
+		{
+			PreviewScene->RemoveComponent(EditorFloorComp);
+			EditorFloorComp = NULL;
+		}
+
+		if (EditorSkyComp)
+		{
+			PreviewScene->RemoveComponent(EditorSkyComp);
+			EditorSkyComp = NULL;
+		}
 	}
 }
 
@@ -356,6 +374,8 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 void FAnimationViewportClient::SetPreviewMeshComponent(UDebugSkelMeshComponent* InPreviewSkelMeshComp)
 {
 	PreviewSkelMeshComp = InPreviewSkelMeshComp;
+
+	PreviewSkelMeshComp->BonesOfInterest.Empty();
 
 	UpdateCameraSetup();
 }
@@ -1218,12 +1238,12 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 
 ECoordSystem FAnimationViewportClient::GetWidgetCoordSystemSpace() const
 { 
-	return GEditorModeTools().GetCoordSystem();
+	return GLevelEditorModeTools().GetCoordSystem();
 }
 
 void FAnimationViewportClient::SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem)
 {
-	GEditorModeTools().SetCoordSystem(NewCoordSystem);
+	GLevelEditorModeTools().SetCoordSystem(NewCoordSystem);
 	Invalidate();
 }
 

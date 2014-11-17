@@ -8,6 +8,9 @@
 
 class UDestructibleComponent;
 
+/** Delegate for notification when fracture occurs */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorFractureSignature, const FVector &, HitPoint, const FVector &, HitDirection);
+
 UCLASS(MinimalAPI, hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ADestructibleActor : public AActor
 {
@@ -22,10 +25,13 @@ class ADestructibleActor : public AActor
 	UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category=Navigation)
 	uint32 bAffectNavigation : 1;
 
+	UPROPERTY(BlueprintAssignable, Category = "Components|Destructible")
+	FActorFractureSignature OnActorFracture;
+
 	// Begin AActor interface.
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(!!bAffectNavigation); return !!bAffectNavigation; }
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(!!bAffectNavigation); return !!bAffectNavigation; }
 #if WITH_EDITOR
-	ENGINE_API virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const OVERRIDE;
+	ENGINE_API virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif // WITH_EDITOR
 	// End AActor interface.
 

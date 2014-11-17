@@ -269,7 +269,6 @@ typedef uint64 EClassCastFlags;
 #define CASTCLASS_UInt16Property				DECLARE_UINT64(0x0000000080000000)
 #define CASTCLASS_UDoubleProperty				DECLARE_UINT64(0x0000000100000000)
 #define CASTCLASS_UAssetClassProperty			DECLARE_UINT64(0x0000000200000000)
-#define CASTCLASS_UAttributeProperty			DECLARE_UINT64(0x0000000400000000)
 
 #define CASTCLASS_AllFlags						DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 
@@ -601,6 +600,12 @@ namespace UC
 
 		/// A root convert limits a sub-class to only be able to convert to child classes of the first root class going up the hierarchy.
 		ConversionRoot,
+
+		/// Marks this class as 'experimental' (a totally unsupported and undocumented prototype)
+		Experimental,
+
+		// Marks this class as an 'early access' preview (while not considered production-ready, it's a step beyond 'experimental' and is being provided as a preview of things to come)
+		EarlyAccessPreview,
 	};
 }
 
@@ -642,7 +647,7 @@ namespace UF
 		BlueprintNativeEvent,
 
 		/// This function is sealed and cannot be overridden in subclasses.
-		/// It is only a valid keyword for events; declare other methods as static or FINAL to indicate that they are sealed.
+		/// It is only a valid keyword for events; declare other methods as static or final to indicate that they are sealed.
 		SealedEvent,
 
 		/// This function is executable from the command line.

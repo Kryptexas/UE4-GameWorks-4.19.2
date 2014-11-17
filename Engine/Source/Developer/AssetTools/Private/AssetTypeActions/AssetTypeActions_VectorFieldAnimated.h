@@ -6,7 +6,7 @@ class FAssetTypeActions_VectorFieldAnimated : public FAssetTypeActions_VectorFie
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldAnimated", "Animated Vector Field"); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UVectorFieldAnimated::StaticClass(); }
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldAnimated", "Animated Vector Field"); }
+	virtual UClass* GetSupportedClass() const override { return UVectorFieldAnimated::StaticClass(); }
+	virtual bool CanFilter() override { return true; }
 };

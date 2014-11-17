@@ -20,7 +20,7 @@ public:
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
@@ -38,7 +38,7 @@ public:
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 	// 1:low, 2:medium, 3:high, 4: very high
@@ -54,7 +54,7 @@ class FRCPassPostProcessMotionBlurRecombine : public TRenderingCompositePassBase
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
@@ -68,6 +68,6 @@ class FRCPassPostProcessVisualizeMotionBlur : public TRenderingCompositePassBase
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };

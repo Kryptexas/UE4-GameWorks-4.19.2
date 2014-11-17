@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDepthFade.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)
@@ -30,7 +31,7 @@ class UMaterialExpressionDepthFade : public UMaterialExpression
 
 
 	// Begin UMaterialExpression Interface
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE
+	virtual FString GetInputName(int32 InputIndex) const override
 	{
 		if (InputIndex == 0)
 		{
@@ -41,8 +42,8 @@ class UMaterialExpressionDepthFade : public UMaterialExpression
 			return Super::GetInputName(InputIndex);
 		}
 	}
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override
 	{
 		OutCaptions.Add(TEXT("Depth Fade"));
 	}

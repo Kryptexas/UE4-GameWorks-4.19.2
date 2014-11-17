@@ -40,6 +40,7 @@ public:
 private:
 
 	bool bRadioAvailable;
+	CFBundleRef RadioBundle;
 
 	/** Console variables to tweak the radio effect output */
 	static TConsoleVariableData<float>*	Radio_ChebyshevPowerMultiplier;

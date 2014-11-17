@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
+#include "Engine/WorldComposition.h"
+
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 
-#include "SWorldDetailsView.h"
+#include "SWorldDetails.h"
 #include "SPropertyEditorLevelPackage.h"
 #include "WorldTileDetails.h"
 #include "WorldTileCollectionModel.h"
@@ -102,10 +104,6 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ZOrder))
 			.IsEnabled(IsPropertyEnabled);
 		
-		// Streaming levels
-		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels))
-			.IsEnabled(IsPropertyEnabled);
-
 		// bTileEditable (invisible property to control other properties editable state)
 		TileEditableHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bTileEditable));
 		TileCategory.AddProperty(TileEditableHandle)
@@ -169,16 +167,16 @@ bool FWorldTileDetailsCustomization::OnShouldFilterParentPackage(const FString& 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // FStreamingLevelDetailsCustomization
-TSharedRef<IStructCustomization> FStreamingLevelDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
+TSharedRef<IPropertyTypeCustomization> FStreamingLevelDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
 {
 	TSharedRef<FStreamingLevelDetailsCustomization> Instance = MakeShareable(new FStreamingLevelDetailsCustomization());
 	Instance->WorldModel = InWorldData;
 	return Instance;
 }
 
-void FStreamingLevelDetailsCustomization::CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
+void FStreamingLevelDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
-																IStructCustomizationUtils& StructCustomizationUtils )
+																IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow
 		.NameContent()
@@ -187,9 +185,9 @@ void FStreamingLevelDetailsCustomization::CustomizeStructHeader(TSharedRef<class
 		];
 }
 
-void FStreamingLevelDetailsCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
+void FStreamingLevelDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
-																	IStructCustomizationUtils& StructCustomizationUtils )
+																	IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> StreamingModeProperty = StructPropertyHandle->GetChildHandle(TEXT("StreamingMode"));
 	TSharedPtr<IPropertyHandle> PackageNameProperty = StructPropertyHandle->GetChildHandle(TEXT("PackageName"));
@@ -227,16 +225,16 @@ bool FStreamingLevelDetailsCustomization::OnShouldFilterStreamingPackage(const F
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // FTileLODEntryDetailsCustomization
-TSharedRef<IStructCustomization> FTileLODEntryDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
+TSharedRef<IPropertyTypeCustomization> FTileLODEntryDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
 {
 	TSharedRef<FTileLODEntryDetailsCustomization> Instance = MakeShareable(new FTileLODEntryDetailsCustomization());
 	Instance->WorldModel = InWorldData;
 	return Instance;
 }
 
-void FTileLODEntryDetailsCustomization::CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
+void FTileLODEntryDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
-																IStructCustomizationUtils& StructCustomizationUtils )
+																IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow
 		.NameContent()
@@ -256,9 +254,9 @@ void FTileLODEntryDetailsCustomization::CustomizeStructHeader(TSharedRef<class I
 		];
 }
 
-void FTileLODEntryDetailsCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
+void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
-																	IStructCustomizationUtils& StructCustomizationUtils )
+																	IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	LODIndexHandle = StructPropertyHandle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, LODIndex)
@@ -279,7 +277,8 @@ void FTileLODEntryDetailsCustomization::CustomizeStructChildren(TSharedRef<IProp
 	ChildBuilder.AddChildProperty(LODIndexHandle.ToSharedRef())
 		.Visibility(EVisibility::Hidden);
 
-	ChildBuilder.AddChildProperty(DistanceProperty.ToSharedRef());
+	ChildBuilder.AddChildProperty(DistanceProperty.ToSharedRef())
+		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsLODDistanceEnabled)));
 	// Reduction settings available if editor supports LOD levels generation
 	ChildBuilder.AddChildProperty(DetailsPercentage.ToSharedRef())
 		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsGenerateTileEnabled)));
@@ -297,10 +296,7 @@ FReply FTileLODEntryDetailsCustomization::OnGenerateTile()
 		if (PinnedWorldModel.IsValid())
 		{
 			FLevelModelList LevelsList = PinnedWorldModel->GetSelectedLevels();
-			for (auto Level : LevelsList)
-			{
-				PinnedWorldModel->GenerateLODLevel(Level, LODIndex);
-			}
+			PinnedWorldModel->GenerateLODLevels(LevelsList, LODIndex);
 		}
 	}
 	
@@ -312,7 +308,18 @@ bool FTileLODEntryDetailsCustomization::IsGenerateTileEnabled() const
 	TSharedPtr<FWorldTileCollectionModel> PinnedWorldModel = WorldModel.Pin();
 	if (PinnedWorldModel.IsValid())
 	{
-		return PinnedWorldModel->HasGenerateLODLevelSupport();
+		return PinnedWorldModel->HasGenerateLODLevelSupport() && PinnedWorldModel->AreAnySelectedLevelsLoaded();
+	}
+	
+	return false;
+}
+
+bool FTileLODEntryDetailsCustomization::IsLODDistanceEnabled() const
+{
+	TSharedPtr<FWorldTileCollectionModel> PinnedWorldModel = WorldModel.Pin();
+	if (PinnedWorldModel.IsValid())
+	{
+		return PinnedWorldModel->AreAnySelectedLevelsEditable();
 	}
 	
 	return false;

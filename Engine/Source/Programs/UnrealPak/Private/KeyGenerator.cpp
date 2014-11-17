@@ -43,7 +43,7 @@ public:
 	{
 		// Must be odd number
 		check(!(Candidate & One).IsZero());
-		Thread = FRunnableThread::Create(this, TEXT("FPrimeCheckRunnable"), false, false, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FPrimeCheckRunnable"));
 	}
 
 	virtual ~FPrimeCheckRunnable()
@@ -58,8 +58,8 @@ public:
 	}
 
 	// Start FRunnable interface
-	virtual bool Init() OVERRIDE { return true; }
-	virtual uint32 Run() OVERRIDE
+	virtual bool Init() override { return true; }
+	virtual uint32 Run() override
 	{
 		int256 Remainder;
 		int32 FactorCheckTimer = 0;
@@ -300,7 +300,7 @@ public:
 	{
 		// Must be an odd number
 		check(!(MinValue & One).IsZero());
-		Thread = FRunnableThread::Create(this, TEXT("FPrimeFinderRunnable"), false, false, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FPrimeFinderRunnable"));
 	}
 
 	virtual ~FPrimeFinderRunnable()
@@ -320,8 +320,8 @@ public:
 	}
 
 	// Start FRunnable interface
-	virtual bool Init() OVERRIDE { return true; }
-	virtual uint32 Run() OVERRIDE
+	virtual bool Init() override { return true; }
+	virtual uint32 Run() override
 	{
 		int256 Remainder;
 		int32 FactorCheckTimer = 0;

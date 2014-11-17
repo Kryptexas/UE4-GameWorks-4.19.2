@@ -23,7 +23,7 @@ public:
 	{
 	}
 
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND( RefreshTests, "Refresh Tests", "Refresh Tests", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( FindWorkers, "Find Workers", "Find Workers", EUserInterfaceActionType::Button, FInputGesture() );
@@ -82,6 +82,8 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	TestPresetManager->LoadPresets();
 	bAddingTestPreset = false;
 
+	bHasChildTestSelected = false;
+
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
 
@@ -102,10 +104,14 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 
 	bIsRequestingTests = false;
 
+	// Test history tracking
+	bIsTrackingHistory = AutomationController->IsTrackingHistory();
+	NumHistoryElementsToTrack = AutomationController->GetNumberHistoryItemsTracking();
+	
 	//make the widget for platforms
 	PlatformsHBox = SNew (SHorizontalBox);
 
-	TestTable = SNew(STreeView< TSharedPtr< IAutomationReport > >)
+	TestTable = SNew(SAutomationTestTreeView< TSharedPtr< IAutomationReport > >)
 		.SelectionMode(ESelectionMode::Multi)
 		.TreeItemsSource( &TestReports )
 		// Generates the actual widget for a tree item
@@ -122,7 +128,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 #endif
 		.HeaderRow
 		(
-		SNew(SHeaderRow)
+		SAssignNew(TestTableHeaderRow,SHeaderRow)
 		+ SHeaderRow::Column( AutomationTestWindowConstants::Title )
 		.FillWidth(300.0f)
 		[
@@ -180,6 +186,19 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 
 		);
 
+	if(bIsTrackingHistory)
+	{
+		TestTableHeaderRow->AddColumn(
+			SHeaderRow::Column(AutomationTestWindowConstants::History)
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.HAlignCell(HAlign_Center)
+			.VAlignCell(VAlign_Center)
+			.FixedWidth(100.0f)
+			.DefaultLabel(LOCTEXT("TestHistory", "Test History"))
+		);
+	}
+
 	TSharedRef<SNotificationList> NotificationList = SNew(SNotificationList) .Visibility( EVisibility::HitTestInvisible );
 
 	//build the actual guts of the window
@@ -235,41 +254,121 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 			+SSplitter::Slot()
 			.Value(0.33f)
 			[
-				//results panel
-				SNew( SVerticalBox )
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SOverlay)
+				+SOverlay::Slot()
 				[
-					SNew( STextBlock )
-						.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
-				]
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-				[
-					//list of results for the selected test
-					SNew(SBorder)
+					SNew(SBox)
+					.Visibility(this, &SAutomationWindow::GetTestGraphVisibility)
 					[
-						SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
-						.ItemHeight(18)
-						.ListItemsSource(&LogMessages)
-						.SelectionMode(ESelectionMode::Multi)
-						.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
-						.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+						//Graphical Results Panel
+						SNew( SVerticalBox )
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							[
+								SNew(STextBlock)
+								.Text( LOCTEXT("AutomationTest_GraphicalResults", "Automation Test Graphical Results:"))
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Text( LOCTEXT("AutomationTest_GraphicalResults", "Display:"))
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(SCheckBox)
+								.Style(FCoreStyle::Get(), "RadioButton")
+								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayName)
+								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayName)
+								[
+									SNew(STextBlock)
+									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayName", "Name"))
+								]
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(SCheckBox)
+								.Style(FCoreStyle::Get(), "RadioButton")
+								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayTime)
+								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayTime)
+								[
+									SNew(STextBlock)
+									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayTime", "Time"))
+								]
+							]
+						]
+
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						[
+							SNew(SBorder)
+							[
+								SNew(SScrollBox)
+								+ SScrollBox::Slot()
+								[
+									SAssignNew(GraphicalResultBox, SAutomationGraphicalResultBox, InAutomationController)
+								]
+							]
+						]
 					]
 				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+
+				+SOverlay::Slot()
 				[
-					SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						.Padding(FMargin(8.0f, 6.0f))
+					SNew(SBox)
+					.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
+					[
+						//results panel
+						SNew( SVerticalBox )
+						+SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							// Add the command bar
-							SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
-							.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+							SNew( STextBlock )
+							.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
 						]
+
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							//list of results for the selected test
+							SNew(SBorder)
+							[
+								SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
+								.ItemHeight(18)
+								.ListItemsSource(&LogMessages)
+								.SelectionMode(ESelectionMode::Multi)
+								.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
+								.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+							]
+						]
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							.Padding(FMargin(8.0f, 6.0f))
+							[
+								// Add the command bar
+								SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
+								.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+							]
+						]
+					]
 				]
 			]
 		]
@@ -304,6 +403,22 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+
+void SAutomationWindow::HandleResultDisplayTypeStateChanged( ESlateCheckBoxState::Type NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType)
+{
+	if (NewRadioState == ESlateCheckBoxState::Checked)
+	{
+		GraphicalResultBox->SetDisplayType(NewDisplayType);
+	}
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const
+{
+	return (GraphicalResultBox->GetDisplayType() == InDisplayType)
+		? ESlateCheckBoxState::Checked
+		: ESlateCheckBoxState::Unchecked;
+}
+
 const FSlateBrush* SAutomationWindow::GetTestBackgroundBorderImage() const
 {
 	switch(TestBackgroundType)
@@ -330,41 +445,41 @@ void SAutomationWindow::CreateCommands()
 
 	ActionList.MapAction( Commands.RefreshTests,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::ListTests ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests )
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle )
 		);
 
 	ActionList.MapAction( Commands.FindWorkers,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::FindWorkers ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests )
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle )
 		);
 
 	ActionList.MapAction( Commands.ErrorFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleErrorFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsErrorFilterOn )
 		);
 
 	ActionList.MapAction( Commands.WarningFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleWarningFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsWarningFilterOn )
 		);
 
 	ActionList.MapAction( Commands.SmokeTestFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleSmokeTestFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsSmokeTestFilterOn )
 		);
 
 	ActionList.MapAction( Commands.DeveloperDirectoryContent,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleDeveloperDirectoryIncluded ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsDeveloperDirectoryIncluded )
 		);
 
 	ActionList.MapAction( Commands.VisualCommandlet,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleVisualCommandletFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsVisualCommandletFilterOn )
 		);
 }
@@ -379,7 +494,7 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TWeakPtr<class SAutomationWindow> InAutomationWindow )
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
 		{
 			ToolbarBuilder.BeginSection("Automation");
 			{
@@ -405,6 +520,16 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().VisualCommandlet );
 			}
 			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("GroupFlags");
+			{
+				ToolbarBuilder.AddComboButton(
+					FUIAction(),
+					FOnGetContent::CreateStatic( &SAutomationWindow::GenerateGroupOptionsMenuContent, InAutomationWindow ),
+					LOCTEXT( "GroupOptions_Label", "Device Groups" ),
+					LOCTEXT( "GroupOptionsToolTip", "Device Group Options" ),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.GroupSettings"));
+			}
+			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("Search");
 			{
 				ToolbarBuilder.AddWidget( Searchbox );
@@ -413,6 +538,20 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			ToolbarBuilder.BeginSection("Presets");
 			{
 				ToolbarBuilder.AddWidget( PresetBox );
+			}
+			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("History");
+			{
+				ToolbarBuilder.AddWidget(HistoryBox);
+
+				FUIAction DefaultAction;
+				ToolbarBuilder.AddComboButton(
+					DefaultAction,
+					FOnGetContent::CreateStatic(&SAutomationWindow::GenerateTestHistoryMenuContent, InAutomationWindow),
+					LOCTEXT("TestOptions_Label", "Test History Options"),
+					LOCTEXT("TestOptionsToolTip", "Test History Options"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.TestHistoryOptions"),
+					true);
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -478,112 +617,161 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			SAssignNew( AutomationSearchBox, SSearchBox )
 			.ToolTipText( LOCTEXT( "Search Tests", "Search Tests" ) )
 			.OnTextChanged( this, &SAutomationWindow::OnFilterTextChanged )
-			.IsEnabled( this, &SAutomationWindow::IsNotRunningTests )
+			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
 			.MinDesiredWidth(SearchWidth)
 		];
 
-	TSharedRef<SWidget> TestPresets = 
-		SNew( SHorizontalBox )
-		+SHorizontalBox::Slot()
+	const float HistoryWidth = 200.0f;
+	TSharedRef<SWidget> History =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(HistoryWidth)
 		.AutoWidth()
-		.Padding(2.0f)
 		.VAlign(VAlign_Bottom)
 		[
-			SNew( STextBlock )
-			.Text( LOCTEXT("AutomationPresetLabel", "Preset:") )
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			//Preset Combo / Text
-			SNew(SOverlay)
-			+SOverlay::Slot()
+			SNew(SCheckBox)
+			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+			.Type(ESlateCheckBoxType::ToggleButton)
+			.IsChecked(this, &SAutomationWindow::IsTrackingHistory)
+			.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+			.OnCheckStateChanged(this, &SAutomationWindow::OnToggleTrackHistory)
 			[
-				SNew(SHorizontalBox)
-				.Visibility(this,&SAutomationWindow::HandlePresetComboVisibility)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.FillHeight(1.f)
+				.Padding(2.0f)
 				[
-					SAssignNew( PresetComboBox, SComboBox< TSharedPtr<FAutomationTestPreset> > )
-					.OptionsSource( &TestPresetManager->GetAllPresets() )
-					.OnGenerateWidget( this, &SAutomationWindow::GeneratePresetComboItem )
-					.OnSelectionChanged( this, &SAutomationWindow::HandlePresetChanged )
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("AutomationWindow.TrackHistory"))
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2.0f)
+				.VAlign(VAlign_Bottom)
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.ShadowOffset(FVector2D::UnitVector)
+					.Text(LOCTEXT("AutomationHistoryLabel", "Track History"))
+					.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+				]
+			]
+		];
+
+	TSharedRef<SWidget> TestPresets = 
+		SNew( SVerticalBox )
+		+SVerticalBox::Slot()
+		.FillHeight(0.75f)
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Left)
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT("AutomationPresetLabel", "Preset:") )
+				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.VAlign(VAlign_Bottom)
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				//Preset Combo / Text
+				SNew(SOverlay)
+				+SOverlay::Slot()
+				[
+					SNew(SHorizontalBox)
+					.Visibility(this,&SAutomationWindow::HandlePresetComboVisibility)
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0)
 					[
-						SNew( STextBlock )
-						.Text( this, &SAutomationWindow::GetPresetComboText )
+						SAssignNew( PresetComboBox, SComboBox< TSharedPtr<FAutomationTestPreset> > )
+						.OptionsSource( &TestPresetManager->GetAllPresets() )
+						.OnGenerateWidget( this, &SAutomationWindow::GeneratePresetComboItem )
+						.OnSelectionChanged( this, &SAutomationWindow::HandlePresetChanged )
+						.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+						[
+							SNew( STextBlock )
+							.Text( this, &SAutomationWindow::GetPresetComboText )
+						]
+					]
+				]
+				+SOverlay::Slot()
+				[
+					SNew(SHorizontalBox)
+					.Visibility(this,&SAutomationWindow::HandlePresetTextVisibility)
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0)
+					[
+						SAssignNew(PresetTextBox, SEditableTextBox)
+						.OnTextCommitted(this, &SAutomationWindow::HandlePresetTextCommited)
+						.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
 					]
 				]
 			]
-			+SOverlay::Slot()
+
+			//New button
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SHorizontalBox)
-				.Visibility(this,&SAutomationWindow::HandlePresetTextVisibility)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0)
+				SNew( SButton )
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleNewPresetClicked )
+				.ToolTipText( LOCTEXT("AutomationPresetNewButtonTooltip", "Create a new preset") )
+				.IsEnabled(this, &SAutomationWindow::IsAddButtonEnabled)
+				.Content()
 				[
-					SAssignNew(PresetTextBox, SEditableTextBox)
-					.OnTextCommitted(this, &SAutomationWindow::HandlePresetTextCommited)
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetNew"))
 				]
 			]
-		]
 
-		//New button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			SNew( SButton )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleNewPresetClicked )
-			.ToolTipText( LOCTEXT("AutomationPresetNewButtonTooltip", "Create a new preset") )
-			.IsEnabled(this, &SAutomationWindow::IsAddButtonIsEnabled)
-			.Content()
+			//Save button
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetNew"))
+				SNew( SButton )
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleSavePresetClicked )
+				.ToolTipText( LOCTEXT("AutomationPresetSaveButtonTooltip", "Save the current test list") )
+				.IsEnabled(this, &SAutomationWindow::IsSaveButtonEnabled)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetSave"))
+				]
 			]
-		]
 
-		//Save button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			SNew( SButton )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleSavePresetClicked )
-			.ToolTipText( LOCTEXT("AutomationPresetSaveButtonTooltip", "Save the current test list") )
-			.IsEnabled(this, &SAutomationWindow::IsSaveButtonIsEnabled)
-			.Content()
+			//Remove button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetSave"))
-			]
-		]
-
-		//Remove button
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			// remove button
-			SNew(SButton)
-			.ContentPadding(2)
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleRemovePresetClicked )
-			.ToolTipText(LOCTEXT("AutomationPresetRemoveButtonTooltip", "Remove the selected preset"))
-			.IsEnabled(this, &SAutomationWindow::IsRemoveButtonIsEnabled)
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetRemove"))
+				// remove button
+				SNew(SButton)
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleRemovePresetClicked )
+				.ToolTipText(LOCTEXT("AutomationPresetRemoveButtonTooltip", "Remove the selected preset"))
+				.IsEnabled(this, &SAutomationWindow::IsRemoveButtonEnabled)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetRemove"))
+				]
 			]
 		];
 
 	FToolBarBuilder ToolbarBuilder( InCommandList, FMultiBoxCustomization::None );
 	TWeakPtr<SAutomationWindow> AutomationWindow = SharedThis(this);
-	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, AutomationWindow );
+	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, History, AutomationWindow );
 
 	// Create the tool bar!
 	return
@@ -612,19 +800,19 @@ EVisibility SAutomationWindow::HandlePresetTextVisibility( ) const
 	return bAddingTestPreset ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-bool SAutomationWindow::IsAddButtonIsEnabled() const
+bool SAutomationWindow::IsAddButtonEnabled() const
 {
-	return !bAddingTestPreset;
+	return !bAddingTestPreset && IsAutomationControllerIdle();
 }
 
-bool SAutomationWindow::IsSaveButtonIsEnabled() const
+bool SAutomationWindow::IsSaveButtonEnabled() const
 {
-	return (!bAddingTestPreset && SelectedPreset.IsValid());
+	return (!bAddingTestPreset && SelectedPreset.IsValid() && IsAutomationControllerIdle());
 }
 
-bool SAutomationWindow::IsRemoveButtonIsEnabled() const
+bool SAutomationWindow::IsRemoveButtonEnabled() const
 {
-	return (!bAddingTestPreset && SelectedPreset.IsValid());
+	return (!bAddingTestPreset && SelectedPreset.IsValid() && IsAutomationControllerIdle());
 }
 
 void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ETextCommit::Type CommitType )
@@ -664,6 +852,28 @@ void SAutomationWindow::HandlePresetChanged( TSharedPtr<FAutomationTestPreset> I
 		SelectedPreset = Item;
 		AutomationController->SetEnabledTests(Item->GetEnabledTests());
 		TestTable->RequestTreeRefresh();
+		
+		//Expand selected items
+		TestTable->ClearExpandedItems();
+		TArray< TSharedPtr< IAutomationReport > >& TestReports = AutomationController->GetReports();
+		for( int32 Index = 0; Index < TestReports.Num(); Index++ )
+		{
+			ExpandEnabledTests(TestReports[Index]);
+		}
+	}
+}
+
+void SAutomationWindow::ExpandEnabledTests( TSharedPtr< IAutomationReport > InReport )
+{
+	// Expand node if the report is enabled or contains an enabled test
+	TestTable->SetItemExpansion( InReport, InReport->IsEnabled() || InReport->GetEnabledTestsNum() > 0 );
+
+	// Iterate through the child nodes to see if they should be expanded
+	TArray<TSharedPtr< IAutomationReport > > Reports = InReport->GetFilteredChildren();
+
+	for ( int32 ChildItem = 0; ChildItem < Reports.Num(); ChildItem++ )
+	{
+		ExpandEnabledTests( Reports[ ChildItem ] );
 	}
 }
 
@@ -714,6 +924,73 @@ TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutom
 		.Text( InItem->GetPresetName() );
 }
 
+TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
+{
+	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
+	if( AutomationWindow.IsValid() )
+	{
+		return AutomationWindow->GenerateGroupOptionsMenuContent();
+	}
+
+	//Return empty menu
+	FMenuBuilder MenuBuilder( true, NULL );
+	MenuBuilder.BeginSection("AutomationWindowGroupOptions", LOCTEXT("GroupOptions", "Device Group Options"));
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( )
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, AutomationWindowActions );
+	const uint32 NumFlags = EAutomationDeviceGroupTypes::Max;
+	TSharedPtr<SWidget> FlagWidgets[NumFlags];
+	for( int32 i=0; i<NumFlags; i++ )
+	{
+		FlagWidgets[i] = 
+			SNew(SCheckBox)
+			.IsChecked(this, &SAutomationWindow::IsDeviceGroupCheckBoxIsChecked, i)
+			.OnCheckStateChanged(this, &SAutomationWindow::HandleDeviceGroupCheckStateChanged, i)
+			.Padding(FMargin(4.0f, 0.0f))
+			.ToolTipText(EAutomationDeviceGroupTypes::ToDescription((EAutomationDeviceGroupTypes::Type)i))
+			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(EAutomationDeviceGroupTypes::ToName((EAutomationDeviceGroupTypes::Type)i))
+			];
+	}
+
+	MenuBuilder.BeginSection("AutomationWindowGroupDevices", LOCTEXT("GroupOptions", "Group Types"));
+	{
+		for( int32 i=0; i<NumFlags;i++ )
+		{
+			MenuBuilder.AddWidget(FlagWidgets[i].ToSharedRef(),FText::GetEmpty());
+		}
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+/** Returns if full size screen shots are enabled */
+ESlateCheckBoxState::Type SAutomationWindow::IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const
+{
+	return AutomationController->IsDeviceGroupFlagSet((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+/** Toggles if we are collecting full size screenshots */
+void SAutomationWindow::HandleDeviceGroupCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState, const int32 DeviceGroupFlag)
+{
+	//Update the device groups
+	AutomationController->ToggleDeviceGroupFlag((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag);
+	AutomationController->UpdateDeviceGroups();
+	
+	//Update header
+	RebuildPlatformIcons();
+
+	//Need to force the tree to do a full refresh here because the reports have changed but the tree will keep using cached data.
+	TestTable->ReCreateTreeView();
+}
+
 TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
 {
 	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
@@ -733,25 +1010,157 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, AutomationWindowActions );
-	TSharedRef<SWidget> NumTests = SNew(SSpinBox<int32>)
-			.MinValue(1)
-			.MaxValue(10)
-			.MinSliderValue(1)
-			.MaxSliderValue(10)
-			.Value(this,&SAutomationWindow::GetRepeatCount)
-			.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount);
+	TSharedRef<SWidget> NumTests = 
+		SNew(SBox)
+		.WidthOverride( 200.0f )
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.Padding(0.0f,0.0f,4.0f, 0.0f)
+			.AutoWidth()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT("NumTestsToolTip", "Number of runs:") )
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			[
+				SNew(SSpinBox<int32>)
+				.MinValue(1)
+				.MaxValue(10)
+				.MinSliderValue(1)
+				.MaxSliderValue(10)
+				.Value(this,&SAutomationWindow::GetRepeatCount)
+				.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount)
+				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			]
+
+		];
+
+	TSharedRef<SWidget> EnableScreenshotsWidget =
+		SNew(SCheckBox)
+		.IsChecked(this, &SAutomationWindow::IsEnableScreenshotsCheckBoxChecked)
+		.OnCheckStateChanged(this, &SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged)
+		.Padding(FMargin(4.0f, 0.0f))
+		.ToolTipText(LOCTEXT("AutomationFullSizeScreenshotTip", "If checked, tests that support it will save screenshots"))
+		.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AutomationNoScreenshotText", "Enable screenshots"))
+		];
+
+	TSharedRef<SWidget> FullSizeScreenshotsWidget =
+		SNew(SCheckBox)
+		.IsChecked(this, &SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked)
+		.OnCheckStateChanged(this, &SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged)
+		.Padding(FMargin(4.0f, 0.0f))
+		.ToolTipText(LOCTEXT("AutomationFullSizeScreenshotTip", "If checked, test that take screenshots will send back full size images instead of thumbnails."))
+		.IsEnabled( this, &SAutomationWindow::IsFullSizeScreenshotsOptionEnabled )
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AutomationFullSizeScreenshotText", "Full size screenshots"))
+		];
+
+
 
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	{
-		MenuBuilder.AddWidget( 
-			SNew( STextBlock )
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.Text(LOCTEXT("NumTestsToolTip", "Number of runs:")),
-			FText::GetEmpty() );
 		MenuBuilder.AddWidget(NumTests, FText::GetEmpty());
 	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection("AutomationWindowScreenshots", LOCTEXT("ScreenshotOptions", "Screenshot Settings"));
+	{
+		MenuBuilder.AddWidget(EnableScreenshotsWidget, FText::GetEmpty());
+		MenuBuilder.AddWidget(FullSizeScreenshotsWidget, FText::GetEmpty());
+	}
+	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent(TWeakPtr<class SAutomationWindow> InAutomationWindow)
+{
+	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
+	if (AutomationWindow.IsValid())
+	{
+		return AutomationWindow->GenerateTestHistoryMenuContent();
+	}
+
+	//Return empty menu
+	FMenuBuilder MenuBuilder(true, NULL);
+	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, AutomationWindowActions);
+
+	TSharedRef<SWidget> HistoryCountWidget =
+	SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Bottom)
+	.Padding(FMargin( 0.f, 0.f, 4.f, 0.f ))
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("NumberItemsToTrack", "Number Items To Track:"))
+	]
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Bottom)
+	[
+		SNew(SBox)
+		.WidthOverride(50.0f)
+		[
+			SNew(SSpinBox<int32>)
+			.MinValue(1)
+			.MaxValue(AutomationReportConstants::MaximumLogsToKeep)
+			.MinSliderValue(1)
+			.MaxSliderValue(AutomationReportConstants::MaximumLogsToKeep)
+			.Value(this, &SAutomationWindow::GetTestHistoryCount)
+			.OnValueChanged(this, &SAutomationWindow::OnChangeTestHistoryCount)
+			.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+		]
+
+	];
+
+	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
+	{
+		MenuBuilder.AddWidget(HistoryCountWidget, FText::GetEmpty());
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked() const
+{
+	return AutomationController->IsUsingFullSizeScreenshots() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+{
+	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
+{
+	return AutomationController->IsScreenshotAllowed() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+{
+	AutomationController->SetScreenshotsEnabled(CheckBoxState == ESlateCheckBoxState::Checked);
+}
+
+bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
+{
+	return AutomationController->IsScreenshotAllowed() && IsAutomationControllerIdle();
 }
 
 // Only valid in the editor
@@ -795,8 +1204,14 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 	//empty the previous log
 	LogMessages.Empty();
 
+	bHasChildTestSelected = false;
+
 	if (Selection.IsValid())
 	{
+		if( Selection->GetTotalNumChildren() == 0 )
+		{
+			bHasChildTestSelected = true;
+		}
 		//accumulate results for each device cluster that supports the test
 		int32 NumClusters = AutomationController->GetNumDeviceClusters();
 		for (int32 ClusterIndex = 0; ClusterIndex < NumClusters; ++ClusterIndex)
@@ -804,7 +1219,7 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 			//no sense displaying device name if only one is available
 			if (NumClusters > 1)
 			{
-				FString DeviceTypeName = AutomationController->GetDeviceTypeName(ClusterIndex);
+				FString DeviceTypeName = AutomationController->GetClusterGroupName(ClusterIndex) + TEXT("  -  ") + Selection->GetGameInstanceName(ClusterIndex);
 				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(DeviceTypeName, TEXT("Automation.Header"))));
 			}
 
@@ -842,9 +1257,23 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TEXT(""), TEXT("Log.Normal"))));
 			}
 		}
-		//rebuild UI
-		LogListView->RequestListRefresh();
 	}
+
+	//rebuild UI
+	LogListView->RequestListRefresh();
+}
+
+
+EVisibility SAutomationWindow::GetTestLogVisibility( ) const
+{
+	return (GetTestGraphVisibility() == EVisibility::Visible) ? EVisibility::Hidden : EVisibility::Visible;
+}
+
+
+EVisibility SAutomationWindow::GetTestGraphVisibility( ) const
+{
+	//Show the graphical window if we don't have a child test selected and we have results to view
+	return (!bHasChildTestSelected && GraphicalResultBox->HasResults()) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 
@@ -906,12 +1335,20 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 FText SAutomationWindow::CreateDeviceTooltip(int32 ClusterIndex)
 {
 	FTextBuilder ReportBuilder;
+
+	const int32 NumClusters = AutomationController->GetNumDeviceClusters();
+	if( NumClusters > 1 )
+	{
+		ReportBuilder.AppendLine(LOCTEXT("ToolTipClusterName", "Cluster Name:"));
+		ReportBuilder.AppendLine(AutomationController->GetClusterGroupName(ClusterIndex));
+	}
+
 	ReportBuilder.AppendLine(LOCTEXT("ToolTipGameInstances", "Game Instances:"));
 
 	int32 NumDevices = AutomationController->GetNumDevicesInCluster( ClusterIndex );
 	for ( int32 DeviceIndex = 0; DeviceIndex < NumDevices; ++DeviceIndex )
 	{
-		ReportBuilder.AppendLine(AutomationController->GetGameInstanceName(ClusterIndex, DeviceIndex));
+		ReportBuilder.AppendLine(AutomationController->GetGameInstanceName(ClusterIndex, DeviceIndex).LeftPad(2));
 	}
 
 	return ReportBuilder.ToText();
@@ -1113,6 +1550,9 @@ FReply SAutomationWindow::RunTests()
 	LogMessages.Empty();
 	LogListView->RequestListRefresh();
 
+	//Clear old results
+	GraphicalResultBox->ClearResults();
+
 	return FReply::Handled();
 }
 
@@ -1194,6 +1634,51 @@ void SAutomationWindow::OnToggleErrorFilter()
 	AutomationGeneralFilter->SetShowErrors( !IsErrorFilterOn() );
 	OnRefreshTestCallback();
 }
+
+
+ESlateCheckBoxState::Type SAutomationWindow::IsTrackingHistory() const
+{
+	return bIsTrackingHistory ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::OnToggleTrackHistory(ESlateCheckBoxState::Type InState)
+{
+	bIsTrackingHistory = InState == ESlateCheckBoxState::Checked;
+
+	AutomationController->TrackReportHistory(bIsTrackingHistory, NumHistoryElementsToTrack);
+
+	if (bIsTrackingHistory)
+	{
+		TestTableHeaderRow->AddColumn(
+			SHeaderRow::Column(AutomationTestWindowConstants::History)
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.HAlignCell(HAlign_Center)
+			.VAlignCell(VAlign_Center)
+			.FixedWidth(100.0f)
+			.DefaultLabel(LOCTEXT("TestHistory", "Test History"))
+		);
+	}
+	else
+	{
+		TestTableHeaderRow->RemoveColumn(AutomationTestWindowConstants::History);
+	}
+
+
+	OnRefreshTestCallback();
+}
+
+void SAutomationWindow::OnChangeTestHistoryCount(int32 InNewValue)
+{
+	NumHistoryElementsToTrack = InNewValue;
+	AutomationController->TrackReportHistory(bIsTrackingHistory, InNewValue);
+}
+
+int32 SAutomationWindow::GetTestHistoryCount() const
+{
+	return NumHistoryElementsToTrack;
+}
+
 
 void SAutomationWindow::OnChangeRepeatCount(int32 InNewValue)
 {
@@ -1289,7 +1774,7 @@ void SAutomationWindow::HandleSessionManagerSelectionChanged( const ISessionInfo
 }
 
 
-bool SAutomationWindow::IsNotRunningTests() const
+bool SAutomationWindow::IsAutomationControllerIdle() const
 {
 	return AutomationControllerState != EAutomationControllerModuleState::Running;
 }
@@ -1471,7 +1956,7 @@ void SAutomationWindow::HandleItemCheckBoxCheckedStateChanged( TSharedPtr< IAuto
 
 bool SAutomationWindow::HandleItemCheckBoxIsEnabled( ) const
 {
-	return IsNotRunningTests();
+	return IsAutomationControllerIdle();
 }
 
 

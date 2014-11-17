@@ -205,12 +205,12 @@ namespace iPhonePackager
 								return false;
 							}
 						}
-						else if (Arg == "-projectdir")
+						else if (Arg == "-project")
 						{
 							// make sure there's at least one more arg
 							if (Arguments.Length > ArgIndex + 1)
 							{
-								Config.ProjectRootDirectory = Arguments[++ArgIndex];
+								Config.ProjectFile = Arguments[++ArgIndex];
 							}
 							else
 							{
@@ -474,7 +474,7 @@ namespace iPhonePackager
 					Log("");
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
-					Log("	 -projectdir <path>		  sets the root directory of the project");
+					Log("	 -project <path>		  path to the project being packaged");
 					Log("	 -compress=fast|best|none  packaging compression level (defaults to none)");
 					Log("	 -strip					strip symbols during packaging");
 					Log("	 -config				   game configuration (e.g., Shipping, Development, etc...)");

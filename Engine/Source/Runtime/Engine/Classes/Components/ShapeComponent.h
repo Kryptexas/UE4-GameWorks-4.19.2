@@ -1,11 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+#include "Components/PrimitiveComponent.h"
 #include "ShapeComponent.generated.h"
 
-UCLASS(abstract, hidecategories=(Object,LOD,Lighting,TextureStreaming,Activation,"Components|Activation"), editinlinenew, MinimalAPI, meta=(BlueprintSpawnableComponent), showcategories=(Mobility))
-class UShapeComponent : public UPrimitiveComponent
+UCLASS(abstract, hidecategories=(Object,LOD,Lighting,TextureStreaming,Activation,"Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), showcategories=(Mobility))
+class ENGINE_API UShapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -29,14 +29,14 @@ class UShapeComponent : public UPrimitiveComponent
 	uint32 bShouldCollideWhenPlacing:1;
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const OVERRIDE; 
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override; 
+	virtual class UBodySetup* GetBodySetup() override;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual bool ShouldCollideWhenPlacing() const OVERRIDE
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual bool ShouldCollideWhenPlacing() const override
 	{
 		return bShouldCollideWhenPlacing || IsCollisionEnabled();
 	}
@@ -44,7 +44,7 @@ class UShapeComponent : public UPrimitiveComponent
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 

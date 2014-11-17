@@ -83,29 +83,6 @@ struct FAtmospherePrecomputeParameters
 	}
 };
 
-/** Used to store lightmap data during RerunConstructionScripts */
-class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName InstanceDataTypeName;
-
-	virtual ~FAtmospherePrecomputeInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return InstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
-
-	struct FAtmospherePrecomputeParameters PrecomputeParameter;
-
-	FByteBulkData TransmittanceData;
-	FByteBulkData IrradianceData;
-	FByteBulkData InscatterData;
-};
-
 /**
  *	Used to create fogging effects such as clouds.
  */
@@ -247,9 +224,9 @@ public:
 
 protected:
 	// Begin UActorComponent interface.
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// End UActorComponent interface.
 
 	 void AddFogIfNeeded();
@@ -266,24 +243,27 @@ public:
 	mutable FByteBulkData InscatterData;
 	
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	void UpdatePrecomputedData();
 #endif // WITH_EDITOR
-	virtual void PostInterpChange(UProperty* PropertyThatChanged) OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	ENGINE_API void InitResource();
 	ENGINE_API void ReleaseResource();
 
 	// Begin UActorComponent interface.
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 	// End UActorComponent interface.
+
+	const FAtmospherePrecomputeParameters& GetPrecomputeParameters() const { return PrecomputeParams;  }
 
 private:
 #if WITH_EDITORONLY_DATA

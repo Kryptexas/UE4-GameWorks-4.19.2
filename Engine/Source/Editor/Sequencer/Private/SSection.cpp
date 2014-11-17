@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
+#include "Sequencer.h"
 #include "SSection.h"
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
@@ -173,7 +174,7 @@ void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const F
 	}
 }
 
-ISequencerInternals& SSection::GetSequencer() const
+FSequencer& SSection::GetSequencer() const
 {
 	return ParentSectionArea->GetSequencer();
 }
@@ -229,7 +230,7 @@ int32 SSection::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& My
 	TransparentSelectionColor.A = .5f;
 		
 	// Section name with drop shadow
-	FString SectionTitle = SectionInterface->GetSectionTitle();
+	FText SectionTitle = SectionInterface->GetSectionTitle();
 	if (!SectionTitle.IsEmpty())
 	{
 		FSlateDrawElement::MakeText(
@@ -304,7 +305,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 {
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
 
-	const ISequencerInternals& Sequencer = ParentSectionArea->GetSequencer();
+	const FSequencer& Sequencer = ParentSectionArea->GetSequencer();
 
 	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 
@@ -393,7 +394,7 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 {
 	FSelectedKey Key = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
 
-	ISequencerInternals& Sequencer = GetSequencer();
+	FSequencer& Sequencer = GetSequencer();
 
 	UMovieSceneSection* SceneSection = SectionInterface->GetSectionObject();
 
@@ -407,7 +408,7 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 			NSLOCTEXT("Sequencer", "DeleteKey", "Delete"),
 			NSLOCTEXT("Sequencer", "DeleteKeyToolTip", "Deletes the selected keys."),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&Sequencer, &ISequencerInternals::DeleteKeys, Sequencer.GetSelectedKeys().Array()))
+			FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::DeleteSelectedKeys))
 			);
 	}
 	else
@@ -420,14 +421,14 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 				NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
 				NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &ISequencerInternals::RenameShot, SceneSection))
+				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::RenameShot, SceneSection))
 				);
 
 			MenuBuilder.AddMenuEntry(
 				NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
 				NSLOCTEXT("Sequencer", "FilterToShotsToolTip", "Filters to the selected shot sections"),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &ISequencerInternals::FilterToSelectedShotSections, true))
+				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::FilterToSelectedShotSections, true))
 				);
 		}
 
@@ -437,7 +438,7 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 			NSLOCTEXT("Sequencer", "DeleteSection", "Delete"),
 			NSLOCTEXT("Sequencer", "DeleteSectionToolTip", "Deletes this section."),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&Sequencer, &ISequencerInternals::DeleteSection, SceneSection))
+			FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::DeleteSection, SceneSection))
 			);
 	}
 	

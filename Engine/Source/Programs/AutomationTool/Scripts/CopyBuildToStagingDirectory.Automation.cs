@@ -25,13 +25,18 @@ public partial class Project : CommandUtils
 	/// </summary>
 	/// <param name="Filename"></param>
 	/// <param name="ResponseFile"></param>
-	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile)
+	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed)
 	{
         using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
         {
             foreach (var Entry in ResponseFile)
             {
-                Writer.WriteLine("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
+                string Line = String.Format("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
+                if (Compressed)
+                {
+                    Line += " -compress";
+                }
+                Writer.WriteLine(Line);
             }
         }
 	}
@@ -48,7 +53,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, bool Compressed)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -56,7 +61,7 @@ public partial class Project : CommandUtils
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile);
+        WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/unrealpak.exe");
 
@@ -170,7 +175,7 @@ public partial class Project : CommandUtils
 			// Engine ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.Pak);
 
-			if (Params.bUsesSlate && SC.IsCodeBasedProject)
+			if (Params.bUsesSlate)
 			{
 				if (Params.bUsesSlateEditorStyle)
 				{
@@ -190,6 +195,44 @@ public partial class Project : CommandUtils
 
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Engine"), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Engine"), true, !Params.Pak);
 
+			// Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
+			ConfigCacheIni PlatformGameConfig = null;
+			if (Params.GameConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
+			{
+				var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
+				var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
+
+				List<string> ExtraUFSDirs;
+				if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsUFS", out ExtraUFSDirs))
+				{
+					// Each string has the format '(Path="TheDirToStage")'
+					foreach (var PathStr in ExtraUFSDirs)
+					{
+						var PathParts = PathStr.Split('"');
+						if (PathParts.Length == 3)
+						{
+							var RelativePath = PathParts[1];
+							SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.Pak);
+						}
+					}
+				}
+
+				List<string> ExtraNonUFSDirs;
+				if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsNonUFS", out ExtraNonUFSDirs))
+				{
+					// Each string has the format '(Path="TheDirToStage")'
+					foreach (var PathStr in ExtraNonUFSDirs)
+					{
+						var PathParts = PathStr.Split('"');
+						if (PathParts.Length == 3)
+						{
+							var RelativePath = PathParts[1];
+							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath));
+						}
+					}
+				}
+			}
+
 			StagedFileType StagedFileTypeForMovies = StagedFileType.NonUFS;
 			if (Params.FileServer)
 			{
@@ -197,10 +240,13 @@ public partial class Project : CommandUtils
 				StagedFileTypeForMovies = StagedFileType.UFS;
 			}
 
-			SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.Pak);
+			if (SC.StageTargetPlatform.StageMovies)
+			{
+				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.Pak);
+			}
 
 			// eliminate the sand box
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Sandboxes", "Cooked-" + SC.CookPlatform), "*", true, null, "", true, !Params.Pak);
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, null, "", true, !Params.Pak);
 
 			// CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
 			// @todo Make CrashReportClient more portable so we don't have to do this
@@ -361,7 +407,7 @@ public partial class Project : CommandUtils
 			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
 		}
 
-		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation);
+		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, Params.Compressed);
 
 		// add the pak file as needing deployment and convert to lower case again if needed
 		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		

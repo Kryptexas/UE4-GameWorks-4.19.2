@@ -51,7 +51,7 @@ public:
 		}
 		return false;
 	}
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) OVERRIDE
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		bool bAlreadyTested = false;
 		{
@@ -96,7 +96,7 @@ public:
 			}
 		}
 	}
-	virtual void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) OVERRIDE
+	virtual void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) override
 	{
 		InnerBackend->RemoveCachedData(CacheKey, bTransient);
 	}

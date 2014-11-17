@@ -17,7 +17,7 @@ public:
     /**
      * Called on game thread when creating the view.
      */
-    virtual void SetupView(FSceneView& InView) = 0;
+    virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) = 0;
 
     /**
      * Called on render thread at the start of rendering.

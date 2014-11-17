@@ -56,7 +56,7 @@ private:
 	void RebuildAndFilterCategoryTree();
 
 	/** SWidget overrides */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 
 private:

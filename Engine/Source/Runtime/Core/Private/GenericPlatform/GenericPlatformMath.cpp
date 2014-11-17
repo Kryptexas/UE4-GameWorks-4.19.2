@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformMath.cpp: Generic implementations of Math platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "BigInt.h"
 
 static int32 GSRandSeed;
+
 
 void FGenericPlatformMath::SRandInit( int32 Seed ) 
 {
@@ -76,5 +73,14 @@ void FGenericPlatformMath::AutoTest()
 		Dividend.DivideWithRemainder(Divisor, Remainder);
 		check(Dividend.ToInt() == 4788146LL);
 		check(Remainder.ToInt() == 334LL);
+	}
+
+	{
+		// Shift test with multiple of 32
+		int256 Value(1);
+		Value <<= 32;
+		check(Value.ToInt() == 4294967296LL);
+		Value >>= 32;
+		check(Value.ToInt() == 1LL);
 	}
 }

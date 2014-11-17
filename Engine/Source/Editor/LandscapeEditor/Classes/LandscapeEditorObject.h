@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Landscape/LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
 #include "LandscapeEditorObject.generated.h"
 
 UENUM()
@@ -236,6 +237,10 @@ class ULandscapeEditorObject : public UObject
 	// Target height to flatten towards (in Unreal Units)
 	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten", ShowForTargetTypes="Heightmap", editcondition="bUseFlattenTarget", UIMin="-32768", UIMax="32768"))
 	float FlattenTarget;
+
+	// Whether to show the preview grid for the flatten target height
+	UPROPERTY(Category = "Tool Settings", EditAnywhere, AdvancedDisplay, meta = (DisplayName = "Show Preview Grid", ShowForTools = "ToolSet_Flatten", ShowForTargetTypes = "Heightmap", editcondition = "bUseFlattenTarget", HideEditConditionToggle, UIMin = "-32768", UIMax = "32768"))
+	bool bShowFlattenTargetPreview;
 
 	// Ramp Tool:
 
@@ -484,7 +489,7 @@ class ULandscapeEditorObject : public UObject
 
 #if WITH_EDITOR
 	// Begin UObject Interface
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 #endif // WITH_EDITOR
 

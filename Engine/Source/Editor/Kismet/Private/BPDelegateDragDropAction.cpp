@@ -27,7 +27,12 @@ void FKismetDelegateDragDropAction::MakeEvent(FNodeConstructionParams Params)
 		Params.Graph->Modify();
 
 		const FString FunctionName = FString::Printf(TEXT("%s_Event"), *Params.Property->GetName());
-		UK2Node_CustomEvent::CreateFromFunction(Params.GraphPosition, Params.Graph, FunctionName, SignatureFunction);
+		UK2Node_CustomEvent* NewNode = UK2Node_CustomEvent::CreateFromFunction(Params.GraphPosition, Params.Graph, FunctionName, SignatureFunction);
+
+		if( NewNode )
+		{
+			FBlueprintEditorUtils::AnalyticsTrackNewNode( NewNode );
+		}
 
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Params.Graph);
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);

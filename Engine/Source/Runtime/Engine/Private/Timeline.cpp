@@ -131,64 +131,6 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents)
 	float OldPosition = Position;
 	Position = NewPosition;
 
-	// If playing sequence forwards.
-	float MinTime, MaxTime;
-	if(!bReversePlayback)
-	{
-		MinTime = OldPosition;
-		MaxTime = Position;
-
-		// Slight hack here.. if playing forwards and reaching the end of the sequence, force it over a little to ensure we fire events actually on the end of the sequence.
-		if(MaxTime == GetTimelineLength())
-		{
-			MaxTime += (float)KINDA_SMALL_NUMBER;
-		}
-	}
-	// If playing sequence backwards.
-	else
-	{
-		MinTime = Position;
-		MaxTime = OldPosition;
-
-		// Same small hack as above for backwards case.
-		if(MinTime == 0.f)
-		{
-			MinTime -= (float)KINDA_SMALL_NUMBER;
-		}
-	}
-
-	// If we should be firing events for this track...
-	if(bFireEvents)
-	{
-		// See which events fall into traversed region.
-		for(int32 i=0; i<Events.Num(); i++)
-		{
-			float EventTime = Events[i].Time;
-
-			// Need to be slightly careful here and make behavior for firing events symmetric when playing forwards of backwards.
-			bool bFireThisEvent = false;
-			if(!bReversePlayback)
-			{
-				if( EventTime >= MinTime && EventTime < MaxTime )
-				{
-					bFireThisEvent = true;
-				}
-			}
-			else
-			{
-				if( EventTime > MinTime && EventTime <= MaxTime )
-				{
-					bFireThisEvent = true;
-				}
-			}
-
-			if( bFireThisEvent )
-			{
-				Events[i].EventFunc.ExecuteIfBound();
-			}
-		}
-	}
-
 	UObject* PropSetObject = PropertySetObject.Get();
 
 	// Iterate over each vector interpolation
@@ -310,6 +252,65 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents)
 				const ETimelineDirection::Type CurrentDirection = bReversePlayback ? ETimelineDirection::Backward : ETimelineDirection::Forward;
 				TEnumAsByte<ETimelineDirection::Type> ValueAsByte(CurrentDirection);
 				DirectionProperty->SetPropertyValue_InContainer(PropSetObject, ValueAsByte);
+			}
+		}
+	}
+
+
+	// If we should be firing events for this track...
+	if (bFireEvents)
+	{
+		// If playing sequence forwards.
+		float MinTime, MaxTime;
+		if (!bReversePlayback)
+		{
+			MinTime = OldPosition;
+			MaxTime = Position;
+
+			// Slight hack here.. if playing forwards and reaching the end of the sequence, force it over a little to ensure we fire events actually on the end of the sequence.
+			if (MaxTime == GetTimelineLength())
+			{
+				MaxTime += (float)KINDA_SMALL_NUMBER;
+			}
+		}
+		// If playing sequence backwards.
+		else
+		{
+			MinTime = Position;
+			MaxTime = OldPosition;
+
+			// Same small hack as above for backwards case.
+			if (MinTime == 0.f)
+			{
+				MinTime -= (float)KINDA_SMALL_NUMBER;
+			}
+		}
+
+		// See which events fall into traversed region.
+		for (int32 i = 0; i < Events.Num(); i++)
+		{
+			float EventTime = Events[i].Time;
+
+			// Need to be slightly careful here and make behavior for firing events symmetric when playing forwards of backwards.
+			bool bFireThisEvent = false;
+			if (!bReversePlayback)
+			{
+				if (EventTime >= MinTime && EventTime < MaxTime)
+				{
+					bFireThisEvent = true;
+				}
+			}
+			else
+			{
+				if (EventTime > MinTime && EventTime <= MaxTime)
+				{
+					bFireThisEvent = true;
+				}
+			}
+
+			if (bFireThisEvent)
+			{
+				Events[i].EventFunc.ExecuteIfBound();
 			}
 		}
 	}
@@ -533,6 +534,22 @@ float FTimeline::GetLastKeyframeTime() const
 	}
 
 	return MaxTime;
+}
+
+void FTimeline::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
+{
+	for (auto& Track : InterpVectors)
+	{
+		InOutCurves.Add(Track.VectorCurve);
+	}
+	for (auto& Track : InterpFloats)
+	{
+		InOutCurves.Add(Track.FloatCurve);
+	}
+	for (auto& Track : InterpLinearColors)
+	{
+		InOutCurves.Add(Track.LinearColorCurve);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -763,4 +780,9 @@ void UTimelineComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty >
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( UTimelineComponent, TheTimeline );
+}
+
+void UTimelineComponent::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
+{
+	TheTimeline.GetAllCurves(InOutCurves);
 }

@@ -34,7 +34,7 @@ public:
 		];
 	}
 
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		const float MinWidthVal = MinWidth.Get();
 		const float MaxWidthVal = MaxWidth.Get();

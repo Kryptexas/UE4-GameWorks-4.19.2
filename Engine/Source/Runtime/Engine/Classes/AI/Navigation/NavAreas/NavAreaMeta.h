@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "NavAreaMeta.generated.h"
 
 /** Class containing definition of a navigation area */

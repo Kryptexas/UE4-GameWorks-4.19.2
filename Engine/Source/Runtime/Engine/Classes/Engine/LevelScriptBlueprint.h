@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Blueprint.h"
+
 #include "LevelScriptBlueprint.generated.h"
 
-UCLASS(dependson=UBlueprint,MinimalAPI, NotBlueprintType)
+UCLASS(MinimalAPI, NotBlueprintType)
 class ULevelScriptBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
@@ -21,9 +24,9 @@ class ULevelScriptBlueprint : public UBlueprint
 	}
 
 	// Begin UBlueprint interface
-	ENGINE_API virtual UObject* GetObjectBeingDebugged() OVERRIDE;
-	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) OVERRIDE;
-	ENGINE_API virtual FString GetFriendlyName() const OVERRIDE;
+	ENGINE_API virtual UObject* GetObjectBeingDebugged() override;
+	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) override;
+	ENGINE_API virtual FString GetFriendlyName() const override;
 	// End UBlueprint interface
 
 	/** Generate a name for a level script blueprint from the current level */

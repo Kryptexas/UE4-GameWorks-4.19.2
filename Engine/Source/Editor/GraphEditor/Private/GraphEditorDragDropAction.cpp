@@ -5,7 +5,7 @@
 
 UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 {
-	return HoveredPin.IsValid() ? HoveredPin->GetPinObj() : NULL;
+	return HoveredPin.Get();
 }
 
 UEdGraphNode* FGraphEditorDragDropAction::GetHoveredNode() const
@@ -33,7 +33,7 @@ UEdGraph* FGraphEditorDragDropAction::GetHoveredGraph() const
 	return NULL;
 }
 
-void FGraphEditorDragDropAction::SetHoveredPin(const TSharedPtr<SGraphPin>& InPin)
+void FGraphEditorDragDropAction::SetHoveredPin(UEdGraphPin* InPin)
 {
 	if (HoveredPin != InPin)
 	{
@@ -113,13 +113,29 @@ void FGraphEditorDragDropAction::SetFeedbackMessage(const TSharedPtr<SWidget>& M
 void FGraphEditorDragDropAction::SetSimpleFeedbackMessage(const FSlateBrush* Icon, const FSlateColor& IconColor, const FText& Message)
 {
 	// Let the user know the status of making this connection.
-	SetFeedbackMessage(
+
+	// Use CreateRaw as we cannot using anything that will create a shared ptr from within an objects construction, this should be
+	// safe though as we will destroy our window before we get destroyed.
+	TAttribute<EVisibility> ErrorIconVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateRaw(this, &FGraphEditorDragDropAction::GetErrorIconVisible));
+	TAttribute<EVisibility> IconVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateRaw(this, &FGraphEditorDragDropAction::GetIconVisible));
+	
+		SetFeedbackMessage(
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(3.0f)
 		[
+			SNew(SImage)
+			.Visibility(ErrorIconVisibility)
+			.Image( FEditorStyle::GetBrush( TEXT("Graph.ConnectorFeedback.Error") ))
+			.ColorAndOpacity( FLinearColor::White )
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(3.0f)
+		[
 			SNew(SImage) 
+			.Visibility(IconVisibility)
 			.Image( Icon )
 			.ColorAndOpacity( IconColor )
 		]
@@ -132,6 +148,16 @@ void FGraphEditorDragDropAction::SetSimpleFeedbackMessage(const FSlateBrush* Ico
 			.Text( Message )
 		]
 	);
+}
+
+EVisibility FGraphEditorDragDropAction::GetIconVisible() const
+{
+	return bDropTargetValid ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FGraphEditorDragDropAction::GetErrorIconVisible() const
+{
+	return bDropTargetValid ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 ////////////////////////////////////////////////////////////

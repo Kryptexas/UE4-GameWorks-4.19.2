@@ -16,8 +16,8 @@ class ACTORPICKERMODE_API FActorPickerModeModule : public IModuleInterface
 {
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End of IModuleInterface
 
 	/** 
@@ -33,8 +33,4 @@ public:
 
 	/** @return Whether or not actor picking mode is currently active */
 	bool IsInActorPickingMode() const;
-
-private:
-	/** The one and only actor picking mode */
-	TSharedPtr<class FEdModeActorPicker> EdModeActorPicker;
 };

@@ -34,6 +34,7 @@ public class DeviceProfileEditor : ModuleRules
 				"PropertyEditor",
 				"SourceControl",
                 "TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

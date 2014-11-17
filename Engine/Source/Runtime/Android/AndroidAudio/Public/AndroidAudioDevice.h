@@ -74,7 +74,7 @@ public:
 	 *
 	 * @param	InWave				USoundWave to use as template and wave source
 	 * @param	AudioDevice			Audio device to attach created buffer to
-	 * @return	FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return	FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* Init(  FSLESAudioDevice* ,USoundWave* );
 
@@ -97,28 +97,13 @@ public:
 		return( BufferSize ); 
 	}
 
-	/** 
-	 * Returns the number of channels for this buffer
-	 */
-	int GetNumChannels( void ) 
-	{ 
-		return( NumChannels ); 
-	}
-	
-		
 	/** Audio device this buffer is attached to */
 	FSLESAudioDevice*			AudioDevice;
 	/** Data */
 	uint8*					AudioData;
-	/** Resource ID of associated USoundeWave */
-	int						ResourceID;
-	/** Human readable name of resource, most likely name of UObject associated during caching. */
-	FString					ResourceName;
 
 	/** Number of bytes stored in OpenAL, or the size of the ogg vorbis data */
 	int						BufferSize;
-	/** The number of channels in this sound buffer - should be directly related to InternalFormat */
-	int						NumChannels;
 	/** Sample rate of the ogg vorbis data - typically 44100 or 22050 */
 	int						SampleRate;
 
@@ -235,18 +220,23 @@ public:
 	FSLESAudioDevice() {} 
 	virtual ~FSLESAudioDevice() {} 
 
-	virtual FName GetRuntimeFormat() OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}
 
-	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
-	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+	virtual bool SupportsRealtimeDecompression() const override
+	{
+		return true;
+	}
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
 
 	/** Starts up any platform specific hardware/APIs */
-	virtual bool InitializeHardware() OVERRIDE;
+	virtual bool InitializeHardware() override;
  
 	/**
 	 * Update the audio device and calculates the cached inverse transform later
@@ -256,22 +246,9 @@ public:
 	 */
 	virtual void Update( bool bGameTicking );
 
-	/** 
-	 * Lists all the loaded sounds and their memory footprint
-	 */
-	virtual void ListSounds( const TCHAR* Cmd, FOutputDevice& Ar );
-
-	/**
-	 * Frees the bulk resource data associated with this SoundNodeWave.
-	 *
-	 * @param	SoundNodeWave	wave object to free associated bulk data
-	 */
-	virtual void FreeResource( USoundWave* SoundWave );
-
-
 protected:
 
-	virtual FSoundSource* CreateSoundSource() OVERRIDE; 
+	virtual FSoundSource* CreateSoundSource() override; 
 
 
 	/**
@@ -284,12 +261,6 @@ protected:
 
 	/** The name of the OpenSL Device to open - defaults to "Generic Software" */
 	FString										DeviceName;
-	/** All loaded resident buffers */
-	TArray<FSLESSoundBuffer*>					Buffers;
-	/** Map from resource ID to sound buffer */
-	TMap<int, FSLESSoundBuffer*>				WaveBufferMap;
-	/** Next resource ID value used for registering USoundWave objects */
-	int											NextResourceID;
 
 	// SL specific
 

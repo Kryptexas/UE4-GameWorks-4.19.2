@@ -34,6 +34,8 @@ typedef enum {
 	TonemapperVignetteColor     = (1<<10),
 	TonemapperLightShafts       = (1<<11),
 	TonemapperMosaic            = (1<<12),
+	TonemapperColorFringe       = (1<<13),
+
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -53,6 +55,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperVignetteColor
 	1, //TonemapperLightShafts
 	1, //TonemapperMosaic
+	1, //TonemapperColorFringe
 };
 
 // Edit the following to add and remove configurations.
@@ -71,6 +74,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperGrainQuantization +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom +
@@ -79,6 +83,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperGrainQuantization +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom + 
@@ -109,6 +114,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperGrainIntensity +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom +
@@ -116,6 +122,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperVignette +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom + 
@@ -463,6 +470,7 @@ static uint32 TonemapperGenerateBitmask(const FRenderingCompositePassContext* RE
 	Bitmask += (Settings->GrainIntensity > 0.0f)       ? TonemapperGrainIntensity : 0;
 	Bitmask += (Settings->VignetteIntensity > 0.0f)    ? TonemapperVignette       : 0;
 	Bitmask += (VignetteColor.GetAbsMax() != 0.0f)     ? TonemapperVignetteColor  : 0;
+
 	return Bitmask;
 }
 
@@ -499,6 +507,18 @@ static uint32 TonemapperGenerateBitmaskPC(const FRenderingCompositePassContext* 
 		{
 			Bitmask |= TonemapperGrainQuantization;
 		}
+	}
+
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
+
+	int32 FringeQuality = CVar->GetValueOnRenderThread();
+	if(Context->View.Family->EngineShowFlags.SceneColorFringe
+		// Removed this from the camera imperfections toggle because this no longer takes an extra pass.
+		// && Context->View.Family->EngineShowFlags.CameraImperfections
+		&& Context->View.FinalPostProcessSettings.SceneFringeIntensity > 0.01f
+		&& FringeQuality > 0)
+	{
+		Bitmask |= TonemapperColorFringe;
 	}
 
 	return Bitmask + TonemapperGenerateBitmaskPost(Context);
@@ -716,7 +736,12 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	Constants[7] = FVector4(OutColorShadow_Tint2, 0.0f);
 }
 
-
+BEGIN_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,Tint)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D,Mask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState,MaskSampler)
+END_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters)
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters,TEXT("BloomDirtMask"));
 
 /**
  * Encapsulates the post processing tonemapper pixel shader.
@@ -747,6 +772,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_QUANTIZATION"), TonemapperIsDefined(ConfigBitmask, TonemapperGrainQuantization));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
+		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && !PLATFORM_MAC));
 
@@ -769,9 +795,6 @@ public:
 	FShaderParameter TexScale;
 	FShaderParameter VignetteColorIntensity;
 	FShaderParameter GrainScaleBiasJitter;
-	FShaderParameter BloomDirtMaskTint;
-	FShaderResourceParameter BloomDirtMask;
-	FShaderResourceParameter BloomDirtMaskSampler;
 	FShaderResourceParameter ColorGradingLUT;
 	FShaderResourceParameter ColorGradingLUTSampler;
 	FShaderParameter InverseGamma;
@@ -797,9 +820,6 @@ public:
 		TexScale.Bind(Initializer.ParameterMap, TEXT("TexScale"));
 		VignetteColorIntensity.Bind(Initializer.ParameterMap, TEXT("VignetteColorIntensity"));
 		GrainScaleBiasJitter.Bind(Initializer.ParameterMap, TEXT("GrainScaleBiasJitter"));
-		BloomDirtMaskTint.Bind(Initializer.ParameterMap, TEXT("BloomDirtMaskTint"));
-		BloomDirtMask.Bind(Initializer.ParameterMap, TEXT("BloomDirtMask"));
-		BloomDirtMaskSampler.Bind(Initializer.ParameterMap, TEXT("BloomDirtMaskSampler"));
 		ColorGradingLUT.Bind(Initializer.ParameterMap, TEXT("ColorGradingLUT"));
 		ColorGradingLUTSampler.Bind(Initializer.ParameterMap, TEXT("ColorGradingLUTSampler"));
 		InverseGamma.Bind(Initializer.ParameterMap,TEXT("InverseGamma"));
@@ -819,10 +839,10 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar  << PostprocessParameter << ColorScale0 << ColorScale1 << InverseGamma << NoiseTexture << NoiseTextureSampler
-			<< TexScale << VignetteColorIntensity << GrainScaleBiasJitter << BloomDirtMaskTint << BloomDirtMask << BloomDirtMaskSampler 
+			<< TexScale << VignetteColorIntensity << GrainScaleBiasJitter
 			<< ColorGradingLUT << ColorGradingLUTSampler
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2;
-
+		
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -833,26 +853,26 @@ public:
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			
 		{
 			FLinearColor Col = Settings.SceneColorTint;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(ShaderRHI, ColorScale0, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale0, ColorScale);
 		}
 		
 		{
 			FLinearColor Col = FLinearColor::White * Settings.BloomIntensity;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(ShaderRHI, ColorScale1, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale1, ColorScale);
 		}
 
 		{
 			UTexture2D* NoiseTextureValue = GEngine->HighFrequencyNoiseTexture;
 
-			SetTextureParameter(ShaderRHI, NoiseTexture, NoiseTextureSampler, TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(), NoiseTextureValue->Resource->TextureRHI);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, NoiseTexture, NoiseTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), NoiseTextureValue->Resource->TextureRHI);
 		}
 
 		{
@@ -861,7 +881,7 @@ public:
 			// we assume the this pass runs in 1:1 pixel
 			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
 
-			SetShaderValue(ShaderRHI, TexScale, TexScaleValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 		
 		FVector4 VignetteColorIntensityValue;
@@ -869,27 +889,30 @@ public:
 		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
 		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
 		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
-		SetShaderValue(ShaderRHI, GrainScaleBiasJitter, GrainValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
+		const TShaderUniformBufferParameter<FBloomDirtMaskParameters>& BloomDirtMaskParam = GetUniformBufferParameter<FBloomDirtMaskParameters>();
+		if (BloomDirtMaskParam.IsBound())
 		{
+			FBloomDirtMaskParameters BloomDirtMaskParams;
+
 			float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
-
 			FLinearColor Col = Settings.BloomDirtMaskTint * Settings.BloomDirtMaskIntensity;
-			FVector4 ColorScale(Col.R, Col.G, Col.B, ExposureScale);
-			SetShaderValue(ShaderRHI, BloomDirtMaskTint, ColorScale);
-		}
+			BloomDirtMaskParams.Tint = FVector4(Col.R, Col.G, Col.B, ExposureScale);
 
-		{
-			FTextureRHIParamRef BloomDirtMaskValue = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
+			BloomDirtMaskParams.Mask = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
 			if(Settings.BloomDirtMask && Settings.BloomDirtMask->Resource)
 			{
-				BloomDirtMaskValue = Settings.BloomDirtMask->Resource->TextureRHI;
+				BloomDirtMaskParams.Mask = Settings.BloomDirtMask->Resource->TextureRHI;
 			}
-			SetTextureParameter(ShaderRHI, BloomDirtMask, BloomDirtMaskSampler, TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(), BloomDirtMaskValue);
+			BloomDirtMaskParams.MaskSampler = TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
+
+			FUniformBufferRHIRef BloomDirtMaskUB = TUniformBufferRef<FBloomDirtMaskParameters>::CreateUniformBufferImmediate(BloomDirtMaskParams, UniformBuffer_SingleDraw);
+			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 		
 		// volume texture LUT
@@ -910,7 +933,7 @@ public:
 
 						const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 					
-						SetTextureParameter(ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SrcTexture);
+						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), SrcTexture);
 					}
 				}
 			}
@@ -920,20 +943,20 @@ public:
 			FVector2D InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
-			SetShaderValue(ShaderRHI, InverseGamma, InvDisplayGammaValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
 		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskPC[ConfigIndex], &Context.View.FinalPostProcessSettings, false);
-			SetShaderValue(ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
-			SetShaderValue(ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
-			SetShaderValue(ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
-			SetShaderValue(ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
-			SetShaderValue(ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
-			SetShaderValue(ShaderRHI, ColorShadow_Luma, Constants[5]);
-			SetShaderValue(ShaderRHI, ColorShadow_Tint1, Constants[6]);
-			SetShaderValue(ShaderRHI, ColorShadow_Tint2, Constants[7]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
 	}
 	
@@ -973,8 +996,9 @@ static void SetShaderTempl(const FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessTonemapPS<ConfigIndex> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1004,21 +1028,22 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIParamRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
 	{
 		// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-		RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, View.ViewRect);
+		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, View.ViewRect);
 	}
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(ConfigIndex)
 	{
@@ -1041,6 +1066,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessTonemapVS> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -1050,7 +1076,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// We only release the SceneColor after the last view was processed (SplitScreen)
 	if(Context.View.Family->Views[Context.View.Family->Views.Num() - 1] == &Context.View)
@@ -1184,22 +1210,22 @@ public:
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			
-		SetShaderValue(ShaderRHI, OverlayColor, Context.View.OverlayColor);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
 		{
 			FLinearColor Col = Settings.SceneColorTint;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(ShaderRHI, ColorScale0, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale0, ColorScale);
 		}
 		
 		{
 			FLinearColor Col = FLinearColor::White * Settings.BloomIntensity;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(ShaderRHI, ColorScale1, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale1, ColorScale);
 		}
 
 		{
@@ -1208,7 +1234,7 @@ public:
 			// we assume the this pass runs in 1:1 pixel
 			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
 
-			SetShaderValue(ShaderRHI, TexScale, TexScaleValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 
 		FVector4 VignetteColorIntensityValue;
@@ -1216,30 +1242,30 @@ public:
 		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
 		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
 		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
-		SetShaderValue(ShaderRHI, GrainScaleBiasJitter, GrainValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
 		{
 			FVector2D InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
-			SetShaderValue(ShaderRHI, InverseGamma, InvDisplayGammaValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
 		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskMobile[ConfigIndex], &Context.View.FinalPostProcessSettings, true);
-			SetShaderValue(ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
-			SetShaderValue(ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
-			SetShaderValue(ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
-			SetShaderValue(ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
-			SetShaderValue(ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
-			SetShaderValue(ShaderRHI, ColorShadow_Luma, Constants[5]);
-			SetShaderValue(ShaderRHI, ColorShadow_Tint1, Constants[6]);
-			SetShaderValue(ShaderRHI, ColorShadow_Tint2, Constants[7]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
 	}
 	
@@ -1292,7 +1318,7 @@ public:
 	void SetVS(const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
@@ -1300,7 +1326,7 @@ public:
 		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
-		SetShaderValue(ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 	}
 	
 	virtual bool Serialize(FArchive& Ar)
@@ -1323,8 +1349,9 @@ static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, boo
 	VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1355,17 +1382,17 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIParamRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	// Full clear to avoid restore
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(ConfigIndex)
 	{
@@ -1406,6 +1433,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -1415,7 +1443,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer tonemapper output for temporal AA.
 	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivate.h"
+#include <sys/stat.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime MacEpoch(1970, 1, 1);
@@ -63,7 +64,7 @@ public:
 		}
 		FileHandle = -1;
 	}
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )
@@ -77,7 +78,7 @@ public:
 			return lseek(FileHandle, 0, SEEK_CUR);
 		}
 	}
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(NewPosition >= 0);
 
@@ -85,7 +86,7 @@ public:
 		if( IsManaged() )
 		{
 			FileOffset = NewPosition >= FileSize ? FileSize - 1 : NewPosition;
-			return ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
+			return IsValid() && ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
 		}
 		else
 #endif
@@ -94,7 +95,7 @@ public:
 			return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
 		}
 	}
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(NewPositionRelativeToEnd <= 0);
 
@@ -102,7 +103,7 @@ public:
 		if( IsManaged() )
 		{
 			FileOffset = (NewPositionRelativeToEnd >= FileSize) ? 0 : ( FileSize + NewPositionRelativeToEnd - 1 );
-			return ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
+			return IsValid() && ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
 		}
 		else
 #endif
@@ -111,7 +112,7 @@ public:
 			return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
 		}
 	}
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )
@@ -127,7 +128,7 @@ public:
 			return ReadInternal(Destination, BytesToRead) == BytesToRead;
 		}
 	}
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -144,7 +145,7 @@ public:
 		}
 		return true;
 	}
-	virtual int64 Size() OVERRIDE
+	virtual int64 Size() override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )
@@ -503,7 +504,19 @@ bool FApplePlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 				{
                     // Normalize any unicode forms so we match correctly
                     FString NormalizedFilename = UTF8_TO_TCHAR(([[[NSString stringWithUTF8String:Entry->d_name] precomposedStringWithCanonicalMapping] cStringUsingEncoding:NSUTF8StringEncoding]));
-                    Result = Visitor.Visit(*(FString(Directory) / NormalizedFilename), Entry->d_type == DT_DIR);
+					
+                    // Figure out whether it's a directory. Some protocols (like NFS) do not voluntairily return this as part of the directory entry, and need to be queried manually.
+                    bool bIsDirectory = (Entry->d_type == DT_DIR);
+                    if(Entry->d_type == DT_UNKNOWN)
+                    {
+                        struct stat StatInfo;
+                        if(stat(TCHAR_TO_UTF8(*(FString(Directory) / Entry->d_name)), &StatInfo) == 0)
+                        {
+                            bIsDirectory = S_ISDIR(StatInfo.st_mode);
+                        }
+                    }
+					
+                    Result = Visitor.Visit(*(FString(Directory) / NormalizedFilename), bIsDirectory);
 				}
 			}
 			closedir(Handle);

@@ -6,6 +6,7 @@
 
 #pragma once
 
+class UDeviceProfile;
 
 /**
  * Type definition for shared pointers to instances of IDeviceProfileServicesUIManager.

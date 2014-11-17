@@ -194,7 +194,7 @@ bool FPackagesDialogModule::IsWindowInitialized() const
 /**
  * Called when a module has been changed (unloaded, loaded, etc)
  */
-void FPackagesDialogModule::OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange )
+void FPackagesDialogModule::OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange )
 {
 
 }

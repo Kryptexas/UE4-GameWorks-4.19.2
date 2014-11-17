@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "RenderUtils.h"
+
 /*=============================================================================
 	Components.h: Forward declarations of object components of actors
 =============================================================================*/
@@ -138,7 +140,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("ColorOnly Static-mesh vertices"); }
 
 private:
@@ -162,4 +164,3 @@ private:
 	FColorVertexBuffer( const FColorVertexBuffer &rhs );
 };
 
-DECLARE_DELEGATE_OneParam( FPhysicsVolumeChanged , class APhysicsVolume* );

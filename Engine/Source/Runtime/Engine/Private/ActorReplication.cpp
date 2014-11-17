@@ -2,7 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "NavigationPathBuilder.h"
+#include "Engine/ActorChannel.h"
+#include "GameFramework/GameNetworkManager.h"
+#include "NetworkingDistanceConstants.h"
 
 /*-----------------------------------------------------------------------------
 	AActor networking implementation.
@@ -223,6 +225,7 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 
 	DOREPLIFETIME( AActor, Role );
 	DOREPLIFETIME( AActor, RemoteRole );
+	DOREPLIFETIME( AActor, Owner );
 	DOREPLIFETIME( AActor, bHidden );
 
 	DOREPLIFETIME( AActor, bTearOff );
@@ -231,7 +234,6 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 
 	DOREPLIFETIME( AActor, Instigator );
 
-	DOREPLIFETIME_CONDITION( AActor, Owner, COND_OwnerOrNotNull );
 	DOREPLIFETIME_CONDITION( AActor, ReplicatedMovement, COND_SimulatedOrPhysics );
 }
 
@@ -248,11 +250,35 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 		UActorComponent * ActorComp = ReplicatedComponents[CompIdx].Get();
 		if (ActorComp && ActorComp->GetIsReplicated())
 		{
-			WroteSomething |= Channel->ReplicateSubobject(ActorComp, *Bunch, *RepFlags);
-			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);
+			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);		// Lets the component add subobjects before replicating its own properties.
+			WroteSomething |= Channel->ReplicateSubobject(ActorComp, *Bunch, *RepFlags);	// (this makes those subobjects 'supported', and from here on those objects may have reference replicated)		
 		}
 	}
 	return WroteSomething;
+}
+
+void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList)
+{	
+	// For experimenting with replicating ALL stably named components initially
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && !Component->IsPendingKill() && Component->IsNameStableForNetworking())
+		{
+			ObjList.Add(Component);
+			Component->GetSubobjectsWithStableNamesForNetworking(ObjList);
+		}
+	}
+
+	// Sort the list so that we generate the same list on client/server
+	struct FCompareComponentNames
+	{
+		FORCEINLINE bool operator()( UObject & A, UObject & B ) const
+		{
+			return A.GetName() < B.GetName();
+		}
+	};
+
+	Sort( ObjList.GetTypedData(), ObjList.Num(), FCompareComponentNames() );
 }
 
 void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)
@@ -273,4 +299,14 @@ void AActor::OnSubobjectDestroyFromReplication(UObject *NewSubobject)
 	{
 		Component->DestroyComponent();
 	}
+}
+
+bool AActor::IsNameStableForNetworking() const
+{
+	return IsNetStartupActor() || HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject );
+}
+
+bool AActor::IsSupportedForNetworking() const
+{
+	return true;		// All actors are supported for networking
 }

@@ -60,7 +60,7 @@ public:
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const OVERRIDE;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	
 	/**
 	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
@@ -79,9 +79,9 @@ public:
 	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 	/**
 	 * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
@@ -91,7 +91,7 @@ public:
 	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	
 	void OnCurrentTimeChanged(float NewTime);
 
@@ -134,6 +134,10 @@ public:
 
 	void SetZoomAndOffset(float InZoom, float InOffset);
 
+	void SetHistogramWindow(float InWindowSize);
+
+	float GetHistogramPreviewWindow() { return HistogramPreviewWindow; }
+
 	/**
 	 * Gets the graph's offset value
 	 *
@@ -161,12 +165,15 @@ private:
 	{
 		const float EventStart = (LogEntry->TimeStamp - StartTime) / TotalTime;
 		const float EventDuration = TimeUnit / TotalTime;
-		const float ClampedStart = FMath::Clamp(Offset + EventStart * Zoom, 0.0f, 1.0f );		
-		const float ClampedEnd = FMath::Clamp(Offset + (EventStart + EventDuration) * Zoom, 0.0f, 1.0f );
+		const float Start = Offset + EventStart * Zoom;
+		const float ClampedStart = FMath::Clamp(Start, 0.0f, 1.0f);
+		const float End = Offset + (EventStart + EventDuration) * Zoom;
+		const float ClampedEnd = FMath::Clamp(End, 0.0f, 1.0f);
 		const float ClampedSize = ClampedEnd - ClampedStart;
-		OutStartX = (float)(InGeometry.Size.X * ClampedStart);
-		OutEndX = OutStartX + (float)FMath::Max(InGeometry.Size.X * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0f);
-		return ClampedEnd > 0.0f && ClampedStart < 1.0f;
+		const float BarWidth = InGeometry.Size.X - 3;
+		OutStartX = (float)(BarWidth * ClampedStart);
+		OutEndX = OutStartX + (float)FMath::Max(BarWidth * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0f);
+		return End >= 0.0f && Start <= 1.0f;
 	}
 
 	/** Delegate to invoke when selection changes. */
@@ -198,6 +205,8 @@ private:
 	/** Current offset of the graph */
 	float Offset;
 
+	float HistogramPreviewWindow;
+
 	/** Last hovered event index */
 	int32 LastHoveredEvent;
 	
@@ -214,7 +223,4 @@ private:
 	int32 RowIndex;
 
 	int32 bShouldDrawSelection : 1;
-
-	/** Color palette for bars coloring */
-	static FColor	ColorPalette[];
 };

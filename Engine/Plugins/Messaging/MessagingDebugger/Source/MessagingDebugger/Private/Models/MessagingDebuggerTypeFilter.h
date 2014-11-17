@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerTypeFilter.h: Declares the FMessagingDebuggerTypeFilter class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,8 +24,7 @@ public:
 	/**
 	 * Filters the specified message type based on the current filter settings.
 	 *
-	 * @param TypeInfo - The message type to filter.
-	 *
+	 * @param TypeInfo The message type to filter.
 	 * @return true if the endpoint passed the filter, false otherwise.
 	 */
 	bool FilterType( const FMessageTracerTypeInfoPtr& TypeInfo ) const
@@ -61,7 +56,7 @@ public:
 	/**
 	 * Sets the filter string.
 	 *
-	 * @param InFilterString - The filter string to set.
+	 * @param InFilterString The filter string to set.
 	 */
 	void SetFilterString( const FString& InFilterString )
 	{

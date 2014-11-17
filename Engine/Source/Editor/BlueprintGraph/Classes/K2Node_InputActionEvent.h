@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_Event.h"
 #include "K2Node_InputActionEvent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -25,7 +26,7 @@ class UK2Node_InputActionEvent : public UK2Node_Event
 	uint32 bOverrideParentBinding:1;
 
 	// Begin UK2Node interface
-	virtual UClass* GetDynamicBindingClass() const OVERRIDE;
-	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const OVERRIDE;
+	virtual UClass* GetDynamicBindingClass() const override;
+	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
 	// End UK2Node interface
 };

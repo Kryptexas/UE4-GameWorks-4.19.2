@@ -5,12 +5,16 @@
 
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackEvent.h"
 
 /*-----------------------------------------------------------------------------
  FMatineeViewportClient
 -----------------------------------------------------------------------------*/
 
 FMatineeViewportClient::FMatineeViewportClient( class FMatinee* InMatinee )
+	: FEditorViewportClient(GLevelEditorModeTools())
 {
 	InterpEd = InMatinee;
 
@@ -912,7 +916,7 @@ void FMatineeViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 		}
 		else if(bPanning)
 		{
-			const bool bInvertPanning = GEditorModeTools().GetInterpPanInvert();
+			const bool bInvertPanning = GLevelEditorModeTools().GetInterpPanInvert();
 
 			float DeltaTime = (bInvertPanning ? -DeltaX : DeltaX) / InterpEd->PixelsPerSec;
 			InterpEd->ViewStartTime -= DeltaTime;

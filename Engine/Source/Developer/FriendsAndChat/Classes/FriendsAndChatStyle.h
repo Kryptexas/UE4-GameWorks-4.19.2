@@ -25,7 +25,7 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	/**
 	 * Override widget style function.
 	 */
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override
 	{}
 
 	// Holds the widget type name
@@ -35,7 +35,7 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	 * Get the type name.
 	 * @return the type name
 	 */
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	/**
 	 * Get the default style.

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMMath.h: Some implementation of LM math functionality
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LMCore.h"
 #include "LMDebug.h"
@@ -151,7 +147,7 @@ void appHandleCriticalError()
 							// Read each line, looking for the URL
 							const uint32 LineBufferSize = 1024;
 							char LineBuffer[LineBufferSize];
-							char* URLSearchText = "CrashReport url = ";
+							const char* URLSearchText = "CrashReport url = ";
 							char* URLFoundText = NULL;
 							while( fgets( LineBuffer, LineBufferSize, GeneratedAutoReportFile ) != NULL )
 							{

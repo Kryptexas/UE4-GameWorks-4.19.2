@@ -60,9 +60,9 @@ class UNREALED_API UTextureFactory : public UFactory
 	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The blend mode of the created material"))
 	TEnumAsByte<enum EBlendMode> Blending;
 
-	/** The lighting model of the created material */
-	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The lighting model of the created material"))
-	TEnumAsByte<enum EMaterialLightingModel> LightingModel;
+	/** The shading model of the created material */
+	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The shading model of the created material"))
+	TEnumAsByte<enum EMaterialShadingModel> ShadingModel;
 
 	/** The mip-map generation settings for the texture; Allows customization of the content of the mip-map chain */
 	UPROPERTY(EditAnywhere, Category=TextureFactory, meta=(ToolTip="The mip-map generation settings for the texture; Allows customization of the content of the mip-map chain"))
@@ -96,8 +96,8 @@ public:
 	// End UObject Interface
 
 	// Begin UFactory Interface
-	virtual bool DoesSupportClass(UClass* Class) OVERRIDE;
-	virtual UObject* FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn ) OVERRIDE;
+	virtual bool DoesSupportClass(UClass* Class) override;
+	virtual UObject* FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn ) override;
 	// End UFactory Interface
 	
 

@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProcessesProcessTreeNode.h: Declares the FDeviceProcessesProcessTreeNode class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FDeviceProcessesProcessTreeNode.
- */
+/** Type definition for shared pointers to instances of FDeviceProcessesProcessTreeNode. */
 typedef TSharedPtr<class FDeviceProcessesProcessTreeNode> FDeviceProcessesProcessTreeNodePtr;
 
-/**
- * Type definition for shared references to instances of FDeviceProcessesProcessTreeNode.
- */
+/** Type definition for shared references to instances of FDeviceProcessesProcessTreeNode. */
 typedef TSharedRef<class FDeviceProcessesProcessTreeNode> FDeviceProcessesProcessTreeNodeRef;
 
 
@@ -28,7 +20,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InProcessInfo - The node's process information.
+	 * @param InProcessInfo The node's process information.
 	 */
 	FDeviceProcessesProcessTreeNode( const FTargetDeviceProcessInfo& InProcessInfo )
 		: ProcessInfo(InProcessInfo)
@@ -87,7 +79,7 @@ public:
 	/**
 	 * Sets the parent node.
 	 *
-	 * @param Node - The parent node to set.
+	 * @param Node The parent node to set.
 	 */
 	void SetParent( const FDeviceProcessesProcessTreeNodePtr& Node )
 	{

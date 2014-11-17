@@ -209,20 +209,24 @@ public:
 	// Logs out usage information.
 	void DumpMemoryUsage(FOutputDevice& OutputDevice);
 
-	void EnableEventRecording(uint32 InSizeInKBThreshold) { EventRecordingSizeThreshold = InSizeInKBThreshold; bEventRecordingTrigger = true; }
+	// to not have event recording for some time during rendering (e.g. thumbnail rendering)
+	void SetEventRecordingActive(bool bValue) { bEventRecordingActive = bValue; }
+
 	//
-	void DisableEventDisplay() { RenderTargetPoolEvents.Empty(); bEventRecording = false; }
+	void DisableEventDisplay() { RenderTargetPoolEvents.Empty(); bEventRecordingStarted = false; }
 	//
 	bool IsEventRecordingEnabled() const;
 
 	void AddPhaseEvent(const TCHAR* InPhaseName);
 
 	/** renders the VisualizeTextureContent to the current render target */
-	void PresentContent(const FSceneView& View);
+	void PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View);
 
 	FVisualizeTexture VisualizeTexture;
 
 private:
+
+	friend void RenderTargetPoolEvents(const TArray<FString>& Args);
 
 	/** Elements can be 0, we compact the buffer later. */
 	TArray< TRefCountPtr<FPooledRenderTarget> > PooledRenderTargets;
@@ -258,11 +262,13 @@ private:
 	};
 
 	// if next frame we want to run with bEventRecording=true
-	bool bEventRecordingTrigger;
+	bool bStartEventRecordingNextTick;
 	// in KB, e.g. 1MB = 1024, 0 to display all
 	uint32 EventRecordingSizeThreshold;
-	// true if enabled
-	bool bEventRecording;
+	// true if active, to not have the event recording for some time during rendering (e.g. thumbnail rendering)
+	bool bEventRecordingActive;
+	// true meaning someone used r.RenderTargetPool.Events to start it
+	bool bEventRecordingStarted;
 	// only used if bEventRecording
 	TArray<FRenderTargetPoolEvent> RenderTargetPoolEvents;
 	//
@@ -284,6 +290,9 @@ private:
 
 	// sorted by size
 	SMemoryStats ComputeView();
+
+	// can be optimized to not be generated each time
+	void GenerateVRamAllocationUsage(TArray<FVRamAllocation>& Out);
 
 	friend struct FPooledRenderTarget;
 };

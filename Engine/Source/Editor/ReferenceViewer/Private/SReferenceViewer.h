@@ -23,7 +23,7 @@ public:
 	void SetGraphRootPackageNames(const TArray<FName>& NewGraphRootPackageNames);
 
 	// SWidget implementation
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End SWidget implementation
 
 private:
@@ -73,6 +73,7 @@ private:
 
 	void RegisterActions();
 	void ShowSelectionInContentBrowser();
+	void OpenSelectedInAssetEditor();
 	void ReCenterGraph();
 	void ListReferencedObjects();
 	void ListObjectsThatReference();
@@ -83,6 +84,7 @@ private:
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	bool HasExactlyOneNodeSelected() const;
+	bool IsSingleSelectedItemValidObject() const;
 
 	void OnInitialAssetRegistrySearchComplete();
 private:

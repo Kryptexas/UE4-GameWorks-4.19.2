@@ -92,7 +92,7 @@ float D_GGX( float Roughness, float NoH )
 	float m = Roughness * Roughness;
 	float m2 = m * m;
 	float d = ( NoH * m2 - NoH ) * NoH + 1;	// 2 mad
-	return m2 / ( PI*d*d );					// 3 mul, 1 rcp
+	return m2 / ( PI*d*d );					// 4 mul, 1 rcp
 }
 
 // Anisotropic GGX
@@ -119,9 +119,9 @@ float Vis_Neumann( float NoV, float NoL )
 }
 
 // [Kelemen 2001, "A microfacet based coupled specular-matte brdf model with importance sampling"]
-float Vis_Kelemen( float3 L, float3 V )
+float Vis_Kelemen( float VoH )
 {
-	return 1 / ( 2 + 2 * dot(L, V) );
+	return rcp( 4 * VoH * VoH );
 }
 
 // Tuned to match behavior of Vis_Smith
@@ -155,11 +155,13 @@ float3 F_None( float3 SpecularColor )
 // [Lagarde 2012, "Spherical Gaussian approximation for Blinn-Phong, Phong and Fresnel"]
 float3 F_Schlick( float3 SpecularColor, float VoH )
 {
-	// Anything less than 2% is physically impossible and is instead considered to be shadowing 
-	return SpecularColor + ( saturate( 50.0 * SpecularColor.g ) - SpecularColor ) * exp2( (-5.55473 * VoH - 6.98316) * VoH );
-
+	float Fc = pow( 1 - VoH, 5 );							// 1 sub, 3 mul
 	//float Fc = exp2( (-5.55473 * VoH - 6.98316) * VoH );	// 1 mad, 1 mul, 1 exp
 	//return Fc + (1 - Fc) * SpecularColor;					// 1 add, 3 mad
+	
+	// Anything less than 2% is physically impossible and is instead considered to be shadowing
+	return saturate( 50.0 * SpecularColor.g ) * Fc + (1 - Fc) * SpecularColor;
+	
 }
 
 float3 F_Fresnel( float3 SpecularColor, float VoH )
@@ -194,14 +196,14 @@ float Distribution( float Roughness, float NoH )
 }
 
 // Vis = G / (4*NoL*NoV)
-float GeometricVisibility( float Roughness, float NoV, float NoL, float VoH, float3 L, float3 V )
+float GeometricVisibility( float Roughness, float NoV, float NoL, float VoH )
 {
 #if   PHYSICAL_SPEC_G == 0
 	return Vis_Implicit();
 #elif PHYSICAL_SPEC_G == 1
 	return Vis_Neumann( NoV, NoL );
 #elif PHYSICAL_SPEC_G == 2
-	return Vis_Kelemen( L, V );
+	return Vis_Kelemen( VoH );
 #elif PHYSICAL_SPEC_G == 3
 	return Vis_Schlick( Roughness, NoV, NoL );
 #elif PHYSICAL_SPEC_G == 4

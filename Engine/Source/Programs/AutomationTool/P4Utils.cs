@@ -395,6 +395,24 @@ namespace AutomationTool
 	}
 
 	/// <summary>
+	/// Class that stores labels info.
+	/// </summary>
+	public class P4Label
+	{
+		// The name of the label.
+		public string Name { get; private set; }
+
+		// The date of the label.
+		public DateTime Date { get; private set; }
+
+		public P4Label(string Name, DateTime Date)
+		{
+			this.Name = Name;
+			this.Date = Date;
+		}
+	}
+
+	/// <summary>
 	/// Perforce connection.
 	/// </summary>
 	public partial class P4Connection
@@ -598,7 +616,9 @@ namespace AutomationTool
         public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
             // If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
-            bool bSummaryIsOnSameLine = CommandLine.IndexOf("-L", StringComparison.InvariantCultureIgnoreCase) == -1;
+            bool ContainsDashL = CommandLine.StartsWith("-L ", StringComparison.InvariantCultureIgnoreCase) ||
+                CommandLine.IndexOf(" -L ", StringComparison.InvariantCultureIgnoreCase) > 0;
+            bool bSummaryIsOnSameLine = !ContainsDashL;
             if (bSummaryIsOnSameLine && LongComment)
             {
                 CommandLine = "-L " + CommandLine;
@@ -671,7 +691,7 @@ namespace AutomationTool
 							Line = Lines[ LineIndex ];
 							if( !String.IsNullOrEmpty( Line ) )
 							{
-								throw new AutomationException("Was expecting blank line after Change header output from P4");
+                                throw new AutomationException("Was expecting blank line after Change header output from P4, got {0}", Line);
 							}
 
 							++LineIndex;
@@ -682,10 +702,10 @@ namespace AutomationTool
 								int SummaryChangeAt = Line.IndexOf(MatchChange);
 								int SummaryOnAt = Line.IndexOf(MatchOn);
 								int SummaryByAt = Line.IndexOf(MatchBy);
-								int SummaryAtAt = Line.IndexOf("@");
 								if (SummaryChangeAt == 0 && SummaryOnAt > SummaryChangeAt && SummaryByAt > SummaryOnAt)
 								{
 									// OK, we found a new change. This isn't part of our summary.  We're done with the summary.  Back we go.
+                                    //CommandUtils.Log("Next summary is {0}", Line);
 									--LineIndex;
 									break;
 								}
@@ -747,6 +767,7 @@ namespace AutomationTool
             public string User = "";
             public string UserEmail = "";
             public string Summary = "";
+			public string Header = "";
 			
 			public class DescribeFile
 			{
@@ -835,6 +856,7 @@ namespace AutomationTool
 
 						DescribeRecord.CL = CurrentChangelist;
                         DescribeRecord.User = Line.Substring(ByAt + MatchBy.Length, AtAt - ByAt - MatchBy.Length);
+						DescribeRecord.Header = Line;
 
 						++LineIndex;
 						if( LineIndex >= Lines.Length )
@@ -1494,6 +1516,21 @@ namespace AutomationTool
 			return Result;
 		}
 
+        /// <summary>
+        /// Returns the output from p4 opened
+        /// </summary>
+        /// <param name="CL">Changelist to get the specification from.</param>
+        /// <returns>Specification of the changelist.</returns>
+        public string OpenedOutput()
+        {
+            CheckP4Enabled();
+            string CmdOutput;
+            if (LogP4Output(out CmdOutput, "opened"))
+            {
+                return CmdOutput;
+            }
+            throw new P4Exception("OpenedOutput failed, output follows\n{0}", CmdOutput);
+        }
 		/// <summary>
 		/// Deletes the specified label.
 		/// </summary>
@@ -1669,81 +1706,29 @@ namespace AutomationTool
 		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		/// <summary>
-		/// Gets promoted label list for given branch.
+		/// Gets all labels satisfying given filter.
 		/// </summary>
-		/// <param name="BranchPath">A branch path.</param>
-		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
-		/// <returns>List of promoted labels for given branch path.</returns>
-		public string[] GetPromotedLabels(string BranchPath, string GameName)
+		/// <param name="Filter">Filter for label names.</param>
+		/// <param name="bCaseSensitive">Treat filter as case-sensitive.</param>
+		/// <returns></returns>
+		public P4Label[] GetLabels(string Filter, bool bCaseSensitive = true)
 		{
-			var LabelNameList = new List<string>();
+			var LabelList = new List<P4Label>();
 
 			string Output;
-			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			if (P4Output(out Output, "labels -t " + (bCaseSensitive ? "-e" : "-E") + Filter, null, false))
 			{
 				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
 				{
-					LabelNameList.Add(LabelMatch.Groups["name"].Value);
-				}
-			}
-
-			return LabelNameList.ToArray();
-		}
-
-		/// <summary>
-		/// Get latest promoted label given branch and game name.
-		/// </summary>
-		/// <param name="BranchPath">The branch path of the label.</param>
-		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
-		/// <param name="bVerifyContent">Verify if label tags at least one file.</param>
-		/// <returns>Label name if it exists, null otherwise.</returns>
-		public string GetLatestPromotedLabel(string BranchPath, string GameName, bool bVerifyContent)
-		{
-			CheckP4Enabled();
-
-			if (string.IsNullOrWhiteSpace(GameName))
-			{
-				GameName = null;
-			}
-
-			string Output;
-			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
-			{
-				var Labels = new Dictionary<string, DateTime>();
-
-				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
-				{
-					Labels.Add(LabelMatch.Groups["name"].Value,
+					LabelList.Add(new P4Label(LabelMatch.Groups["name"].Value,
 						DateTime.ParseExact(
 							LabelMatch.Groups["date"].Value, "yyyy/MM/dd HH:mm:ss",
-							System.Globalization.CultureInfo.InvariantCulture));
+							System.Globalization.CultureInfo.InvariantCulture)
+					));
 				}
-
-				if (Labels.Count == 0)
-				{
-					return null;
-				}
-
-				var OrderedLabels = Labels.OrderByDescending((Label) => Label.Value);
-
-				if (bVerifyContent)
-				{
-					foreach (var Label in OrderedLabels)
-					{
-						if (ValidateLabelContent(Label.Key))
-						{
-							return Label.Key;
-						}
-					}
-
-					// Haven't found valid label.
-					return null;
-				}
-
-				return OrderedLabels.First().Key;
 			}
 
-			return null;
+			return LabelList.ToArray();
 		}
 
 		/// <summary>
@@ -1753,7 +1738,7 @@ namespace AutomationTool
 		public bool ValidateLabelContent(string LabelName)
 		{
 			string Output;
-			if (LogP4Output(out Output, "files -m 1 @" + LabelName))
+			if (P4Output(out Output, "files -m 1 @" + LabelName, null, false))
 			{
 				if (Output.StartsWith("//depot"))
 				{

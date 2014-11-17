@@ -50,11 +50,11 @@ static TAutoConsoleVariable<float> CVarEditor2DSnapScale(
 	TEXT("Tweak to define the grid rendering in 2D viewports."),
 	ECVF_RenderThreadSafe);
 
-static bool IsEditorCompositingMSAAEnabled()
+static bool IsEditorCompositingMSAAEnabled(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	bool Ret = false;
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		// only supported on SM5 yet
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MSAA.CompositingSampleCount"));
@@ -127,7 +127,7 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 		return;
 	}
 
-	bool bMSAA = IsEditorCompositingMSAAEnabled();
+	bool bMSAA = IsEditorCompositingMSAAEnabled(View->GetFeatureLevel());
 	bool bIsPerspective = ( View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f );
 
 	// in unreal units
@@ -502,7 +502,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	}
 
 	// todo
-	static int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
+	int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
 
 	const float SizeX = View->ViewRect.Width();
 	const float Zoom = (1.0f / View->ViewMatrices.ProjMatrix.M[0][0]) * 2.0f / SizeX;
@@ -603,7 +603,7 @@ void FEditorCommonDrawHelper::DrawPivot(const FSceneView* View,FPrimitiveDrawInt
 {
 	const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
 
-	const FVector PivLoc = GEditorModeTools().SnappedLocation;
+	const FVector PivLoc = GLevelEditorModeTools().SnappedLocation;
 
 	const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
 	const float WidgetRadius = View->ViewMatrices.ProjMatrix.TransformPosition(PivLoc).W * (PivotSize / ZoomFactor);

@@ -14,6 +14,7 @@ public class IOSTargetPlatform : ModuleRules
 				"Core",
 				"CoreUObject",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"LaunchDaemonMessages",
 			}
 		);

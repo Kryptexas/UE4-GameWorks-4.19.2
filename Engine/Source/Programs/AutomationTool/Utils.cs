@@ -975,4 +975,39 @@ namespace AutomationTool
 	}
 
 	#endregion
+
+	#region Scoped Timer
+
+	public class ScopedTimer : IDisposable
+	{
+		DateTime StartTime;
+		string TimerName;
+		static int Indent = 0;
+		static object IndentLock = new object();
+
+		public ScopedTimer(string Name)
+		{
+			TimerName = Name;
+			lock (IndentLock)
+			{
+				Indent++;
+			}
+			StartTime = DateTime.UtcNow;
+		}
+
+		public void Dispose()
+		{
+			var TotalSeconds = (DateTime.UtcNow - StartTime).TotalSeconds;
+			var LogIndent = 0;
+			lock (IndentLock)
+			{
+				LogIndent = --Indent;
+			}
+			var IndentText = new StringBuilder(LogIndent * 2);
+			IndentText.Append(' ', LogIndent * 2);
+			Log.TraceVerbose("{0}{1} took {2}s", IndentText.ToString(), TimerName, TotalSeconds);
+		}
+	}
+
+	#endregion
 }

@@ -8,6 +8,8 @@
 
 #include <dirent.h>
 #include <jni.h>
+#include <Android/asset_manager.h>
+#include <Android/asset_manager_jni.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime AndroidEpoch(1970, 1, 1);
@@ -19,6 +21,11 @@ static int32 GPackagePatchVersion = 0;
 
 // External File Path base - setup during load
 FString GFilePathBase;
+
+// Is the OBB in an APK file or not
+bool GOBBinAPK;
+
+extern AAssetManager * AndroidThunkCpp_GetAssetManager();
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);"
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring PackageName, jint Version, jint PatchVersion)
@@ -57,27 +64,27 @@ public:
 		FileHandle = -1;
 	}
 
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		check(IsValid());
 		return lseek64(FileHandle, 0, SEEK_CUR);
 	}
 
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(IsValid());
 		check(NewPosition >= 0);
 		return lseek64(FileHandle, NewPosition, SEEK_SET) != -1;
 	}
 
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(IsValid());
 		check(NewPositionRelativeToEnd <= 0);
 		return lseek64(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
 	}
 
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
 		while (BytesToRead)
@@ -95,7 +102,7 @@ public:
 		return true;
 	}
 
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -111,6 +118,104 @@ public:
 			BytesToWrite -= ThisSize;
 		}
 		return true;
+	}
+};
+
+/**
+* Android file handle implementation for files in Pak/OBB data
+**/
+class CORE_API FFileHandlePakAndroid : public IFileHandle
+{
+	enum { READWRITE_SIZE = 1024 * 1024 };
+	AAsset * File;
+	int32 FileHandle;
+	off_t Start;
+	off_t Length;
+
+	FORCEINLINE bool IsValid()
+	{
+		return FileHandle != -1;
+	}
+
+public:
+	FFileHandlePakAndroid(AAsset * file)
+		: File(file), FileHandle(0), Start(0), Length(0)
+	{
+		FileHandle = AAsset_openFileDescriptor(file, &Start, &Length);
+	}
+
+	virtual ~FFileHandlePakAndroid()
+	{
+		close(FileHandle);
+		FileHandle = -1;
+		AAsset_close(File);
+	}
+
+	virtual int64 Tell() override
+	{
+		check(IsValid());
+		int64 pos = lseek(FileHandle, 0, SEEK_CUR);
+		return pos - Start; // We are treating 'tell' as a virtual location from file Start
+	}
+
+	virtual bool Seek(int64 NewPosition) override
+	{
+		check(IsValid());
+		// we need to offset all positions by the Start offset
+		NewPosition += Start;
+		check(NewPosition >= 0);
+		
+		return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
+	}
+
+    virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
+	{
+		check(IsValid());
+		check(NewPositionRelativeToEnd <= 0);
+		// We need to convert this to a virtual offset inside the file we are interested in
+		int64 position = Start + (Length - NewPositionRelativeToEnd);
+		return lseek(FileHandle, position, SEEK_SET) != -1;
+	}
+
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
+	{
+		check(IsValid());
+		while (BytesToRead)
+		{
+			check(BytesToRead >= 0);
+			int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToRead);
+			check(Destination);
+			if (read(FileHandle, Destination, ThisSize) != ThisSize)
+			{
+				return false;
+			}
+			Destination += ThisSize;
+			BytesToRead -= ThisSize;
+		}
+		return true;
+	}
+
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
+	{
+		check(IsValid());
+		while (BytesToWrite)
+		{
+			check(BytesToWrite >= 0);
+			int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToWrite);
+			check(Source);
+			if (write(FileHandle, Source, ThisSize) != ThisSize)
+			{
+				return false;
+			}
+			Source += ThisSize;
+			BytesToWrite -= ThisSize;
+		}
+		return true;
+	}
+
+	virtual int64 Size()
+	{
+		return Length;
 	}
 };
 
@@ -141,19 +246,23 @@ protected:
 public:
 
 	FAndroidPlatformFile()
-		: bLookedForObbs(false)
+		: AssetMgr(nullptr)
+		, bLookedForObbs(false)
 	{
+		AssetMgr = AndroidThunkCpp_GetAssetManager();
 	}
 
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
-		if (stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, false)), &FileInfo) == -1)
+		FString convertedPath = ConvertToAndroidPath(NormalizedFilename, false);
+		if (stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo) == -1)
 		{
 			// if not in read path, check the write path
-			if (stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, true)), &FileInfo) == -1)
+			convertedPath = ConvertToAndroidPath(NormalizedFilename, true);
+			if (stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo) == -1)
 			{
 				return false;
 			}
@@ -162,37 +271,59 @@ public:
 		return S_ISREG(FileInfo.st_mode);
 	}
 
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		FileInfo.st_size = -1;
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
-		if(stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, false)), &FileInfo) == -1)
+		FString convertedPath = ConvertToAndroidPath(NormalizedFilename, false);
+		// See if we need to route via the asset path
+		if (convertedPath.Contains(TEXT(".pak")) && GOBBinAPK)
 		{
-			// if not in read path, check the write path
-			stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, true)), &FileInfo);
+			AAsset * file = AAssetManager_open(AssetMgr, TCHAR_TO_UTF8(*convertedPath), AASSET_MODE_RANDOM); // seems reasonable?
+			FileInfo.st_size = AAsset_getLength(file);
+			AAsset_close(file);
 		}
-
-		// make sure to return -1 for directories
-		if (S_ISDIR(FileInfo.st_mode))
+		else
 		{
-			FileInfo.st_size = -1;
+			if (stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo) == -1)
+			{
+				// if not in read path, check the write path
+				convertedPath = ConvertToAndroidPath(NormalizedFilename, true);
+				stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo);
+			}
+
+			// make sure to return -1 for directories
+			if (S_ISDIR(FileInfo.st_mode))
+			{
+				FileInfo.st_size = -1;
+			}
 		}
 		return FileInfo.st_size;
 	}
 
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		// only delete from write path
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
+		// lets not try and delete things if we are pulling files from the APK
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+			return false;
+
 		return unlink(TCHAR_TO_UTF8(*AndroidFilename)) == 0;
 	}
 
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		FString Filepath = ConvertToAndroidPath(NormalizedFilename, false);
+		
+		// If we are pulling the pak files from the APK they are ALWAYS read only
+		if (Filepath.Contains(TEXT(".pak")) && GOBBinAPK)
+		{
+			return true;
+		}
 		// check read path
 		if (access(TCHAR_TO_UTF8(*Filepath), F_OK) == -1)
 		{
@@ -211,18 +342,27 @@ public:
 		return false;
 	}
 
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// move to the write path
 		FString ToAndroidFilename = ConvertToAndroidPath(NormalizeFilename(To), true);
+		// Can't move pak files in the APK
+		if (ToAndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+			return false;
+
 		FString FromAndroidFilename = ConvertToAndroidPath(NormalizeFilename(From), false);
 		return rename(TCHAR_TO_UTF8(*FromAndroidFilename), TCHAR_TO_UTF8(*ToAndroidFilename)) != -1;
 	}
 
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		struct stat FileInfo;
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), false);
+		
+		// We can't change the state of pak in APK files - so indicate failure
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+			return false;
+
 		if (stat(TCHAR_TO_UTF8(*AndroidFilename), &FileInfo) != -1)
 		{
 			if (bNewReadOnlyValue)
@@ -238,13 +378,18 @@ public:
 		return false;
 	}
 
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
 		FString AndroidFilename = ConvertToAndroidPath(NormalizedFilename, false);
+
+		// No TimeStamp for pak files in APK, so just return a default timespan for now
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+			return AndroidEpoch;
+
 		if(stat(TCHAR_TO_UTF8(*AndroidFilename), &FileInfo) == -1)
 		{
 			// if not in the read path, check the write path
@@ -260,11 +405,15 @@ public:
 		return AndroidEpoch + TimeSinceEpoch;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) override
 	{
 		// get file times
 		struct stat FileInfo;
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
+		
+		// Can't set time stamp on pak files in APK
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+			return ;
 		if(stat(TCHAR_TO_UTF8(*AndroidFilename), &FileInfo) == -1)
 		{
 			return;
@@ -277,16 +426,22 @@ public:
 		utime(TCHAR_TO_UTF8(*AndroidFilename), &Times);
 	}
 
-	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
-		if(stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, false)), &FileInfo) == -1)
+		FString convertedPath = ConvertToAndroidPath(NormalizedFilename, false);
+		// No TimeStamp for pak files in APK, so just return a default timespan for now
+		if (convertedPath.Contains(TEXT(".pak")) && GOBBinAPK)
+			return AndroidEpoch;
+
+		if(stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo) == -1)
 		{
 			// if not in the read path, check the write path
-			if(stat(TCHAR_TO_UTF8(*ConvertToAndroidPath(NormalizedFilename, true)), &FileInfo) == -1)
+			convertedPath = ConvertToAndroidPath(NormalizedFilename, true);
+			if (stat(TCHAR_TO_UTF8(*convertedPath), &FileInfo) == -1)
 			{
 				return FDateTime::MinValue();
 			}
@@ -297,28 +452,43 @@ public:
 		return AndroidEpoch + TimeSinceEpoch;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
 		FString AndroidFilename = ConvertToAndroidPath(NormalizedFilename, false);
-		int32 Handle = open(TCHAR_TO_UTF8(*AndroidFilename), O_RDONLY);
-		if(Handle == -1)
+		// No TimeStamp for pak files in APK, so just return a default timespan for now
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
 		{
-			// if not in the read path, check the write path
-			FString AndroidFilename = ConvertToAndroidPath(NormalizedFilename, true);
-			Handle = open(TCHAR_TO_UTF8(*AndroidFilename), O_RDONLY);
+			AAsset * file = AAssetManager_open(AssetMgr, TCHAR_TO_UTF8(*AndroidFilename), AASSET_MODE_RANDOM); // seems reasonable?
+			return new FFileHandlePakAndroid(file);
 		}
-
-		if (Handle != -1)
+		else
 		{
-			return new FFileHandleAndroid(Handle);
+			int32 Handle = open(TCHAR_TO_UTF8(*AndroidFilename), O_RDONLY);
+			if (Handle == -1)
+			{
+				// if not in the read path, check the write path
+				AndroidFilename = ConvertToAndroidPath(NormalizedFilename, true);
+				Handle = open(TCHAR_TO_UTF8(*AndroidFilename), O_RDONLY);
+			}
+
+			if (Handle != -1)
+			{
+				return new FFileHandleAndroid(Handle);
+			}
 		}
 		return NULL;
 	}
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) override
 	{
+		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
+		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
+		{
+			return nullptr; // Can't open pak files in the APK for writing
+		}
+
 		int Flags = O_CREAT;
 		if (bAppend)
 		{
@@ -336,7 +506,7 @@ public:
 		{
 			Flags |= O_WRONLY;
 		}
-		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
+		
 		int32 Handle = open(TCHAR_TO_UTF8(*AndroidFilename), Flags, S_IRUSR | S_IWUSR);
 		if (Handle != -1)
 		{
@@ -350,14 +520,14 @@ public:
 		return NULL;
 	}
 
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		struct stat FileInfo;
 		FString NormalizedDirectory = NormalizeFilename(Directory);
 		FString AndroidDirectory = ConvertToAndroidPath(NormalizedDirectory, false);
 		if (stat(TCHAR_TO_UTF8(*AndroidDirectory), &FileInfo)== -1)
 		{
-			FString AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
+			AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
 			if (stat(TCHAR_TO_UTF8(*AndroidDirectory), &FileInfo)== -1)
 			{
 				return false;
@@ -366,56 +536,91 @@ public:
 		return S_ISDIR(FileInfo.st_mode);
 	}
 
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 		FString AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
 		return mkdir(TCHAR_TO_UTF8(*AndroidDirectory), 0766) || (errno == EEXIST);
 	}
 
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 		FString AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
 		return rmdir(TCHAR_TO_UTF8(*AndroidDirectory));
 	}
 
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) OVERRIDE
+	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
 	{
 		// we haven't hijacked a directory yet, and this one ends in Paks, which means the engine is looking for .pak files
 		if (!bLookedForObbs && FString(Directory).EndsWith("/Paks/"))
 		{
 			// never look again after this time
 			bLookedForObbs = true;
-
-			// look in the downloader path first, then manual location as a fallback
-			for (int32 PassIndex = 0; PassIndex < 2 && ObbHijackedPakDirectory == TEXT(""); PassIndex++)
+			// If we aren't looking in the APK for the OBB then go looking in the expansion directory...
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb %s.\n"), GOBBinAPK ? TEXT("in APK") : TEXT("in external dir."));
+			if (!GOBBinAPK)
 			{
-				FString ObbPath = GFilePathBase + ((PassIndex == 0) ? FString(TEXT("/Android/obb/")) : FString(TEXT("/obb/"))) + GPackageName;
-
-				DIR* Handle = opendir(TCHAR_TO_UTF8(*ObbPath));
-				if (Handle)
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Looking for Obb in external dir.\n"));
+				// look in the downloader path first, then manual location as a fallback
+				for (int32 PassIndex = 0; PassIndex < 2 && ObbHijackedPakDirectory == TEXT(""); PassIndex++)
 				{
-					bool Result = true;
-					struct dirent *Entry;
-					while ((Entry = readdir(Handle)) != NULL && Result == true)
+					FString ObbPath = GFilePathBase + ((PassIndex == 0) ? FString(TEXT("/Android/obb/")) : FString(TEXT("/obb/"))) + GPackageName;
+
+					DIR* Handle = opendir(TCHAR_TO_UTF8(*ObbPath));
+					if (Handle)
 					{
-						if (FCStringAnsi::Strstr(Entry->d_name, ".obb") != NULL)
+						struct dirent *Entry;
+						while ((Entry = readdir(Handle)) != NULL)
 						{
-							// convert to a ".pak" filename
-							FString ObbFilename = ObbPath / FString(UTF8_TO_TCHAR(Entry->d_name));
-							FString PakFilename = FString(Directory) / FString(UTF8_TO_TCHAR(Entry->d_name)) + TEXT(".pak");
-							ObbRemaps.Add(PakFilename, ObbFilename);
+							if (FCStringAnsi::Strstr(Entry->d_name, ".obb") != NULL)
+							{
+								// convert to a ".pak" filename
+								FString ObbFileName = ObbPath / FString(UTF8_TO_TCHAR(Entry->d_name));
+								FString PakFileName = FString(Directory) / FString(UTF8_TO_TCHAR(Entry->d_name)) + TEXT(".pak");
+								ObbRemaps.Add(PakFileName, ObbFileName);
 
-							FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb found at '%s', pretending to be '%s'\n"), *ObbFilename, *PakFilename);
+								FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb found at '%s', pretending to be '%s'\n"), *ObbFileName, *PakFileName);
 
-							// remember which directory we are hijacking only if we found a .obb file
+								// remember which directory we are hijacking only if we found a .obb file
+								ObbHijackedPakDirectory = Directory;
+							}
+						}
+						closedir(Handle);
+					}
+					else
+					{
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb directory not found\n"));
+					}
+				}
+			}
+			else // otherwise we need to open the assets directory to find the target file + deal with renaming
+			{
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Looking for Obb in APK file.\n"));
+				AAssetDir * topDir = AAssetManager_openDir(AssetMgr, ""); // grab the top level dir
+				if (topDir)
+				{
+					const char * fileName = NULL;
+					while ((fileName = AAssetDir_getNextFileName(topDir)) != NULL)
+					{
+						const char * pakPosition = NULL;
+						if ((pakPosition = strstr(fileName, ".pak")) != 0)
+						{
+							FString ObbFileName = FString(UTF8_TO_TCHAR(fileName)); // The real asset file name
+							FString PakFileName = FString(Directory) / FString(UTF8_TO_TCHAR(fileName));
+							PakFileName.RemoveFromEnd(TEXT(".png")); // strip the '.png' from the end
+							ObbRemaps.Add(PakFileName, ObbFileName);
+
+							FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb found at '%s', pretending to be '%s'\n"), *ObbFileName, *PakFileName);
+
+							// remember which directory we are hijacking only if we found a .pak file
 							ObbHijackedPakDirectory = Directory;
 						}
 					}
-					closedir(Handle);
+					AAssetDir_close(topDir);
 				}
-				else
+
+				if (ObbHijackedPakDirectory == TEXT(""))
 				{
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Obb directory not found\n"));
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find PAK in APK file.\n"));
 				}
 			}
 		}
@@ -473,6 +678,8 @@ public:
 	FString ReadDirectory;
 	FString WriteDirectory;
 	
+	AAssetManager* AssetMgr;
+
 	/** 
 	 * Because the .obb file is simply a .pak file, we redirect the engine looking for .pak files to actually find
 	 * .obb files instead. These variables track that remapping, as it happens only the first time a query into a Paks

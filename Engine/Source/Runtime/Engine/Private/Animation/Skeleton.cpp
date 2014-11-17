@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "EngineUtils.h"
+#include "AnimationRuntime.h"
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
@@ -15,6 +16,8 @@
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
 const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
 #endif 
+
+const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 {
@@ -33,6 +36,10 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+#if WITH_EDITORONLY_DATA
+	SlotGroupNames.Empty();
+	SlotGroupNames.Add(DefaultSlotGroupName);
+#endif
 }
 
 void USkeleton::PostInitProperties()
@@ -155,7 +162,7 @@ void USkeleton::ConvertToFReferenceSkeleton()
 	for(int32 BoneIndex=0; BoneIndex<NumRefBones; BoneIndex++)
 	{
 		const FBoneNode & BoneNode = BoneTree[BoneIndex];
-		FMeshBoneInfo BoneInfo(BoneNode.Name_DEPRECATED, BoneNode.ParentIndex_DEPRECATED);
+		FMeshBoneInfo BoneInfo(BoneNode.Name_DEPRECATED, BoneNode.Name_DEPRECATED.ToString(), BoneNode.ParentIndex_DEPRECATED);
 		const FTransform & BoneTransform = RefLocalPoses_DEPRECATED[BoneIndex];
 
 		// All should be good. Parents before children, no duplicate bones?
@@ -856,7 +863,50 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
 	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
 }
 
-#endif
+void USkeleton::AddSlotNodeName(FName SlotNodeName)
+{
+	SlotNodeNames.AddUnique(SlotNodeName);
+}
+
+void USkeleton::RemoveSlotNodeName(FName SlotNodeName)
+{
+	SlotNodeNames.Remove(SlotNodeName);
+}
+
+bool USkeleton::DoesHaveSlotNodeName(FName SlotNodeName) const
+{
+	return SlotNodeNames.Contains(SlotNodeName);
+}
+
+const TArray<FName> & USkeleton::GetSlotNodeNames() const
+{
+	return SlotNodeNames;
+}
+
+void USkeleton::AddSlotGroupName(FName GroupName)
+{
+	SlotGroupNames.AddUnique(GroupName);
+}
+
+void USkeleton::RemoveSlotGroupName(FName GroupName)
+{
+	// we can't delete the deafult one
+	if (GroupName != DefaultSlotGroupName)
+	{
+		SlotGroupNames.Remove(GroupName);
+	}
+}
+
+const TArray<FName> & USkeleton::GetSlotGroupNames() const
+{
+	return SlotGroupNames;
+}
+
+bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
+{
+	return SlotGroupNames.Contains(GroupName);
+}
+#endif // WITH_EDITORONLY_DATA
 
 void USkeleton::RegenerateGuid()
 {

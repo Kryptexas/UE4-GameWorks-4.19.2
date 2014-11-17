@@ -9,9 +9,6 @@
 FStreamingLevelEdMode::FStreamingLevelEdMode() 
 	: FEdMode()
 {
-	ID = FBuiltinEditorModes::EM_StreamingLevel;
-	Name = LOCTEXT("StreamingLevelMode", "Level Transform Editing");
-
 	UMaterial* GizmoMaterial = (UMaterial*)StaticLoadObject( UMaterial::StaticClass(),NULL,TEXT("/Engine/EditorMaterials/LevelTransformMaterial.LevelTransformMaterial") );
 	BoxMaterial = UMaterialInstanceDynamic::Create( GizmoMaterial, NULL );
 
@@ -106,7 +103,7 @@ void FStreamingLevelEdMode::SetLevel( ULevelStreaming* LevelStream )
 	GEditor->RedrawAllViewports();
 }
 
-bool FStreamingLevelEdMode::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FStreamingLevelEdMode::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	// Only Update the LevelTransform if the user has clicked on the Widget
 	if (InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
@@ -145,13 +142,13 @@ void FStreamingLevelEdMode::Render( const FSceneView* View, FViewport* Viewport,
 	}
 }
 
-bool FStreamingLevelEdMode::StartTracking( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport )
+bool FStreamingLevelEdMode::StartTracking( FEditorViewportClient* InViewportClient, FViewport* InViewport )
 {	
 	bIsTracking = true;
 	return true;
 }
 
-bool FStreamingLevelEdMode::EndTracking( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport )
+bool FStreamingLevelEdMode::EndTracking( FEditorViewportClient* InViewportClient, FViewport* InViewport )
 {	
 	bIsTracking = false;
 	if( SelectedLevel.IsValid() && !LevelTransform.Equals( SelectedLevel->LevelTransform ) )

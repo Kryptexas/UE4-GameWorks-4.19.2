@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimNodeBase.h"
 
 /////////////////////////////////////////////////////
 // FStateMachineDebugData

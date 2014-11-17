@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EnumAsByte.h: FEnumAsByte template
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Template to store enums as BYTEs with type safety
@@ -16,87 +13,112 @@ public:
 	typedef TEnum EnumType;
 
 	/**
-	 * Default Constructor, like an enum it is uninitialized
-	**/
-	FORCEINLINE TEnumAsByte()
-	{
-	}
+	 * Default Constructor (no initialization).
+	 */
+	FORCEINLINE TEnumAsByte( ) { }
+
 	/**
-	 * Copy constructor
-	 * @param InValue value to construct with 
-	**/
-	FORCEINLINE TEnumAsByte(const TEnumAsByte &InValue)
+	 * Copy constructor.
+	 *
+	 * @param InValue value to construct with.
+	 */
+	FORCEINLINE TEnumAsByte( const TEnumAsByte &InValue )
 		: Value(InValue.Value)
-	{
-	}
+	{ }
+
 	/**
-	 * Constructor, initialize to the enum value
-	 * @param InValue value to construct with 
-	**/
-	FORCEINLINE TEnumAsByte(TEnum InValue)
+	 * Constructor, initialize to the enum value.
+	 *
+	 * @param InValue value to construct with.
+	 */
+	FORCEINLINE TEnumAsByte( TEnum InValue )
 		: Value(InValue)
-	{
-	}
+	{ }
+
 	/**
-	 * Constructor, initialize to the int32 value
-	 * @param InValue value to construct with 
-	**/
-	explicit FORCEINLINE TEnumAsByte(int32 InValue)
+	 * Constructor, initialize to the int32 value.
+	 *
+	 * @param InValue value to construct with.
+	 */
+	explicit FORCEINLINE TEnumAsByte( int32 InValue )
 		: Value(InValue)
-	{
-	}
+	{ }
+
 	/**
-	 * Constructor, initialize to the int32 value
-	 * @param InValue value to construct with 
-	**/
-	explicit FORCEINLINE TEnumAsByte(uint8 InValue)
+	 * Constructor, initialize to the int32 value.
+	 *
+	 * @param InValue value to construct with.
+	 */
+	explicit FORCEINLINE TEnumAsByte( uint8 InValue )
 		: Value(InValue)
-	{
-	}
+	{ }
+
+public:
+
 	/**
-	 * Assignment operator
-	 * @param InValue value to set 
-	**/
-	FORCEINLINE TEnumAsByte& operator=(TEnumAsByte InValue)
+	 * Assignment operator.
+	 *
+	 * @param InValue value to set.
+	 */
+	FORCEINLINE TEnumAsByte& operator=( TEnumAsByte InValue )
 	{
 		Value = InValue.Value;
 		return *this;
 	}
 	/**
-	 * Assignment operator
-	 * @param InValue value to set 
-	**/
-	FORCEINLINE TEnumAsByte& operator=(TEnum InValue)
+	 * Assignment operator.
+	 *
+	 * @param InValue value to set.
+	 */
+	FORCEINLINE TEnumAsByte& operator=( TEnum InValue )
 	{
 		Value = InValue;
 		return *this;
 	}
 
-	/** Implicit conversion to TEnum. */
-	operator TEnum() const
+	/**
+	 * Compares two enumeration values for equality.
+	 *
+	 * @return true if the two values are equal, false otherwise.
+	 */
+	bool operator==( TEnum InValue ) const
 	{
-		return TEnum(Value);
+		return (Value == InValue);
 	}
-	/** Comparison operator **/
-	bool operator==(TEnum InValue) const
-	{
-		return Value == InValue;
-	}
-	/** Comparison operator **/
+
+	/**
+	 * Compares two enumeration values for equality.
+	 *
+	 * @return true if the two values are equal, false otherwise.
+	 */
 	bool operator==(TEnumAsByte InValue) const
 	{
-		return Value == InValue.Value;
+		return (Value == InValue.Value);
 	}
-	/** Get the value */
-	TEnum GetValue() const
+
+	/**
+	 * Implicit conversion to TEnum.
+	 */
+	operator TEnum( ) const
 	{
 		return TEnum(Value);
 	}
+
+public:
+
+	/**
+	 * Gets the value.
+	 */
+	TEnum GetValue( ) const
+	{
+		return TEnum(Value);
+	}
+
 private:
-	/** The actual value **/
+
+	/** Holds the actual value **/
 	uint8 Value;
 };
 
-template<class T> struct TIsPODType<TEnumAsByte<T> > { enum { Value = true }; };
 
-
+template<class T> struct TIsPODType<TEnumAsByte<T>> { enum { Value = true }; };

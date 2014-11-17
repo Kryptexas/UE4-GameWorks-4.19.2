@@ -34,26 +34,6 @@ protected:
 	 */
 	FEvent* ThreadInitSyncEvent;
 
-	/** 
-	 * Sync event to make sure that CreateInteral() has been completed before allowing the thread to be auto-deleted
-	 */
-	FEvent* ThreadCreatedSyncEvent;
-
-	/** 
-	 * Flag used when the thread is waiting for the caller to finish setting it up before it can delete itself.
-	 */
-	FThreadSafeCounter WantsToDeleteSelf;
-
-	/**
-	 * Whether we should delete ourselves on thread exit
-	 */
-	bool bShouldDeleteSelf;
-
-	/**
-	 * Whether we should delete the runnable on thread exit
-	 */
-	bool bShouldDeleteRunnable;
-
 	/**
 	 * The priority to run the thread at
 	 */
@@ -89,19 +69,22 @@ protected:
 			case TPri_AboveNormal: return 25;
 			case TPri_Normal: return 15;
 			case TPri_BelowNormal: return 5;
-			default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priroty passed to FRunnableThreadPThread::TranslateThreadPriority()"));
+			default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to FRunnableThreadPThread::TranslateThreadPriority()"));
 		}
 	}
 
 	virtual void SetThreadPriority(pthread_t InThread, EThreadPriority NewPriority)
 	{
-		// initialize the structure
 		struct sched_param Sched;
 		FMemory::Memzero(&Sched, sizeof(struct sched_param));
-		
+		int32 Policy = SCHED_RR;
+
+		// Read the current policy
+		pthread_getschedparam(InThread, &Policy, &Sched);
+
 		// set the priority appropriately
 		Sched.sched_priority = TranslateThreadPriority(NewPriority);
-		pthread_setschedparam(InThread, SCHED_RR, &Sched);
+		pthread_setschedparam(InThread, Policy, &Sched);
 	}
 
 	/**
@@ -226,16 +209,6 @@ protected:
 	 */
 	virtual void PostRun()
 	{
-		if (bShouldDeleteSelf == true)
-		{
-			// Make sure the caller knows we want to delete this thread if we're still int CreateInternal.
-			WantsToDeleteSelf.Increment();
-			// Wait until the caller has finished setting up this thread in case Runnable execution was very short.
-			ThreadCreatedSyncEvent->Wait();
-			// Now clean up the thread handle so we don't leak
-			Thread = PTHREAD_NULL;
-			delete this;
-		}
 	}
 
 	/**
@@ -265,12 +238,6 @@ protected:
 			ThreadInitSyncEvent->Trigger();
 		}
 
-		// Should we delete the runnable?
-		if (bShouldDeleteRunnable == true)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
 		// Clean ourselves up without waiting
 		ThreadIsRunning = false;
 		return ExitCode;
@@ -281,10 +248,6 @@ public:
 		: Thread(PTHREAD_NULL)
 		, Runnable(NULL)
 		, ThreadInitSyncEvent(NULL)
-		, ThreadCreatedSyncEvent(NULL)
-		, WantsToDeleteSelf(0)
-		, bShouldDeleteSelf(false)
-		, bShouldDeleteRunnable(false)
 		, ThreadPriority(TPri_Normal)
 		, ThreadID(0)
 		, ThreadIsRunning(false)
@@ -300,10 +263,9 @@ public:
 		}
 		FRunnableThread::GetThreadRegistry().Remove(ThreadID);
 		ThreadID = 0;
-		delete ThreadCreatedSyncEvent;
 	}
 
-	virtual void SetThreadPriority(EThreadPriority NewPriority) OVERRIDE
+	virtual void SetThreadPriority(EThreadPriority NewPriority) override
 	{
 		// Don't bother calling the OS if there is no need
 		if (NewPriority != ThreadPriority)
@@ -313,13 +275,13 @@ public:
 		}
 	}
 
-	virtual void Suspend(bool bShouldPause = 1) OVERRIDE
+	virtual void Suspend(bool bShouldPause = 1) override
 	{
 		check(Thread);
 		// Impossible in pthreads!
 	}
 
-	virtual bool Kill(bool bShouldWait = false) OVERRIDE
+	virtual bool Kill(bool bShouldWait = false) override
 	{
 		check(Thread && "Did you forget to call Create()?");
 		bool bDidExitOK = true;
@@ -342,22 +304,10 @@ public:
 
 		Thread = PTHREAD_NULL;
 
-		// delete the runnable if requested and we didn't shut down gracefully already.
-		if (Runnable && bShouldDeleteRunnable == true)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
-		// Delete ourselves if requested and we didn't shut down gracefully already.
-		// This check prevents a double-delete of self when we shut down gracefully.
-		if (!bDidExitOK && bShouldDeleteSelf == true)
-		{
-			delete this;
-		}
 		return bDidExitOK;
 	}
 
-	virtual void WaitForCompletion() OVERRIDE
+	virtual void WaitForCompletion() override
 	{
 		// Block until this thread exits
 		while (ThreadIsRunning)
@@ -366,35 +316,27 @@ public:
 		}
 	}
 
-	virtual uint32 GetThreadID() OVERRIDE
+	virtual uint32 GetThreadID() override
 	{
 		return ThreadID;
 	}
 
-	virtual FString GetThreadName() OVERRIDE
+	virtual FString GetThreadName() override
 	{
 		return ThreadName;
-	}
-
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) OVERRIDE
-	{
 	}
 
 protected:
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
-		bool bAutoDeleteSelf = 0,bool bAutoDeleteRunnable = 0,uint32 InStackSize = 0,
-		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) OVERRIDE
+		uint32 InStackSize = 0,
+		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) override
 	{
 		check(InRunnable);
 		Runnable = InRunnable;
-		bShouldDeleteSelf = bAutoDeleteSelf;
-		bShouldDeleteRunnable = bAutoDeleteRunnable;
 
 		// Create a sync event to guarantee the Init() function is called first
 		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
-		// Create a sync event to guarantee the thread will not delete itself until it has been fully set up.
-		ThreadCreatedSyncEvent = FPlatformProcess::CreateSynchEvent(true);
 		// A name for the thread in for debug purposes. _ThreadProc will set it.
 		ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
 		// Create the new thread
@@ -411,14 +353,10 @@ protected:
 			SetThreadPriority(InThreadPri);
 
 			// set the affinity
-			SetThreadAffinityMask(InThreadAffinityMask);
+			FPlatformProcess::SetThreadAffinityMask( InThreadAffinityMask );
 		}
 		else // If it fails, clear all the vars
 		{
-			if (bAutoDeleteRunnable == true)
-			{
-				delete InRunnable;
-			}
 			Runnable = NULL;
 		}
 
@@ -427,13 +365,4 @@ protected:
 		ThreadInitSyncEvent = NULL;
 		return Thread != PTHREAD_NULL;
 	}
-
-	virtual bool NotifyCreated() OVERRIDE
-	{
-		const bool bHasFinished = !!WantsToDeleteSelf.GetValue();
-		// It's ok to delete this thread if it wants to delete self.
-		ThreadCreatedSyncEvent->Trigger();
-		return bHasFinished;
-	}
 };
-

@@ -60,6 +60,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	GIsUCCMakeStandaloneHeaderGenerator = true;
 	GEngineLoop.PreInit(*ShortCmdLine);
 
+	// Log full command line for UHT as UBT overrides LogInit verbosity settings
+	UE_LOG(LogCompile, Log, TEXT("UHT Command Line: %s"), *CmdLine);
+
 	if (ModuleInfoFilename.IsEmpty())
 	{
 		if (!FPlatformMisc::IsDebuggerPresent())

@@ -11,7 +11,7 @@ void FApplicationMode::DeactivateMode(TSharedPtr<FTabManager> InTabManager)
 {
 	// Save the layout to INI
 	check(InTabManager.IsValid());
-	FLayoutSaveRestore::SaveTheLayout(InTabManager->PersistLayout());
+	FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, InTabManager->PersistLayout());
 		
 	// Unregister the tabs
 	/*
@@ -40,5 +40,5 @@ TSharedRef<FTabManager::FLayout> FApplicationMode::ActivateMode(TSharedPtr<FTabM
 
 	// Try loading the layout from INI
 	check(TabLayout.IsValid());
-	return FLayoutSaveRestore::LoadUserConfigVersionOf(TabLayout.ToSharedRef());
+	return FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, TabLayout.ToSharedRef());
 }

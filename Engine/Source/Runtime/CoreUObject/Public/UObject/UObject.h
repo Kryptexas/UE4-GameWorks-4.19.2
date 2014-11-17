@@ -217,11 +217,19 @@ public:
 	 */
 	virtual void PostEditChangeChainProperty( struct FPropertyChangedChainEvent& PropertyChangedEvent );
 
+	/** Gathers external data required for applying an undo transaction */
+	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const { return NULL; }
+
 	/** Called before applying a transaction to the object.  Default implementation simply calls PreEditChange. */
 	virtual void PreEditUndo();
 
 	/** Called after applying a transaction to the object.  Default implementation simply calls PostEditChange. */
 	virtual void PostEditUndo();
+
+	/** Called after applying a transaction to the object in cases where transaction annotation was provided. Default implementation simply calls PostEditChange. */
+	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation);
+
+
 #endif // WITH_EDITOR
 
 	// @todo document
@@ -253,6 +261,16 @@ public:
 	virtual bool NeedsLoadForServer() const 
 	{ 
 		return true; 
+	}
+
+	/**
+	 * Called during saving to determine the load flags to save with the object.
+	 *
+	 * @return	true if this object should always be loaded for editor game
+	 */
+	virtual bool NeedsLoadForEditorGame() const
+	{
+		return false;
 	}
 
 	/** 
@@ -440,6 +458,18 @@ public:
 
 	/** Returns properties that are replicated for the lifetime of the actor channel */
 	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const;
+
+	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
+	virtual bool IsNameStableForNetworking() const;
+
+	/** IsFullNameStableForNetworking means an object can be referred to its full path name over the network */
+	virtual bool IsFullNameStableForNetworking() const;
+
+	/** IsSupportedForNetworking means an object can be referenced over the network */
+	virtual bool IsSupportedForNetworking() const;
+
+	/** Returns a list of sub-objects that have stable names for networking */
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) {}
 
 	/** Called right before receiving a bunch */
 	virtual void PreNetReceive();

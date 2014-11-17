@@ -31,7 +31,7 @@ public:
 	/**
 	 * Initialize commands
 	 */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
 };
@@ -54,25 +54,25 @@ public:
 	virtual ~FDestructibleMeshEditor();
 
 	/** IToolkit interface */
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		// @Todo: revert to Engine/Physics/Destructibles once docs exist. 
 		return FString(TEXT("Engine/Physics"));
 	}
 
 	/** IDestructibleMeshEditor interface */
-	virtual UDestructibleMesh* GetDestructibleMesh() OVERRIDE;
-	virtual int32 GetCurrentPreviewDepth() const OVERRIDE;
-	virtual void SetCurrentPreviewDepth(uint32 InPreviewDepthDepth) OVERRIDE;
-	virtual void RefreshTool() OVERRIDE;
-	virtual void RefreshViewport() OVERRIDE;
+	virtual UDestructibleMesh* GetDestructibleMesh() override;
+	virtual int32 GetCurrentPreviewDepth() const override;
+	virtual void SetCurrentPreviewDepth(uint32 InPreviewDepthDepth) override;
+	virtual void RefreshTool() override;
+	virtual void RefreshViewport() override;
 
 	void SetSelectedChunks(const TArray<UObject*>& SelectedChunks);
 

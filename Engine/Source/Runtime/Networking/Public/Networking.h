@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Networking.h: Networking module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -16,16 +12,14 @@
 #include "SocketSubsystem.h"
 
 
-/* Interfaces
+/* Public Includes
  *****************************************************************************/
 
 #include "IPv4SubnetMask.h"
 #include "IPv4Address.h"
 #include "IPv4Endpoint.h"
 #include "IPv4Subnet.h"
-
 #include "SteamEndpoint.h"
-
 #include "INetworkingModule.h"
 
 
@@ -34,7 +28,6 @@
 
 #include "TcpSocketBuilder.h"
 #include "TcpListener.h"
-
 #include "UdpSocketReceiver.h"
 #include "UdpSocketSender.h"
 #include "UdpSocketBuilder.h"

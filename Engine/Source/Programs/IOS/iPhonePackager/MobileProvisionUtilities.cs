@@ -21,10 +21,94 @@ namespace iPhonePackager
 		public object Tag;
 
 		public string ApplicationIdentifierPrefix = null;
+		public string ApplicationIdentifier = null;
 		public List<X509Certificate2> DeveloperCertificates = new List<X509Certificate2>();
 		public List<string> ProvisionedDeviceIDs;
 		public string ProvisionName;
+		public bool bDebug;
 		public Utilities.PListHelper Data;
+
+		public static string FindCompatibleProvision(string CFBundleIdentifier)
+		{
+			// remap the gamename if necessary
+			string GameName = Program.GameName;
+			if (GameName == "UE4Game")
+			{
+				if(Config.ProjectFile.Length > 0)
+				{
+					GameName = Path.GetFileNameWithoutExtension(Config.ProjectFile);
+				}
+			}
+
+			// ensure the provision directory exists
+			if (!Directory.Exists(Config.ProvisionDirectory))
+			{
+				Directory.CreateDirectory(Config.ProvisionDirectory);
+			}
+
+			#region remove after we provide an install mechanism
+			// copy all of the provisions from the game directory to the library
+			foreach (string Provision in Directory.EnumerateFiles(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
+			{
+				if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+				{
+					File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+				}
+			}
+
+			// copy all of the provisions from the egine directory to the library
+			foreach (string Provision in Directory.EnumerateFiles(Config.EngineBuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
+			{
+				if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+				{
+					File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+				}
+			}
+			#endregion
+
+			// cache the provision library
+			Dictionary<string, MobileProvision> ProvisionLibrary = new Dictionary<string, MobileProvision>();
+			foreach (string Provision in Directory.EnumerateFiles(Config.ProvisionDirectory, "*.mobileprovision"))
+			{
+				MobileProvision p = MobileProvisionParser.ParseFile(Provision);
+				ProvisionLibrary.Add(Provision, p);
+			}
+
+			// check the cache for a provision matching the app id (com.company.Game)
+			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
+			{
+				if (Pair.Value.ApplicationIdentifier.Contains(CFBundleIdentifier) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					{
+						return Pair.Key;
+					}
+				}
+			}
+
+			// check the cache for a provision matching the wild card
+			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
+			{
+				if ((Pair.Value.ProvisionName.Contains("Wildcard") || Pair.Value.ApplicationIdentifier.Contains("*")) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					{
+						return Pair.Key;
+					}
+				}
+			}
+
+			// check to see if there is already an embedded provision
+			string MobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
+
+			return MobileProvisionFilename;
+		}
 
 		/// <summary>
 		/// Extracts the dict values for the Entitlements key and creates a new full .plist file
@@ -109,6 +193,22 @@ namespace iPhonePackager
 
 			// Key: ProvisionedDevices, Array<String>
 			ProvisionedDeviceIDs = Data.GetArray("ProvisionedDevices", "string");
+
+			// Key: application-identifier, Array<String>
+			Utilities.PListHelper XCentPList = null;
+			Data.ProcessValueForKey("Entitlements", "dict", delegate(XmlNode ValueNode)
+			{
+				XCentPList = Utilities.PListHelper.CloneDictionaryRootedAt(ValueNode);
+			});
+
+			// Modify the application-identifier to be fully qualified if needed
+			if (!XCentPList.GetString("application-identifier", out ApplicationIdentifier))
+			{
+				ApplicationIdentifier = "(unknown)";
+			}
+
+			// check for get-task-allow
+			bDebug = XCentPList.GetBool("get-task-allow");
 		}
 
 		/// <summary>

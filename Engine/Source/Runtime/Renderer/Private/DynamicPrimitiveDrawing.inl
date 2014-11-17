@@ -22,9 +22,12 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 		{
 			DepthTexture = GSceneRenderTargets.GetSceneDepthTexture();
 		}
+		
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 		// Draw the batched elements.
 		BatchedElements.Draw(
+			RHICmdList,
 			bNeedToSwitchVerticalAxis,
 			View->ViewProjectionMatrix,
 			View->ViewRect.Width(),
@@ -104,8 +107,11 @@ int32 TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::DrawMesh(const FMeshBat
 #if DO_CHECK
 	Mesh.CheckUniformBuffers();
 #endif
+	
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 	INC_DWORD_STAT_BY(STAT_DynamicPathMeshDrawCalls,Mesh.Elements.Num());
 	const bool DrawDirty = DrawingPolicyFactoryType::DrawDynamicMesh(
+		RHICmdList,
 		*View,
 		DrawingContext,
 		Mesh,
@@ -217,6 +223,9 @@ bool DrawViewElements(
 	bool bPreFog
 	)
 {
+	
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 	// Get the correct element list based on dpg index
 	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = ( DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements );
 	// Draw the view's mesh elements.
@@ -231,6 +240,7 @@ bool DrawViewElements(
 		do
 		{
 			DrawingPolicyFactoryType::DrawDynamicMesh(
+				RHICmdList, 
 				View,
 				DrawingContext,
 				Mesh,

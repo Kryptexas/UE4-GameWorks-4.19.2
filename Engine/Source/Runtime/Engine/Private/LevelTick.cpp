@@ -5,8 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelStreamingVolume.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
+#include "PhysicsPublic.h"
 
 #include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
@@ -18,10 +20,6 @@
 #endif
 #if !UE_BUILD_SHIPPING
 #include "STaskGraph.h"
-#endif
-
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
 #endif
 
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
@@ -634,7 +632,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 			bool bOriginalShouldBeLoaded						= LevelStreamingObject->bShouldBeLoaded;
 			bool bOriginalShouldBeVisible						= LevelStreamingObject->bShouldBeVisible;
 			bool bOriginalShouldBlockOnLoad						= LevelStreamingObject->bShouldBlockOnLoad;
-			int32 bOriginalLODIndex								= LevelStreamingObject->GetLODIndex(this);
+			int32 bOriginalLODIndex								= LevelStreamingObject->LevelLODIndex;
 
 			if( bShouldBeLoaded || bShouldAffectLoading )
 			{
@@ -663,7 +661,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 				if( bOriginalShouldBeLoaded		!= LevelStreamingObject->bShouldBeLoaded
 				||	bOriginalShouldBeVisible	!= LevelStreamingObject->bShouldBeVisible 
 				||	bOriginalShouldBlockOnLoad	!= LevelStreamingObject->bShouldBlockOnLoad
-				||  bOriginalLODIndex			!= LevelStreamingObject->GetLODIndex(this))
+				||  bOriginalLODIndex			!= LevelStreamingObject->LevelLODIndex)
 				{
 					for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
@@ -673,7 +671,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 								LevelStreamingObject->bShouldBeLoaded, 
 								LevelStreamingObject->bShouldBeVisible,
 								LevelStreamingObject->bShouldBlockOnLoad,
-								LevelStreamingObject->GetLODIndex(this));
+								LevelStreamingObject->LevelLODIndex);
 					}
 				}
 			}
@@ -695,7 +693,7 @@ void UWorld::RunTickGroup(ETickingGroup Group, bool bBlockTillComplete = true)
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdates(
 	TEXT("AllowAsyncRenderThreadUpdates"),
-	EXPERIMENTAL_PARALLEL_CODE ? 1 : 0,
+	0,
 	TEXT("Used to control async renderthread updates."));
 
 void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* Component, bool bForceGameThread)
@@ -706,10 +704,6 @@ void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* 
 		bool bAllowConcurrentUpdates = !!CVarAllowAsyncRenderThreadUpdates.GetValueOnGameThread();
 		bForceGameThread = !bAllowConcurrentUpdates;
 	}
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	FScopeLock ScopeLock( &ComponentsThatNeedEndOfFrameUpdateSynchronizationObject );
-#endif
 
 	if (bForceGameThread)
 	{
@@ -726,9 +720,6 @@ void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* 
 	*/
 void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 {
-#if EXPERIMENTAL_PARALLEL_CODE
-	FScopeLock ScopeLock( &ComponentsThatNeedEndOfFrameUpdateSynchronizationObject );
-#endif
 	SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate);
 	// update all dirty components. 
 	bPostTickComponentUpdate = true;
@@ -848,7 +839,7 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 static class FFileProfileWrapperExec: private FSelfRegisteringExec
 {
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if( FParse::Command( &Cmd, TEXT("Profile") ) )
 		{
@@ -970,8 +961,8 @@ static class FFileProfileWrapperExec: private FSelfRegisteringExec
 		static FName TaskGraphModule(TEXT("TaskGraph"));
 		if (FModuleManager::Get().IsModuleLoaded(TaskGraphModule))
 		{
-			IProfileVisualizerModule* ProfileVisualizer = (IProfileVisualizerModule*)&FModuleManager::Get().GetModuleInterface(TaskGraphModule);
-			ProfileVisualizer->DisplayProfileVisualizer( RootEvent, TEXT("I/O") );
+			IProfileVisualizerModule& ProfileVisualizer = FModuleManager::GetModuleChecked<IProfileVisualizerModule>(TaskGraphModule);
+			ProfileVisualizer.DisplayProfileVisualizer( RootEvent, TEXT("I/O") );
 		}
 	}
 
@@ -1113,19 +1104,14 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
         bInTick = false;
         EnsureCollisionTreeIsBuilt();
         bInTick = true;
-#if EXPERIMENTAL_PARALLEL_CODE
-		{			
-			RunTickGroup(TG_ParallelAnimWork);			
-		}
-		{			
-			RunTickGroup(TG_ParallelPostAnimWork);			
-		}
-#endif // EXPERIMENTAL_PARALLEL_CODE
 		RunTickGroup(TG_StartPhysics); 
 		RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
-		RunTickGroup(TG_EndPhysics); 
-		PhysicsScene->DeferredCommandHandler.Flush();
+		RunTickGroup(TG_EndPhysics);
+		if ( PhysicsScene != NULL )
+		{
+			PhysicsScene->DeferredCommandHandler.Flush();
+		}
 		RunTickGroup(TG_PreCloth);
 		RunTickGroup(TG_StartCloth);
 		RunTickGroup(TG_EndCloth);

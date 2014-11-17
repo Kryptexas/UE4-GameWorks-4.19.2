@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherAutomatedServiceProvider.h: Declares the ILauncherAutomatedServiceProvider interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ILauncherAutomatedServiceProvider.
- */
+/** Type definition for shared pointers to instances of ILauncherAutomatedServiceProvider. */
 typedef TSharedPtr<class ILauncherAutomatedServiceProvider> ILauncherAutomatedServiceProviderPtr;
 
-/**
- * Type definition for shared references to instances of ILauncherAutomatedServiceProvider.
- */
+/** Type definition for shared references to instances of ILauncherAutomatedServiceProvider. */
 typedef TSharedRef<class ILauncherAutomatedServiceProvider> ILauncherAutomatedServiceProviderRef;
 
 
@@ -42,7 +34,7 @@ public:
 	/**
 	 * Setup the service pre-requisites
 	 *
-	 * @param Params - The settings to use for the service, I.e. Game/Config to deploy etc
+	 * @param Params The settings to use for the service, I.e. Game/Config to deploy etc
 	 */
 	virtual void Setup( const TCHAR* Params ) = 0;
 	
@@ -54,9 +46,10 @@ public:
 	/**
 	 * Tick the service so it can continue with its work.
 	 *
-	 * @param DeltaTime - Time since last tick
+	 * @param DeltaTime Time since last tick
 	 */
 	virtual void Tick( float DeltaTime ) = 0;
+
 public:
 
 	/**

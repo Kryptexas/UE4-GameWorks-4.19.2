@@ -7,13 +7,12 @@
 
 #include "CorePrivate.h"
 
-template<> uint32 FThreadSingleton<FThreadIdleStats>::TlsSlot = 0;
+DECLARE_THREAD_SINGLETON( FThreadIdleStats );
 
 struct FStats2Globals
 {
 	static void Get()
 	{
-		FThreadIdleStats::Get();
 #if	STATS
 		FStartupMessages::Get();
 		IStatGroupEnableManager::Get();
@@ -25,6 +24,55 @@ static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 {} FForceInitAtBootFStats2;
 
 DECLARE_FLOAT_COUNTER_STAT( TEXT( "Seconds Per Cycle" ), STAT_SecondsPerCycle, STATGROUP_Engine );
+
+/*-----------------------------------------------------------------------------
+	FStats2
+-----------------------------------------------------------------------------*/
+
+void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate /*= FOnAdvanceRenderingThreadStats()*/ )
+{
+#if STATS
+	check( IsInGameThread() );
+	static int32 MasterDisableChangeTagStartFrame = -1;
+	static int64 StatsFrame = 1;
+	StatsFrame++;
+
+	int64 Frame = StatsFrame;
+	if( bDiscardCallstack )
+	{
+		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
+	}
+	if( MasterDisableChangeTagStartFrame == -1 )
+	{
+		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
+	}
+	if( !FThreadStats::IsCollectingData() || MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag() )
+	{
+		Frame = -StatsFrame; // mark this as a bad frame
+	}
+	static FStatNameAndInfo Adv( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
+	FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+	if( FPlatformProperties::IsServerOnly() )
+	{
+		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+	}
+
+	if( AdvanceRenderingThreadStatsDelegate.IsBound() )
+	{
+		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, StatsFrame, MasterDisableChangeTagStartFrame );
+	}
+	else
+	{
+		// There is no rendering thread, so this message is sufficient to make stats happy and don't leak memory.
+		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame );
+	}
+
+	FThreadStats::ExplicitFlush( bDiscardCallstack );
+	FThreadStats::WaitForStats();
+	MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
+#endif
+}
+
 
 /* Todo
 
@@ -82,9 +130,10 @@ DEFINE_STAT(STAT_FPS);
 DEFINE_STAT(STAT_DrawStats);
 
 DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
+DECLARE_MEMORY_STAT( TEXT( "Stats descriptions (ansi+wide)" ), STAT_StatDescMemory, STATGROUP_StatSystem );
+
 
 FName TStatId::TStatId_NAME_None;
-
 
 void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
@@ -147,23 +196,40 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	enum 
 	{
-		NumPerBlock = 16384,
+		/**
+		 *	Increment between two successive long names. 
+		 *	@see TStatId
+		 */
+		FNAME_INCREMENT = 3,
+
+		/** Number of stats pointer allocated per block. */
+		NUM_PER_BLOCK = 16384 * FNAME_INCREMENT,
 	};
-	FCriticalSection SynchronizationObject;
-	FName* PendingFNames;
-	int32 PendingCount;
+
+
 	TMap<FName, FGroupEnable> HighPerformanceEnable;
 
+	/** Used to synchronize the access to the high performance stats groups. */
+	FCriticalSection SynchronizationObject;
+	
+	/** Pointer to the long name in the names block. */
+	FName* PendingFNames;
+
+	/** Pending count of the name in the names block. */
+	int32 PendingCount;
+
+	/** Holds the amount of memory allocated for the stats descriptions. */
+	FThreadSafeCounter MemoryCounter;
+
 	// these control what happens to groups that haven't been registered yet
+	TMap<FName, bool> EnableForNewGroup;
 	bool EnableForNewGroups;
 	bool UseEnableForNewGroups;
-	TMap<FName, bool> EnableForNewGroup;
-
 
 	void EnableStat(FName StatName, FName *DisablePtr)
 	{
 		// This is all complicated to ensure an atomic 8 byte write
-		checkAtCompileTime(sizeof(FName) == sizeof(uint64), assumption_about_size_of_fname);
+		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
 		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
 		MS_ALIGN(8) struct FAligner
 		{
@@ -178,7 +244,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	void DisableStat(FName *DisablePtr)
 	{
-		checkAtCompileTime(sizeof(FName) == sizeof(uint64), assumption_about_size_of_fname);
+		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
 		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
 		*(uint64*)DisablePtr = 0;
 	}
@@ -193,7 +259,14 @@ public:
 		check(IsInGameThread());
 	}
 
-	virtual void SetHighPerformanceEnableForGroup(FName Group, bool Enable) OVERRIDE
+	virtual void UpdateMemoryUsage() override
+	{
+		// Update the stats descriptions memory usage.
+		const int32 MemoryUsage = MemoryCounter.GetValue();
+		SET_MEMORY_STAT( STAT_StatDescMemory, MemoryUsage );
+	}
+
+	virtual void SetHighPerformanceEnableForGroup(FName Group, bool Enable) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -219,7 +292,7 @@ public:
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
 
-	virtual void SetHighPerformanceEnableForAllGroups(bool Enable) OVERRIDE
+	virtual void SetHighPerformanceEnableForAllGroups(bool Enable) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -243,7 +316,7 @@ public:
 		}
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
-	virtual void ResetHighPerformanceEnableForAllGroups() OVERRIDE
+	virtual void ResetHighPerformanceEnableForAllGroups() override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -268,7 +341,7 @@ public:
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
 
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) OVERRIDE
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -316,11 +389,31 @@ public:
 		}
 		if (PendingCount < 1)
 		{
-			PendingFNames = new FName[NumPerBlock];
-			PendingCount = NumPerBlock;
+			PendingFNames = new FName[NUM_PER_BLOCK];
+			FMemory::Memzero( PendingFNames, NUM_PER_BLOCK *sizeof( FName ) );
+			PendingCount = NUM_PER_BLOCK;
 		}
-		PendingCount--;
-		FName* Result = PendingFNames++;
+		PendingCount -= FNAME_INCREMENT;
+		FName* Result = &PendingFNames[TStatId::INDEX_FNAME];
+
+		// Get the wide stat description.
+		const int32 StatDescLen = FCString::Strlen( InDescription ) + 1;
+		// We are leaking this. @see STAT_StatDescMemory
+		WIDECHAR* StatDescWide = new WIDECHAR[StatDescLen];
+		TCString<WIDECHAR>::Strcpy( StatDescWide, StatDescLen, StringCast<WIDECHAR>( InDescription ).Get() );
+
+		// Get the ansi stat description.
+		// We are leaking this. @see STAT_StatDescMemory
+		ANSICHAR* StatDescAnsi = new ANSICHAR[StatDescLen];
+		TCString<ANSICHAR>::Strcpy( StatDescAnsi, StatDescLen, StringCast<ANSICHAR>( InDescription ).Get() );
+
+		*(UPTRINT*)&PendingFNames[TStatId::INDEX_WIDE_STRING] = (UPTRINT)(UPTRINT*)StatDescWide;
+		*(UPTRINT*)&PendingFNames[TStatId::INDEX_ANSI_STRING] = (UPTRINT)(UPTRINT*)StatDescAnsi;
+
+		MemoryCounter.Add( StatDescLen*(sizeof( ANSICHAR ) + sizeof( WIDECHAR )) );
+		
+		PendingFNames += FNAME_INCREMENT;
+
 		if (Found->CurrentEnable)
 		{
 			EnableStat(Stat, Result);
@@ -566,36 +659,38 @@ class FStatsThread : public FRunnable, FSingleThreadRunnable
 public:
 
 	FStatsThread()
-		: State(FStatsThreadState::GetLocalState())
+		: Thread(nullptr)
+		, State(FStatsThreadState::GetLocalState())
 		, bReadyToProcess(false)
 	{
 		check(IsInGameThread());
 	}
 
 	/**
-	 * Returns a pointer to the single threaded interface when mulithreading is disabled.
+	 * Returns a pointer to the single threaded interface when multithreading is disabled.
 	 */
-	virtual FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
 	{
 		return this;
 	}
 
 	virtual uint32 Run()
 	{
-		checkAtCompileTime(ENamedThreads::StatsThread == 0, delete_this_testing_a_build_fail);
 		StatsThreadId = FPlatformTLS::GetCurrentThreadId();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);
 		return 0;
 	}
 
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		static double LastTime = -1.0;
 		if (bReadyToProcess && FPlatformTime::Seconds() - LastTime > .005) // we won't process more than every 5ms
 		{
 			// Update the seconds per cycle.
 			SET_FLOAT_STAT( STAT_SecondsPerCycle, FPlatformTime::GetSecondsPerCycle() ); 
+
+			IStatGroupEnableManager::Get().UpdateMemoryUsage();
 
 			SCOPE_CYCLE_COUNTER(STAT_StatsNewTick);
 			bReadyToProcess = false;
@@ -648,7 +743,7 @@ public:
 
 	void Start()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 0, 0, 128 * 1024, TPri_BelowNormal);
+		Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 512 * 1024, TPri_BelowNormal, FPlatformAffinity::GetStatsThreadMask());
 		check(Thread != NULL);
 	}
 
@@ -890,4 +985,3 @@ void FThreadStats::WaitForStats()
 }
 
 #endif
-

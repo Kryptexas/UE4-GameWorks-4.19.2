@@ -31,9 +31,7 @@ public:
 	{
 		bIsDone = 0;
 
-		bool bAutoDeleteThread = true;
-		bool bAutoDeleteRunnable = false;
-		FRunnableThread::Create(this, Worker.Name(), bAutoDeleteThread, bAutoDeleteRunnable);
+		Thread = FRunnableThread::Create(this, Worker.Name());
 	}
 
 	/**
@@ -50,7 +48,7 @@ public:
 	}
 
 private:
-	virtual uint32 Run() OVERRIDE
+	virtual uint32 Run() override
 	{
 		Worker.DoWork();
 		FPlatformAtomics::InterlockedIncrement(&bIsDone);
@@ -58,7 +56,7 @@ private:
 	}
 
 	TWorker Worker;
-
+	TScopedPointer<FRunnableThread> Thread;
 	volatile int32 bIsDone;	
 };
 
@@ -76,7 +74,7 @@ public:
 	 * @param bIsDirectory Whether the path refers to a file or directory
 	 * @return Whether to carry on iterating
 	 */
-	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 	{
 		return Functor(FilenameOrDirectory, bIsDirectory);
 	}

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "PhysicsVolume.generated.h"
 
 /**
@@ -15,7 +16,7 @@ class APhysicsVolume : public AVolume
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	ENGINE_API virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
+	ENGINE_API virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif // WITH_EDITOR	
 	// End UObject interface.
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SNewsFeed.h: Declares the SNewsFeed class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,8 +26,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InNewsFeedCache - The news feed cache to use.
+	 * @param InArgs The construction arguments.
+	 * @param InNewsFeedCache The news feed cache to use.
 	 */
 	void Construct( const FArguments& InArgs, const FNewsFeedCacheRef& InNewsFeedCache );
 
@@ -110,7 +106,7 @@ private:
 	TArray<FNewsFeedItemPtr> NewsFeedItemList;
 
 	// Holds the list view for news items.
-	TSharedPtr<SListView<FNewsFeedItemPtr> > NewsFeedItemListView;
+	TSharedPtr<SListView<FNewsFeedItemPtr>> NewsFeedItemListView;
 
 	// Whether older news are currently being shown as well.
 	bool ShowingOlderNews;

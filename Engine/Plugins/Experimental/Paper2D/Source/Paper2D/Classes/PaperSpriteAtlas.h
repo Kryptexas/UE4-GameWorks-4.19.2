@@ -5,7 +5,7 @@
 #include "PaperSpriteAtlas.generated.h"
 
 // Groups together a set of sprites that will try to share the same texture atlas (allowing them to be combined into a single draw call)
-UCLASS(MinimalAPI, BlueprintType, meta=(DisplayThumbnail = "true"))
+UCLASS(MinimalAPI, BlueprintType, Experimental, meta=(DisplayThumbnail = "true"))
 class UPaperSpriteAtlas : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -37,9 +37,9 @@ class UPaperSpriteAtlas : public UObject
 public:
 	// UObject interface
 #if WITH_EDITORONLY_DATA
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End of UObject interface
 };

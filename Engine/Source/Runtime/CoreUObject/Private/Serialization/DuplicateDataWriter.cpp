@@ -67,6 +67,12 @@ FArchive& FDuplicateDataWriter::operator<<(FAssetPtr& AssetPtr)
  */
 UObject* FDuplicateDataWriter::AddDuplicate(UObject* SourceObject,UObject* DupObject)
 {
+	if ( DupObject && !DupObject->IsTemplate() )
+	{
+		// Make sure the duplicated object is prepared to postload
+		DupObject->SetFlags(RF_NeedPostLoad|RF_NeedPostLoadSubobjects);
+	}
+
 	// Check for an existing duplicate of the object; if found, use that one instead of creating a new one.
 	FDuplicatedObject Info = DuplicatedObjectAnnotation.GetAnnotation( SourceObject );
 	if ( Info.IsDefault() )

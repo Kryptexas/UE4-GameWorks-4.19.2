@@ -73,6 +73,12 @@ void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICom
 	UICommandBindingMap.Add( InUICommandInfo, InUIAction );
 }
 
+bool FUICommandList::IsCommandInfoMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const
+{
+	check( InUICommandInfo.IsValid() );
+
+	return UICommandBindingMap.Contains( InUICommandInfo );
+}
 
 void FUICommandList::Append( const TSharedRef<FUICommandList>& InCommandsToAppend )
 {
@@ -201,6 +207,26 @@ bool FUICommandList::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEve
 bool FUICommandList::ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const
 {
 	return ConditionalProcessCommandBindings( InMouseEvent.GetEffectingButton(), InMouseEvent.IsControlDown(), InMouseEvent.IsAltDown(), InMouseEvent.IsShiftDown(), InMouseEvent.IsRepeat() );
+}
+
+
+/**
+ * Processes any UI commands which are activated by the specified key, modifier keys state and input event
+ *
+ * @param Key				The current key that is pressed
+ * @param ModifierKeysState	Pressed state of keys that are commonly used as modifiers
+ * @param bRepeat			True if the input is repeating (held)
+ *
+ * @return true if an action was processed
+ */
+bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeysState& ModifierKeysState, const bool bRepeat ) const
+{
+	return ConditionalProcessCommandBindings(
+		Key,
+		ModifierKeysState.IsControlDown(),
+		ModifierKeysState.IsAltDown(),
+		ModifierKeysState.IsShiftDown(),
+		bRepeat );
 }
 
 

@@ -16,6 +16,9 @@ public:
 	// Replaces the text in InOutString between MatchPrefix and MatchSuffix with NewInfix, returning true if it was found
 	static bool ReplaceStringPortion(FString& InOutString, const FString& MatchPrefix, const FString& MatchSuffix, const FString& NewInfix);
 
+	// Checks if a key exists matching MatchPrefix
+	bool HasKey(const FString& MatchPrefix);
+
 	// Replace a key in the manifest (between MatchPrefix and MatchSuffix) with NewInfix
 	void ReplaceKey(const FString& MatchPrefix, const FString& MatchSuffix, const FString& NewInfix);
 

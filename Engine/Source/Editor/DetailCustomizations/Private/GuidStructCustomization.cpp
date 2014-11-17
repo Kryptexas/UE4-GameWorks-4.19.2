@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GuidStructCustomization.cpp: Implements the FGuidStructCustomization class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "GuidStructCustomization.h"
 
@@ -14,16 +10,16 @@
 /* FGuidStructCustomization static interface
  *****************************************************************************/
 
-TSharedRef<IStructCustomization> FGuidStructCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FGuidStructCustomization::MakeInstance( )
 {
 	return MakeShareable(new FGuidStructCustomization);
 }
 
 
-/* IStructCustomization interface
+/* IPropertyTypeCustomization interface
  *****************************************************************************/
 
-void FGuidStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 	InputValid = true;
@@ -90,7 +86,7 @@ void FGuidStructCustomization::CustomizeStructHeader( TSharedRef<class IProperty
 }
 
 
-void FGuidStructCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// do nothing
 }

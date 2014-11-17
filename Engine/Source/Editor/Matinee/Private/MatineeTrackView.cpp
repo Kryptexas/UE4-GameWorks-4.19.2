@@ -1,9 +1,4 @@
-
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	MatineeTrackView.cpp: Matinee Track View/Window functionality
-=============================================================================*/
 
 #include "MatineeModule.h"
 #include "Matinee.h"

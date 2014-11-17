@@ -14,12 +14,12 @@ class ABlockingVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual bool UpdateNavigationRelevancy() OVERRIDE;
+	virtual bool UpdateNavigationRelevancy() override;
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR	
 	// End UObject interface.
 };

@@ -6,12 +6,12 @@ class FAssetTypeActions_CameraAnim : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CameraAnim", "Camera Anim"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(255,0,0); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UCameraAnim::StaticClass(); }
-	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
-	virtual bool CanFilter() OVERRIDE { return true; }
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CameraAnim", "Camera Anim"); }
+	virtual FColor GetTypeColor() const override { return FColor(255,0,0); }
+	virtual UClass* GetSupportedClass() const override { return UCameraAnim::StaticClass(); }
+	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
+	virtual bool CanFilter() override { return true; }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
 
 private:
 	/** Helper function used to create a preview matinee actor for use when editing a camera anim in Matinee */

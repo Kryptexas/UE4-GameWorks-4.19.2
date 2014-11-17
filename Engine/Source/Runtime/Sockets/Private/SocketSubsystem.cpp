@@ -55,11 +55,7 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 			ModuleManager.LoadModule(ModuleName);
 		}
 
-		if (ModuleManager.IsModuleLoaded(ModuleName))
-		{
-			// Now return the module itself
-			return ModuleManager.GetModuleInterfaceRef(ModuleName);
-		}
+		return ModuleManager.GetModule(ModuleName);
 	}
 
 	return NULL;

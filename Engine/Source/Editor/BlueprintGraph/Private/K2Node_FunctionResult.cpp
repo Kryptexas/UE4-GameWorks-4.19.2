@@ -59,7 +59,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
 	{
 		FBPTerminal* Term = new (Context.Results) FBPTerminal();
 		Term->CopyFromPin(Net, Net->PinName);

@@ -2,6 +2,7 @@
 
 #include "UnrealHeaderTool.h"
 #include "Class.h"
+#include "Classes.h"
 #include "ClassMaps.h"
 
 bool FClass::Inherits(const FClass* SuspectBase) const
@@ -54,6 +55,11 @@ FString FClass::GetNameWithPrefix(EEnforceInterfacePrefix::Type EnforceInterface
 FClass* FClass::GetSuperClass() const
 {
 	return static_cast<FClass*>(static_cast<const UClass*>(this)->GetSuperClass());
+}
+
+FClass* FClass::GetClassWithin() const
+{
+	return (FClass*)ClassWithin;
 }
 
 TArray<FName> FClass::GetDependentNames() const

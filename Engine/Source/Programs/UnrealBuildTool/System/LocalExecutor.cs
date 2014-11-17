@@ -90,6 +90,25 @@ namespace UnrealBuildTool
 			}
 		}
 
+
+        /**
+         * Used when debuging Actions outputs all action return values to debug out
+         * 
+         * @param	sender		Sending object
+         * @param	e			Event arguments (In this case, the line of string output)
+         */
+        protected void ActionDebugOutput(object sender, DataReceivedEventArgs e)
+        {
+            var Output = e.Data;
+            if (Output == null)
+            {
+                return;
+            }
+
+            Log.TraceInformation(Output);
+        }
+
+
 		/**
 		 * The actual function to run in a thread. This is potentially long and blocking
 		 */
@@ -143,6 +162,10 @@ namespace UnrealBuildTool
 				{
 					Log.TraceVerbose("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
 				}
+                if (Action.bPrintDebugInfo)
+                {
+                    Log.TraceInformation("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
+                }
 				// Log summary if wanted.
 				else if (Action.bShouldOutputStatusDescription)
 				{
@@ -165,14 +188,24 @@ namespace UnrealBuildTool
 					{
 						ActionProcess = new Process();
 						ActionProcess.StartInfo = ActionStartInfo;
-						bool bShouldRedirectOuput = Action.OutputEventHandler != null;
+						bool bShouldRedirectOuput = Action.OutputEventHandler != null || Action.bPrintDebugInfo;
 						if (bShouldRedirectOuput)
 						{
 							ActionStartInfo.RedirectStandardOutput = true;
 							ActionStartInfo.RedirectStandardError = true;
 							ActionProcess.EnableRaisingEvents = true;
-							ActionProcess.OutputDataReceived += Action.OutputEventHandler;
-							ActionProcess.ErrorDataReceived += Action.OutputEventHandler;
+
+                            if (Action.OutputEventHandler != null)
+                            {
+                                ActionProcess.OutputDataReceived += Action.OutputEventHandler;
+                                ActionProcess.ErrorDataReceived += Action.OutputEventHandler;
+                            }
+                            
+                            if ( Action.bPrintDebugInfo)
+                            {
+                                ActionProcess.OutputDataReceived += new DataReceivedEventHandler(ActionDebugOutput);
+                                ActionProcess.ErrorDataReceived += new DataReceivedEventHandler(ActionDebugOutput);
+                            }
 						}
 						ActionProcess.Start();
 						if (bShouldRedirectOuput)
@@ -321,12 +354,25 @@ namespace UnrealBuildTool
 				MaxActionsToExecuteInParallel = NumCores;
 			}
 
-            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-			{
-				// @todo iosmerge: this should be looking at available memory as well since some of our
-				// Macs have a poor memory/CPU ratio
-				MaxActionsToExecuteInParallel /= 2;
-			}
+            if (Utils.IsRunningOnMono)
+            {
+				// heuristic: give each action at least 1.5GB of RAM (some clang instances will need more, actually)
+				long MinMemoryPerActionMB = 3 * 1024 / 2;
+				long PhysicalRAMAvailableMB = (new PerformanceCounter ("Mono Memory", "Total Physical Memory").RawValue) / (1024 * 1024);
+				int MaxActionsAffordedByMemory = (int)(Math.Max(1, (PhysicalRAMAvailableMB) / MinMemoryPerActionMB));
+
+				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);
+
+                if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			    {
+				    string NumUBTBuildTasks = Environment.GetEnvironmentVariable("NumUBTBuildTasks");
+				    Int32 MaxUBTBuildTasks = MaxActionsToExecuteInParallel;
+				    if(Int32.TryParse(NumUBTBuildTasks, out MaxUBTBuildTasks))
+				    {
+					    MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
+				    }
+                }
+            }
 
             Log.TraceInformation("Performing {0} actions (max {1} parallel jobs)", Actions.Count, MaxActionsToExecuteInParallel);
 

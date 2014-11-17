@@ -24,8 +24,40 @@ namespace UnrealBuildTool
 
 	public class WindowsPlatform : UEBuildPlatform
 	{
+		/// Property caching.
+		private static WindowsCompiler? CachedCompiler;
+
 		/// Version of the compiler toolchain to use on Windows platform
-		public static readonly WindowsCompiler Compiler = WindowsCompiler.VisualStudio2013;
+		public static WindowsCompiler Compiler
+		{
+			get
+			{
+				// Cache the result because Compiler is often used.
+				if (CachedCompiler.HasValue)
+				{
+					return CachedCompiler.Value;
+				}
+
+				// First check if Visual Sudio 2013 is installed.
+				// If both 2012 and 2013 are installed, prefer 2013
+				if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+				// Next try Visual Studio 2012
+				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2012;
+				}
+				// Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
+				else
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+
+				return CachedCompiler.Value;
+			}
+		}
 
 		/// True if we are using "clang-cl" to compile instead of MSVC on Windows platform
 		public static readonly bool bCompileWithClang = false;
@@ -173,6 +205,10 @@ namespace UnrealBuildTool
 					return ".exe";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".lib";
+				case UEBuildBinaryType.Object:
+					return ".obj";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".pch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
@@ -210,8 +246,7 @@ namespace UnrealBuildTool
             switch (InBinaryType)
             {
                 case UEBuildBinaryType.DynamicLinkLibrary:
-                    return ".pdb";
-                case UEBuildBinaryType.Executable:
+				case UEBuildBinaryType.Executable:
                     return ".pdb";
             }
             return "";
@@ -517,8 +552,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			InBuildTarget.GlobalCompileEnvironment.Config.TargetConfiguration = CompileConfiguration;
-			InBuildTarget.GlobalLinkEnvironment.Config.TargetConfiguration = CompileConfiguration;
+			InBuildTarget.GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
+			InBuildTarget.GlobalLinkEnvironment.Config.Target.Configuration    = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo =

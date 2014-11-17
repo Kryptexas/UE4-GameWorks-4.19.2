@@ -47,11 +47,7 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 			ModuleManager.LoadModule(ModuleName);
 		}
 
-		if (ModuleManager.IsModuleLoaded(ModuleName))
-		{
-			// Now return the module itself
-			return ModuleManager.GetModuleInterfaceRef(ModuleName);
-		}
+		return ModuleManager.GetModule(ModuleName);
 	}
 
 	return NULL;
@@ -219,7 +215,6 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 	FName SubsystemName, InstanceName;
 	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
 
-	IOnlineSubsystemPtr* OnlineSubsystem = NULL;
 	if (SubsystemName != NAME_None)
 	{
 		FName KeyName = FName(*FString::Printf(TEXT("%s:%s"), *SubsystemName.ToString(), *InstanceName.ToString()));
@@ -235,6 +230,22 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 			UE_LOG(LogOnline, Warning, TEXT("OnlineSubsystem instance %s not found, unable to destroy."), *KeyName.ToString());
 		}
 	}
+}
+
+bool FOnlineSubsystemModule::DoesInstanceExist(const FName InSubsystemName) const
+{
+	bool bIsLoaded = false;
+
+	FName SubsystemName, InstanceName;
+	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
+	if (SubsystemName != NAME_None)
+	{
+		FName KeyName = FName(*FString::Printf(TEXT("%s:%s"), *SubsystemName.ToString(), *InstanceName.ToString()));
+		const IOnlineSubsystemPtr* OnlineSubsystem = OnlineSubsystems.Find(KeyName);
+		return OnlineSubsystem && OnlineSubsystem->IsValid() ? true : false;
+	}
+
+	return false;
 }
 
 bool FOnlineSubsystemModule::IsOnlineSubsystemLoaded(const FName InSubsystemName) const

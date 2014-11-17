@@ -15,28 +15,58 @@
 
 extern FCoreAudioSoundSource *GAudioChannels[MAX_AUDIOCHANNELS + 1];
 
-static bool LoadRadioEffectComponent()
+static CFBundleRef LoadRadioEffectComponent()
 {
 	bool bLoaded = false;
+	CFBundleRef Bundle = NULL;
 
 	CFBundleRef MainBundleRef = CFBundleGetMainBundle();
 	if( MainBundleRef )
 	{
 		CFURLRef ComponentURLRef = CFBundleCopyResourceURL( MainBundleRef, CFSTR("RadioEffectUnit"), CFSTR("component"), 0 );
-		FSRef ComponentFSRef;
 		if( ComponentURLRef )
 		{
-			if( CFURLGetFSRef( ComponentURLRef, &ComponentFSRef ) )
+			Bundle = CFBundleCreate(kCFAllocatorDefault, ComponentURLRef);
+			if(Bundle)
 			{
-				OSStatus Status = RegisterComponentFileRef( &ComponentFSRef, false );
-				bLoaded = Status == noErr;
+				CFArrayRef Components = (CFArrayRef)CFBundleGetValueForInfoDictionaryKey(Bundle, CFSTR("AudioComponents"));
+				if ( Components && CFArrayGetCount(Components) )
+				{
+					CFDictionaryRef ComponentInfo = (CFDictionaryRef)CFArrayGetValueAtIndex(Components, 0);
+					CFNumberRef ComponentVersion = (CFNumberRef)CFDictionaryGetValue(ComponentInfo, CFSTR("version"));
+					CFStringRef ComponentFactoryFunction = (CFStringRef)CFDictionaryGetValue(ComponentInfo, CFSTR("factoryFunction"));
+					if( ComponentVersion && ComponentFactoryFunction )
+					{
+						int32 Version = 0;
+						CFNumberGetValue(ComponentVersion, kCFNumberSInt32Type, &Version);
+						
+						AudioComponentFactoryFunction Factory = (AudioComponentFactoryFunction)CFBundleGetFunctionPointerForName(Bundle, ComponentFactoryFunction);
+						if(Factory)
+						{
+							//	fill out the AudioComponentDescription
+							AudioComponentDescription theDescription;
+							theDescription.componentType = kAudioUnitType_Effect;
+							theDescription.componentSubType = 'Rdio';
+							theDescription.componentManufacturer = 'Epic';
+							theDescription.componentFlagsMask = 0;
+							AudioComponent RadioComponent = AudioComponentRegister(&theDescription, CFSTR("Epic Games: RadioEffectUnit"), Version, Factory);
+							check(RadioComponent);
+							bLoaded = (RadioComponent != NULL);
+						}
+					}
+				}
+				if(!bLoaded)
+				{
+					CFRelease(Bundle);
+					Bundle = NULL;
+				}
 			}
 
 			CFRelease( ComponentURLRef );
 		}
 	}
 
-	return bLoaded;
+	return Bundle;
 }
 
 /*------------------------------------------------------------------------------------
@@ -55,12 +85,20 @@ FCoreAudioEffectsManager::FCoreAudioEffectsManager( FAudioDevice* InDevice )
 	: FAudioEffectsManager( InDevice )
 {
 #if RADIO_ENABLED
-	bRadioAvailable = LoadRadioEffectComponent();
+	RadioBundle = LoadRadioEffectComponent();
+	bRadioAvailable = (RadioBundle != NULL);
 #endif
 }
 
 FCoreAudioEffectsManager::~FCoreAudioEffectsManager()
 {
+#if RADIO_ENABLED
+	if(RadioBundle)
+	{
+		CFRelease(RadioBundle);
+		RadioBundle = NULL;
+	}
+#endif
 }
 
 /** 

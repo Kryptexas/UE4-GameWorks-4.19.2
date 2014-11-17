@@ -106,6 +106,24 @@ TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames )
 	return OutNames;
 }
 
+TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames )
+{
+	TArray<FString> AbsoluteFiles;
+	for(const auto& FileName : InFileNames)
+	{
+		if(!FPaths::IsRelative(FileName))
+		{
+			AbsoluteFiles.Add(FileName);
+		}
+		else
+		{
+			AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(FileName));
+		}
+	}
+
+	return AbsoluteFiles;
+}
+
 void RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FString>& InFiles )
 {
 	// Make sure we update the modified state of the files
@@ -316,6 +334,28 @@ bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSou
 	};
 
 	return CheckoutOrMarkForAdd(InDestFile, InFileDescription, FOnPostCheckOut::CreateStatic(&Local::CopyFile, InSourceFile), OutFailReason);
+}
+
+bool BranchFile( const FString& DestFilename, const FString& SourceFilename )
+{
+	if(ISourceControlModule::Get().IsEnabled())
+	{
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceFilename, EStateCacheUsage::ForceUpdate);
+		if(SourceControlState.IsValid() && SourceControlState->IsSourceControlled())
+		{
+			TSharedRef<FCopy, ESPMode::ThreadSafe> CopyOperation = ISourceControlOperation::Create<FCopy>();
+			CopyOperation->SetDestination(DestFilename);
+			
+			if(SourceControlProvider.Execute(CopyOperation, SourceFilename) != ECommandResult::Succeeded)
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 }

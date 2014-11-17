@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/PhysicsVolume.h"
 #include "PainCausingVolume.generated.h"
 
 
@@ -47,20 +48,20 @@ class ENGINE_API APainCausingVolume : public APhysicsVolume
 
 #if WITH_EDITOR
 	//Begin AVolume Interface
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 	//End AVolume Interface
 #endif
 
 	//Begin AActor Interface
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
 	/* reset actor to initial state - used when restarting level without reloading. */
-	virtual void Reset() OVERRIDE;
+	virtual void Reset() override;
 	//End AActor Interface
 
 	//Being PhysicsVolume Interface
 	/** If bEntryPain is true, call CausePainTo() on entering actor. */
-	virtual void ActorEnteredVolume(class AActor* Other) OVERRIDE;
+	virtual void ActorEnteredVolume(class AActor* Other) override;
 	//End PhysicsVolume Interface
 
 	/** damage overlapping actors if pain causing. */

@@ -16,14 +16,18 @@ void SPinComboBox::Construct( const FArguments& InArgs )
 	this->ChildSlot
 	[
 		SAssignNew( ComboButton, SComboButton )
-		.MenuWidth(200.0f)
 		.ContentPadding(3)
 		.MenuPlacement(MenuPlacement_BelowAnchor)
 		.ButtonContent()
 		[
-			SNew( STextBlock ).ToolTipText(NSLOCTEXT("PinComboBox", "ToolTip", "Select enum values from the list"))
-			.Text( this, &SPinComboBox::OnGetVisibleTextInternal )
-			.Font( FEditorStyle::GetFontStyle( TEXT("PropertyWindow.NormalFont") ) )
+			// Wrap in configurable box to restrain height/width of menu
+			SNew(SBox)
+			.WidthOverride(200.0f)
+			[
+				SNew( STextBlock ).ToolTipText(NSLOCTEXT("PinComboBox", "ToolTip", "Select enum values from the list"))
+				.Text( this, &SPinComboBox::OnGetVisibleTextInternal )
+				.Font( FEditorStyle::GetFontStyle( TEXT("PropertyWindow.NormalFont") ) )
+			]
 		]
 		.MenuContent()
 		[

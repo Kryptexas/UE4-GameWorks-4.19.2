@@ -67,6 +67,8 @@ namespace AutomationTool
 			}
 
 			Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", Result);
+			LogUtils.CloseFileLogging();
+
 			return Result;
 		}
 
@@ -77,19 +79,18 @@ namespace AutomationTool
 			{
 				// Force exit
 				Environment.Exit(3);
-			}
+			}			
 			return true;
 		}
 
 		static void Domain_ProcessExit(object sender, EventArgs e)
 		{
-			// Kill all spawned processes.
+			// Kill all spawned processes (Console instead of Log because logging is closed at this time anyway)
 			Console.WriteLine("Domain_ProcessExit");
 			if (ShouldKillProcesses)
 			{			
 				ProcessManager.KillAll();
 			}
-			// Close logging
 			Trace.Close();
 		}
 

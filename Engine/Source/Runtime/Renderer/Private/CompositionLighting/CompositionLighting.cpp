@@ -79,18 +79,28 @@ static bool IsBasePassAmbientOcclusionRequired(FPostprocessContext& Context)
 	return Context.View.FinalPostProcessSettings.AmbientOcclusionStaticFraction >= 1 / 100.0f && !IsSimpleDynamicLightingEnabled();
 }
 
-static bool IsAmbientOcclusionPassRequired(FPostprocessContext& Context)
+// @return 0:off, 0..4
+static uint32 ComputeAmbientOcclusionPassCount(FPostprocessContext& Context)
 {
-	if(IsLpvIndirectPassRequired(Context) )
+	uint32 Ret = 0;
+
+	bool bEnabled = true;
+
+	if(!IsLpvIndirectPassRequired(Context))
 	{
-		return true;
+		bEnabled = Context.View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0 
+			&& Context.View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f 
+			&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
+			&& !IsSimpleDynamicLightingEnabled();
 	}
 
-	return
-		Context.View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0 
-		&& Context.View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f 
-		&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
-		&& !IsSimpleDynamicLightingEnabled();
+	if(bEnabled)
+	{
+		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AmbientOcclusionLevels"));
+		Ret = FMath::Clamp(ICVar->GetValueOnRenderThread(), 0, 4);
+	}
+
+	return Ret;
 }
 
 static void AddPostProcessingAmbientCubemap(FPostprocessContext& Context, FRenderingCompositeOutputRef AmbientOcclusion)
@@ -102,19 +112,10 @@ static void AddPostProcessingAmbientCubemap(FPostprocessContext& Context, FRende
 	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 }
 
-static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostprocessContext& Context)
+// @param Levels 0..4, how many different resolution levels we want to render
+static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostprocessContext& Context, uint32 Levels)
 {
-	uint32 AmbientOcclusionLevels;
-	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AmbientOcclusionLevels"));
-		AmbientOcclusionLevels = FMath::Clamp(ICVar->GetValueOnRenderThread(), 0, 4);
-	}
-
-	if(AmbientOcclusionLevels <= 0)
-	{
-		// off
-		return FRenderingCompositeOutputRef();
-	}
+	check(Levels >= 0 && Levels <= 4);
 
 	FRenderingCompositePass* AmbientOcclusionInMip1 = 0;
 	FRenderingCompositePass* AmbientOcclusionInMip2 = 0;
@@ -128,13 +129,13 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 	AmbientOcclusionInMip1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusionSetup());
 	AmbientOcclusionInMip1->SetInput(ePId_Input0, Context.SceneDepth);
 
-	if(AmbientOcclusionLevels >= 3)
+	if(Levels >= 3)
 	{
 		AmbientOcclusionInMip2 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusionSetup());
 		AmbientOcclusionInMip2->SetInput(ePId_Input1, FRenderingCompositeOutputRef(AmbientOcclusionInMip1, ePId_Output0));
 	}
 
-	if(AmbientOcclusionLevels >= 4)
+	if(Levels >= 4)
 	{
 		AmbientOcclusionInMip3 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusionSetup());
 		AmbientOcclusionInMip3->SetInput(ePId_Input1, FRenderingCompositeOutputRef(AmbientOcclusionInMip2, ePId_Output0));
@@ -142,14 +143,14 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 
 	// upsample from lower resolution
 
-	if(AmbientOcclusionLevels >= 4)
+	if(Levels >= 4)
 	{
 		AmbientOcclusionPassMip3 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
 		AmbientOcclusionPassMip3->SetInput(ePId_Input0, AmbientOcclusionInMip3);
 		AmbientOcclusionPassMip3->SetInput(ePId_Input1, AmbientOcclusionInMip3);
 	}
 
-	if(AmbientOcclusionLevels >= 3)
+	if(Levels >= 3)
 	{
 		AmbientOcclusionPassMip2 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
 		AmbientOcclusionPassMip2->SetInput(ePId_Input0, AmbientOcclusionInMip2);
@@ -157,7 +158,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionPassMip2->SetInput(ePId_Input2, AmbientOcclusionPassMip3);
 	}
 
-	if(AmbientOcclusionLevels >= 2)
+	if(Levels >= 2)
 	{
 		AmbientOcclusionPassMip1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
 		AmbientOcclusionPassMip1->SetInput(ePId_Input0, AmbientOcclusionInMip1);
@@ -165,10 +166,12 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionPassMip1->SetInput(ePId_Input2, AmbientOcclusionPassMip2);
 	}
 
+	FRenderingCompositePass* GBufferA = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GBufferA));
+
 	// finally full resolution
 
 	FRenderingCompositePass* AmbientOcclusionPassMip0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion(false));
-	AmbientOcclusionPassMip0->SetInput(ePId_Input0, Context.GBufferA);
+	AmbientOcclusionPassMip0->SetInput(ePId_Input0, GBufferA);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input1, AmbientOcclusionInMip1);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input2, AmbientOcclusionPassMip1);
 
@@ -206,14 +209,14 @@ static void AddDeferredDecalsBeforeLighting(FPostprocessContext& Context)
 	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 }
 
-void FCompositionLighting::ProcessBeforeBasePass(const FViewInfo& View)
+void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
 
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 
@@ -241,26 +244,26 @@ void FCompositionLighting::ProcessBeforeBasePass(const FViewInfo& View)
 	}
 }
 
-void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
+void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
-
+	
 	// might get renamed to refracted or ...WithAO
 	GSceneRenderTargets.GetSceneColor()->SetDebugName(TEXT("SceneColor"));
 	// to be able to observe results with VisualizeTexture
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetSceneColor());
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferA);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferB);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferC);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferD);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferE);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.ScreenSpaceAO);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GetSceneColor());
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GBufferA);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GBufferB);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GBufferC);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GBufferD);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GBufferE);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ScreenSpaceAO);
 	
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 
@@ -275,9 +278,9 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 
 		FRenderingCompositeOutputRef AmbientOcclusion;
 
-		if(IsAmbientOcclusionPassRequired(Context))
+		if(uint32 Levels = ComputeAmbientOcclusionPassCount(Context))
 		{
-			AmbientOcclusion = AddPostProcessingAmbientOcclusion(Context);
+			AmbientOcclusion = AddPostProcessingAmbientOcclusion(Context, Levels);
 		}
 
 		if(IsAmbientCubemapPassRequired(Context))
@@ -302,17 +305,17 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 }
 
 
-void FCompositionLighting::ProcessLighting(const FViewInfo& View)
+void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
-
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.ReflectiveShadowMapDiffuse);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.ReflectiveShadowMapNormal);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.ReflectiveShadowMapDepth);
+	
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapDiffuse);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapNormal);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapDepth);
 
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 

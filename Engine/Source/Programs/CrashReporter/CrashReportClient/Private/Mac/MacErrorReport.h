@@ -32,9 +32,8 @@ public:
 		return FText::FromString("No local diagnosis on Mac");
 	}
 
-
 	/**
-	 * Get the name of the crashed app from the report
+	 * Get the name of the crashed app from the report (hides implementation in FGenericErrorReport)
 	 */
 	FString FindCrashedAppName() const;
 

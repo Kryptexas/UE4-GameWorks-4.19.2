@@ -3,7 +3,7 @@
 #pragma once
 #include "DataAssetFactory.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(hidecategories=Object, MinimalAPI)
 class UDataAssetFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
@@ -11,10 +11,10 @@ class UDataAssetFactory : public UFactory
 	UPROPERTY(EditAnywhere, Category=DataAsset)
 	TSubclassOf<UDataAsset> DataAssetClass;
 
-	// Begin UFactory Interface
-	virtual bool ConfigureProperties() OVERRIDE;
-	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) OVERRIDE;
-	// Begin UFactory Interface
+	// UFactory interface
+	virtual bool ConfigureProperties() override;
+	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
+	// End of UFactory interface
 };
 
 

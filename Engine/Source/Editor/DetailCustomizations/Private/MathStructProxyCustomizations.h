@@ -137,11 +137,11 @@ private:
 class FMathStructProxyCustomization : public FMathStructCustomization
 {
 public:
-	/** IStructCustomization interface */
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 	/** FMathStructCustomization interface */
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
+	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) override;
 
 protected:
 
@@ -213,7 +213,7 @@ private:
 class FMatrixStructCustomization : public FMathStructProxyCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 public:
 	FMatrixStructCustomization()
@@ -233,12 +233,12 @@ public:
 	}
 
 	/** FMathStructCustomization interface */
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
+	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row ) override;
 
 protected:
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
+	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
 
 protected:
 	/** Cached rotation values */
@@ -266,10 +266,10 @@ protected:
 class FTransformStructCustomization : public FMatrixStructCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 protected:
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
+	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
 };

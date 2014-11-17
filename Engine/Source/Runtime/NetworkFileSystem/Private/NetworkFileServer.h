@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StreamingNetworkFileServer.h: Declares the FStreamingNetworkFileServer class.
-=============================================================================*/
-
 #pragma once
-
 
 /**
  * This class wraps the server thread and network connection
@@ -19,8 +14,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InPort - The port number to bind to (0 = any available port).
-	 * @param InFileRequestDelegate -
+	 * @param InPort The port number to bind to (0 = any available port).
+	 * @param InFileRequestDelegate 
 	 */
 	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
 		const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
@@ -30,46 +25,32 @@ public:
 	 */
 	~FNetworkFileServer( );
 
-
 public:
 
-	// Begin FRunnable Interface
+	// FRunnable Interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE;
+	virtual uint32 Run( ) override;
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
-		bNeedsToStop = true;
+		StopRequested.Set(true);
 	}
 
-	virtual void Exit( ) OVERRIDE;
-
-	// End FRunnable Interface
-
+	virtual void Exit( ) override;
 
 public:
 
-	// Begin INetworkFileServer interface
+	// INetworkFileServer interface
 
-	virtual bool GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const OVERRIDE;
-
-	virtual int32 NumConnections( ) const OVERRIDE
-	{
-		return Connections.Num();
-	}
-
-	virtual void Shutdown( ) OVERRIDE
-	{
-		Stop();
-	}
-
-	// End INetworkFileServer interface
-
+	virtual bool IsItReadyToAcceptConnections(void) const; 
+	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const;
+	virtual int32 NumConnections() const;
+	virtual void Shutdown();
 
 private:
 
@@ -83,11 +64,13 @@ private:
 	FRunnableThread* Thread;
 
 	// Holds the list of all client connections.
-	TArray<INetworkFileServerConnection*> Connections;
+	TArray< class FNetworkFileServerClientConnectionThreaded*> Connections;
 
-	// Holds a flag indicating whether the thread should stop executing.
-	bool bNeedsToStop;
+	// Holds a flag indicating whether the thread should stop executing
+	FThreadSafeCounter StopRequested;
 
+	// Is the Listner thread up and running. 
+	FThreadSafeCounter Running;
 
 public:
 

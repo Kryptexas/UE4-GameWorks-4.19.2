@@ -20,10 +20,7 @@ void UInputSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 
 	if (MemberPropertyName == "ActionMappings" || MemberPropertyName == "AxisMappings" || MemberPropertyName == "AxisConfig")
 	{
-		for (TObjectIterator<UPlayerInput> It; It; ++It)
-		{
-			It->ForceRebuildingKeyMaps(true);
-		}
+		ForceRebuildKeymaps();
 	}
 }
 
@@ -39,6 +36,7 @@ void UInputSettings::SaveKeyMappings()
 void UInputSettings::AddActionMapping(const FInputActionKeyMapping& KeyMapping)
 {
 	ActionMappings.AddUnique(KeyMapping);
+	ForceRebuildKeymaps();
 }
 
 void UInputSettings::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
@@ -51,11 +49,13 @@ void UInputSettings::RemoveActionMapping(const FInputActionKeyMapping& KeyMappin
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
+	ForceRebuildKeymaps();
 }
 
 void UInputSettings::AddAxisMapping(const FInputAxisKeyMapping& KeyMapping)
 {
 	AxisMappings.AddUnique(KeyMapping);
+	ForceRebuildKeymaps();
 }
 
 void UInputSettings::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
@@ -70,6 +70,7 @@ void UInputSettings::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
+	ForceRebuildKeymaps();
 }
 
 void UInputSettings::GetActionNames(TArray<FName>& ActionNames) const
@@ -89,5 +90,13 @@ void UInputSettings::GetAxisNames(TArray<FName>& AxisNames) const
 	for (const FInputAxisKeyMapping& AxisMapping : AxisMappings)
 	{
 		AxisNames.AddUnique(AxisMapping.AxisName);
+	}	
+}
+
+void UInputSettings::ForceRebuildKeymaps()
+{
+	for (TObjectIterator<UPlayerInput> It; It; ++It)
+	{
+		It->ForceRebuildingKeyMaps(true);
 	}
 }

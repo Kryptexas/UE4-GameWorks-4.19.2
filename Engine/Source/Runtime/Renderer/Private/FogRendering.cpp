@@ -7,6 +7,26 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarFogStartDistance(
+	TEXT("r.FogStartDistance"),
+	-1.0f,
+	TEXT("Allows to override the FogStartDistance setting (needs ExponentialFog in the level).\n")
+	TEXT(" <0: use default settings (default: -1)\n")
+	TEXT(">=0: override settings by the given value (in world units)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarFogDensity(
+	TEXT("r.FogDensity"),
+	-1.0f,
+	TEXT("Allows to override the FogDensity setting (needs ExponentialFog in the level).\n")
+	TEXT("Using a strong value allows to quickly see which pixel are affected by fog.\n")
+	TEXT("Using a start distance allows to cull pixels are can speed up rendering.\n")
+	TEXT(" <0: use default settings (default: -1)\n")
+	TEXT(">=0: override settings by the given value (0:off, 1=very dense fog)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
+
 /** Binds the parameters. */
 void FExponentialHeightFogShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
@@ -60,9 +80,9 @@ public:
 		FogStartZ.Bind(Initializer.ParameterMap,TEXT("FogStartZ"));
 	}
 
-	void SetParameters(const FViewInfo& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 
 		{
 			// The fog can be set to start at a certain euclidean distance.
@@ -86,7 +106,7 @@ public:
 
 			float FogClipSpaceZ = ClipSpaceMaxDistance.Z / ClipSpaceMaxDistance.W;
 
-			SetShaderValue(GetVertexShader(),FogStartZ, FogClipSpaceZ);
+			SetShaderValue(RHICmdList, GetVertexShader(),FogStartZ, FogClipSpaceZ);
 		}
 	}
 
@@ -124,15 +144,16 @@ public:
 		SceneTextureParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
-		SceneTextureParameters.Set(GetPixelShader(), View);
-		ExponentialParameters.Set(GetPixelShader(), &View);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
+		ExponentialParameters.Set(RHICmdList, GetPixelShader(), &View);
 
 		if (LightShaftsOutput.bRendered)
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				GetPixelShader(),
 				OcclusionTexture, OcclusionSampler,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
@@ -142,6 +163,7 @@ public:
 		else
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				GetPixelShader(),
 				OcclusionTexture, OcclusionSampler,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
@@ -178,14 +200,14 @@ public:
 	// Destructor
 	virtual ~FFogVertexDeclaration() {}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float2,0));
+		Elements.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(FVector2D)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -202,17 +224,9 @@ void FSceneRenderer::InitFogConstants()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FogDensity")); 
-
-		FogDensityOverride = CVar->GetValueOnAnyThread();
-	}
-
-	{
-		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FogStartDistance")); 
-
-		FogStartDistanceOverride = CVar->GetValueOnAnyThread();
+		// console variable overrides
+		FogDensityOverride = CVarFogDensity.GetValueOnAnyThread();
+		FogStartDistanceOverride = CVarFogStartDistance.GetValueOnAnyThread();
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -261,20 +275,20 @@ void FSceneRenderer::InitFogConstants()
 FGlobalBoundShaderState ExponentialBoundShaderState;
 
 /** Sets the bound shader state for either the per-pixel or per-sample fog pass. */
-void SetFogShaders(FScene* Scene,const FViewInfo& View,FLightShaftsOutput LightShaftsOutput)
+void SetFogShaders(FRHICommandListImmediate& RHICmdList, FScene* Scene, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
 		TShaderMapRef<FHeightFogVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
-		VertexShader->SetParameters(View);
-		ExponentialHeightFogPixelShader->SetParameters(View, LightShaftsOutput);
+		SetGlobalBoundShaderState(RHICmdList, ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
+		VertexShader->SetParameters(RHICmdList, View);
+		ExponentialHeightFogPixelShader->SetParameters(RHICmdList, View, LightShaftsOutput);
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderFog(FLightShaftsOutput LightShaftsOutput)
+bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
@@ -293,7 +307,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FLightShaftsOutput LightShaftsOutp
 			0, 2, 3
 		};
 
-		GSceneRenderTargets.BeginRenderingSceneColor();
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
@@ -304,19 +318,20 @@ bool FDeferredShadingSceneRenderer::RenderFog(FLightShaftsOutput LightShaftsOutp
 			}
 
 			// Set the device viewport for the view.
-			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			
 			// disable alpha writes in order to preserve scene depth values on PC
-			RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_SourceAlpha>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_SourceAlpha>::GetRHI());
 
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-			SetFogShaders(Scene,View,LightShaftsOutput);
+			SetFogShaders(RHICmdList, Scene,View,LightShaftsOutput);
 
 			// Draw a quad covering the view.
-			RHIDrawIndexedPrimitiveUP(
+			DrawIndexedPrimitiveUP(
+				RHICmdList,
 				PT_TriangleList,
 				0,
 				ARRAY_COUNT(Vertices),
@@ -329,7 +344,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FLightShaftsOutput LightShaftsOutp
 		}
 
 		//no need to resolve since we used alpha blending
-		GSceneRenderTargets.FinishRenderingSceneColor(false);
+		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 		return true;
 	}
 

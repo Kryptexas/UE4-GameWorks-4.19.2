@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherWorker.h: Declares the ILauncherWorker interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -22,15 +18,12 @@ namespace ELauncherWorkerStatus
 }
 
 
-/**
- * Type definition for shared pointers to instances of ILauncherWorker.
- */
+/** Type definition for shared pointers to instances of ILauncherWorker. */
 typedef TSharedPtr<class ILauncherWorker> ILauncherWorkerPtr;
 
-/**
- * Type definition for shared references to instances of ILauncherWorker.
- */
+/** Type definition for shared references to instances of ILauncherWorker. */
 typedef TSharedRef<class ILauncherWorker> ILauncherWorkerRef;
+
 
 /** Delegate used to notify of an output message */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOutputMessageReceivedDelegate, const FString&);
@@ -39,13 +32,15 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOutputMessageReceivedDelegate, const FStrin
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageStartedDelegate, const FString&);
 
 /** Delegate used to notify when a stage ends */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageCompletedDelegate, const FString&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStageCompletedDelegate, const FString&, double);
 
 /** Delegate used to notify when the launch is complete */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnLaunchCompletedDelegate, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLaunchCompletedDelegate, bool, double);
 
 /** Delegate used to notify when the launch was canceled */
-DECLARE_MULTICAST_DELEGATE(FOnLaunchCanceledDelegate);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLaunchCanceledDelegate, double);
+
+
 /**
  * Interface for launcher worker threads.
  */

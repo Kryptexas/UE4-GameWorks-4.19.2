@@ -11,7 +11,8 @@ public class LinuxServerTargetPlatform : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[] {
 				"Core",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
         );
 

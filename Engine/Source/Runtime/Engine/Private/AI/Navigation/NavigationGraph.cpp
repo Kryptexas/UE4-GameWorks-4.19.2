@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
-#include "../../Public/AI/NavDataGenerator.h"
 #include "NavGraphGenerator.h"
+#include "AI/NavDataGenerator.h"
+#include "AI/Navigation/NavNodeInterface.h"
+#include "AI/Navigation/NavigationGraphNodeComponent.h"
+#include "AI/Navigation/NavigationGraphNode.h"
+#include "AI/Navigation/NavigationGraph.h"
 
 //----------------------------------------------------------------------//
 // FNavGraphNode

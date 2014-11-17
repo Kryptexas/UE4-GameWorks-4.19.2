@@ -1,9 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Audio.h"
+#include "AudioDevice.h"
 #include "AudioEffect.h"
 #include "AudioDecompress.h"
+#include "Sound/AudioSettings.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundWave.h"
 
 /*-----------------------------------------------------------------------------
 	FAudioDevice implementation.
@@ -308,7 +313,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 		}
 
 #if !WITH_EDITOR
-		AudioClassInfo->SizeResident += SoundWave->GetCompressedDataSize(GetRuntimeFormat());
+		AudioClassInfo->SizeResident += SoundWave->GetCompressedDataSize(GetRuntimeFormat(SoundWave));
 		AudioClassInfo->NumResident++;
 #else
 		switch( SoundWave->DecompressionType )
@@ -320,7 +325,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 			break;
 
 		case DTYPE_RealTime:
-			AudioClassInfo->SizeRealTime += SoundWave->GetCompressedDataSize(GetRuntimeFormat());
+			AudioClassInfo->SizeRealTime += SoundWave->GetCompressedDataSize(GetRuntimeFormat(SoundWave));
 			AudioClassInfo->NumRealTime++;
 			break;
 
@@ -583,23 +588,24 @@ bool FAudioDevice::HandleListSoundDurationsCommand( const TCHAR* Cmd, FOutputDev
 bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Stop any existing sound playing
-	if( TestAudioComponent == NULL )
+	if( !TestAudioComponent.IsValid() )
 	{
 		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
 	}
 
-	if( TestAudioComponent != NULL )
+	UAudioComponent* AudioComp = TestAudioComponent.Get();
+	if( AudioComp != NULL )
 	{
-		TestAudioComponent->Stop();
+		AudioComp->Stop();
 
 		// Load up an arbitrary cue
 		USoundCue* Cue = LoadObject<USoundCue>( NULL, Cmd, NULL, LOAD_None, NULL );
 		if( Cue != NULL )
 		{
-			TestAudioComponent->Sound = Cue;
-			TestAudioComponent->bAllowSpatialization = false;
-			TestAudioComponent->bAutoDestroy = true;
-			TestAudioComponent->Play();
+			AudioComp->Sound = Cue;
+			AudioComp->bAllowSpatialization = false;
+			AudioComp->bAutoDestroy = true;
+			AudioComp->Play();
 
 			TArray<USoundNodeWavePlayer*> WavePlayers;
 			Cue->RecursiveFindNode<USoundNodeWavePlayer>( Cue->FirstNode, WavePlayers );
@@ -619,23 +625,24 @@ bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& A
 bool FAudioDevice::HandlePlaySoundWaveCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Stop any existing sound playing
-	if( TestAudioComponent == NULL )
+	if( !TestAudioComponent.IsValid() )
 	{
 		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
 	}
 
-	if( TestAudioComponent != NULL )
+	UAudioComponent* AudioComp = TestAudioComponent.Get();
+	if( AudioComp != NULL )
 	{
-		TestAudioComponent->Stop();
+		AudioComp->Stop();
 
 		// Load up an arbitrary wave
 		USoundWave* Wave = LoadObject<USoundWave>( NULL, Cmd, NULL, LOAD_None, NULL );
 		if( Wave != NULL )
 		{
-			TestAudioComponent->Sound = Wave;
-			TestAudioComponent->bAllowSpatialization = false;
-			TestAudioComponent->bAutoDestroy = true;
-			TestAudioComponent->Play();
+			AudioComp->Sound = Wave;
+			AudioComp->bAllowSpatialization = false;
+			AudioComp->bAutoDestroy = true;
+			AudioComp->Play();
 
 			Wave->LogSubtitle( Ar );
 		}
@@ -1112,17 +1119,19 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 	// Find all passive SoundMixes from currently active wave instances
 	for( int32 WaveIndex = FirstActiveIndex; WaveIndex < WaveInstances.Num(); WaveIndex++ )
 	{
-		if( WaveInstances[WaveIndex] )
+		FWaveInstance* WaveInstance = WaveInstances[WaveIndex];
+		if (WaveInstance)
 		{
-			USoundClass* SoundClass = WaveInstances[WaveIndex]->SoundClass;
+			USoundClass* SoundClass = WaveInstance->SoundClass;
 			if( SoundClass ) 
 			{
+				const float WaveInstanceActualVolume = WaveInstance->GetActualVolume();
 				// Check each SoundMix individually for volume levels
-				for( int32 MixIndex = 0; MixIndex < SoundClass->PassiveSoundMixModifiers.Num(); ++MixIndex )
+				for (const FPassiveSoundMixModifier& PassiveSoundMixModifier : SoundClass->PassiveSoundMixModifiers)
 				{
-					if( WaveInstances[WaveIndex]->GetActualVolume() >= SoundClass->PassiveSoundMixModifiers[MixIndex].VolumeThreshold )
+					if (WaveInstanceActualVolume >= PassiveSoundMixModifier.MinVolumeThreshold && WaveInstanceActualVolume <= PassiveSoundMixModifier.MaxVolumeThreshold)
 					{
-						CurrPassiveSoundMixModifiers.AddUnique( SoundClass->PassiveSoundMixModifiers[MixIndex].SoundMix );
+						CurrPassiveSoundMixModifiers.AddUnique( PassiveSoundMixModifier.SoundMix );
 					}
 				}
 			}
@@ -1130,20 +1139,20 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 	}
 
 	// Push SoundMixes that weren't previously active
-	for( int32 MixIndex = 0; MixIndex < CurrPassiveSoundMixModifiers.Num(); MixIndex++ )
+	for (USoundMix* CurrPassiveSoundMixModifier : CurrPassiveSoundMixModifiers)
 	{
-		if( PrevPassiveSoundMixModifiers.Find( CurrPassiveSoundMixModifiers[MixIndex] ) == INDEX_NONE )
+		if (PrevPassiveSoundMixModifiers.Find(CurrPassiveSoundMixModifier) == INDEX_NONE)
 		{
-			PushSoundMixModifier(CurrPassiveSoundMixModifiers[MixIndex], true);
+			PushSoundMixModifier(CurrPassiveSoundMixModifier, true);
 		}
 	}
 
 	// Pop SoundMixes that are no longer active
-	for( int32 MixIndex = 0; MixIndex < PrevPassiveSoundMixModifiers.Num(); MixIndex++ )
+	for (USoundMix* PrevPassiveSoundMixModifier : PrevPassiveSoundMixModifiers)
 	{
-		if( CurrPassiveSoundMixModifiers.Find( PrevPassiveSoundMixModifiers[MixIndex] ) == INDEX_NONE )
+		if (CurrPassiveSoundMixModifiers.Find(PrevPassiveSoundMixModifier) == INDEX_NONE)
 		{
-			PopSoundMixModifier(PrevPassiveSoundMixModifiers[MixIndex], true);
+			PopSoundMixModifier(PrevPassiveSoundMixModifier, true);
 		}
 	}
 
@@ -2274,7 +2283,8 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
 		// handle audio decompression
-		if (bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration))
+		if (SupportsRealtimeDecompression() && 
+			(bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration)))
 		{
 			// Store as compressed data and decompress in realtime
 			SoundWave->DecompressionType = DTYPE_RealTime;
@@ -2295,7 +2305,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		}
 
 		// Grab the compressed audio data
-		SoundWave->InitAudioResource(GetRuntimeFormat());
+		SoundWave->InitAudioResource(GetRuntimeFormat(SoundWave));
 
 		if (SoundWave->AudioDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native)
 		{
@@ -2314,7 +2324,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			}
 
 			static FName NAME_OGG(TEXT("OGG"));
-			SoundWave->bDecompressedFromOgg = GetRuntimeFormat() == NAME_OGG;
+			SoundWave->bDecompressedFromOgg = GetRuntimeFormat(SoundWave) == NAME_OGG;
 
 			// the audio decompressor will track memory
 			bTrackMemory = false;
@@ -2367,18 +2377,6 @@ void FAudioDevice::FreeResource(USoundWave* SoundWave)
 
 		SoundWave->ResourceID = 0;
 	}
-
-	// Just in case the data was created but never uploaded
-	FMemory::Free(SoundWave->RawPCMData);
-	SoundWave->RawPCMData = NULL;
-
-	// Remove the compressed copy of the data
-	SoundWave->RemoveAudioResource();
-
-	// Stat housekeeping
-	DEC_DWORD_STAT_BY(STAT_AudioMemorySize, SoundWave->TrackedMemoryUsage);
-	DEC_DWORD_STAT_BY(STAT_AudioMemory, SoundWave->TrackedMemoryUsage);
-	SoundWave->TrackedMemoryUsage = 0;
 }
 
 void FAudioDevice::FreeBufferResource(FSoundBuffer* Buffer)
@@ -2492,21 +2490,23 @@ bool FAudioDevice::HandleListSoundsCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 }
 #endif // !UE_BUILD_SHIPPING
 
-#if WITH_EDITOR
-void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart)
+void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioComponent*>& StoppedComponents)
 {
+	bool bStoppedSounds = false;
+
 	for (int32 ActiveSoundIndex = ActiveSounds.Num() - 1; ActiveSoundIndex >= 0; --ActiveSoundIndex)
 	{
 		FActiveSound* ActiveSound = ActiveSounds[ActiveSoundIndex];
 		if (ActiveSound->Sound->IsA(USoundWave::StaticClass()))
 		{
-			if (ActiveSound->Sound == ReimportedSoundWave)
+			if (ActiveSound->Sound == SoundWave)
 			{
 				if (ActiveSound->AudioComponent.IsValid())
 				{
-					ComponentsToRestart.Add(ActiveSound->AudioComponent.Get());
+					StoppedComponents.Add(ActiveSound->AudioComponent.Get());
 				}
 				ActiveSound->Stop(this);
+				bStoppedSounds = true;
 			}
 		}
 		else
@@ -2515,22 +2515,29 @@ void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray
 
 			for (auto WaveInstanceIt(ActiveSound->WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
 			{
-				// If anything in the SoundCue uses the wave we're going to restart the whole thing for simplicity
+				// If anything in the SoundCue uses the wave we're going to stop the whole thing for simplicity
 				FWaveInstance* WaveInstance = WaveInstanceIt.Value();
-				if (WaveInstance->WaveData == ReimportedSoundWave)
+				if (WaveInstance->WaveData == SoundWave)
 				{
 					if (ActiveSound->AudioComponent.IsValid())
 					{
-						ComponentsToRestart.Add(ActiveSound->AudioComponent.Get());
+						StoppedComponents.Add(ActiveSound->AudioComponent.Get());
 					}
 					ActiveSound->Stop(this);
+					bStoppedSounds = true;
 					break;
 				}
 			}
 		}
 	}
+
+	if (!GIsEditor && bStoppedSounds)
+	{
+		UE_LOG(LogAudio, Warning, TEXT( "All Sounds using SoundWave '%s' have been stopped" ), *SoundWave->GetName() );
+	}
 }
 
+#if WITH_EDITOR
 void FAudioDevice::OnBeginPIE(const bool bIsSimulating)
 {
 	for (TObjectIterator<USoundNode> It; It; ++It)

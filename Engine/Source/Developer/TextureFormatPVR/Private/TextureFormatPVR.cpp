@@ -10,6 +10,11 @@
 #include "PixelFormat.h"
 #include "GenericPlatformProcess.h"
 
+
+#define DEFAULT_QUALITY 0
+#define MAX_QUALITY 4
+
+
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatPVR, Log, All);
 
 /**
@@ -222,22 +227,59 @@ static void UseOriginal(const FImage& InImage, FCompressedImage2D& OutCompressed
     FMemory::Memcpy(MipData, Image.RawData.GetData(), Image.SizeX * Image.SizeY * 4);
 }
 
+static FString GetPVRTCQualityString()
+{
+	// start at default quality, then lookup in .ini file
+	int32 CompressionModeValue = DEFAULT_QUALITY;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
+
+	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
+	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
+
+	// convert to a string
+	FString CompressionMode;
+	switch (CompressionModeValue)
+	{
+		case 0:	CompressionMode = TEXT("fastest"); break;
+		case 1:	CompressionMode = TEXT("fast"); break;
+		case 2:	CompressionMode = TEXT("normal"); break;
+		case 3:	CompressionMode = TEXT("high"); break;
+		case 4:	CompressionMode = TEXT("best"); break;
+		default: UE_LOG(LogTemp, Fatal, TEXT("Max quality higher than expected"));
+	}
+
+	return CompressionMode;
+}
+
+static uint16 GetPVRTCQualityForVersion()
+{
+	// start at default quality
+	int32 CompressionModeValue = DEFAULT_QUALITY;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
+
+	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
+	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
+
+	// top 3 bits for compression value
+	return CompressionModeValue << 13;
+}
+
 /**
  * PVR texture format handler.
  */
 class FTextureFormatPVR : public ITextureFormat
 {
-	virtual bool AllowParallelBuild() const OVERRIDE
+	virtual bool AllowParallelBuild() const override
 	{
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
-		return 6;
+		return 7 + GetPVRTCQualityForVersion();
 	}
 
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const OVERRIDE
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		for (int32 i = 0; i < ARRAY_COUNT(GSupportedTextureFormatNames); ++i)
 		{
@@ -245,7 +287,7 @@ class FTextureFormatPVR : public ITextureFormat
 		}
 	}
 
-	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const override
 	{
 		FTextureFormatCompressorCaps RetCaps;
 		// PVR compressor is limited to <=4096 in any direction.
@@ -258,7 +300,7 @@ class FTextureFormatPVR : public ITextureFormat
 		const struct FTextureBuildSettings& BuildSettings,
 		bool bImageHasAlphaChannel,
 		FCompressedImage2D& OutCompressedImage
-		) const OVERRIDE
+		) const override
 	{
         // Get Raw Image Data from passed in FImage
         FImage Image;
@@ -397,30 +439,20 @@ class FTextureFormatPVR : public ITextureFormat
 		delete PVRFile;
 
 		// Compress PVR file to PVRTC
-#if PLATFORM_MAC
-		// Compress PVR file to PVRTC (using apple's commandline tool)
-//		FString Params = FString::Printf(TEXT("-sdk iphoneos texturetool %s-e PVRTC --bits-per-pixel-%d -o %s%s -f PVR %s%s"),
-//			bGenerateMips ? TEXT("-m ") : TEXT(""),
-//			bIsPVRTC2 ? 2 : 4,
-//			FPlatformProcess::BaseDir(), *OutputFilePath,
-//			FPlatformProcess::BaseDir(), *InputFilePath);
+        FString CompressionMode = GetPVRTCQualityString();
 
-		// Use PowerVR's tool
-		FString Params = FString::Printf(TEXT("-i \"%s\" -o \"%s\" %s -legacypvr -q pvrtcbest -f PVRTC1_%d"),
+		// Use PowerVR's new CLI tool commandline
+		FString Params = FString::Printf(TEXT("-i \"%s\" -o \"%s\" %s -legacypvr -q pvrtc%s -f PVRTC1_%d"),
 			*InputFilePath, *OutputFilePath,
 			bGenerateMips ? TEXT("-m") : TEXT(""),
+            *CompressionMode,
 			bIsPVRTC2 ? 2 : 4);
-//		FString CompressorPath(TEXT("/usr/bin/xcrun"));
-		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCL"));
-		UE_LOG(LogTemp, Log, TEXT("Running texturetool with '%s'"), *Params);
+#if PLATFORM_MAC
+		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCLI"));
 #else
-		// Use PowerVR's tool
-		FString Params = FString::Printf(TEXT("%s%s -fOGLPVRTC%d -yflip0 -i\"%s\" -o\"%s\""),
-			bGenerateMips ? TEXT("-m ") : TEXT(""),                             
-			TEXT("-pvrtciterations8"),
-			bIsPVRTC2 ? 2 : 4, *InputFilePath, *OutputFilePath);
-		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexTool.exe"));
+		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCLI.exe"));
 #endif
+		UE_LOG(LogTemp, Log, TEXT("Running texturetool with '%s'"), *Params);
 
 		// Give a debug message about the process
 		if (IsRunningCommandlet())

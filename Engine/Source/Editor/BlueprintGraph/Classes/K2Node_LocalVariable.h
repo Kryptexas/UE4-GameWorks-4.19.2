@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node_TemporaryVariable.h"
 #include "K2Node_LocalVariable.generated.h"
 
 UCLASS(MinimalAPI, deprecated)
@@ -18,20 +18,19 @@ class UDEPRECATED_K2Node_LocalVariable : public UK2Node_TemporaryVariable
 	FText VariableTooltip;
 
 	// Begin UEdGraphNode interface.
- 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual void ReconstructNode() OVERRIDE;
+ 	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void OnRenameNode(const FString& NewName) override;
+	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
+	virtual void PostPlacedNewNode() override;
+	virtual void PostPasteNode() override;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const override;
+	virtual void ReconstructNode() override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual bool ShouldShowNodeProperties() const override { return true; }
 	// End UK2Node interface.
 
 	/**

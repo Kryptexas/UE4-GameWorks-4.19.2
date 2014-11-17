@@ -17,81 +17,36 @@ FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer co
 	{
 		return *this;
 	}
-
-	Tags = Other.Tags;
+	GameplayTags.Empty(Other.GameplayTags.Num());
+	GameplayTags.Append(Other.GameplayTags);
 
 	return *this;
 }
 
 bool FGameplayTagContainer::operator==(FGameplayTagContainer const& Other) const
 {
-	if( Tags.Num() == Other.Tags.Num() )
-	{
-		for( int TagIndex = 0; TagIndex < Tags.Num(); ++TagIndex )
-		{
-			if( Other.Tags.Contains( Tags[TagIndex] ) == false )
-			{
-				return false;
-			}
-		}
-	}
-	else
+	if (GameplayTags.Num() != Other.GameplayTags.Num())
 	{
 		return false;
 	}
-	return true;
+	return Filter(Other, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit).Num() == this->Num();
 }
 
 bool FGameplayTagContainer::operator!=(FGameplayTagContainer const& Other) const
 {
-	if( Tags.Num() == Other.Tags.Num() )
-	{
-		for( int TagIndex = 0; TagIndex < Tags.Num(); ++TagIndex )
-		{
-			if( Other.Tags.Contains( Tags[TagIndex] ) == false )
-			{
-				return true;
-			}
-		}
-	}
-	else
+	if (GameplayTags.Num() != Other.GameplayTags.Num())
 	{
 		return true;
 	}
-	return false;
+	return Filter(Other, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit).Num() != this->Num();
 }
 
-void FGameplayTagContainer::GetTags(OUT TSet<FName>& OutTags) const
+bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
 {
-	OutTags.Append(Tags);
-}
-
-bool FGameplayTagContainer::HasTag(FName TagToCheck) const
-{
-	return Tags.Contains(TagToCheck);
-}
-
-bool FGameplayTagContainer::HasAllTags(FGameplayTagContainer const& Other) const
-{
-	TSet<FName> OutTags;
-	Other.GetTags(OutTags);
-	for(TSet<FName>::TIterator It(OutTags); It; ++It)
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 	{
-		if(HasTag(*It) == false)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool FGameplayTagContainer::HasAnyTag(FGameplayTagContainer const& Other) const
-{
-	TSet<FName> OutTags;
-	Other.GetTags(OutTags);
-	for(TSet<FName>::TIterator It(OutTags); It; ++It)
-	{
-		if(HasTag(*It) == true)
+		if (TagManager.GameplayTagsMatch(*It, TagMatchType, TagToCheck, TagToCheckMatchType) == true)
 		{
 			return true;
 		}
@@ -99,47 +54,162 @@ bool FGameplayTagContainer::HasAnyTag(FGameplayTagContainer const& Other) const
 	return false;
 }
 
-void FGameplayTagContainer::AddTag(FName TagToAdd)
+FGameplayTagContainer FGameplayTagContainer::GetGameplayTagParents() const
 {
-	Tags.AddUnique(TagToAdd);
+	FGameplayTagContainer ResultContainer;
+	ResultContainer.AppendTags(*this);
+
+	for (TArray<FGameplayTag>::TConstIterator TagIterator(GameplayTags); TagIterator; ++TagIterator)
+	{
+		FGameplayTagContainer ParentTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(*TagIterator);
+		ResultContainer.AppendTags(ParentTags);
+	}
+
+	return ResultContainer;
+}
+
+FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType) const
+{
+	FGameplayTagContainer ResultContainer;
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
+	
+	for (TArray<FGameplayTag>::TConstIterator OtherIt(OtherContainer.GameplayTags); OtherIt; ++OtherIt)
+	{
+		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
+		{
+			if (TagManager.GameplayTagsMatch(*It, TagMatchType, *OtherIt, OtherTagMatchType) == true)
+			{
+				ResultContainer.AddTag(*It);
+			}
+		}
+	}
+
+	return ResultContainer;
+}
+
+bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const
+{
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
+	for (TArray<FGameplayTag>::TConstIterator OtherIt(OtherContainer.GameplayTags); OtherIt; ++OtherIt)
+	{
+		bool bTagFound = false;
+
+		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
+		{
+			if (TagManager.GameplayTagsMatch(*It, TagMatchType, *OtherIt, OtherTagMatchType) == true)
+			{
+				if (ContainerMatchType == EGameplayContainerMatchType::Any)
+				{
+					return true;
+				}
+
+				bTagFound = true;
+
+				// we only need one match per tag in OtherContainer, so don't bother looking for more
+				break;
+			}
+		}
+
+		if (ContainerMatchType == EGameplayContainerMatchType::All && bTagFound == false)
+		{
+			return false;
+		}
+	}
+
+	// if we've reached this far then either we are looking for any match and didn't find one (return false) or we're looking for all matches and didn't miss one (return true).
+	check(ContainerMatchType == EGameplayContainerMatchType::All || ContainerMatchType == EGameplayContainerMatchType::Any);
+	return ContainerMatchType == EGameplayContainerMatchType::All;
+}
+
+
+bool FGameplayTagContainer::MatchesAll(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
+{
+	if (Other.Num() == 0)
+	{
+		return bCountEmptyAsMatch;
+	}
+
+	return DoesTagContainerMatch(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All);
+}
+
+bool FGameplayTagContainer::MatchesAny(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
+{
+	if (Other.Num() == 0)
+	{
+		return bCountEmptyAsMatch;
+	}
+
+	return DoesTagContainerMatch(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::Any);
 }
 
 void FGameplayTagContainer::AppendTags(FGameplayTagContainer const& Other)
 {
-	TSet<FName> OutTags;
-	Other.GetTags(OutTags);
-
 	//add all the tags
-	for(TSet<FName>::TConstIterator It(OutTags); It; ++It)
+	for(TArray<FGameplayTag>::TConstIterator It(Other.GameplayTags); It; ++It)
 	{
 		AddTag(*It);
 	}
 }
 
-void FGameplayTagContainer::RemoveTag(FName TagToRemove)
+void FGameplayTagContainer::AddTag(const FGameplayTag& TagToAdd)
 {
-	Tags.Remove(TagToRemove);
+	if (TagToAdd.IsValid())
+	{
+		// Don't want duplicate tags
+		GameplayTags.AddUnique(TagToAdd);
+	}
+}
+
+void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
+{
+	GameplayTags.Remove(TagToRemove);
 }
 
 void FGameplayTagContainer::RemoveAllTags()
 {
-	Tags.Empty();
+	GameplayTags.Empty();
 }
 
 bool FGameplayTagContainer::Serialize(FArchive& Ar)
 {
-	Ar << Tags;
-
-	if( Ar.IsLoading() && Tags.Num() > 0 )
+	const bool bOldTagVer = Ar.UE4Ver() < VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE;
+	
+	if (bOldTagVer)
 	{
-		RedirectTags();
+		Ar << Tags_DEPRECATED;
 	}
+	else
+	{
+		Ar << GameplayTags;
+	}
+	
+	if (Ar.IsLoading())
+	{
+		// Regardless of version, want loading to have a chance to handle redirects
+		RedirectTags();
+
+		// If loading old version, add old tags to the new gameplay tags array so they can be saved out with the new version
+		if (bOldTagVer)
+		{
+			UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+			for (auto It = Tags_DEPRECATED.CreateConstIterator(); It; ++It)
+			{
+				FGameplayTag Tag = TagManager.RequestGameplayTag(*It);
+				TagManager.AddLeafTagToContainer(*this, Tag);
+			}
+		}
+	}
+
 	return true;
 }
 
 void FGameplayTagContainer::RedirectTags()
 {
 	FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	
 	for (FConfigSection::TIterator It(*PackageRedirects); It; ++It)
 	{
 		if (It.Key() == TEXT("GameplayTagRedirects"))
@@ -151,10 +221,19 @@ void FGameplayTagContainer::RedirectTags()
 			FParse::Value( *It.Value(), TEXT("NewTagName="), NewTagName );
 
 			int32 TagIndex = 0;
-			if( Tags.Find( OldTagName, TagIndex ) )
+			if (Tags_DEPRECATED.Find(OldTagName, TagIndex))
 			{
-				Tags.RemoveAt( TagIndex );
-				Tags.AddUnique( NewTagName );
+				Tags_DEPRECATED.RemoveAt(TagIndex);
+				Tags_DEPRECATED.AddUnique(NewTagName);
+			}
+
+			FGameplayTag OldTag = TagManager.RequestGameplayTag(OldTagName);
+			FGameplayTag NewTag = TagManager.RequestGameplayTag(NewTagName);
+
+			if (HasTag(OldTag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+			{
+				RemoveTag(OldTag);
+				AddTag(NewTag);
 			}
 		}
 	}
@@ -162,23 +241,43 @@ void FGameplayTagContainer::RedirectTags()
 
 int32 FGameplayTagContainer::Num() const
 {
-	return Tags.Num();
+	return GameplayTags.Num();
 }
 
 FString FGameplayTagContainer::ToString() const
 {
-	FString RetString = TEXT("[");
-
-	for (int i = 0; i < Tags.Num(); ++i)
+	FString RetString = TEXT("(GameplayTags=(");
+	for (int i = 0; i < GameplayTags.Num(); ++i)
 	{
-		RetString += Tags[i].ToString();
-		if (i < Tags.Num() - 1)
+		RetString += TEXT("(TagName=\"");
+		RetString += GameplayTags[i].ToString();
+		RetString += TEXT("\")");
+		if (i < GameplayTags.Num() - 1)
 		{
-			RetString += TEXT(", ");
+			RetString += TEXT(",");
 		}
 	}
-
-	RetString += TEXT("]");
-
+	RetString += TEXT("))");
 	return RetString;
+}
+
+FGameplayTag::FGameplayTag()
+	: TagName(NAME_None)
+{
+}
+
+bool FGameplayTag::Matches(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
+{
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatch(*this, MatchTypeOne, Other, MatchTypeTwo);
+}
+
+bool FGameplayTag::IsValid() const
+{
+	return (TagName != NAME_None);
+}
+
+FGameplayTag::FGameplayTag(FName Name)
+	: TagName(Name)
+{
+	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
 }

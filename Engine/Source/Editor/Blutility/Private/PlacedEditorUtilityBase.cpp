@@ -32,6 +32,7 @@ FNotificationInfo ErrorNotification(TEXT(""));
 ErrorNotification.Image = FEditorStyle::GetBrush(TEXT("MessageLog.Error"));
 ErrorNotification.bFireAndForget = true;
 ErrorNotification.Hyperlink = FSimpleDelegate::CreateRaw(&Local::OpenMessageLog);
+ErrorNotification.HyperlinkText = LOCTEXT("ShowMessageLogHyperlink", "Show Message Log");
 ErrorNotification.ExpireDuration = 3.0f; // Need this message to last a little longer than normal since the user may want to "Show Log"
 ErrorNotification.bUseThrobber = true;
 ErrorNotification.Text = stuff;

@@ -46,7 +46,7 @@ namespace UnrealBuildTool.IOS
 				if (!bIsStaticLibrary)
 				{
 					// Copy the command scripts to the intermediate on the target Mac.
-					string RemoteFixDylibDepsScript = Toolchain.ConvertPath(FixDylibDepsScript);
+					string RemoteFixDylibDepsScript = Toolchain.ConvertPath(Path.GetFullPath(FixDylibDepsScript));
 					RemoteFixDylibDepsScript = RemoteFixDylibDepsScript.Replace("../../../../", "../../");
 					RPCUtilHelper.CopyFile("../../" + FixDylibDepsScript, RemoteFixDylibDepsScript, true);
 
@@ -59,7 +59,7 @@ namespace UnrealBuildTool.IOS
 
 
 					// run it remotely
-					RemoteWorkingDir = Toolchain.ConvertPath(Path.GetDirectoryName(FixDylibDepsScript));
+					RemoteWorkingDir = Toolchain.ConvertPath(Path.GetDirectoryName(Path.GetFullPath(FixDylibDepsScript)));
 
 					Log.TraceInformation("Running FixDylibDependencies.sh...");
 					Hashtable Results = RPCUtilHelper.Command(RemoteWorkingDir, "/bin/sh", "FixDylibDependencies.sh", null);

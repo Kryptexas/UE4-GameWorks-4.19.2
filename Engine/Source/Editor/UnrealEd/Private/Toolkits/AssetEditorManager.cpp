@@ -89,18 +89,27 @@ void FAssetEditorManager::AddReferencedObjects( FReferenceCollector& Collector )
 
 IAssetEditorInstance* FAssetEditorManager::FindEditorForAsset(UObject* Asset, bool bFocusIfOpen)
 {
-	IAssetEditorInstance** pAssetEditor = OpenedAssets.Find(Asset);
-	const bool bEditorOpen = pAssetEditor != NULL;
+	const TArray<IAssetEditorInstance*> AssetEditors = FindEditorsForAsset(Asset);
 
+	IAssetEditorInstance* const * PrimaryEditor = AssetEditors.FindByPredicate( [](IAssetEditorInstance* Editor){ return Editor->IsPrimaryEditor(); } );
+	
+	const bool bEditorOpen = PrimaryEditor != NULL;
 	if (bEditorOpen && bFocusIfOpen)
 	{
 		// @todo toolkit minor: We may need to handle this differently for world-centric vs standalone.  (multiple level editors, etc)
-		(*pAssetEditor)->FocusWindow(Asset);
+		(*PrimaryEditor)->FocusWindow(Asset);
 	}
 
-	return bEditorOpen ? *pAssetEditor : NULL;
+	return bEditorOpen ? *PrimaryEditor : NULL;
 }
 
+
+TArray<IAssetEditorInstance*> FAssetEditorManager::FindEditorsForAsset(UObject* Asset)
+{
+	TArray<IAssetEditorInstance*> AssetEditors;
+	OpenedAssets.MultiFind(Asset, AssetEditors);
+	return AssetEditors;
+}
 
 void FAssetEditorManager::CloseOtherEditors( UObject* Asset, IAssetEditorInstance* OnlyEditor)
 {
@@ -294,6 +303,22 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 		FAssetEditorToolkit::SetPreviousWorldCentricToolkitHostForNewAssetEditor( OpenedFromLevelEditor.ToSharedRef() );
 	}
 
+	if( Assets.Num() == 1 )
+	{
+		// Find any existing simple editors for this asset
+		const TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset( Assets[0] );
+
+		IAssetEditorInstance* const * ExistingInstance = Editors.FindByPredicate( [&](IAssetEditorInstance* Editor){
+			return Editor->GetEditorName() == FSimpleAssetEditor::ToolkitFName;
+		} );
+
+		if( ExistingInstance )
+		{
+			(*ExistingInstance)->FocusWindow();
+			return true;
+		}
+	}
+
 	// No asset type actions for this asset. Just use a properties editor.
 	FSimpleAssetEditor::CreateEditor(ToolkitMode, ToolkitMode == EToolkitMode::WorldCentric ? OpenedFromLevelEditor : TSharedPtr<IToolkitHost>(), Assets );
 
@@ -314,32 +339,19 @@ void FAssetEditorManager::HandleRequestOpenAssetMessage( const FAssetEditorReque
 
 void FAssetEditorManager::OpenEditorForAsset(const FString& AssetPathName)
 {
-	FString FileType = FPaths::GetExtension(AssetPathName, /*bIncludeDot=*/true);
+	// An asset needs loading
+	UPackage* Package = LoadPackage(NULL, *AssetPathName, LOAD_NoRedirects);
 
-	// Check if a map needs loading
-	if (FileType.ToLower() == FPackageName::GetMapPackageExtension().ToLower())
+	if (Package)
 	{
-		bool bLoadAsTemplate = false;
-		bool bShowProgress = false;
+		Package->FullyLoad();
 
-		FEditorFileUtils::LoadMap(AssetPathName, bLoadAsTemplate, bShowProgress);
-	}
-	else
-	{
-		// An asset needs loading
-		UPackage* Package = LoadPackage(NULL, *AssetPathName, LOAD_NoRedirects);
+		FString AssetName = FPaths::GetBaseFilename(AssetPathName);
+		UObject* Object = FindObject<UObject>(Package, *AssetName);
 
-		if (Package)
+		if (Object != NULL)
 		{
-			Package->FullyLoad();
-
-			FString AssetName = FPaths::GetBaseFilename(AssetPathName);
-			UObject* Object = FindObject<UObject>(Package, *AssetName);
-
-			if (Object != NULL)
-			{
-				OpenEditorForAsset(Object);
-			}
+			OpenEditorForAsset(Object);
 		}
 	}
 }
@@ -371,7 +383,7 @@ void FAssetEditorManager::RestorePreviouslyOpenAssets()
 			if(bAutoRestore)
 			{
 				// Pretend that we showed the notification and that the user clicked "Restore Now"
-				OnConfirmRestorePreviouslyOpenAssets(OpenAssets);
+				OpenEditorsForAssets(OpenAssets);
 			}
 			else
 			{
@@ -390,7 +402,7 @@ void FAssetEditorManager::RestorePreviouslyOpenAssets()
 		{
 			// If we crashed, we always ask regardless of what the user previously said
 			SpawnRestorePreviouslyOpenAssetsNotification(bCleanShutdown, OpenAssets);
- 		}
+		}
 	}
 }
 
@@ -473,11 +485,10 @@ void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> A
 		UEditorLoadingSavingSettings& Settings = *GetMutableDefault<UEditorLoadingSavingSettings>();
 		Settings.bRestoreOpenAssetTabsOnRestart = bSuppressNotification;
 		Settings.PostEditChange();
-	}
 
-	for( const FString& AssetName : AssetsToOpen )
-	{
-		OpenEditorForAsset(AssetName);
+		// we do this inside the condition so that it can only be done once. 
+		OpenEditorsForAssets(AssetsToOpen);
+
 	}
 }
 
@@ -522,6 +533,14 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 		GConfig->SetArray(TEXT("AssetEditorManager"), TEXT("OpenAssetsAtExit"), OpenAssets, GEditorUserSettingsIni);
 		GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("CleanShutdown"), bOnShutdown, GEditorUserSettingsIni);
 		GConfig->Flush(false, GEditorUserSettingsIni);
+	}
+}
+
+void FAssetEditorManager::OpenEditorsForAssets(const TArray<FString>& AssetsToOpen)
+{
+	for (const FString& AssetName : AssetsToOpen)
+	{
+		OpenEditorForAsset(AssetName);
 	}
 }
 

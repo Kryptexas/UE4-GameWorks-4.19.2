@@ -32,7 +32,7 @@ static FD3D11ToggleStateCacheExecHelper GD3D11ToggleStateCacheExecHelper;
 
 #endif	// D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_RUNTIME_TOGGLE
 
-#if D3D11_STATE_CACHE_DEBUG && DO_CHECK
+#if D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG && DO_CHECK
 
 template <EShaderFrequency ShaderFrequency>
 void FD3D11StateCacheBase::VerifySamplerStates()
@@ -185,7 +185,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		Direct3DDeviceIMContext->OMGetBlendState(BlendState.GetInitReference(), BlendFactor, &SampleMask);
 
 		check(BlendState.GetReference() == CurrentBlendState);
-#ifdef USE_MONOLITHIC_GRAPHICS_DRIVERS
+#ifdef PLATFORM_XBOXONE
 		//MONO BUG WORKAROUND and a check to make sure it isn't fixed yet.
 		// mono's OMGetBlendState fails to set elements 2 and 3 (they don't change when you call OMGetBlendState)
 		check(FMemory::Memcmp(BlendFactor, CurrentBlendFactor, sizeof(float)*2) == 0);
@@ -232,7 +232,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		for (uint32 Index = 0; Index < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; Index++)
 		{
 			check(VertexBuffers[Index] == CurrentVertexBuffers[Index].VertexBuffer);
-#ifndef USE_MONOLITHIC_GRAPHICS_DRIVERS
+#ifndef PLATFORM_XBOXONE
 			//Broken on mono.  will return stride = "previous stride" after call to IASetVertexBuffers(0,1,0,0,0);
 			check(Strides[Index] == CurrentVertexBuffers[Index].Stride);
 #endif
@@ -284,7 +284,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		VerifyShaderResourceViews<SF_Compute>();
 	}
 }
-#endif	// D3D11_STATE_CACHE_DEBUG && DO_CHECK
+#endif	// D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG && DO_CHECK
 
 void FD3D11StateCacheBase::ClearState()
 {

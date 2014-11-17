@@ -12,7 +12,7 @@ class FLandscapeEditorDetailCustomization_Base : public IDetailCustomization //,
 {
 public:
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) OVERRIDE = 0;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override = 0;
 
 protected:
 	static class FEdModeLandscape* GetEditorMode();
@@ -94,7 +94,7 @@ void FLandscapeEditorDetailCustomization_Base::SetPropertyValue(type NewValue, E
 	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
 }
 
-class FLandscapeEditorStructCustomization_Base : public IStructCustomization
+class FLandscapeEditorStructCustomization_Base : public IPropertyTypeCustomization
 {
 protected:
 	static class FEdModeLandscape* GetEditorMode();

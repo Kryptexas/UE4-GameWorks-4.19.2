@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineSerivceMessages.h: Declares message types sent and consumed by FEngineService.
-=============================================================================*/
-
 #pragma once
 
 #include "EngineServiceMessages.generated.h"
@@ -39,45 +35,31 @@ struct FEngineServicePong
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the currently loaded level, if any.
-	 */
+	/** Holds the name of the currently loaded level, if any. */
 	UPROPERTY()
 	FString CurrentLevel;
 
-	/**
-	 * Holds the engine version.
-	 */
+	/** Holds the engine version. */
 	UPROPERTY()
 	int32 EngineVersion;
 
-	/**
-	 * Holds a flag indicating whether game play has begun.
-	 */
+	/** Holds a flag indicating whether game play has begun. */
 	UPROPERTY()
 	bool HasBegunPlay;
 
-	/**
-	 * Holds the instance identifier.
-	 */
+	/** Holds the instance identifier. */
 	UPROPERTY()
 	FGuid InstanceId;
 
-	/**
-	 * Holds the type of the engine instance.
-	 */
+	/** Holds the type of the engine instance. */
 	UPROPERTY()
 	FString InstanceType;
 
-	/**
-	 * Holds the identifier of the session that the application belongs to.
-	 */
+	/** Holds the identifier of the session that the application belongs to. */
 	UPROPERTY()
 	FGuid SessionId;
 
-	/**
-	 * Holds the time in seconds since the world was loaded.
-	 */
+	/** Holds the time in seconds since the world was loaded. */
 	UPROPERTY()
 	float WorldTimeSeconds;
 };
@@ -103,15 +85,11 @@ struct FEngineServiceAuthDeny
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user that denied access.
-	 */
+	/** Holds the name of the user that denied access. */
 	UPROPERTY()
 	FString UserName;
 
-	/**
-	 * Holds the name of the user that access is denied to.
-	 */
+	/** Holds the name of the user that access is denied to. */
 	UPROPERTY()
 	FString UserToDeny;
 };
@@ -134,15 +112,11 @@ struct FEngineServiceAuthGrant
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user that granted access.
-	 */
+	/** Holds the name of the user that granted access. */
 	UPROPERTY()
 	FString UserName;
 
-	/**
-	 * Holds the name of the user that access is granted to.
-	 */
+	/** Holds the name of the user that access is granted to. */
 	UPROPERTY()
 	FString UserToGrant;
 
@@ -169,18 +143,13 @@ struct FEngineServiceExecuteCommand
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the command to execute.
-	 */
+	/** Holds the command to execute. */
 	UPROPERTY()
 	FString Command;
 
-	/**
-	 * Holds the name of the user that wants to execute the command.
-	 */
+	/** Holds the name of the user that wants to execute the command. */
 	UPROPERTY()
 	FString UserName;
-
 
 	/**
 	 * Default constructor.
@@ -214,12 +183,9 @@ struct FEngineServiceTerminate
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user that wants to terminate the engine.
-	 */
+	/** Holds the name of the user that wants to terminate the engine. */
 	UPROPERTY()
 	FString UserName;
-
 
 	/**
 	 * Default constructor.
@@ -255,18 +221,13 @@ struct FEngineServiceNotification
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the notification text.
-	 */
+	/** Holds the notification text. */
 	UPROPERTY()
 	FString Text;
 
-	/**
-	 * Holds the time in seconds since the engine started.
-	 */
+	/** Holds the time in seconds since the engine started. */
 	UPROPERTY()
 	double TimeSeconds;
-
 
 	/**
 	 * Default constructor.

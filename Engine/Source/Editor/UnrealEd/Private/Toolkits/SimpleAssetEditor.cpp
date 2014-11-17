@@ -10,6 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "GenericEditor"
 
+const FName FSimpleAssetEditor::ToolkitFName( TEXT( "GenericAssetEditor" ) );
 const FName FSimpleAssetEditor::PropertiesTabId( TEXT( "GenericEditor_Properties" ) );
 
 void FSimpleAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -101,7 +102,7 @@ void FSimpleAssetEditor::InitEditor( const EToolkitMode::Type Mode, const TShare
 
 FName FSimpleAssetEditor::GetToolkitFName() const
 {
-	return FName("GenericAssetEditor");
+	return ToolkitFName;
 }
 
 FText FSimpleAssetEditor::GetBaseToolkitName() const

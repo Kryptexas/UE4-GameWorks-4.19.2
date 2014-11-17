@@ -48,6 +48,6 @@ bool UAssetClassProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UAssetClassProperty, UAssetObjectProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UAssetClassProperty, MetaClass ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UAssetClassProperty, MetaClass), TEXT("MetaClass"));
 	}
 );

@@ -27,13 +27,13 @@ public:
 	 * 
 	 * @param ColumnName The name of the column to generate a widget for
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 	
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-	virtual TSharedPtr< FPropertyPath > GetPropertyPath() const OVERRIDE;
+	virtual TSharedPtr< FPropertyPath > GetPropertyPath() const override;
 
-	virtual bool IsCursorHovering() const OVERRIDE;
+	virtual bool IsCursorHovering() const override;
 
 
 private:

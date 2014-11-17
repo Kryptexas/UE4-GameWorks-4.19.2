@@ -66,22 +66,6 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY(EditAnywhere, Transient, DuplicateTransient, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
 	TArray<struct FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
-	/** Number of pending lightmaps still to be calculated (Apply()'d) */
-	UPROPERTY(transient)
-	int32 NumPendingLightmaps;
-
-	/**
-	 * A key for deciding which components are compatible when joining components together after a lighting build. 
-	 * Will default to the staticmesh pointer when SetStaticMesh is called, so this must be set after calling
-	 * SetStaticMesh on the component
-	 */
-	UPROPERTY()
-	int32 ComponentJoinKey;
-
-	/** The mappings for all the instances of this component */
-	UPROPERTY(transient)
-	TArray<struct FInstancedStaticMeshMappingInfo> CachedMappings;
-
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
 		The random number is stored in a buffer accessible to materials through the PerInstanceRandom expression.  If
 		this is set to zero (default), it will be populated automatically by the editor */
@@ -96,8 +80,13 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Culling)
 	int32 InstanceEndCullDistance;
 
+	/** Add an instance to this component. Transform is given in local space of this component.  */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
 	void AddInstance(const FTransform& InstanceTransform);
+
+	/** Add an instance to this component. Transform is given in world space. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	 void AddInstanceWorldSpace(const FTransform& WorldTransform);
 
 	virtual bool ShouldCreatePhysicsState() const;
 
@@ -120,30 +109,30 @@ public:
 	TArray<FBodyInstance*> InstanceBodies;
 
 	// Begin UActorComponent interface 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 	// End UActorComponent interface 
 
 	// Begin UPrimitiveComponent Interface
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void DestroyPhysicsState() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void CreatePhysicsState() override;
+	virtual void DestroyPhysicsState() override;
 
-	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
 #if WITH_EDITOR
-	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) OVERRIDE;
+	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
-	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
-
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
+	
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	// End UPrimitiveComponent Interface
 
 	//Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 	//End UObject Interface
 
@@ -163,5 +152,13 @@ private:
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
 
+protected:
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		//@todo - support for instanced meshes
+		return false;
+	}
 };
 

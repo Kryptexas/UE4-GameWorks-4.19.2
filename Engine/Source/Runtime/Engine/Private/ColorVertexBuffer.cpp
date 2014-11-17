@@ -309,7 +309,7 @@ void FColorVertexBuffer::GetVertexColors( TArray<FColor>& OutColors )
 }
 
 /** Load from raw color array */
-void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint32 Count, const uint32 Stride )
+void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint32 Count, const uint32 InStride )
 {
 	check( Count > 0 );
 
@@ -329,7 +329,7 @@ void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint3
 		{
 			*Dst++ = *(const FColor*)Src;
 
-			Src += Stride;
+			Src += InStride;
 		}
 	}
 
@@ -357,7 +357,8 @@ void FColorVertexBuffer::InitRHI()
 		if(ResourceArray->GetResourceDataSize())
 		{
 			// Create the vertex buffer.
-			VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),ResourceArray,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(ResourceArray);
+			VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),BUF_Static,CreateInfo);
 		}
 	}
 }

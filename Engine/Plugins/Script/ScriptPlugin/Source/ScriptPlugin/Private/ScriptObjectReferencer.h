@@ -35,5 +35,5 @@ public:
 	void RemoveObjectReference(UObject* Object);
 
 	// FGCObject Interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 };

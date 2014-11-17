@@ -42,6 +42,14 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
+	CommitResourceTableCycles(0),
+	CacheResourceTableCalls(0),
+	CacheResourceTableCycles(0),
+	SetShaderTextureCycles(0),
+	SetShaderTextureCalls(0),
+	SetTextureInTableCalls(0),
+	SceneFrameCounter(0),
+	ResourceTableFrameCounter(INDEX_NONE),
 	CurrentDSVAccessType(DSAT_Writable),
 	bDiscardSharedConstants(false),
 	GPUProfilingData(this),
@@ -60,17 +68,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
-	if ( GReadTexturePoolSizeFromIni )
-	{
-		int32 PoolSize;
-		GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSize"), PoolSize, GEngineIni);
-
-		GTexturePoolSize = int64(PoolSize) * 1024 * 1024;
-	}
-	else
-	{
-		GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );
-	}
+	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );	
 
 	// Initialize the RHI capabilities.
 	check(FeatureLevel == D3D_FEATURE_LEVEL_11_0 || FeatureLevel == D3D_FEATURE_LEVEL_10_0 );
@@ -159,6 +157,8 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	GPixelFormats[ PF_R5G6B5_UNORM	].PlatformFormat	= DXGI_FORMAT_B5G6R5_UNORM;
 	GPixelFormats[ PF_R8G8B8A8		].PlatformFormat	= DXGI_FORMAT_R8G8B8A8_TYPELESS;
 	GPixelFormats[ PF_R8G8			].PlatformFormat	= DXGI_FORMAT_R8G8_UNORM;
+	GPixelFormats[ PF_R32G32B32A32_UINT].PlatformFormat = DXGI_FORMAT_R32G32B32A32_UINT;
+	GPixelFormats[ PF_R16G16_UINT].PlatformFormat = DXGI_FORMAT_R16G16_UINT;
 
 	if (FeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
@@ -187,6 +187,11 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	DynamicVB = new FD3D11DynamicBuffer(this,D3D11_BIND_VERTEX_BUFFER,DynamicVBSizes);
 	uint32 DynamicIBSizes[] = {128,1024,64*1024,1024*1024,0};
 	DynamicIB = new FD3D11DynamicBuffer(this,D3D11_BIND_INDEX_BUFFER,DynamicIBSizes);
+
+	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+	{
+		DirtyUniformBuffers[Frequency] = 0;
+	}
 }
 
 void FD3D11DynamicRHI::Shutdown()
@@ -234,7 +239,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		DXGI_ADAPTER_DESC AdapterDesc;
 		VERIFYD3D11RESULT(Adapter->GetDesc(&AdapterDesc));
 	  
-#ifndef USE_MONOLITHIC_GRAPHICS_DRIVERS
+#ifndef PLATFORM_XBOXONE // No need for display mode enumeration on console
 		// Enumerate outputs for this adapter
 		// TODO: Cap at 1 for default output
 		for(uint32 o = 0;o < 1; o++)
@@ -282,7 +287,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 
 			delete[] ModeList;
 		}
-#endif // USE_MONOLITHIC_GRAPHICS_DRIVERS
+#endif // PLATFORM_XBOXONE
 	}
 
 	check(InitializedMode);
@@ -408,6 +413,15 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		ReleasePooledUniformBuffers();
 		ReleasePooledTextures();
 
+		// Release references to bound uniform buffers.
+		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+		{
+			for (int32 BindIndex = 0; BindIndex < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; ++BindIndex)
+			{
+				BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
+			}
+		}
+
 		// Release the device and its IC
 		StateCache.SetContext(nullptr);
 		Direct3DDeviceIMContext = NULL;
@@ -439,3 +453,10 @@ void FD3D11DynamicRHI::RHIFlushComputeShaderCache()
 {
 	// Nothing to do
 }
+
+void* FD3D11DynamicRHI::RHIGetNativeDevice()
+{
+	return (void*)Direct3DDevice.GetReference();
+}
+
+

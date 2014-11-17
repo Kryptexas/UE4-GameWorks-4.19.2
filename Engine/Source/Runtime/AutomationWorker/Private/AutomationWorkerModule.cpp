@@ -1,14 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWorkerModule.cpp: Implements the FAutomationWorkerModule class.
-=============================================================================*/
-
 #include "AutomationWorkerPrivatePCH.h"
 
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
-
 
 IMPLEMENT_MODULE(FAutomationWorkerModule, AutomationWorker);
 
@@ -124,6 +119,8 @@ void FAutomationWorkerModule::Initialize()
 		{
 			GEngine->GameViewport->OnPNGScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
 		}
+		//Register the editor screen shot callback
+		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
 #endif
 
 		bExecuteNextNetworkCommand = true;		
@@ -150,13 +147,13 @@ void FAutomationWorkerModule::ReportNetworkCommandComplete()
 	}
 }
 
+
 /**
  *	Takes a large transport array and splits it into pieces of a desired size and returns the portion of this which is requested
  *
- * @param FullTransportArray	- The whole series of data
- * @param CurrentChunkIndex		- The The chunk we are requesting
- * @param NumToSend				- The maximum number of bytes we should be splitting into.
- *
+ * @param FullTransportArray The whole series of data
+ * @param CurrentChunkIndex The The chunk we are requesting
+ * @param NumToSend The maximum number of bytes we should be splitting into.
  * @return The section of the transport array which matches our index requested
  */
 TArray< uint8 > GetTransportSection( const TArray< uint8 >& FullTransportArray, const int32 NumToSend, const int32 RequestedChunkIndex )
@@ -247,7 +244,30 @@ void FAutomationWorkerModule::HandleFindWorkersMessage( const FAutomationWorkerF
 
 	if ((Message.SessionId == FApp::GetSessionId()) && (Message.Changelist == 10000))
 	{
-		MessageEndpoint->Send(new FAutomationWorkerFindWorkersResponse(FPlatformProcess::ComputerName(), InstanceName, FPlatformProperties::PlatformName(), Message.SessionId), Context->GetSender());
+		FAutomationWorkerFindWorkersResponse* Response = new FAutomationWorkerFindWorkersResponse();
+
+		FString OSMajorVersionString, OSSubVersionString;
+		FPlatformMisc::GetOSVersions( OSMajorVersionString, OSSubVersionString );
+
+		FString OSVersionString = OSMajorVersionString + TEXT(" ") + OSSubVersionString;
+		FString CPUModelString = FPlatformMisc::GetCPUBrand().Trim();
+
+		Response->DeviceName = FPlatformProcess::ComputerName();
+		Response->InstanceName = InstanceName;
+		Response->Platform = FPlatformProperties::PlatformName();
+		Response->SessionId = Message.SessionId;
+		Response->OSVersionName = OSVersionString;
+		Response->ModelName = FPlatformMisc::GetDefaultDeviceProfileName();
+		Response->GPUName = FPlatformMisc::GetPrimaryGPUBrand();
+		Response->CPUModelName = CPUModelString;
+		Response->RAMInGB = FPlatformMemory::GetPhysicalGBRam();
+#if WITH_ENGINE
+		Response->RenderModeName = AutomationCommon::GetRenderDetailsString();
+#else
+		Response->RenderModeName = TEXT("Unknown");
+#endif
+
+		MessageEndpoint->Send(Response, Context->GetSender());
 	}
 }
 
@@ -267,7 +287,7 @@ void FAutomationWorkerModule::HandlePingMessage( const FAutomationWorkerPing& Me
 	MessageEndpoint->Send(new FAutomationWorkerPong(), Context->GetSender());
 }
 
-// Handles FAutomationWorkerResetTests messages.
+
 void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTests& Message, const IMessageContextRef& Context )
 {
 	FAutomationTestFramework::GetInstance().ResetTests();
@@ -288,31 +308,66 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 #if WITH_ENGINE
 void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName )
 {
-	const int32 ThumbnailWidth = 256;
-	const int32 ThumbnailHeight = 128;
-	TArray<FColor> ScaledBitmap;
+	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
+	{
+		int32 NewHeight = Height;
+		int32 NewWidth = Width;
 
-	// Create and save the thumbnail
-	FImageUtils::CropAndScaleImage(Width, Height, ThumbnailWidth, ThumbnailHeight, Bitmap, ScaledBitmap);
+		TArray<FColor> ScaledBitmap;
 
-	TArray<uint8> CompressedBitmap;
-	FImageUtils::CompressImageArray(ThumbnailWidth, ThumbnailHeight, ScaledBitmap, CompressedBitmap);
+		if( FAutomationTestFramework::GetInstance().ShouldUseFullSizeScreenshots() )
+		{
+			ScaledBitmap = Bitmap;
+			//Clear the alpha channel before saving
+			for ( int32 Index = 0; Index < Width*Height; Index++ )
+			{
+				ScaledBitmap[Index].A = 255;
+			}
+		}
+		else
+		{
+			//Set the thumbnail size
+			NewHeight = 128;
+			NewWidth = 256;
 
-	// Send the screen shot
-	FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
+			// Create and save the thumbnail
+			FImageUtils::CropAndScaleImage(Width, Height, NewWidth, NewHeight, Bitmap, ScaledBitmap);
+		}
 
-	FString SFilename = ScreenShotName;
-	Message->ScreenShotName = SFilename;
-	Message->ScreenImage = CompressedBitmap;
-	MessageEndpoint->Send(Message, TestRequesterGUID);
+
+		TArray<uint8> CompressedBitmap;
+		FImageUtils::CompressImageArray(NewWidth, NewHeight, ScaledBitmap, CompressedBitmap);
+
+		// Send the screen shot if we have a target
+		if( TestRequesterGUID.IsValid() )
+		{
+			FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
+
+			FString SFilename = ScreenShotName;
+			Message->ScreenShotName = SFilename;
+			Message->ScreenImage = CompressedBitmap;
+			MessageEndpoint->Send(Message, TestRequesterGUID);
+		}
+		else
+		{
+			//Save locally
+			const bool bTree = true;
+			const FString FileName = FPaths::RootDir() + ScreenShotName;
+			IFileManager::Get().MakeDirectory( *FPaths::GetPath(FileName), bTree );
+			FFileHelper::SaveArrayToFile( CompressedBitmap, *FileName );
+		}
+	}
+
 }
 #endif
+
 
 void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context )
 {
 	ExecutionCount = Message.ExecutionCount;
 	TestName = Message.TestName;
 	TestRequesterGUID = Context->GetSender();
+	FAutomationTestFramework::GetInstance().SetScreenshotOptions(Message.bScreenshotsEnabled, Message.bUseFullSizeScreenShots);
 
 	// Always allow the first network command to execute
 	bExecuteNextNetworkCommand = true;
@@ -322,6 +377,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 
 	FAutomationTestFramework::GetInstance().StartTestByName(Message.TestName, Message.RoleIndex);
 }
+
 
 void FAutomationWorkerModule::RunTest(const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent)
 {
@@ -337,8 +393,10 @@ void FAutomationWorkerModule::RunTest(const FString& InTestToRun, const int32 In
 	FAutomationTestFramework::GetInstance().StartTestByName(InTestToRun, InRoleIndex);
 }
 
-// This is sortof a local controller to run tests and spew results, mostly used by automated testing
 
+/**
+ * Implements a local controller to run tests and spew results, mostly used by automated testing.
+ */
 static struct FQueueTests
 {
 	struct FJob
@@ -364,8 +422,7 @@ static struct FQueueTests
 		: NumTestsRun(0)
 		, bTestInPogress(false)
 		, bTicking(false)
-	{
-	}
+	{ }
 
 	void NewTest(FString const& Command, int32 RoleIndex = 0, FOutputDevice* Ar = GLog)
 	{
@@ -433,7 +490,7 @@ static struct FQueueTests
 		}
 		else
 		{
-			Ar->Logf(ELogVerbosity::Error, TEXT("...Automation Test Failed (%s)"), *Test);
+			Ar->Logf(ELogVerbosity::Log, TEXT("...Automation Test Failed (%s)"), *Test);
 		}
 		bTestInPogress = false;
 		NumTestsRun++;
@@ -445,6 +502,7 @@ static struct FQueueTests
 	}
 
 } QueueTests;
+
 
 bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 {
@@ -494,18 +552,15 @@ bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 }
 
 
-
 static class FAutomationTestCmd : private FSelfRegisteringExec
 {
 public:
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE
+	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
 		return DirectAutomationCommand(Cmd, &Ar);
 	}
 } AutomationTestCmd;
-
-
 
 
 #undef LOCTEXT_NAMESPACE

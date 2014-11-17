@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ContentStreaming.h"
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActorComponent, Log, All);
 
 /**
@@ -23,6 +25,7 @@ protected:
 		{
 			// Save the world and set the component's world to NULL to prevent a nested FComponentReregisterContext from reregistering this component.
 			World = InComponent->GetWorld();
+			FNavigationLockContext NavUpdateLock(World);
 
 			// Will set bRegistered to false
 			InComponent->ExecuteUnregisterEvents();
@@ -53,6 +56,7 @@ protected:
 			}
 
 			InComponent->World = InWorld;
+			FNavigationLockContext NavUpdateLock(InWorld);
 
 			// Will set bRegistered to true
 			InComponent->ExecuteRegisterEvents();

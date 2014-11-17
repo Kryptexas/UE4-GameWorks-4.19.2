@@ -61,6 +61,9 @@
 	// Example:  CA_CHECK_RETVAL int32 GetNumber();
 	#define CA_CHECK_RETVAL [returnvalue:Post(MustCheck=Yes)]
 
+	// Function is expected to never return
+	#define CA_NORETURN __declspec(noreturn)
+
 	// Suppresses a warning for a single occurrence.  Should be used only for code analysis warnings on Windows platform!
 	#define CA_SUPPRESS( WarningNumber ) __pragma( warning( suppress: WarningNumber ) )
 
@@ -80,5 +83,13 @@
 	// We don't use exceptions or care to gracefully handle _alloca() failure.  Also, we wrap _alloca in an
 	// appAlloca macro (not inline methods) and don't want to suppress at all call sites.
 	#pragma warning( disable : 6255 )	// warning C6255: _alloca indicates failure by raising a stack overflow exception.  Consider using _malloca instead.
+
+	// This a very common false positive warning (but some cases are not false positives!). Disabling for now so that we
+	// can more quickly see the benefits of static analysis on new code.
+	#pragma warning(disable : 6102) // warning C6102: Using 'variable' from failed function call at line 'line'.
+
+	// We use this exception handler in Windows code, it may be worth a closer look, but disabling for now
+	// so we can get the benefits of analysis on cross-platform code sooner.
+	#pragma warning(disable : 6320) // warning C6320: Exception-filter expression is the constant EXCEPTION_EXECUTE_HANDLER. This might mask exceptions that were not intended to be handled.
 
 #endif

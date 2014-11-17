@@ -84,7 +84,7 @@ private:
 	/** The check status of the item. */
 	ESlateCheckBoxState::Type IsChecked() const
 	{
-		return SubmitItemData->bIsChecked;
+		return SubmitItemData->bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
 	/** Changes the check status of the item .*/
@@ -456,12 +456,15 @@ static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<F
 {
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
+	TArray<FSourceControlStateRef> States;
+	SourceControlProvider.GetState(SourceControlHelpers::PackageFilenames(InPackagesNames), States, EStateCacheUsage::ForceUpdate);
+
 	for( int32 PackageIndex = 0 ; PackageIndex < InPackagesNames.Num() ; ++PackageIndex )
 	{
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(InPackagesNames[PackageIndex]), EStateCacheUsage::Use);
 		if(SourceControlState.IsValid())
 		{
-			if( SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+			if (SourceControlState->CanCheckIn())
 			{
 				OutOpenFiles.Add(InPackagesNames[PackageIndex]);
 			}
@@ -556,7 +559,7 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 					// report success with a notification
 					FNotificationInfo Info(CheckInOperation->GetSuccessMessage());
 					Info.ExpireDuration = 8.0f;
-					Info.HyperlinkText = LOCTEXT("SCC_Checkin_ShowLog", "Show Log");
+					Info.HyperlinkText = LOCTEXT("SCC_Checkin_ShowLog", "Show Message Log");
 					Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FMessageLog("SourceControl").Open(EMessageSeverity::Info, true); });
 					FSlateNotificationManager::Get().AddNotification(Info);
 

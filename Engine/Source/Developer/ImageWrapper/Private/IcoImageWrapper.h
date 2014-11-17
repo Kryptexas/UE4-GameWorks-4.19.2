@@ -17,17 +17,12 @@ public:
 
 public:
 
-	// Begin FImageWrapper Interface
+	// FImageWrapper Interface
 
-	virtual void Compress( int32 Quality ) OVERRIDE;
-
-	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) OVERRIDE;
-	
-	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) OVERRIDE;
-
-	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) OVERRIDE;
-
-	// End FImageWrapper Interface
+	virtual void Compress( int32 Quality ) override;
+	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
+	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
+	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) override;
 
 private:
 

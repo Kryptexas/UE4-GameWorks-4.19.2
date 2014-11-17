@@ -71,10 +71,6 @@ public partial class Project : CommandUtils
 		try
 		{
 			var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
-			if (Params.Compressed)
-			{
-				CommandletParams += " -Compressed";
-			}
             if (Params.UseDebugParamForEditorExe)
             {
                 CommandletParams += " -debug";
@@ -101,11 +97,11 @@ public partial class Project : CommandUtils
 	private static void CleanupCookedData(List<string> PlatformsToCook, ProjectParams Params)
 	{		
 		var ProjectPath = Path.GetFullPath(Params.RawProjectPath);
-		var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Sandboxes", "Cooked-");
+		var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
 		var CleanDirs = new string[PlatformsToCook.Count];
 		for (int DirIndex = 0; DirIndex < CleanDirs.Length; ++DirIndex)
 		{
-			CleanDirs[DirIndex] = CookedSandboxesPath + PlatformsToCook[DirIndex];
+			CleanDirs[DirIndex] = CombinePaths(CookedSandboxesPath, PlatformsToCook[DirIndex]);
 		}
 
 		const bool bQuiet = true;

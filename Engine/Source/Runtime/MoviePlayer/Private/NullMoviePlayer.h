@@ -18,17 +18,17 @@ public:
 	}
 
 	/** IGameMoviePlayer Interface */
-	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) OVERRIDE {}
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) OVERRIDE {}
-	virtual void Initialize() OVERRIDE {}
-	virtual void PassLoadingScreenWindowBackToGame() const OVERRIDE {}
-	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) OVERRIDE {}
-	virtual bool PlayMovie() OVERRIDE { return false;}
-	virtual void WaitForMovieToFinish() OVERRIDE {}
-	virtual bool IsLoadingFinished() const OVERRIDE {return true;}
-	virtual bool IsMovieCurrentlyPlaying() const OVERRIDE  {return false;}
-	virtual bool LoadingScreenIsPrepared() const OVERRIDE {return false;}
-	virtual void SetupLoadingScreenFromIni() OVERRIDE {}
+	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override {}
+	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override {}
+	virtual void Initialize() override {}
+	virtual void PassLoadingScreenWindowBackToGame() const override {}
+	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}
+	virtual bool PlayMovie() override { return false;}
+	virtual void WaitForMovieToFinish() override {}
+	virtual bool IsLoadingFinished() const override {return true;}
+	virtual bool IsMovieCurrentlyPlaying() const override  {return false;}
+	virtual bool LoadingScreenIsPrepared() const override {return false;}
+	virtual void SetupLoadingScreenFromIni() override {}
 
 private:
 	FNullGameMoviePlayer() {}

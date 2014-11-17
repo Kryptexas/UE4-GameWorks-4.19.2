@@ -825,27 +825,27 @@ public:
 
 	// IOnlinePlatformData
 
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return (const uint8*)UniqueNetIdStr.GetCharArray().GetData();
 	}
 
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return UniqueNetIdStr.GetCharArray().GetTypeSize() * UniqueNetIdStr.GetCharArray().Num();
 	}
 
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return !UniqueNetIdStr.IsEmpty();
 	}
 
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return UniqueNetIdStr;
 	}
 
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		return UniqueNetIdStr;
 	}
@@ -922,9 +922,32 @@ public:
 	virtual const FUniqueNetId& GetSessionId() const = 0;
 };
 
+/**
+ * Paging info needed for a request that can return paged results
+ */
+class FPagedQuery
+{
+public:
+	FPagedQuery(int32 InStart = 0, int32 InCount = -1)
+		: Start(InStart)
+		, Count(InCount)
+	{}
+
+	/** @return true if valid range */
+	bool IsValidRange() const
+	{
+		return Start >= 0 && Count >= 0;
+	}
+
+	/** first entry to fetch */
+	int32 Start;
+	/** total entries to fetch. -1 means ALL */
+	int32 Count;
+};
+
 /** Holds metadata about a given downloadable file */
 struct FCloudFileHeader
-{
+{	
 	/** Hash value, if applicable, of the given file contents */
     FString Hash;
 	/** Filename as downloaded */
@@ -1070,6 +1093,37 @@ public:
 	 * @return presence info for an online friend
 	 */
 	virtual const class FOnlineUserPresence& GetPresence() const = 0;
+};
+
+/**
+ * Party user info returned via IOnlineParty interface
+ */
+struct FOnlinePartyMember
+{
+	/** The unique ID of this party member */
+	TSharedPtr<FUniqueNetId>	UniqueId;
+
+	/** True if this party member is using the local console */
+	bool						IsLocal;
+
+	/** The time at which the player joined the party */
+	FDateTime					JoinTime;
+
+	/** If the platform supports grouping party members by device, this will be set */
+	int32						DeviceGroup;
+
+	/** Constructor */
+	FOnlinePartyMember(
+		const TSharedPtr<FUniqueNetId>& PartyMemberId,
+		const bool IsLocalPartyMember,
+		const FDateTime& PartyJoinTime,
+		const int32 InDeviceGroup
+		)
+		: UniqueId(PartyMemberId)
+		, IsLocal(IsLocalPartyMember)
+		, JoinTime(PartyJoinTime)
+		, DeviceGroup(InDeviceGroup)
+	{}
 };
 
 /** The possible permission categories we can choose from to read from the server */

@@ -24,9 +24,9 @@ public:
 	UAnimSequenceBase* AnimObject;
 	FOnAnimObjectChange OnChange;
 
-	virtual void PreEditChange( class FEditPropertyChain& PropertyAboutToChange ) OVERRIDE;
+	virtual void PreEditChange( class FEditPropertyChain& PropertyAboutToChange ) override;
 
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	virtual bool PropertyChangeRequiresRebuild(FPropertyChangedEvent& PropertyChangedEvent) { return true;}
 

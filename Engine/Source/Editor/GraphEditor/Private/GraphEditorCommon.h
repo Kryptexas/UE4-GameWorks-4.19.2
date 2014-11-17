@@ -9,6 +9,7 @@
 
 #include "Slate.h"
 
+#include "GraphEditorSettings.h"
 #include "SNodePanel.h"
 #include "SGraphPanel.h"
 #include "SGraphNode.h"

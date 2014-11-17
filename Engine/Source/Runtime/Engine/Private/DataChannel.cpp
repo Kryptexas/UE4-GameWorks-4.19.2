@@ -9,6 +9,8 @@
 
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "Engine/ActorChannel.h"
+#include "Engine/ControlChannel.h"
 
 DEFINE_LOG_CATEGORY(LogNet);
 DEFINE_LOG_CATEGORY(LogNetPlayerMovement);
@@ -17,6 +19,15 @@ DEFINE_LOG_CATEGORY(LogNetDormancy);
 DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 
 extern FAutoConsoleVariable CVarDoReplicationContextString;
+
+static TAutoConsoleVariable<int32> CVarNetReliableDebug(
+	TEXT("net.Reliable.Debug"),
+	0,
+	TEXT("Print all reliable bunches sent over the network\n")
+	TEXT(" 0: no print.\n")
+	TEXT(" 1: Print bunches as they are sent.\n")
+	TEXT(" 2: Print reliable bunch buffer each net update"),
+	ECVF_Default);
 
 /*-----------------------------------------------------------------------------
 	UChannel implementation.
@@ -258,9 +269,9 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
-	if (Bunch.bHasGUIDs)
+	if ( Bunch.bHasGUIDs )
 	{
-		Cast<UPackageMapClient>(Connection->PackageMap)->ReceiveNetGUIDBunch(Bunch);
+		Cast<UPackageMapClient>( Connection->PackageMap )->ReceiveNetGUIDBunch( Bunch );
 
 		if ( Bunch.IsError() )
 		{
@@ -268,7 +279,6 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			return;
 		}
 	}
-
 
 	check(Connection->Channels[ChIndex]==this);
 
@@ -371,8 +381,10 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 	// If its not a partial bunch, of it completes a partial bunch, we can call ReceivedSequencedBunch to actually handle it
 	
 	// Note this bunch's retirement.
-	if( Bunch.bReliable )
+	if ( Bunch.bReliable )
+	{
 		Connection->InReliable[Bunch.ChIndex] = Bunch.ChSequence;
+	}
 
 	FInBunch* HandleBunch = &Bunch;
 	if (Bunch.bPartial)
@@ -403,7 +415,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			}
 
 			InPartialBunch = new FInBunch(Bunch, false);
-			if (Bunch.GetBitsLeft() > 0)
+			if ( !Bunch.bHasGUIDs && Bunch.GetBitsLeft() > 0 )
 			{
 				check( Bunch.GetBitsLeft() % 8 == 0); // Starting partial bunches should always be byte aligned.
 
@@ -428,14 +440,14 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 				// Merge.
 				UE_LOG(LogNetPartialBunch, Verbose, TEXT("Merging Partial Bunch: %d Bytes"), Bunch.GetBytesLeft() );
 
-				if (Bunch.GetBitsLeft() > 0)
+				if ( !Bunch.bHasGUIDs && Bunch.GetBitsLeft() > 0 )
 				{
 					InPartialBunch->AppendDataFromChecked( Bunch.GetDataPosChecked(), Bunch.GetBitsLeft() );
 				}
 
 				// Only the final partial bunch should ever be non byte aligned. This is enforced during partial bunch creation
 				// This is to ensure fast copies/appending of partial bunches. The final partial bunch may be non byte aligned.
-				check( Bunch.bPartialFinal || Bunch.GetBitsLeft() % 8 == 0);
+				check( Bunch.bHasGUIDs || Bunch.bPartialFinal || Bunch.GetBitsLeft() % 8 == 0 );
 
 				InPartialBunch->ChSequence++;
 
@@ -446,10 +458,15 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 						UE_LOG(LogNetPartialBunch, Verbose, TEXT("Completed Partial Bunch: Channel: %d ChSequence: %d. Num: %d Rel: %d CRC 0x%X"), InPartialBunch->ChIndex, InPartialBunch->ChSequence, InPartialBunch->GetNumBits(), Bunch.bReliable, FCrc::MemCrc_DEPRECATED(InPartialBunch->GetData(), InPartialBunch->GetNumBytes()));
 					}
 
+					check( !Bunch.bHasGUIDs );		// Shouldn't have these, they only go in initial partial export bunches
+
 					HandleBunch = InPartialBunch;
-					InPartialBunch->bPartialFinal = true;
-					InPartialBunch->bClose = Bunch.bClose;
-					InPartialBunch->bDormant = Bunch.bDormant;
+
+					InPartialBunch->bPartialFinal			= true;
+					InPartialBunch->bClose					= Bunch.bClose;
+					InPartialBunch->bDormant				= Bunch.bDormant;
+					InPartialBunch->bHasMustBeMappedGUIDs	= Bunch.bHasMustBeMappedGUIDs;
+
 					if (InPartialBunch->bOpen)
 					{
 						UE_LOG(LogNetPartialBunch, Verbose, TEXT("Channel: %d is now Open! [%d] - [%d]"), ChIndex, OpenPacketId.First, OpenPacketId.Last );
@@ -519,6 +536,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	check(!Closing);
 	check(Connection->Channels[ChIndex]==this);
 	check(!Bunch->IsError());
+	check( !Bunch->bHasGUIDs );
 
 	// Set bunch flags.
 	if( OpenPacketId.First==INDEX_NONE && OpenedLocally )
@@ -541,12 +559,46 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 
 	TArray<FOutBunch *> OutgoingBunches;
 
+	UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
 	// Let the package map add any outgoing bunches it needs to send
-	if (Cast<UPackageMapClient>(Connection->PackageMap)->AppendExportBunches(OutgoingBunches))
+	if ( PackageMapClient->AppendExportBunches( OutgoingBunches ) )
 	{
 		// Dont merge if we have multiple bunches to send.
 		Merge = false;
 	}
+
+	// Append any "must be mapped" guids to front of bunch
+	// This is so the client will know to make sure they are loaded, and pause the stream until they are
+	TArray< FNetworkGUID > & MustBeMappedGuidsInLastBunch = PackageMapClient->GetMustBeMappedGuidsInLastBunch();
+
+	if ( MustBeMappedGuidsInLastBunch.Num() > 0 && Connection->Driver->IsServer() )
+	{
+		//UE_LOG( LogNet, Warning, TEXT( "SendBunch: Appending must be mapped guids. NumGuids: %i" ), MustBeMappedGuidsInLastBunch.Num() );
+
+		// Rewrite the bunch with the unique guids in front
+		FOutBunch TempBunch( *Bunch );
+
+		Bunch->Reset();
+
+		// Write all the guids out
+		uint16 NumMustBeMappedGUIDs = MustBeMappedGuidsInLastBunch.Num();
+		*Bunch << NumMustBeMappedGUIDs;
+		for ( int32 i = 0; i < MustBeMappedGuidsInLastBunch.Num(); i++ )
+		{
+			*Bunch << MustBeMappedGuidsInLastBunch[i];
+		}
+
+		// Append the original bunch data at the end
+		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
+
+		Bunch->bHasMustBeMappedGUIDs = 1;
+
+		// We can't merge with this, since we need all the unique static guids in the front
+		Merge = false;
+	}
+
+	MustBeMappedGuidsInLastBunch.Empty();
 
 	//-----------------------------------------------------
 	// Contemplate merging.
@@ -583,7 +635,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		uint8 *data = Bunch->GetData();
 		int64 bitsLeft = Bunch->GetNumBits();
 		Merge = false;
-		
+
 		while(bitsLeft > 0)
 		{
 			FOutBunch * PartialBunch = new FOutBunch(this, false);
@@ -641,6 +693,11 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		NextBunch->bDormant = Bunch->bDormant;
 		NextBunch->ChIndex = Bunch->ChIndex;
 		NextBunch->ChType = Bunch->ChType;
+
+		if ( !NextBunch->bHasGUIDs )
+		{
+			NextBunch->bHasMustBeMappedGUIDs |= Bunch->bHasMustBeMappedGUIDs;
+		}
 
 		if (OutgoingBunches.Num() > 1)
 		{
@@ -743,19 +800,15 @@ FOutBunch* UChannel::PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge
 		Connection->LastOutBunch = OutBunch;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.Reliable.Debug"));
-		if (CVar)
+		if (CVarNetReliableDebug.GetValueOnGameThread() == 1)
 		{
-			if (CVar->GetValueOnGameThread() == 1)
-			{
-				UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
-			}
-			if (CVar->GetValueOnGameThread() == 2)
-			{
-				UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
-				PrintReliableBunchBuffer();
-				UE_LOG(LogNetTraffic, Warning, TEXT(""));
-			}
+			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
+		}
+		if (CVarNetReliableDebug.GetValueOnGameThread() == 2)
+		{
+			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
+			PrintReliableBunchBuffer();
+			UE_LOG(LogNetTraffic, Warning, TEXT(""));
 		}
 #endif
 
@@ -1307,6 +1360,17 @@ void UActorChannel::CleanUp()
 		Connection->SentTemporaries.Remove(Actor);
 	}
 
+	// We don't care about any leftover pending guids at this point
+	PendingGuidResolves.Empty();
+
+	// Free any queued bunches
+	for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+	{
+		delete QueuedBunches[i];
+	}
+
+	QueuedBunches.Empty();
+
 	Super::CleanUp();
 }
 
@@ -1342,7 +1406,7 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	// Set stuff.
 	Actor                      = InActor;
 	ActorClass                 = Actor->GetClass();
-	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( ActorClass );
+	FClassNetCache* ClassCache = Connection->Driver->NetCache->GetClassNetCache( ActorClass );
 
 	UE_LOG(LogNetTraffic, VeryVerbose, TEXT("SetChannelActor[%d]: Actor: %s ActorClass: %s. %s"), ChIndex, Actor ? *Actor->GetPathName() : TEXT("NULL"), ActorClass ? *ActorClass->GetName() : TEXT("NULL"), *GetName() );
 
@@ -1408,15 +1472,84 @@ void UActorChannel::SetChannelActorForDestroy( FActorDestructionInfo *DestructIn
 	}
 }
 
-void UActorChannel::ReceivedBunch( FInBunch& Bunch )
+void UActorChannel::Tick()
 {
-	check(!Closing);
+	Super::Tick();
+	
+	// Try to resolve any guids that are holding up the network stream on this channel
+	for ( auto It = PendingGuidResolves.CreateIterator(); It; ++It )
+	{
+		if ( Connection->Driver->GuidCache->GetObjectFromNetGUID( *It, true ) != NULL )
+		{
+			// This guid is now resolved, we can remove it from the pending guid list
+			It.RemoveCurrent();
+		}
+	}
+
+	// If we don't have any pending guids to resolve, process any queued bunches now
+	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
+	{
+		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+
+		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+		{
+			ProcessBunch( *QueuedBunches[i] );
+			delete QueuedBunches[i];
+		}
+
+		QueuedBunches.Empty();
+	}
+}
+
+void UActorChannel::ReceivedBunch( FInBunch & Bunch )
+{
+	check( !Closing );
+
 	if ( Broken || bTornOff )
 	{
 		return;
 	}
 
-	const bool bIsServer = (Connection->Driver->ServerConnection == NULL);
+	if ( Bunch.bHasMustBeMappedGUIDs )
+	{
+		// If this bunch has any guids that must be mapped, we need to wait until they resolve before we can 
+		// process the rest of the stream on this channel
+		uint16 NumMustBeMappedGUIDs = 0;
+		Bunch << NumMustBeMappedGUIDs;
+
+		//UE_LOG( LogNetTraffic, Warning, TEXT( "Read must be mapped GUID's. NumMustBeMappedGUIDs: %i" ), NumMustBeMappedGUIDs );
+
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		for ( int32 i = 0; i < NumMustBeMappedGUIDs; i++ )
+		{
+			FNetworkGUID NetGUID;
+			Bunch << NetGUID;
+
+			// This GUID better have been exported before we get here, which means it must be registered by now
+			check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
+
+			if ( !Connection->Driver->GuidCache->IsGUIDLoaded( NetGUID ) )
+			{
+				PendingGuidResolves.Add( NetGUID );
+			}
+		}
+	}
+
+	// If we have guids that need to be resolved, or we have existing pending bunches, we must process this bunch later
+	if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 )
+	{
+		QueuedBunches.Add( new FInBunch( Bunch ) );
+		return;
+	}
+
+	// We can process this bunch now
+	ProcessBunch( Bunch );
+}
+
+void UActorChannel::ProcessBunch( FInBunch & Bunch )
+{
+	const bool bIsServer = Connection->Driver->IsServer();
 
 	FReplicationFlags RepFlags;
 
@@ -1438,7 +1571,7 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 		// We are unsynchronized. Instead of crashing, let's try to recover.
 		if (!NewChannelActor)
 		{
-			UE_LOG(LogNet, Log, TEXT("Received invalid actor class on channel %i"), ChIndex);
+			UE_LOG(LogNet, Warning, TEXT("Received invalid actor class on channel %i"), ChIndex);
 			Broken = 1;
 			FNetControlMessage<NMT_ActorChannelFailure>::Send(Connection, ChIndex);
 			return;
@@ -1509,7 +1642,10 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 	
 	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 	{
-		RepComp.Value()->PostReceivedBunch();
+		if ( RepComp.Key().IsValid() )
+		{
+			RepComp.Value()->PostReceivedBunch();
+		}
 	}
 
 	// After all properties have been initialized, call PostNetInit. This should call BeginPlay() so initialization can be done with proper starting values.
@@ -1559,8 +1695,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.Reliable.Debug"));
-	if ( CVar && CVar->GetValueOnGameThread() > 0 )
+	if (CVarNetReliableDebug.GetValueOnGameThread() > 0)
 	{
 		Bunch.DebugString = FString::Printf(TEXT("%.2f ActorBunch: %s"), Connection->Driver->Time, *Actor->GetName() );
 	}
@@ -1582,7 +1717,6 @@ bool UActorChannel::ReplicateActor()
 			{
 				RepComp.Value()->ForceRefreshUnreliableProperties();
 			}
-
 		}
 	}
 	else
@@ -1793,8 +1927,13 @@ void UActorChannel::BecomeDormant()
 
 bool UActorChannel::ReadyForDormancy(bool suppressLogs)
 {
-	for (auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt)
+	for ( auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt )
 	{
+		if ( !MapIt.Key().IsValid() )
+		{
+			continue;
+		}
+
 		if (!MapIt.Value()->ReadyForDormancy(suppressLogs))
 		{
 			return false;
@@ -1870,7 +2009,7 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 	check(Obj);
 	if (!ClassCache)
 	{
-		ClassCache = Connection->PackageMap->GetClassNetCache( Obj->GetClass() );
+		ClassCache = Connection->Driver->NetCache->GetClassNetCache( Obj->GetClass() );
 	}
 
 	// Write max int to signify done
@@ -1995,7 +2134,7 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
 		check( SubObj != NULL );
 		Actor->OnSubobjectCreatedFromReplication( SubObj );
-		Connection->PackageMap->AssignNetGUID( SubObj, NetGUID );
+		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
 	}
 
 	check( Cast< AActor >( SubObj ) == NULL );
@@ -2070,9 +2209,9 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 	// here, by forcing the packagemap to give them a NetGUID.
 	//
 	// Once we can lazily handle unmapped references on the client side, this can be simplified.
-	if (!Connection->PackageMap->SupportsObject(Obj))
+	if ( !Connection->Driver->GuidCache->SupportsObject( Obj ) )
 	{
-		FNetworkGUID NetGUID = Connection->PackageMap->AssignNewNetGUID(Obj);	//Make sure he gets a NetGUID so that he is now 'supported'
+		FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( Obj );	//Make sure he gets a NetGUID so that he is now 'supported'
 	}
 
 	bool NewSubobject = false;
@@ -2221,16 +2360,19 @@ FAutoConsoleCommandWithWorld DeleteDormantActorCommand(
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static void	FindNetGUID( const TArray<FString>& Args, UWorld* InWorld )
 {
-	for (FObjectIterator ObjIt(UNetGUIDCache::StaticClass()); ObjIt; ++ObjIt)
+	for (FObjectIterator ObjIt(UNetDriver::StaticClass()); ObjIt; ++ObjIt)
 	{
-		UNetGUIDCache *Cache = Cast<UNetGUIDCache>(*ObjIt);
-		if (Cache->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+		UNetDriver * Driver = Cast< UNetDriver >( *ObjIt );
+
+		if ( Driver->HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject ) )
+		{
 			continue;
+		}
 
 		if (Args.Num() <= 0)
 		{
 			// Display all
-			for (auto It = Cache->History.CreateIterator(); It; ++It)
+			for (auto It = Driver->GuidCache->History.CreateIterator(); It; ++It)
 			{
 				FString Str = It.Value();
 				FNetworkGUID NetGUID = It.Key();
@@ -2244,7 +2386,7 @@ static void	FindNetGUID( const TArray<FString>& Args, UWorld* InWorld )
 			FNetworkGUID NetGUID(GUIDValue);
 
 			// Search
-			FString Str = Cache->History.FindRef(NetGUID);
+			FString Str = Driver->GuidCache->History.FindRef(NetGUID);
 
 			if (!Str.IsEmpty())
 			{

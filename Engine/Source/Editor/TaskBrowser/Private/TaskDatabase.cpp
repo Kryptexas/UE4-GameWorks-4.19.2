@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TaskDatabase.cpp: Implements support for communicating with a task database
-=============================================================================*/
-
 #include "TaskBrowserPrivatePCH.h"
 #include "TaskDatabase.h"
 #include "TaskDatabaseThread.h"
@@ -93,9 +89,7 @@ namespace TaskDatabaseSystem
 		// Launch the task database thread!
 		GTaskDatabaseThread = FRunnableThread::Create(
 			GTaskDatabaseThreadRunnable,		// Runnable module
-			TEXT( "TaskDatabaseThread" ),		// Thread name
-			false,								// Auto-delete self?
-			false,								// Auto-delete runnable?
+			TEXT("TaskDatabaseThread"),			// Thread name
 			0,									// Stack size
 			TaskDatabaseThreadPriority );		// Thread priority
 

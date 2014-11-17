@@ -2,6 +2,7 @@
 
 
 #include "LevelEditor.h"
+#include "Matinee/MatineeActor.h"
 #include "BlueprintUtilities.h"
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -220,6 +221,8 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 			}
 
+			MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewReferences );
+
 		}
 		MenuBuilder.EndSection();
 	}
@@ -325,11 +328,19 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 		// @todo UE4: The current pivot options only work for brushes
 		if( SelectionInfo.bHaveBrush )
 		{
-			// Add a sub-menu for "Pivot"
-			MenuBuilder.AddSubMenu( 
-				LOCTEXT("PivotSubMenu", "Pivot"), 
-				LOCTEXT("PivotSubMenu_ToolTip", "Actor pivoting utils"),
-				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillPivotMenu ) );
+			// You can only move the pivot in ortho viewports, but you can reset it in any viewport
+			if( GCurrentLevelEditingViewportClient->ViewportType != LVT_Perspective )
+			{
+				// Add a sub-menu for "Pivot"
+				MenuBuilder.AddSubMenu( 
+					LOCTEXT("PivotSubMenu", "Pivot"), 
+					LOCTEXT("PivotSubMenu_ToolTip", "Actor pivoting utils"),
+					FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillPivotMenu ) );
+			}
+			else
+			{
+				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ResetPivot );
+			}
 		}
 
 		if (GetDefault<UEditorExperimentalSettings>()->bActorMerging && 
@@ -593,9 +604,9 @@ void FLevelEditorContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& Menu
 						MenuBuilder.AddMenuEntry( Text, Text, FSlateIcon(), CurMatineeActorAction );
 
 						// if matinee is opened, and if that is CurMatineeActor, show option to go to group
-						if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+						if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 						{
-							const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+							const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 							if ( InterpEditMode && InterpEditMode->MatineeActor == CurMatineeActor )
 							{

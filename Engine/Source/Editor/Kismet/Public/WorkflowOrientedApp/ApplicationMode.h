@@ -31,6 +31,8 @@ public:
 		ToolbarExtender = MakeShareable(new FExtender);
 	}
 
+	virtual ~FApplicationMode() {}
+
 	void DeactivateMode(TSharedPtr<FTabManager> InTabManager);
 	TSharedRef<FTabManager::FLayout> ActivateMode(TSharedPtr<FTabManager> InTabManager);
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) {}

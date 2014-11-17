@@ -12,7 +12,7 @@ public:
 	FName BoneName;
 
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))

@@ -61,43 +61,74 @@ FClass* FClasses::GetRootClass() const
 
 bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source) const
 {
-	// A class is not dependent on itself.
-	if (Suspect == Source)
-		return false;
+	check(Suspect != Source);
+	TSet<const FClass*> VisitedDpendencies;
+	return IsDependentOn(Suspect, Source, VisitedDpendencies);
+}
 
+bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source, TSet<const FClass*>& VisitedDpendencies) const
+{
 	// Children are all implicitly dependent on their parent, that is, children require their parent
 	// to be compiled first therefore if the source is a parent of the suspect, the suspect is
 	// dependent on the source.
 	if (Suspect->Inherits(Source))
+	{
 		return true;
+	}
+
+	// Prevent circular #includes from causing inifinite recursion
+	// Note that although it may mean there's a circular dependency somewhere, it does not
+	// necessarily mean it's the one we're looking for
+	if (VisitedDpendencies.Contains(Suspect))
+	{
+		return false;
+	}
+	else
+	{
+		VisitedDpendencies.Add(Suspect);
+	}
 
 	// Now consider all dependents of the suspect. If any of them are dependent on the source, the
 	// suspect is too.
 	for (auto It : Suspect->GetDependentNames())
 	{
-		const FClass* Dependency = FindClass(*It.ToString());
+		auto DependentName = It.ToString();
+		const FClass* Dependency = FindClass(*DependentName);
 
-		// Error.
 		if (!Dependency)
-			continue;
+		{
+			// Check if DependentName is a header file. If so, rerun the check on name without ".h" extension.
+			if (DependentName.EndsWith(TEXT(".h")))
+			{
+				DependentName.RemoveFromEnd(TEXT(".h"));
+				Dependency = FindClass(*DependentName);
+			}
+
+			// If still no class found, we're out of luck.
+			if (!Dependency)
+			{
+				continue;
+			}				
+		}
 
 		// the parser disallows declaring the parent class as a dependency, so the only way this could occur is
 		// if the parent for a native class has been changed (which causes the new parent to be inserted as a dependency),
 		// if this is the case, skip it or we'll go into a loop
 		if (Suspect->GetSuperClass() == Dependency)
+		{
 			continue;
+		}
 
-		if (Dependency == Source || IsDependentOn(Dependency, Source))
+		// Ignore inter-module dependencies, since modules should be self-contained when they are compiled.
+		if (Dependency->GetOutermost() != Suspect->GetOutermost())
+		{
+			continue;
+		}
+
+		if (Dependency == Source || IsDependentOn(Dependency, Source, VisitedDpendencies))
+		{
 			return true;
-	}
-
-	// Consider all children of the suspect if any of them are dependent on the source, the suspect is
-	// too because it itself is dependent on its children.
-
-	if(!Suspect->HasAnyClassFlags(CLASS_Interface))
-	{
-		if (!ClassTree.FindNode(const_cast<FClass*>(Suspect)))
-			FError::Throwf(TEXT("Unparsed class '%s' found while validating DependsOn entries for '%s'"), *Suspect->GetName(), *Source->GetName());
+		}
 	}
 
 	return false;
@@ -115,7 +146,7 @@ FClass* FClasses::FindClass(const TCHAR* ClassName) const
 	if (UObjectRedirector* RenamedClassRedirector = FindObject<UObjectRedirector>(ClassPackage, ClassName))
 		return (FClass*)CastChecked<UClass>(RenamedClassRedirector->DestinationObject);
 
-	return NULL;
+	return nullptr;
 }
 
 TArray<FClass*> FClasses::GetDerivedClasses(FClass* Parent) const
@@ -133,6 +164,13 @@ TArray<FClass*> FClasses::GetDerivedClasses(FClass* Parent) const
 	return Result;
 }
 
+FClass* FClasses::FindAnyClass(const TCHAR* ClassName) const
+{
+	check(ClassName);
+
+	return (FClass*)FindObject<UClass>(ANY_PACKAGE, ClassName);
+}
+
 FClass* FClasses::FindScriptClass(const FString& InClassName) const
 {
 	FString ErrorMsg;
@@ -143,7 +181,9 @@ FClass* FClasses::FindScriptClassOrThrow(const FString& InClassName) const
 {
 	FString ErrorMsg;
 	if (FClass* Result = FindScriptClass(InClassName, ErrorMsg))
+	{
 		return Result;
+	}
 
 	FError::Throwf(*ErrorMsg);
 
@@ -158,7 +198,7 @@ FClass* FClasses::FindScriptClass(const FString& InClassName, FString& OutErrorM
 	if (FClass* FoundClass = FindClass(*ClassNameStripped))
 	{
 		// If the class was found with the stripped class name, verify that the correct prefix was used and throw an error otherwise
-		if( !ClassNameHasValidPrefix( InClassName, FoundClass ) )
+		if (!ClassNameHasValidPrefix(InClassName, FoundClass))
 		{
 			OutErrorMsg = FString::Printf(TEXT("Class '%s' has an incorrect prefix, expecting '%s'"), *InClassName, *FoundClass->GetNameWithPrefix());
 			return NULL;
@@ -194,12 +234,21 @@ TArray<FClass*> FClasses::GetClassesInPackage(UPackage* InPackage) const
 	return Result;
 }
 
+#if WIP_UHT_REFACTOR
+
 void FClasses::ChangeParentClass(FClass* Class)
 {
 	ClassTree.ChangeParentClass(Class);
+}
+
+bool FClasses::ContainsClass(const FClass* Class) const
+{
+	return !!ClassTree.FindNode(const_cast<FClass*>(Class));
 }
 
 void FClasses::Validate()
 {
 	ClassTree.Validate();
 }
+
+#endif

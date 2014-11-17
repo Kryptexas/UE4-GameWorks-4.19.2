@@ -46,12 +46,12 @@ public:
 		, bCheckDevices(true)
 	{}
 
-	virtual bool Init() OVERRIDE
+	virtual bool Init() override
 	{
 		return true;
 	}
 
-	virtual uint32 Run() OVERRIDE
+	virtual uint32 Run() override
 	{
 		while (!Stopping)
 		{
@@ -66,12 +66,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop() OVERRIDE
+	virtual void Stop() override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit() OVERRIDE
+	virtual void Exit() override
 	{}
 
 	FDeviceNotification& OnDeviceNotification()
@@ -258,7 +258,7 @@ void FIOSDeviceHelper::Initialize()
 	// kick off a thread to query for connected devices
 	QueryTask = new FDeviceQueryTask();
 	QueryTask->OnDeviceNotification().AddStatic(FIOSDeviceHelper::DeviceCallback);
-	QueryThread = FRunnableThread::Create(QueryTask, TEXT("FIOSDeviceHelper.QueryTask"), false, false, 128 * 1024, TPri_Normal);
+	QueryThread = FRunnableThread::Create(QueryTask, TEXT("FIOSDeviceHelper.QueryTask"), 128 * 1024, TPri_Normal);
 #endif
 }
 

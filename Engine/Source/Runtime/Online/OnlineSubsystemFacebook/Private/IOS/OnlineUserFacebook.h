@@ -17,10 +17,10 @@ public:
 
 	// FOnlineUser
 
-	virtual TSharedRef<FUniqueNetId> GetUserId() const OVERRIDE;
-	virtual FString GetRealName() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
-	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const OVERRIDE;
+	virtual TSharedRef<FUniqueNetId> GetUserId() const override;
+	virtual FString GetRealName() const override;
+	virtual FString GetDisplayName() const override;
+	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 
 	// FOnlineUserInfoFacebook
 
@@ -75,9 +75,9 @@ public:
 	
 	// IOnlineUser
 
-	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<class FUniqueNetId> >& UserIds) OVERRIDE;
-	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray< TSharedRef<class FOnlineUser> >& OutUsers) OVERRIDE;
-	virtual TSharedPtr<FOnlineUser> GetUserInfo(int32 LocalUserNum, const class FUniqueNetId& UserId) OVERRIDE;
+	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<class FUniqueNetId> >& UserIds) override;
+	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray< TSharedRef<class FOnlineUser> >& OutUsers) override;
+	virtual TSharedPtr<FOnlineUser> GetUserInfo(int32 LocalUserNum, const class FUniqueNetId& UserId) override;
 
 	// FOnlineUserFacebook
 

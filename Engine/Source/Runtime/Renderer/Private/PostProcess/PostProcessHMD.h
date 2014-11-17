@@ -8,6 +8,17 @@
 
 #include "RenderingCompositionGraph.h"
 
+/** The vertex data used to filter a texture. */
+struct FDistortionVertex
+{
+	FVector2D	Position;
+	FVector2D	TexR;
+	FVector2D	TexG;
+	FVector2D	TexB;
+	float		VignetteFactor;
+	float		TimewarpFactor;
+};
+
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor
 class FRCPassPostProcessHMD : public TRenderingCompositePassBase<1, 1>

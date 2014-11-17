@@ -180,25 +180,96 @@ void FWindowsPlatformStackWalkExt::GetModuleList( FCrashInfo* CrashInfo )
  */
 void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules( FCrashInfo* CrashInfo )
 {
-	TArray<FString> SymbolPaths;
-	for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
-	{
-		FString ModulePath = FPaths::GetPath( CrashInfo->ModuleNames[ModuleNameIndex] );
-		if( ModulePath.Len() > 0 )
-		{
-			SymbolPaths.AddUnique( ModulePath );
-		}
-	}
-
+	const bool bUseCachedData = CrashInfo->PDBCacheEntry.IsValid();
 	FString CombinedPath = TEXT( "" );
-	for( int32 PathIndex = 0; PathIndex < SymbolPaths.Num(); PathIndex++ )
-	{
-		CombinedPath += FString( TEXT( "../../../" ) ) + SymbolPaths[PathIndex] + TEXT( ";" );
-	}
 
-	// Set the symbol path
-	Symbol->SetImagePathWide( *CombinedPath );
-	Symbol->SetSymbolPathWide( *CombinedPath );
+	if( bUseCachedData )
+	{
+		TSet<FString> SymbolPaths;
+		for( const auto& Filename : CrashInfo->PDBCacheEntry->Files )
+		{
+			const FString SymbolPath = FPaths::GetPath( Filename );
+			if( SymbolPath.Len() > 0 )
+			{
+				SymbolPaths.Add( SymbolPath );
+			}
+		}
+
+		for( const auto& SymbolPath : SymbolPaths )
+		{
+			CombinedPath += SymbolPath;
+			CombinedPath += TEXT( ";" );
+		}
+
+		// Set the symbol path
+		Symbol->SetImagePathWide( *CombinedPath );
+		Symbol->SetSymbolPathWide( *CombinedPath );
+	}
+	else
+	{
+		const bool bUseNewSetPath = true;
+		if( bUseNewSetPath )
+		{
+#if	DO_LOCAL_TESTING
+			const FString RootDir = TEXT( "U:/P4EPIC/UE4-Releases/4.1/" );
+#else
+			const FString RootDir = FPaths::RootDir();
+#endif // DO_LOCAL_TESTING
+
+			TArray<FString> ModulesAndSymbols;
+			IFileManager::Get().FindFilesRecursive( ModulesAndSymbols, *RootDir, TEXT( "*.pdb" ), true, false, false );
+			IFileManager::Get().FindFilesRecursive( ModulesAndSymbols, *RootDir, TEXT( "*.dll" ), true, false, false );
+
+			TSet<FString> SymbolPaths;
+			for( const auto& Filename : ModulesAndSymbols )
+			{
+				const FString Path = FPaths::GetPath( Filename );
+				if( Path.Len() > 0 )
+				{
+					SymbolPaths.Add( Path );
+				}
+			}
+
+			for( const auto& SymbolPath : SymbolPaths )
+			{
+				CombinedPath += SymbolPath;
+				CombinedPath += TEXT( ";" );
+			}
+
+			// Set the symbol path
+			Symbol->SetImagePathWide( *CombinedPath );
+			Symbol->SetSymbolPathWide( *CombinedPath );
+		}
+		else
+		{
+			TArray<FString> SymbolPaths;
+			for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+			{
+				FString ModulePath = FPaths::GetPath( CrashInfo->ModuleNames[ModuleNameIndex] );
+				if( ModulePath.Len() > 0 )
+				{
+					SymbolPaths.AddUnique( ModulePath );
+				}
+			}
+
+			for( int32 PathIndex = 0; PathIndex < SymbolPaths.Num(); PathIndex++ )
+			{
+				CombinedPath += FString( TEXT( "../../../" ) ) + SymbolPaths[PathIndex] + TEXT( ";" );
+			}
+
+			// Set the symbol path
+			Symbol->SetImagePathWide( *CombinedPath );
+			Symbol->SetSymbolPathWide( *CombinedPath );
+
+			//@TODO: ROCKETHACK: This is for Rocket only.
+			Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\Installed\\Windows\\Engine\\Binaries\\Win64" ) );
+			Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\Installed\\Windows\\Engine\\Binaries\\Win32" ) );
+			Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\Symbols\\Engine\\Binaries\\Win64" ) );
+			Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\Symbols\\Engine\\Binaries\\Win32" ) );
+			Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\LauncherInstalled\\Windows\\Launcher\\Engine\\Binaries\\Win64" ) );
+			Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\LauncherSymbols\\Windows\\Launcher\\Engine\\Binaries\\Win64" ) );
+		}	
+	}
 
 	// Add in syncing of the Microsoft symbol servers if requested
 	if( FParse::Param( FCommandLine::Get(), TEXT( "SyncMicrosoftSymbols" ) ) )
@@ -220,14 +291,6 @@ void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules( FCrashInfo* CrashI
 		Symbol->AppendImagePathWide( TEXT( "SRV*..\\..\\Intermediate\\SymbolCache*http://msdl.microsoft.com/download/symbols" ) );
 		Symbol->AppendSymbolPathWide( TEXT( "SRV*..\\..\\Intermediate\\SymbolCache*http://msdl.microsoft.com/download/symbols" ) );
 	}
-
-	//@TODO: ROCKETHACK: This is for Rocket only.
-	Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\Installed\\Windows\\Engine\\Binaries\\Win64" ) );
-	Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\Installed\\Windows\\Engine\\Binaries\\Win32" ) );
-	Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\Symbols\\Engine\\Binaries\\Win64" ) );
-	Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\Symbols\\Engine\\Binaries\\Win32" ) );
-	Symbol->AppendImagePathWide( TEXT( "..\\..\\..\\Rocket\\LauncherInstalled\\Windows\\Launcher\\Engine\\Binaries\\Win64" ) );
-	Symbol->AppendSymbolPathWide( TEXT( "..\\..\\..\\Rocket\\LauncherSymbols\\Windows\\Launcher\\Engine\\Binaries\\Win64" ) );
 
 	TCHAR SymbolPath[1024] = { 0 };
 	Symbol->GetSymbolPathWide( SymbolPath, 1024, NULL );

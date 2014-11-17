@@ -2,15 +2,15 @@
 
 #pragma once
 
-class FDirectoryPathStructCustomization : public IStructCustomization
+class FDirectoryPathStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;              
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
 
 private:
 
@@ -18,8 +18,14 @@ private:
 	FText GetDisplayedText(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	/** Delegate used to display a directory picker */
-	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths) const;
+
+	/** Check whether that the chosen path is valid */
+	bool IsValidPath(const FString& AbsolutePath, const bool bRelativeToGameContentDir, FText* const OutReason = nullptr) const;
 
 	/** The browse button widget */
 	TSharedPtr<SButton> BrowseButton;
+
+	/** Absolute path to the game content directory */
+	FString AbsoluteGameContentDir;
 };

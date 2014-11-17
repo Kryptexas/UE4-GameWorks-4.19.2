@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "LiveEditorTypes.h"
+
 #include "LiveEditorKismetLibrary.generated.h"
 
-UCLASS(DependsOn=ULiveEditorTypes)
+UCLASS()
 class ULiveEditorKismetLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

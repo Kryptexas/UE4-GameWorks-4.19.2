@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_InputKeyEvent.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 
@@ -35,7 +35,7 @@ void UK2Node_InputKey::AllocateDefaultPins()
 
 FLinearColor UK2Node_InputKey::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FName UK2Node_InputKey::GetModifierName() const
@@ -140,19 +140,6 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else
 	{
 		return GetKeyText();
-	}
-}
-
-FString UK2Node_InputKey::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (bControl || bAlt || bShift)
-	{
-		return FString::Printf(TEXT("%s %s"), *GetModifierName().ToString(), *InputKey.ToString());
-	}
-	else
-	{
-		return GetKeyText().ToString();
 	}
 }
 

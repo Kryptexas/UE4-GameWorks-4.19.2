@@ -4,6 +4,10 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorActions.h"
 #include "EnvironmentQueryConnectionDrawingPolicy.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+
 
 #define LOCTEXT_NAMESPACE "EnvironmentQuerySchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -225,7 +229,6 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphContextActions(FGraphContextMenuBu
 		UEnvironmentQueryGraphNode_Option* OpNode = NewObject<UEnvironmentQueryGraphNode_Option>(ContextMenuBuilder.OwnerOfTemporaries);
 		OpNode->EnvQueryNodeClass = AllowedClasses[i];
 		AddOpAction->NodeTemplate = OpNode;		
-		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 
@@ -245,7 +248,6 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphNodeContextActions(FGraphContextMe
 		TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), FText::FromString(GetNodeDescriptionHelper(AllowedClasses[i])), "");
 		AddOpAction->ParentNode = SelectedOption;
 		AddOpAction->NodeTemplate = OpNode;
-		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 

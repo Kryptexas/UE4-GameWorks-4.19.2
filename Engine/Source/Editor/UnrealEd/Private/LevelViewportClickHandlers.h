@@ -25,7 +25,7 @@ struct HLevelSocketProxy : public HHitProxy
 		,   SceneComponent( InSceneComponent )
 		,	SocketName( InSocketName )
 	{}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
 		Collector.AddReferencedObject( SceneComponent );

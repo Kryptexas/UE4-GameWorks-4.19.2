@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Console.h"
 #include "Slate.h"
 #include "DefaultValueHelper.h"
 
@@ -93,6 +94,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		bIsRuntimeAutoCompleteUpToDate = false;
 		return;
 	}
+
 	// clear the existing tree
 	//@todo - probably only need to rebuild the tree + partial command list on level load
 	for (int32 Idx = 0; Idx < AutoCompleteTree.ChildNodes.Num(); Idx++)
@@ -100,13 +102,17 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		FAutoCompleteNode *Node = AutoCompleteTree.ChildNodes[Idx];
 		delete Node;
 	}
+
 	AutoCompleteTree.ChildNodes.Empty();
+
+	const UConsoleSettings* ConsoleSettings = GetDefault<UConsoleSettings>();
+
 	// copy the manual list first
 	AutoCompleteList.Empty();
-	AutoCompleteList.AddZeroed(ManualAutoCompleteList.Num());
-	for (int32 Idx = 0; Idx < ManualAutoCompleteList.Num(); Idx++)
+	AutoCompleteList.AddZeroed(ConsoleSettings->ManualAutoCompleteList.Num());
+	for (int32 Idx = 0; Idx < ConsoleSettings->ManualAutoCompleteList.Num(); Idx++)
 	{
-		AutoCompleteList[Idx] = ManualAutoCompleteList[Idx];
+		AutoCompleteList[Idx] = ConsoleSettings->ManualAutoCompleteList[Idx];
 	}
 
 	// console variables
@@ -161,9 +167,9 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 
 	// enumerate maps
 	TArray<FString> Packages;
-	for (int32 PathIdx=0; PathIdx<AutoCompleteMapPaths.Num(); ++PathIdx)
+	for (int32 PathIdx = 0; PathIdx < ConsoleSettings->AutoCompleteMapPaths.Num(); ++PathIdx)
 	{
-		FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::GameDir(), *AutoCompleteMapPaths[PathIdx]));
+		FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::GameDir(), *ConsoleSettings->AutoCompleteMapPaths[PathIdx]));
 	}
 	
 	// also include maps in this user's developer dir
@@ -393,14 +399,18 @@ void UConsole::ClearOutput()
 
 void UConsole::OutputTextLine(const FString& Text)
 {
+	const UConsoleSettings* ConsoleSettings = GetDefault<UConsoleSettings>();
+
 	// If we are full, delete the first line
-	if (Scrollback.Num() > MaxScrollbackSize)
+	if (Scrollback.Num() > ConsoleSettings->MaxScrollbackSize)
 	{
-		Scrollback.RemoveAt(0,1);
-		SBHead = MaxScrollbackSize-1;
+		Scrollback.RemoveAt(0, 1);
+		SBHead = ConsoleSettings->MaxScrollbackSize - 1;
 	}
 	else
+	{
 		SBHead++;
+	}
 
 	// Add the line
 	Scrollback.Add(Text);
@@ -632,7 +642,12 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 				//OutputText( Localize("Errors","Exec","Core") );
 
 				OutputText( TEXT("") );
-				FakeGotoState(NAME_None);
+
+				if(ConsoleState == NAME_Typing)
+				{
+					// close after each command when in typing mode (single line)
+					FakeGotoState(NAME_None);
+				}
 
 				UpdateCompleteIndices();
 			}
@@ -862,9 +877,9 @@ void UConsole::PostRender_Console_Typing(UCanvas* Canvas)
 
 	if (GEngine->IsStereoscopic3D())
 	{
-		ClipX -= 150;
+		LeftPos = ClipX / 3;
+		ClipX -= LeftPos;
 		ClipY = ClipY * 0.60;
-		LeftPos = 150;
 	}
 
 	PostRender_InputLine(Canvas, FIntPoint(LeftPos, ClipY));
@@ -953,8 +968,9 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	}
 	if (GEngine->IsStereoscopic3D())
 	{
+		LeftPos = ClipX / 3;
+		ClipX -= LeftPos;
 		Height = Canvas->ClipY * 0.60;
-		LeftPos = 150;
 	}
 
 	UFont* Font = GEngine->GetSmallFont();
@@ -964,7 +980,7 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	Canvas->StrLen(Font, TEXT("M"),xl,yl);
 
 	// Background
-	FCanvasTileItem ConsoleTile( FVector2D( 0.0f, 0.0f ), DefaultTexture_Black->Resource, FVector2D( ClipX, Height + TopPos - yl), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), FLinearColor::White );
+	FCanvasTileItem ConsoleTile( FVector2D( LeftPos, 0.0f ), DefaultTexture_Black->Resource, FVector2D( ClipX, Height + TopPos - yl), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), FLinearColor::White );
 	Canvas->DrawItem( ConsoleTile );
 
 	// figure out which element of the scrollback buffer to should appear first (at the top of the screen)
@@ -1148,7 +1164,7 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 
 			if(OutStr.IsEmpty())
 			{
-				// no Description means we display the Command directly, without that the line would be empty (happens for ConsoleVariables and some ManualAutoCompleteList)
+				// no Description means we display the Command directly, without that the line would be empty (happens for ConsoleVariables and some ConsoleSettings->ManualAutoCompleteList)
 				OutStr = Cmd.Command;
 			}
 

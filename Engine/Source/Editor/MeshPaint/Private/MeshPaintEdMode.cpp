@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	MeshPaintEdMode.cpp: Mesh paint tool
-================================================================================*/
-
 #include "MeshPaintPrivatePCH.h"
+
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+
+#include "StaticMeshResources.h"
 #include "MeshPaintEdMode.h"
 #include "Factories.h"
 #include "ScopedTransaction.h"
@@ -14,6 +17,7 @@
 #include "RawMesh.h"
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "EditorSupportDelegates.h"
 
 //Slate dependencies
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -23,6 +27,7 @@
 
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -39,9 +44,9 @@ class FMeshPaintBatchedElementParameters : public FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
-		MeshPaintRendering::SetMeshPaintShaders_RenderThread( InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -58,9 +63,9 @@ class FMeshPaintDilateBatchedElementParameters : public FBatchedElementParameter
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
-		MeshPaintRendering::SetMeshPaintDilateShaders_RenderThread( InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintDilateShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -87,11 +92,6 @@ FEdModeMeshPaint::FEdModeMeshPaint()
 	  SeamMaskRenderTargetTexture( NULL ),
 	  ScopedTransaction( NULL )
 {
-	ID = FBuiltinEditorModes::EM_MeshPaint;
-	Name = LOCTEXT("MeshPaint_ModeName", "Paint");
-	IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode", "LevelEditor.MeshPaintMode.Small");
-	bVisible = true;
-	PriorityOrder = 200;
 }
 
 /** Destructor */
@@ -166,7 +166,7 @@ void FEdModeMeshPaint::Enter()
 	// Only alter level editor viewports.
 	for( int32 ViewIndex = 0 ; ViewIndex < GEditor->LevelViewportClients.Num() ; ++ViewIndex )
 	{
-		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
+		FEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 	} 
 
@@ -203,7 +203,7 @@ void FEdModeMeshPaint::Exit()
 	// Only alter level editor viewports.
 	for( int32 ViewIndex = 0 ; ViewIndex < GEditor->LevelViewportClients.Num() ; ++ViewIndex )
 	{
-		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
+		FEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 	} 
 
@@ -246,7 +246,7 @@ void FEdModeMeshPaint::Exit()
 
 
 /** FEdMode: Called when the mouse is moved over the viewport */
-bool FEdModeMeshPaint::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+bool FEdModeMeshPaint::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 {
 	// We only care about perspective viewports
 	if( ViewportClient->IsPerspective() )
@@ -269,7 +269,7 @@ bool FEdModeMeshPaint::MouseMove( FLevelEditorViewportClient* ViewportClient, FV
  *
  * @return	true if input was handled
  */
-bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY )
+bool FEdModeMeshPaint::CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY )
 {
 	// We only care about perspective viewports
 	if( InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets )
@@ -283,7 +283,7 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 				InViewportClient->EngineShowFlags)
 				.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 			FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-			FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InMouseX, InMouseY );
+			FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InMouseX, InMouseY );
 
 			
 			// Paint!
@@ -294,26 +294,8 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 
 			bool bAnyPaintAbleActorsUnderCursor = false;
 
-			bool bIsTexturePaintMode = FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture;
-			if( bIsTexturePaintMode )
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					TexturePaintBeginSceneCommand,
-				{
-					RHIBeginScene();
-				});
-			}
-		
 			DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
 
-			if( bIsTexturePaintMode )
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					TexturePaintEndSceneCommand,
-				{
-					RHIEndScene();
-				});
-			}
 			return true;
 		}
 	}
@@ -324,7 +306,7 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 
 
 /** FEdMode: Called when a mouse button is pressed */
-bool FEdModeMeshPaint::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeMeshPaint::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	return true;
 }
@@ -332,7 +314,7 @@ bool FEdModeMeshPaint::StartTracking(FLevelEditorViewportClient* InViewportClien
 
 
 /** FEdMode: Called when the a mouse button is released */
-bool FEdModeMeshPaint::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeMeshPaint::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	EndPainting();
 	return true;
@@ -381,7 +363,7 @@ void FEdModeMeshPaint::EndPainting()
 }
 
 /** FEdMode: Called when a key is pressed */
-bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
+bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
 {
 	bool bHandled = false;
 
@@ -490,7 +472,7 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 							.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
 						FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-						FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+						FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
 
 						// Paint!
 						const bool bVisualCueOnly = false;
@@ -1727,7 +1709,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 
 
 /** Paints mesh texture */
-void FEdModeMeshPaint::PaintMeshTexture( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ComponentSpaceCameraPosition, const FMatrix& ComponentToWorldMatrix, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition )
+void FEdModeMeshPaint::PaintMeshTexture( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& InLODModel, const FVector& ComponentSpaceCameraPosition, const FMatrix& ComponentToWorldMatrix, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition )
 {
 	UTexture2D* TargetTexture2D = GetSelectedTexture();
 	
@@ -1745,7 +1727,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UStaticMeshComponent* StaticMeshCompone
 
 
 		// Make sure we're dealing with triangle lists
-		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
+		FIndexArrayView Indices = InLODModel.IndexBuffer.GetArrayView();
 		const uint32 NumIndexBufferIndices = Indices.Num();
 		check( NumIndexBufferIndices % 3 == 0 );
 		const uint32 NumTriangles = NumIndexBufferIndices / 3;
@@ -2289,7 +2271,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 			FTextureRenderTargetResource*, BrushRenderTargetResource, BrushRenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 			BrushRenderTargetResource->GetRenderTargetTexture(),	// Source texture
 			BrushRenderTargetResource->TextureRHI,
 			true,													// Do we need the source image content again?
@@ -2308,7 +2290,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 				FTextureRenderTargetResource*, BrushMaskRenderTargetResource, BrushMaskRenderTargetResource,
 			{
 				// Copy (resolve) the rendered image from the frame buffer to its render target texture
-				RHICopyToResolveTarget(
+				RHICmdList.CopyToResolveTarget(
 					BrushMaskRenderTargetResource->GetRenderTargetTexture(),		// Source texture
 					BrushMaskRenderTargetResource->TextureRHI,
 					true,												// Do we need the source image content again?
@@ -2408,7 +2390,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 				FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 			{
 				// Copy (resolve) the rendered image from the frame buffer to its render target texture
-				RHICopyToResolveTarget(
+				RHICmdList.CopyToResolveTarget(
 					RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 					RenderTargetResource->TextureRHI,
 					true,												// Do we need the source image content again?
@@ -2700,7 +2682,7 @@ void FEdModeMeshPaint::FinishPaintingTexture( )
 
 
 /** FEdMode: Called when mouse drag input it applied */
-bool FEdModeMeshPaint::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FEdModeMeshPaint::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	// We only care about perspective viewports
 	if( InViewportClient->IsPerspective() )
@@ -2732,7 +2714,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 	FEdMode::Render( View, Viewport, PDI );
 
 	// If this viewport does not support Mode widgets we will not draw it here.
-	FLevelEditorViewportClient* ViewportClient = (FLevelEditorViewportClient*)Viewport->GetClient();
+	FEditorViewportClient* ViewportClient = (FEditorViewportClient*)Viewport->GetClient();
 	if( ViewportClient && !ViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		return;
@@ -3055,7 +3037,7 @@ void FEdModeMeshPaint::ForceRealTimeViewports( const bool bEnable, const bool bS
 	TSharedPtr< ILevelViewport > ViewportWindow = LevelEditorModule.GetFirstActiveViewport();
 	if (ViewportWindow.IsValid())
 	{
-		FLevelEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
+		FEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
 		if( Viewport.IsPerspective() )
 		{				
 			if( bEnable )
@@ -3073,7 +3055,7 @@ void FEdModeMeshPaint::ForceRealTimeViewports( const bool bEnable, const bool bS
 }
 
 /** Sets show flags for perspective viewports */
-void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FLevelEditorViewportClient& Viewport )
+void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport )
 {
 	if( Viewport.IsPerspective() )
 	{	
@@ -3321,7 +3303,7 @@ void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture
 			FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 				RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 				RenderTargetResource->TextureRHI,					// Dest texture
 				true,												// Do we need the source image content again?
@@ -3532,7 +3514,7 @@ bool FEdModeMeshPaint::GenerateSeamMask(UStaticMeshComponent* StaticMeshComponen
 			FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 				RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 				RenderTargetResource->TextureRHI,
 				true,												// Do we need the source image content again?
@@ -4919,7 +4901,7 @@ void FEdModeMeshPaint::BeginTransaction(const FText& Description)
 }
 
 /** FEdModeMeshPaint: Called once per frame */
-void FEdModeMeshPaint::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	FEdMode::Tick(ViewportClient,DeltaTime);
 

@@ -11,13 +11,26 @@
 void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 {
 	check(InArgs._Style != NULL);
+	Style = InArgs._Style;
+
+	UncheckedImage = InArgs._UncheckedImage;
+	UncheckedHoveredImage = InArgs._UncheckedHoveredImage;
+	UncheckedPressedImage = InArgs._UncheckedPressedImage;
+
+	CheckedImage = InArgs._CheckedImage;
+	CheckedHoveredImage = InArgs._CheckedHoveredImage;
+	CheckedPressedImage = InArgs._CheckedPressedImage;
+
+	UndeterminedImage = InArgs._UndeterminedImage;
+	UndeterminedHoveredImage = InArgs._UndeterminedHoveredImage;
+	UndeterminedPressedImage = InArgs._UndeterminedPressedImage;
+	
 	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
 	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
 	TAttribute<FSlateColor> BorderBackgroundColor = InArgs._BorderBackgroundColor.IsSet() ? InArgs._BorderBackgroundColor : InArgs._Style->BorderBackgroundColor;
 	ESlateCheckBoxType::Type CheckBoxType = InArgs._Type.IsSet() ? InArgs._Type.GetValue() : InArgs._Style->CheckBoxType.GetValue();
 
 	bIsPressed = false;
-	bReadOnly = InArgs._ReadOnly.Get();
 	bIsFocusable = InArgs._IsFocusable;
 
 	if( CheckBoxType == ESlateCheckBoxType::CheckBox )
@@ -28,7 +41,7 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 			SNew(SHorizontalBox)
 			// Make sure we aren't trying to compute the desired size when the check box is collapsed
 			.Visibility(InArgs._Visibility)
-			+SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign( VAlign_Center )
 			.HAlign( HAlign_Center )
@@ -37,12 +50,17 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 				.Image( this, &SCheckBox::OnGetCheckImage )
 				.ColorAndOpacity( ForegroundColor )
 			]
-			+SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding( Padding )
 			.VAlign( VAlign_Center )
 			[
-				InArgs._Content.Widget
+				SAssignNew(ContentContainer, SBorder)
+				.BorderImage(FStyleDefaults::GetNoBrush())
+				.Padding(0.0f)
+				[
+					InArgs._Content.Widget
+				]
 			]
 		];
 	}
@@ -52,7 +70,7 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 		// Toggle buttons have a visual appearance that is similar to a Slate button
 		this->ChildSlot
 		[
-			SNew( SBorder )
+			SAssignNew( ContentContainer, SBorder )
 			// Make sure we aren't trying to compute the desired size when the check box is collapsed
 			.Visibility(InArgs._Visibility)
 			// Bind the border background to our method that gets a slate brush for the current state of the control
@@ -70,17 +88,6 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 			]
 		];
 	}
-
-	/* Set images to use in various SCheckBox states */
-	UncheckedImage = &InArgs._Style->UncheckedImage;
-	UncheckedHoveredImage = &InArgs._Style->UncheckedHoveredImage;
-	UncheckedPressedImage = &InArgs._Style->UncheckedPressedImage;
-	CheckedImage = &InArgs._Style->CheckedImage;
-	CheckedHoveredImage = &InArgs._Style->CheckedHoveredImage;
-	CheckedPressedImage = &InArgs._Style->CheckedPressedImage;
-	UndeterminedImage = &InArgs._Style->UndeterminedImage;
-	UndeterminedHoveredImage = &InArgs._Style->UndeterminedHoveredImage;
-	UndeterminedPressedImage = &InArgs._Style->UndeterminedPressedImage;
 
 	IsCheckboxChecked = InArgs._IsChecked;
 	OnCheckStateChanged = InArgs._OnCheckStateChanged;
@@ -102,7 +109,7 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 bool SCheckBox::SupportsKeyboardFocus() const
 {
 	// Buttons are focusable by default
-	return !bReadOnly && bIsFocusable;
+	return bIsFocusable;
 }
 
 FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -136,7 +143,7 @@ FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& In
  */
 FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bReadOnly )
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		bIsPressed = true;
 
@@ -212,7 +219,7 @@ FReply SCheckBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 			//       may never receive an OnMouseButtonUp() call.  We make sure that our bIsPressed
 			//       state is reset by overriding OnMouseLeave().
 		}
-		else if ( !bReadOnly )
+		else
 		{
 			const bool IsUnderMouse = MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() );
 			if ( IsUnderMouse )
@@ -274,16 +281,16 @@ const FSlateBrush* SCheckBox::OnGetCheckImage() const
 	switch( State )
 	{
 		case ESlateCheckBoxState::Unchecked:
-			ImageToUse = IsPressed() ? UncheckedPressedImage : ( ( IsHovered() && !bReadOnly ) ? UncheckedHoveredImage : UncheckedImage );
+			ImageToUse = IsPressed() ? GetUncheckedPressedImage() : ( IsHovered() ? GetUncheckedHoveredImage() : GetUncheckedImage() );
 			break;
 	
 		case ESlateCheckBoxState::Checked:
-			ImageToUse = IsPressed() ? CheckedPressedImage : ( ( IsHovered() && !bReadOnly ) ? CheckedHoveredImage : CheckedImage );
+			ImageToUse = IsPressed() ? GetCheckedPressedImage() : ( IsHovered() ? GetCheckedHoveredImage() : GetCheckedImage() );
 			break;
 	
 		default:
 		case ESlateCheckBoxState::Undetermined:
-			ImageToUse = IsPressed() ? UndeterminedPressedImage : ( ( IsHovered() && !bReadOnly ) ? UndeterminedHoveredImage : UndeterminedImage );
+			ImageToUse = IsPressed() ? GetUndeterminedPressedImage() : ( IsHovered() ? GetUndeterminedHoveredImage() : GetUndeterminedImage() );
 			break;
 	}
 
@@ -291,6 +298,10 @@ const FSlateBrush* SCheckBox::OnGetCheckImage() const
 }
 
 
+ESlateCheckBoxState::Type SCheckBox::GetCheckedState() const
+{
+	return IsCheckboxChecked.Get();
+}
 
 /**
  * Toggles the checked state for this check box, fire events as needed
@@ -324,6 +335,11 @@ void SCheckBox::ToggleCheckedState()
 	}
 }
 
+void SCheckBox::SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked)
+{
+	IsCheckboxChecked = InIsChecked;
+}
+
 void SCheckBox::PlayCheckedSound() const
 {
 	FSlateApplication::Get().PlaySound( CheckedSound );
@@ -337,4 +353,104 @@ void SCheckBox::PlayUncheckedSound() const
 void SCheckBox::PlayHoverSound() const
 {
 	FSlateApplication::Get().PlaySound( HoveredSound );
+}
+
+void SCheckBox::SetContent(const TSharedRef< SWidget >& InContent)
+{
+	ContentContainer->SetContent(InContent);
+}
+
+void SCheckBox::SetStyle(const FCheckBoxStyle* InStyle)
+{
+	Style = InStyle;
+}
+
+void SCheckBox::SetUncheckedImage(const FSlateBrush* Brush)
+{
+	UncheckedImage = Brush;
+}
+
+void SCheckBox::SetUncheckedHoveredImage(const FSlateBrush* Brush)
+{
+	UncheckedHoveredImage = Brush;
+}
+
+void SCheckBox::SetUncheckedPressedImage(const FSlateBrush* Brush)
+{
+	UncheckedPressedImage = Brush;
+}
+
+void SCheckBox::SetCheckedImage(const FSlateBrush* Brush)
+{
+	CheckedImage = Brush;
+}
+
+void SCheckBox::SetCheckedHoveredImage(const FSlateBrush* Brush)
+{
+	CheckedHoveredImage = Brush;
+}
+
+void SCheckBox::SetCheckedPressedImage(const FSlateBrush* Brush)
+{
+	CheckedPressedImage = Brush;
+}
+
+void SCheckBox::SetUndeterminedImage(const FSlateBrush* Brush)
+{
+	UndeterminedImage = Brush;
+}
+
+void SCheckBox::SetUndeterminedHoveredImage(const FSlateBrush* Brush)
+{
+	UndeterminedHoveredImage = Brush;
+}
+
+void SCheckBox::SetUndeterminedPressedImage(const FSlateBrush* Brush)
+{
+	UndeterminedPressedImage = Brush;
+}
+
+const FSlateBrush* SCheckBox::GetUncheckedImage() const
+{
+	return UncheckedImage ? UncheckedImage : &Style->UncheckedImage;
+}
+
+const FSlateBrush* SCheckBox::GetUncheckedHoveredImage() const
+{
+	return UncheckedHoveredImage ? UncheckedHoveredImage : &Style->UncheckedHoveredImage;
+}
+
+const FSlateBrush* SCheckBox::GetUncheckedPressedImage() const
+{
+	return UncheckedPressedImage ? UncheckedPressedImage : &Style->UncheckedPressedImage;
+}
+
+const FSlateBrush* SCheckBox::GetCheckedImage() const
+{
+	return CheckedImage ? CheckedImage : &Style->CheckedImage;
+}
+
+const FSlateBrush* SCheckBox::GetCheckedHoveredImage() const
+{
+	return CheckedHoveredImage ? CheckedHoveredImage : &Style->CheckedHoveredImage;
+}
+
+const FSlateBrush* SCheckBox::GetCheckedPressedImage() const
+{
+	return CheckedPressedImage ? CheckedPressedImage : &Style->CheckedPressedImage;
+}
+
+const FSlateBrush* SCheckBox::GetUndeterminedImage() const
+{
+	return UndeterminedImage ? UndeterminedImage : &Style->UndeterminedImage;
+}
+
+const FSlateBrush* SCheckBox::GetUndeterminedHoveredImage() const
+{
+	return UndeterminedHoveredImage ? UndeterminedHoveredImage : &Style->UndeterminedHoveredImage;
+}
+
+const FSlateBrush* SCheckBox::GetUndeterminedPressedImage() const
+{
+	return UndeterminedPressedImage ? UndeterminedPressedImage : &Style->UndeterminedPressedImage;
 }

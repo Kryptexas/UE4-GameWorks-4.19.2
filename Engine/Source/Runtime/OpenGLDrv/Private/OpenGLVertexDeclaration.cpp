@@ -68,6 +68,17 @@ struct FOpenGLVertexDeclarationKey
 						SetupGLElement(GLElement, GL_SHORT, 2, false, true);
 					}
 					break;
+				case VET_Half4:
+					if (FOpenGL::SupportsVertexHalfFloat())
+					{
+						SetupGLElement(GLElement, GL_HALF_FLOAT, 4, false, true);
+					}
+					else
+					{
+						// @todo-mobile: Use shorts?
+						SetupGLElement(GLElement, GL_SHORT, 4, false, true);
+					}
+					break;
 				default: UE_LOG(LogRHI, Fatal,TEXT("Unknown RHI vertex element type %u"),(uint8)InElements[ElementIndex].Type);
 			};
 			VertexElements.Add(GLElement);

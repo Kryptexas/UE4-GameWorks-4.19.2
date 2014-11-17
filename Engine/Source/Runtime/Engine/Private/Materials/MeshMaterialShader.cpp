@@ -6,8 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "ShaderCompiler.h"
-#include "MeshMaterialShader.h"
-#include "MaterialShader.h"
+#include "MeshMaterialShaderType.h"
 
 /**
 * Finds a FMeshMaterialShaderType by name.

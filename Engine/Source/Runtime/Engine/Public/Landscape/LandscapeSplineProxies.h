@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Landscape/LandscapeSplineSegment.h"
+
 //////////////////////////////////////////////////////////////////////////
 // LANDSCAPE SPLINES HIT PROXY
 
@@ -30,7 +32,7 @@ struct HLandscapeSplineProxy_Segment : public HLandscapeSplineProxy
 		SplineSegment(InSplineSegment)
 	{
 	}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( SplineSegment );
 	}
@@ -47,7 +49,7 @@ struct HLandscapeSplineProxy_ControlPoint : public HLandscapeSplineProxy
 		ControlPoint(InControlPoint)
 	{
 	}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( ControlPoint );
 	}
@@ -57,7 +59,7 @@ struct HLandscapeSplineProxy_Tangent : public HLandscapeSplineProxy
 {
 	DECLARE_HIT_PROXY( ENGINE_API );
 
-	class ULandscapeSplineSegment* SplineSegment;
+	ULandscapeSplineSegment* SplineSegment;
 	uint32 End:1;
 
 	HLandscapeSplineProxy_Tangent(class ULandscapeSplineSegment* InSplineSegment, bool InEnd) :

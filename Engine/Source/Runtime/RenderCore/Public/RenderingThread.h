@@ -9,20 +9,11 @@
 
 #include "RenderCore.h"
 #include "TaskGraphInterfaces.h"
+#include "RenderCommandFence.h"
 
 ////////////////////////////////////
 // Render thread API
 ////////////////////////////////////
-
-/** @return True if called from the rendering thread, or if called from ANY thread during single threaded rendering */
-extern RENDERCORE_API bool IsInRenderingThread();
-
-/** @return True if called from the rendering thread. */
-// Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
-extern RENDERCORE_API bool IsInActualRenderingThread();
-
-/** Thread used for rendering */
-extern RENDERCORE_API FRunnableThread* GRenderingThread;
 
 /**
  * Whether the renderer is currently running in a separate thread.
@@ -62,8 +53,10 @@ extern RENDERCORE_API void CheckRenderingThreadHealth();
 /** Checks if the rendering thread is healthy and running, without crashing */
 extern RENDERCORE_API bool IsRenderingThreadHealthy();
 
-/** Advances stats for the rendering thread. */
-extern RENDERCORE_API void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame);
+/**
+ * Advances stats for the rendering thread. Called from the game thread.
+ */
+extern RENDERCORE_API void AdvanceRenderingThreadStatsGT( bool bDiscardCallstack, int64 StatsFrame, int32 MasterDisableChangeTagStartFrame );
 
 /**
  * Adds a task that must be completed either before the next scene draw or a flush rendering commands
@@ -157,12 +150,16 @@ public:
 //
 // Macros for using render commands.
 //
+// ideally this would be inline, however that changes the module dependency situation
+extern RENDERCORE_API class FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand();
+
 
 DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadCommands, STATCAT_Advanced);
 
 #define TASK_FUNCTION(Code) \
 		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) \
 		{ \
+			FRHICommandListImmediate& RHICmdList = GetImmediateCommandList_ForRenderCommand(); \
 			Code; \
 		} 
 
@@ -388,37 +385,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 
 #endif //UE_SERVER
 
-////////////////////////////////////
-// Render fences
-////////////////////////////////////
 
- /**
- * Used to track pending rendering commands from the game thread.
- */
-class RENDERCORE_API FRenderCommandFence
-{
-public:
-
-	/**
-	 * Adds a fence command to the rendering command queue.
-	 * Conceptually, the pending fence count is incremented to reflect the pending fence command.
-	 * Once the rendering thread has executed the fence command, it decrements the pending fence count.
-	 */
-	void BeginFence();
-
-	/**
-	 * Waits for pending fence commands to retire.
-	 * @param bProcessGameThreadTasks, if true we are on a short callstack where it is safe to process arbitrary game thread tasks while we wait
-	 */
-	void Wait(bool bProcessGameThreadTasks = false) const;
-
-	// return true if the fence is complete
-	bool IsFenceComplete() const;
-
-private:
-	/** Graph event that represents completion of this fence **/
-	mutable FGraphEventRef CompletionEvent;
-};
 
 ////////////////////////////////////
 // Deferred cleanup

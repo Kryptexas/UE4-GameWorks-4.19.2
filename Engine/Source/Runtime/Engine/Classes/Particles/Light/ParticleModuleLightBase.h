@@ -2,13 +2,14 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleLightBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Light"))
 class UParticleModuleLightBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

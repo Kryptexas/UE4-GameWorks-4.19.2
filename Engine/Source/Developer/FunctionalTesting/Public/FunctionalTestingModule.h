@@ -8,8 +8,8 @@ class FFunctionalTestingModule : public IModuleInterface
 {
 public:
 
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Gets the debugger singleton or returns NULL */
 	static class IFuncTestManager* Get()

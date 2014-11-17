@@ -89,7 +89,7 @@ void FNewsFeedCache::LoadTitleFile( )
 	FString CultureString;
 
 	// get current culture
-	TSharedRef<FCulture> Culture = FInternationalization::Get().GetCurrentCulture();
+	TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = FInternationalization::Get().GetCurrentCulture();
 
 	if (CurrentCultureSpec == ENewsFeedCultureSpec::Full)
 	{
@@ -307,7 +307,11 @@ void FNewsFeedCache::SaveSettings( )
 		}
 	}
 
-	NewsFeedSettings->SaveConfig();
+	// Save config to file, but only if we are not the build machine since settings may put the builder in an unclean state
+	if (!GIsBuildMachine)
+	{
+		NewsFeedSettings->SaveConfig();
+	}
 }
 
 

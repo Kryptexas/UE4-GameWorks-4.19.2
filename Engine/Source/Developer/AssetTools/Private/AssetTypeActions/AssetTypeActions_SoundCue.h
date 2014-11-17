@@ -6,12 +6,12 @@ class FAssetTypeActions_SoundCue : public FAssetTypeActions_SoundBase
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundCue", "Sound Cue"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(0, 175, 255); }
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE;
-	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundCue", "Sound Cue"); }
+	virtual FColor GetTypeColor() const override { return FColor(0, 175, 255); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) override;
+	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
+	virtual bool CanFilter() override { return true; }
 
 private:
 	/** Handler for when Edit is selected */

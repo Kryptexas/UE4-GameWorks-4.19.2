@@ -7,9 +7,10 @@
 
 namespace ICUUtilities
 {
-	void Convert(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
-	icu::UnicodeString Convert(const FString& Source, const bool ShouldNullTerminate = true);
-	void Convert(const icu::UnicodeString& Source, FString& Destination);
-	FString Convert(const icu::UnicodeString& Source);
+	/** Convert FString <-> icu::UnicodeString */
+	void ConvertString(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
+	icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate = true);
+	void ConvertString(const icu::UnicodeString& Source, FString& Destination);
+	FString ConvertString(const icu::UnicodeString& Source);
 }
 #endif

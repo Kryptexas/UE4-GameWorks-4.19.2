@@ -100,10 +100,10 @@ public:
 	void Terminate();
 	
 	// ITextInputMethodSystem Interface Begin
-	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
+	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	// ITextInputMethodSystem Interface End
 	
 private:

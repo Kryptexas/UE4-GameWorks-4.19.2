@@ -182,10 +182,10 @@ DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_C
 
 #include "AllowWinRTPlatformTypes.h"
 
-bool FEventWinRT::Wait (uint32 WaitTime)
+bool FEventWinRT::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EventWait);
-	FThreadIdleStats::FScopeIdle Scope;
+	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 	check(Event);
 
 	//		return (WaitForSingleObject(Event, WaitTime) == WAIT_OBJECT_0);

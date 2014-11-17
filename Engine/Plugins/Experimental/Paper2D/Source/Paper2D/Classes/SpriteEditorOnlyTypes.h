@@ -56,23 +56,23 @@ struct FSpritePolygonCollection
 	UPROPERTY(Category=PolygonData, EditAnywhere)
 	TEnumAsByte<ESpritePolygonMode::Type> GeometryType;
 
+	// Experimental: Hint to the triangulation routine that extra vertices should be preserved
+	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
+	bool bAvoidVertexMerging;
+
 	// Alpha threshold for a transparent pixel (range 0..1, anything equal or below this value will be considered unimportant)
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
 	float AlphaThreshold;
 
-	//@TODO: Document
+	// This is the threshold below which multiple vertices will be merged together when doing shrink-wrapping.  Higher values result in fewer vertices.
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
 	float SimplifyEpsilon;
 
-	// Number of vertices to include as part of the outline (only used when Mode is ShrinkWrapped)
-// 	UPROPERTY(Category=PolygonData, EditAnywhere)
-// 	int32 VertexCount;
-
 	FSpritePolygonCollection()
 		: GeometryType(ESpritePolygonMode::TightBoundingBox)
+		, bAvoidVertexMerging(false)
 		, AlphaThreshold(0.0f)
 		, SimplifyEpsilon(2.0f)
-		//, VertexCount(20)
 	{
 	}
 

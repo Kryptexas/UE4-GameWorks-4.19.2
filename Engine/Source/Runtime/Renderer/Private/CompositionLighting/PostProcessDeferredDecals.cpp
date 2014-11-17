@@ -136,7 +136,7 @@ struct FTransientDecalRenderData
 	}
 };
 // @param RenderState 0:before BasePass, 1:before lighting, (later we could add "after lighting" and multiply)
-void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 RenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
+void SetDecalBlendState(FRHICommandList& RHICmdList, const ERHIFeatureLevel::Type SMFeatureLevel, uint32 RenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
 {
 	if(RenderStage == 0)
 	{
@@ -144,7 +144,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 		switch(DecalBlendMode)
 		{
 		case DBM_DBuffer_ColorNormalRoughness:
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -152,7 +152,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Color:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
@@ -160,7 +160,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_ColorNormal:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
@@ -168,7 +168,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_ColorRoughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -176,7 +176,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Normal:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
@@ -184,7 +184,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_NormalRoughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -192,7 +192,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Roughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -217,7 +217,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			{
 				if(bHasNormal)
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -227,7 +227,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 				}
 				else
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -238,7 +238,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			}
 			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				RHISetBlendState( TStaticBlendState<
+				RHICmdList.SetBlendState( TStaticBlendState<
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Emissive
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Normal
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -253,7 +253,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			{
 				if(bHasNormal)
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -263,7 +263,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 				}
 				else
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -274,7 +274,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			}
 			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				RHISetBlendState( TStaticBlendState<
+				RHICmdList.SetBlendState( TStaticBlendState<
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Emissive
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Normal
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -285,11 +285,11 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			break;
 
 		case DBM_Normal:
-			RHISetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI() );
+			RHICmdList.SetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI() );
 			break;
 
 		case DBM_Emissive:
-			RHISetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI() );
+			RHICmdList.SetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI() );
 			break;
 
 		default:
@@ -314,6 +314,11 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	FStencilDecalMaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
 	{
@@ -321,12 +326,12 @@ public:
 	}
 	FStencilDecalMaskPS() {}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		DeferredParameters.Set(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -345,25 +350,26 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(const FSceneView& View)
+void StencilDecalMask(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-	RHISetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	RHISetRenderTarget(NULL, GSceneRenderTargets.GetSceneDepthSurface());
-	RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
+	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 	// Write 1 to highest bit of stencil to areas that should not receive decals
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Always,SO_Replace,SO_Replace,SO_Replace>::GetRHI(), 0x80);
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI(), 0x80);
 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FStencilDecalMaskPS> PixelShader(GetGlobalShaderMap());
 	
-	SetGlobalBoundShaderState(StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View);
+	PixelShader->SetParameters(RHICmdList, View);
 
 	DrawRectangle( 
+		RHICmdList,
 		0, 0, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -399,10 +405,10 @@ public:
 		FrustumComponentToClip.Bind(Initializer.ParameterMap, TEXT("FrustumComponentToClip"));
 	}
 
-	void SetParameters(const FSceneView& View, const FMatrix& InFrustumComponentToClip)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMatrix& InFrustumComponentToClip)
 	{
-		FMaterialShader::SetParameters(GetVertexShader(), View);
-		SetShaderValue(GetVertexShader(), FrustumComponentToClip, InFrustumComponentToClip);
+		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), View);
+		SetShaderValue(RHICmdList, GetVertexShader(), FrustumComponentToClip, InFrustumComponentToClip);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -465,11 +471,11 @@ public:
 		DecalToWorld.Bind(Initializer.ParameterMap,TEXT("DecalToWorld"));
 	}
 
-	void SetParameters(const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
 
 		FTransform ComponentTrans = DecalProxy.ComponentTrans;
 
@@ -489,7 +495,7 @@ public:
 					FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)
 				) * View.InvViewProjectionMatrix * WorldToComponent;
 
-			SetShaderValue(ShaderRHI, ScreenToDecal, ScreenToDecalValue);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenToDecal, ScreenToDecalValue);
 		}
 
 		// Set the transform from light space to world space (only for normals)
@@ -500,7 +506,7 @@ public:
 			// 1,1,1 requires no scale
 			//			DecalToWorldValue = DecalToWorldValue.GetScaled(GDefaultDecalSize);
 
-			SetShaderValue(ShaderRHI, DecalToWorld, DecalToWorldValue);
+			SetShaderValue(RHICmdList, ShaderRHI, DecalToWorld, DecalToWorldValue);
 		}
 	}
 
@@ -527,7 +533,7 @@ public:
 	/**
 	* Initialize the RHI for this rendering resource
 	*/
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		const int32 NumVerts = 8;
 		TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
@@ -554,7 +560,8 @@ public:
 		uint32 Size = Verts.GetResourceDataSize();
 
 		// Create vertex buffer. Fill buffer with initial data upon creation
-		VertexBufferRHI = RHICreateVertexBuffer(Size, &Verts, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&Verts);
+		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 	}
 };
 
@@ -567,7 +574,7 @@ public:
 	/**
 	* Initialize the RHI for this rendering resource
 	*/
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 		
@@ -579,7 +586,8 @@ public:
 		const uint32 Stride = sizeof(uint16);
 
 		// Create index buffer. Fill buffer with initial data upon creation
-		IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, &Indices, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&Indices);
+		IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static, CreateInfo);
 	}
 
 	int32 GetIndexCount() const
@@ -609,12 +617,12 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 		FMemory::Memzero(Strides, sizeof(Strides));
 		Strides[0] = sizeof(FVector);
 
-		BoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
+		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
 	}
 
-	RHISetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
 
-	PixelShader->SetParameters(View, DecalData.MaterialProxy, *DecalData.DecalProxy);
+	PixelShader->SetParameters(Context.RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy);
 }
 
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
@@ -646,18 +654,18 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 	// This will change with upcoming multi threaded rendering changes.
 	FBoundShaderStateRHIRef BoundShaderState;
 	{
-		BoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef());
+		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef());
 	}
 
-	RHISetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
 
-	VertexShader->SetParameters(View, FrustumComponentToClip);
+	VertexShader->SetParameters(Context.RHICmdList, View, FrustumComponentToClip);
 
 	// Set states, the state cache helps us avoiding redundant sets
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
 	// all the same to have DX10 working
-	RHISetBlendState( TStaticBlendState<
+	Context.RHICmdList.SetBlendState(TStaticBlendState<
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Emissive
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -666,7 +674,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 	>::GetRHI() );
 
 	// Carmack's reverse on the bounds
-	RHISetDepthStencilState(TStaticDepthStencilState<
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 		false,CF_LessEqual,
 		true,CF_Equal,SO_Keep,SO_Keep,SO_Increment,
 		true,CF_Equal,SO_Keep,SO_Keep,SO_Decrement,
@@ -674,7 +682,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 	>::GetRHI());
 
 	// Render decal mask
-	RHIDrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
+	Context.RHICmdList.DrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
 
 	return true;
 }
@@ -694,6 +702,9 @@ FRCPassPostProcessDeferredDecals::FRCPassPostProcessDeferredDecals(uint32 InRend
 
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
+	
+	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
+
 	bool bDBuffer = IsDBufferEnabled();
 	float bDecalPreStencil = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
@@ -740,14 +751,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		SCOPED_DRAW_EVENT(DBufferClear, DEC_SCENE_ITEMS);
 		{
 			// could be optimized
-			RHISetRenderTarget(GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
-			RHISetRenderTarget(GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
+			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
+			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
+			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// todo: some hardware would like to have 0 or 1 for faster clear, we chose 128/255 to represent 0 (8 bit cannot represent 0.5f)
-			RHIClear(true, FLinearColor(128.0f/255.0f, 128.0f/255.0f, 128.0f/255.0f, 1), false, 0, false, 0, FIntRect());
-			RHISetRenderTarget(GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
+			RHICmdList.Clear(true, FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1), false, 0, false, 0, FIntRect());
+			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// R:roughness, G:roughness opacity
-			RHIClear(true, FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
 		}
 	}
 
@@ -830,7 +841,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// Setup a stencil mask to prevent certain pixels from receiving deferred decals
 		if(bStencilDecals)
 		{
-			StencilDecalMask(View);
+			StencilDecalMask(RHICmdList, View);
 		}
 
 		// Sort by sort order to allow control over composited result
@@ -874,7 +885,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		SCOPED_DRAW_EVENT(Decals, DEC_SCENE_ITEMS);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 		
-		RHISetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
+		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
 
 		for (int32 DecalIndex = 0; DecalIndex < SortedDecals.Num(); DecalIndex++)
 		{
@@ -926,16 +937,16 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							RenderTargets[2] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[3] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[4] = GSceneRenderTargets.GBufferD->GetRenderTargetItem().TargetableTexture;
-							RHISetRenderTargets( ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
+							SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
 						}
 						break;
 
 					case RTM_GBufferNormal:
-						RHISetRenderTarget(GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());	
+						SetRenderTarget(RHICmdList, GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 						break;
 					
 					case RTM_SceneColor:
-						RHISetRenderTarget(PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());	
+						SetRenderTarget(RHICmdList, PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 						break;
 
 					case RTM_DBuffer:
@@ -944,7 +955,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							RenderTargets[0] = GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[1] = GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[2] = GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture;
-							RHISetRenderTargets( ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
+							SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
 						}
 						break;
 
@@ -966,14 +977,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				LastDecalBlendMode = DecalData.DecalBlendMode;
 				LastDecalHasNormal = (int32)DecalData.bHasNormal;
 
-				SetDecalBlendState(SMFeatureLevel, RenderStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
+				SetDecalBlendState(RHICmdList, SMFeatureLevel, RenderStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
 			}
 
 			{
 				FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
 				SetShader(Context, DecalData, VertexShader);
 
-				VertexShader->SetParameters(View, FrustumComponentToClip);
+				VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
 
 				const int32 IsInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f) + ( bThisDecalUsesStencil ) ? 2 : 0;
 				if ( WasInsideDecal != IsInsideDecal )
@@ -982,13 +993,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					if ( !(IsInsideDecal & 1) )
 					{
 						// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light function geometry
-						RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI());
+						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
 						if(bStencilDecals)
 						{
 							// Enable stencil testing, only write to pixels with stencil of 0
 							if ( bThisDecalUsesStencil )
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_Always,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
@@ -997,7 +1008,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							}
 							else
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_Always,
 									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
@@ -1006,7 +1017,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						}
 						else
 						{
-							RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true>::GetRHI(), 0);
+							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true>::GetRHI(), 0);
 						}
 					}
 					else
@@ -1020,7 +1031,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 							if ( bThisDecalUsesStencil )
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_GreaterEqual,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
@@ -1029,25 +1040,25 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							}
 							else
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_GreaterEqual,
 									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 									0x80,0x00>::GetRHI(), 0);
 							}
-							RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI());
+							RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 						}
 						else
 						{
-							RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI(), 0);
+							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI(), 0);
 						}
-						RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI());
+						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 					}
 				}
 
 				SetShader(Context, DecalData, VertexShader);
 
-				RHIDrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
+				RHICmdList.DrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
 			}
 		}
 
@@ -1056,15 +1067,15 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 
 		// Clear stencil to 0, which is the assumed default by other passes
-		RHIClear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
+		RHICmdList.Clear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
 	}
 
 	if(RenderStage == 0)
 	{
 		// before BasePass
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.DBufferA);
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.DBufferB);
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.DBufferC);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferA);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferB);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferC);
 	}
 }
 

@@ -6,31 +6,40 @@
 
 #include "EnginePrivate.h"
 #include "SpeedTreeWind.h"
-
+#include "ShaderParameterUtils.h"
 
 class FSpeedTreeVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
 
-	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
+		LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
+		Ar << LODParameter;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		if (View.Family != NULL && View.Family->Scene != NULL)
 		{
 			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
 			if (SpeedTreeUniformBuffer != NULL)
 			{
-				SetUniformBufferParameter(Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+				SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+
+				if (LODParameter.IsBound())
+				{
+					FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
+					SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
+				}
 			}
 		}
 	}
+	FShaderParameter LODParameter;
 };
 
 /**
@@ -114,7 +123,7 @@ void FLocalVertexFactory::InitRHI()
 				));
 		}
 
-		for(int32 CoordinateIndex = Data.TextureCoordinates.Num();CoordinateIndex < MAX_STATIC_TEXCOORDS;CoordinateIndex++)
+		for (int32 CoordinateIndex = Data.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
 				Data.TextureCoordinates[Data.TextureCoordinates.Num() - 1],

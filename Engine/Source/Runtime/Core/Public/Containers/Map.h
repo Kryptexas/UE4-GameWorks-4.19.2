@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Map.h: Dynamic map definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "Core.h"
@@ -11,6 +7,7 @@
 #include "Set.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
+
 
 /** An initializer type for pairs that's passed to the pair set when adding a new pair. */
 template <typename KeyInitType, typename ValueInitType>
@@ -75,6 +72,22 @@ public:
 	{
 		// The seemingly-pointless cast above is to enforce a move (i.e. equivalent to using MoveTemp) when
 		// the initializer is itself an rvalue reference.
+	}
+
+	// Explicit copy constructor to make the error messages for copying a pair containing a noncopyable type show the caller's code and not only
+	// "This diagnostic occurred in the compiler generated function 'TPair<KeyType,ValueType>::TPair(const TPair<KeyType,ValueType> &)'" (VC++)
+	FORCEINLINE TPair(const TPair& InInitializer)
+		: Key(InInitializer.Key)
+		, Value(InInitializer.Value)
+	{
+	}
+
+	FORCEINLINE TPair& operator=(const TPair& Other)
+	{
+		Key = Other.Key;
+		Value = Other.Value;
+
+		return *this;
 	}
 
 	/** Serializer. */
@@ -835,7 +848,7 @@ public:
 		if(!PairId.IsValidId())
 			return false;
 
-		OutRemovedValue = Super::Pairs[PairId].Value;
+		OutRemovedValue = MoveTemp(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return true;
 	}
@@ -850,7 +863,7 @@ public:
 	{
 		const FSetElementId PairId = Super::Pairs.FindId(Key);
 		check(PairId.IsValidId());
-		ValueType Result = Super::Pairs[PairId].Value;
+		ValueType Result = MoveTemp(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return Result;
 	}

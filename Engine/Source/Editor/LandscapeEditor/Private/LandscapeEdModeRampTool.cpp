@@ -1,17 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
-//#include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-//#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
-//#include "Landscape/LandscapeSplineProxies.h"
-//#include "LandscapeEditorModule.h"
-//#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-//#include "LandscapeEdModeTools.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Raster.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -104,25 +99,25 @@ public:
 		check(SpriteTexture);
 	}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Ramp"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Ramp", "Ramp"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Ramp"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Ramp", "Ramp"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return Target.TargetType == ELandscapeToolTargetType::Heightmap;
 	}
 
-	virtual void EnterTool() OVERRIDE
+	virtual void EnterTool() override
 	{
 		NumPoints = 0;
 		SelectedPoint = INDEX_NONE;
-		GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+		GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 	}
 
-	virtual bool BeginTool(FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) OVERRIDE
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
 	{
 		if (NumPoints < 2)
 		{
@@ -130,7 +125,7 @@ public:
 			SelectedPoint = NumPoints;
 			NumPoints++;
 			bMovingPoint = true;
-			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 		}
 		else
 		{
@@ -138,7 +133,7 @@ public:
 			{
 				Points[SelectedPoint] = InHitLocation;
 				bMovingPoint = true;
-				GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+				GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 			}
 		}
 
@@ -147,12 +142,12 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		bMovingPoint = false;
 	}
 
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		if (bMovingPoint)
 		{
@@ -172,7 +167,7 @@ public:
 		return true;
 	}
 
-	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) OVERRIDE
+	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) override
 	{
 		if (HitProxy)
 		{
@@ -180,7 +175,7 @@ public:
 			{
 				HLandscapeRampToolPointHitProxy* PointHitProxy = (HLandscapeRampToolPointHitProxy*)HitProxy;
 				SelectedPoint = PointHitProxy->Point;
-				GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+				GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 				GUnrealEd->RedrawLevelEditingViewports();
 
 				return true;
@@ -190,7 +185,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) OVERRIDE
+	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override
 	{
 		if (InKey == EKeys::Enter && InEvent == IE_Pressed)
 		{
@@ -272,7 +267,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) OVERRIDE
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override
 	{
 		if (SelectedPoint != INDEX_NONE && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 		{
@@ -287,7 +282,7 @@ public:
 		return false;
 	}
 
-	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) OVERRIDE
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override
 	{
 		if (NumPoints > 0)
 		{
@@ -300,13 +295,23 @@ public:
 			for (int32 i = 0; i < NumPoints; i++)
 			{
 				WorldPoints[i] = LandscapeToWorld.TransformPosition(Points[i]);
+			}
 
+			float SpriteScale = EdMode->UISettings->RampWidth / 4;
+			if (NumPoints > 1)
+			{
+				SpriteScale = FMath::Min(SpriteScale, (WorldPoints[1] - WorldPoints[0]).Size() / 2);
+			}
+			SpriteScale = FMath::Clamp<float>(SpriteScale, 10, 500);
+
+			for (int32 i = 0; i < NumPoints; i++)
+			{
 				const FLinearColor SpriteColor = (i == SelectedPoint) ? SelectedSpriteColor : FLinearColor::White;
 
 				PDI->SetHitProxy(new HLandscapeRampToolPointHitProxy(i));
 				PDI->DrawSprite(WorldPoints[i],
-					SpriteTexture->Resource->GetSizeX() * 2,
-					SpriteTexture->Resource->GetSizeY() * 2,
+					SpriteScale,
+					SpriteScale,
 					SpriteTexture->Resource,
 					SpriteColor,
 					SDPG_Foreground,
@@ -352,12 +357,12 @@ public:
 		}
 	}
 
-	virtual bool OverrideSelection() const OVERRIDE
+	virtual bool OverrideSelection() const override
 	{
 		return true;
 	}
 
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE
+	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override
 	{
 		// Only filter selection not deselection
 		if (bInSelection)
@@ -368,7 +373,7 @@ public:
 		return true;
 	}
 
-	virtual bool UsesTransformWidget() const OVERRIDE
+	virtual bool UsesTransformWidget() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -378,7 +383,7 @@ public:
 		return false;
 	}
 
-	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const OVERRIDE
+	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -395,7 +400,7 @@ public:
 		return EAxisList::None;
 	}
 
-	virtual FVector GetWidgetLocation() const OVERRIDE
+	virtual FVector GetWidgetLocation() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -408,7 +413,7 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual FMatrix GetWidgetRotation() const OVERRIDE
+	virtual FMatrix GetWidgetRotation() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{

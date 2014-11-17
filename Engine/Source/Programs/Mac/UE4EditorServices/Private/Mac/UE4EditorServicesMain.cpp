@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "ModuleManager.h"
+#include "UE4EditorServicesAppDelegate.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -12,5 +13,9 @@ int main(int argc, char *argv[])
 {
 	FCommandLine::Set(TEXT(""));
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
-	return NSApplicationMain(argc, (const char**)argv);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[FUE4EditorServicesAppDelegate new]];
+	[NSApp run];
+	return 0;
 }

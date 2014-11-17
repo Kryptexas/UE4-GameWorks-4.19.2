@@ -17,15 +17,15 @@ class UReimportTextureFactory : public UTextureFactory, public FReimportHandler
 
 
 	// Begin FReimportHandler interface
-	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) OVERRIDE;
-	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) OVERRIDE;
-	virtual EReimportResult::Type Reimport( UObject* Obj ) OVERRIDE;
+	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;
+	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) override;
+	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
 	// End FReimportHandler interface
 
 private:
 	// Begin UTextureFactory Interface
-	virtual UTexture2D* CreateTexture2D( UObject* InParent, FName Name, EObjectFlags Flags ) OVERRIDE;
-	virtual UTextureCube* CreateTextureCube( UObject* InParent, FName Name, EObjectFlags Flags ) OVERRIDE;
+	virtual UTexture2D* CreateTexture2D( UObject* InParent, FName Name, EObjectFlags Flags ) override;
+	virtual UTextureCube* CreateTextureCube( UObject* InParent, FName Name, EObjectFlags Flags ) override;
 	// End UTextureFactory Interface
 };
 

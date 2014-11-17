@@ -34,6 +34,7 @@ public class UnrealEd : ModuleRules
 				"DesktopPlatform",
                 "EnvironmentQueryEditor",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"ImageWrapper",
 				"MainFrame",
 				"MaterialEditor",
@@ -45,6 +46,7 @@ public class UnrealEd : ModuleRules
 				"SoundClassEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
+				"ReferenceViewer",
 			}
 		);
 
@@ -63,6 +65,7 @@ public class UnrealEd : ModuleRules
                 "EditorStyle",
 				"SourceControl",
 				"UnrealEdMessages",
+                "AIModule",
 				"BlueprintGraph",
 			}
 		);
@@ -104,7 +107,8 @@ public class UnrealEd : ModuleRules
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
-                "InternationalizationSettings"
+                "InternationalizationSettings",
+                "JsonUtilities",
 			}
 		);
 
@@ -150,6 +154,7 @@ public class UnrealEd : ModuleRules
 				"PackageDependencyInfo",
 				"ImageWrapper",
 				"Blutility",
+				"IntroTutorials",
 				"DesktopPlatform",
 				"WorkspaceMenuStructure",
 				"BspMode",
@@ -158,6 +163,7 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
 				"MeshUtilities",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"PListEditor",
                 "Documentation",
                 "BehaviorTreeEditor",
@@ -165,8 +171,11 @@ public class UnrealEd : ModuleRules
 				"ViewportSnapping",
 				"UserFeedback",
 				"GameplayTagsEditor",
+                "GameplayAbilitiesEditor",
 				"UndoHistory",
-				"SourceCodeAccess"
+				"SourceCodeAccess",
+				"ReferenceViewer",
+				"EditorLiveStreaming"
 			}
 		);
 
@@ -219,39 +228,20 @@ public class UnrealEd : ModuleRules
 		SetupModulePhysXAPEXSupport(Target);
 
 		if ((UEBuildConfiguration.bCompileSimplygon == true) &&
-			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true) &&
-			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon") == true))
+			(Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true) &&
+			(Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true))
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
-		}
-		else
-		{
-			Definitions.Add("WITH_SIMPLYGON=0");
 		}
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "Recast");
+            PrivateDependencyModuleNames.Add("Navmesh");
 			Definitions.Add( "WITH_RECAST=1" );
 		}
 		else
 		{
 			Definitions.Add( "WITH_RECAST=0" );
-		}
-
-		if ((UEBuildConfiguration.bCompileSpeedTree == true) &&
-			(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32))
-		{
-			AddThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
-
-			// Because we test WITH_SPEEDTREE in public UnrealEd header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  SpeedTree is a private dependency
-			// module, so it's definitions won't propagate to modules that import UnrealEd.
-			Definitions.Add("WITH_SPEEDTREE=1");
-		}
-		else
-		{
-			Definitions.Add("WITH_SPEEDTREE=0");
 		}
 	}
 }

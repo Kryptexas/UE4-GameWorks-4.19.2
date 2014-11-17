@@ -57,7 +57,7 @@ public:
 	TWeakPtr<SBlendSpaceWidget> BlendSpaceWidget;
 
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
@@ -176,7 +176,7 @@ public:
 				[
 					SNew(SEditableTextBox)
 					.MinDesiredWidth(10.0f)
-					.Text( FText::AsNumber( GetVectorValueForParam(ParamIndex, SamplePosition) ) )
+					.Text(FText::AsNumber(GetVectorValueForParam(ParamIndex, SamplePosition), NULL, FInternationalization::Get().GetInvariantCulture()))
 					.OnTextCommitted( this, &SSampleEditPopUp::OnValueModified, SampleIndex, ParamIndex  )
 				]
 			];
@@ -416,9 +416,9 @@ void SBlendSpaceParameterWidget::UpdateParametersFromBlendSpace()
 		const FBlendParameter& BlendParam = BlendSpace->GetBlendParameter(I);
 
 		Param_DisplayNames[I]->SetText(FText::FromString(BlendParam.DisplayName));
-		Param_MinValues[I]->SetText( FText::AsNumber( BlendParam.Min ) );
-		Param_MaxValues[I]->SetText( FText::AsNumber( BlendParam.Max) );
-		Param_GridNumbers[I]->SetText(FText::AsNumber(BlendParam.GridNum));
+		Param_MinValues[I]->SetText(FText::AsNumber(BlendParam.Min, NULL, FInternationalization::Get().GetInvariantCulture()));
+		Param_MaxValues[I]->SetText(FText::AsNumber(BlendParam.Max, NULL, FInternationalization::Get().GetInvariantCulture()));
+		Param_GridNumbers[I]->SetText(FText::AsNumber(BlendParam.GridNum, NULL, FInternationalization::Get().GetInvariantCulture()));
 	}
 }
 
@@ -1236,7 +1236,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 	DisplayOptionsPanel->AddCheckBoxSlot()
 	[
 		SNew(SCheckBox) 
-		.IsChecked( true )
+		.IsChecked( true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
 		.OnCheckStateChanged( this, &SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged)
 		[
 			SNew(STextBlock)

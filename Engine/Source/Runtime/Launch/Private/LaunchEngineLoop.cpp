@@ -11,6 +11,8 @@
 #include "ExceptionHandling.h"
 #include "FileManagerGeneric.h"
 #include "TaskGraphInterfaces.h"
+#include "Runtime/Core/Public/Modules/ModuleVersion.h"
+
 
 #include "Projects.h"
 #include "UProjectInfo.h"
@@ -37,9 +39,15 @@
 	#include "GlobalShader.h"
 	#include "ParticleHelper.h"
 	#include "Online.h"
+	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
+	#include "DeviceProfiles/DeviceProfileManager.h"
+	#include "Commandlets/Commandlet.h"
+	#include "EngineService.h"
+	#include "ContentStreaming.h"
+
 #if !UE_SERVER
-	#include "SlateRHIRendererModule.h"
+	#include "ISlateRHIRendererModule.h"
 #endif
 
 	#include "MoviePlayer.h"
@@ -93,7 +101,7 @@ public:
 	{
 	}
 
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
@@ -122,7 +130,7 @@ public:
 	virtual ~FOutputDeviceTestExit()
 	{
 	}
-	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override
 	{
 		if (!GIsRequestingExit)
 		{
@@ -708,22 +716,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GGameThreadId = FPlatformTLS::GetCurrentThreadId();
 	GIsGameThreadIdInitialized = true;
 
-#if PLATFORM_XBOXONE
-	HANDLE proc = ::GetCurrentProcess();
-	DWORD64 dwProcessAffinity, dwSystemAffinity;
-	if (GetProcessAffinityMask( proc, &dwProcessAffinity, &dwSystemAffinity))
-	{
-		UE_LOG(LogInit, Log, TEXT("Process affinity %ld System affinity %ld."), dwProcessAffinity , dwSystemAffinity);
-	}
-	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
-	UE_LOG(LogInit, Log, TEXT("Runnable thread Main Thread is on Process %d."), static_cast<uint32>(::GetCurrentProcessorNumber()) );	
-#endif // PLATFORM_XBOXONE
-
-#if PLATFORM_ANDROID
-	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
-#endif
+	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
+	FPlatformProcess::SetupGameOrRenderThread(false);
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
@@ -767,8 +761,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// VC++ tends to do this in its "external tools" config
 	Token = Token.Trim();
 
+	// Path returned by FPaths::GetProjectFilePath() is normalized, so may have symlinks and ~ resolved and may differ from the original path to .uproject passed in the command line
+	FString NormalizedToken = Token;
+	FPaths::NormalizeFilename(NormalizedToken);
+
 	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
-	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetProjectFilePath());
+	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && NormalizedToken == FPaths::GetProjectFilePath());
 	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
 	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
@@ -906,7 +904,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if ( !GIsGameAgnosticExe && FApp::HasGameName() && !FPaths::IsProjectFilePathSet() )
 	{
 		// If we are using a non-agnostic exe where a name was specified but we did not specify a project path. Assemble one based on the game name.
-		// @todo uproject This should not be necessary when uproject files are always specified.
 		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), *IProjectManager::GetProjectFileExtension()));
 		FPaths::SetProjectFilePath(ProjectFilePath);
 	}
@@ -917,6 +914,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if ( !IProjectManager::Get().LoadProjectFile(FPaths::GetProjectFilePath()) )
 		{
 			// The project file was invalid or saved with a newer version of the engine. Exit.
+			UE_LOG(LogInit, Warning, TEXT("Could not find a valid project file, the engine will exit now."));
 			return 1;
 		}
 	}
@@ -1012,6 +1010,29 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (FApp::ShouldUseThreadingForPerformance())
 	{
 		GUseThreadedRendering = true;
+
+#if PLATFORM_ANDROID 
+		// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
+		// when running multithreaded it can't handle multiple threads using opengl (bug)
+		// tested with lg optimus 2x and motorola xoom 
+		// come back and revisit this later 
+		if ( FAndroidMisc::GetGPUFamily() == FString(TEXT("NVIDIA Tegra")) && FPlatformMisc::NumberOfCores() <= 2 )
+		{
+			GUseThreadedRendering = false;
+		}
+
+		// there is an issue with presenting the buffer on kindle fire (1st gen) with multiple threads using opengl
+		if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Kindle Fire")))
+		{
+			GUseThreadedRendering = false;
+		}
+
+		// there is an issue with swapbuffer ordering on startup on samsung s3 mini with multiple threads using opengl
+		if (FAndroidMisc::GetDeviceModel() == FString(TEXT("GT-I8190L")))
+		{
+			GUseThreadedRendering = false;
+		}
+#endif
 	}
 #endif
 
@@ -1142,8 +1163,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Delete temporary files in cache.
 	FPlatformProcess::CleanFileCache();
 
-
-
 #if !UE_BUILD_SHIPPING
 	GIsDemoMode = FParse::Param( FCommandLine::Get(), TEXT( "DEMOMODE" ) );
 #endif
@@ -1182,20 +1201,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformSplash::Show();
 	}
 
-	if ( !IsRunningDedicatedServer() )
+	if (!IsRunningDedicatedServer() && (bHasEditorToken || bIsRegularClient))
 	{
-		if ( bHasEditorToken || bIsRegularClient )
-		{
-			// Init platform application
-			FSlateApplication::Create();
-		}
-		else
-		{
-			FCoreStyle::ResetToDefault();
-		}
+		// Init platform application
+		FSlateApplication::Create();
 	}
 	else
 	{
+		// If we're not creating the slate application there is some basic initialization
+		// that it does that still must be done
+		EKeys::Initialize();
 		FCoreStyle::ResetToDefault();
 	}
 
@@ -1252,7 +1267,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if !UE_SERVER// && !UE_EDITOR
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
-		TSharedRef<FSlateRenderer> SlateRenderer = FModuleManager::Get().GetModuleChecked<FSlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
+		TSharedRef<FSlateRenderer> SlateRenderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
 
 		// If Slate is being used, initialize the renderer after RHIInit 
 		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
@@ -1288,11 +1303,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		GetMoviePlayer()->Initialize();
 		GetMoviePlayer()->PlayMovie();
-	}
-#endif
 
-	// do any post appInit processing, before the render thread is started.
-	FPlatformMisc::PlatformPostInit();
+        // do any post appInit processing, before the render thread is started.
+        FPlatformMisc::PlatformPostInit(GetMoviePlayer()->IsMovieCurrentlyPlaying());
+    }
+    else
+#endif
+    {
+        // do any post appInit processing, before the render thread is started.
+        FPlatformMisc::PlatformPostInit(false);
+    }
 
 	if (GUseThreadedRendering)
 	{
@@ -1322,7 +1342,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			CommandletClass = FindObject<UClass>(ANY_PACKAGE,*Token,false);
 			if (!CommandletClass)
 			{
-				UE_LOG(LogInit, Fatal,TEXT("%s looked like a commandlet, but we could not find the class."), *Token);
+				if (GLogConsole && !GIsSilent)
+				{
+					GLogConsole->Show(true);
+				}
+				UE_LOG(LogInit, Error, TEXT("%s looked like a commandlet, but we could not find the class."), *Token);
+				GIsRequestingExit = true;
+				return 1;
 			}
 
 			extern bool GIsConsoleExecutable;
@@ -1379,6 +1405,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
 
 					GEngine = GEditor = ConstructObject<UEditorEngine>( EditorEngineClass );
+
+					GEngine->ParseCommandline();
 
 					UE_LOG(LogInit, Log, TEXT("Initializing Editor Engine..."));
 					GEditor->InitEditor(this);
@@ -1577,9 +1605,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 
-#else
+#else // WITH_ENGINE
 	EndInitTextLocalization();
-#endif
+	FPlatformMisc::PlatformPostInit();
+#endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
@@ -1609,7 +1638,7 @@ void FEngineLoop::LoadPreInitModules()
 	if (!IsRunningDedicatedServer() )
 	{
 		// This needs to be loaded before InitializeShaderTypes is called
-		FModuleManager::Get().LoadModuleChecked<FSlateRHIRendererModule>("SlateRHIRenderer");
+		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
 	}
 #endif
 
@@ -1690,6 +1719,19 @@ bool FEngineLoop::LoadStartupCoreModules()
 		//let's load BT editor even for Rocket users (ShooterGame needs it but other projects should have it disabled in config file). 
 		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 	}
+
+	// -----------------------------------------------------
+
+	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
+	// cooking needs this module too
+	bool bGameplayAbilitiesEnabled = false;
+	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+	if (bGameplayAbilitiesEnabled)
+	{
+		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
+	}
+
+	// -----------------------------------------------------
 
 	// HACK: load EQS editor as early as possible for statically initialized assets (non cooked EQS assets needs it)
 	// cooking needs this module too
@@ -1781,59 +1823,12 @@ void FEngineLoop::InitTime()
 	MaxFrameCounter = FMath::TruncToInt(MaxTickTime / FApp::GetFixedDeltaTime());
 }
 
-void FlushStatsFrame(bool bDiscardCallstack)
-{
-	check(IsInGameThread()); 
-	static int32 MasterDisableChangeTagStartFrame = -1;
-	static int64 StatsFrame = 1;
-	StatsFrame++;
-#if STATS
-	int64 Frame = StatsFrame;
-	if (bDiscardCallstack)
-	{
-		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
-	}
-	if (MasterDisableChangeTagStartFrame == -1)
-	{
-		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-	}
-	if (!FThreadStats::IsCollectingData() ||  MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag())
-	{
-		Frame = -StatsFrame; // mark this as a bad frame
-	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
-	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
-	if (FPlatformProperties::IsServerOnly())
-	{
-		FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
-	}
-#endif
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-		RenderingThreadTickCommand, 
-		int64, SentStatsFrame, StatsFrame,
-		int32, SentMasterDisableChangeTagStartFrame, MasterDisableChangeTagStartFrame,
-	{ 
-		RenderingThreadTick(SentStatsFrame, SentMasterDisableChangeTagStartFrame); 
-	} 
-	);
-	if (bDiscardCallstack)
-	{
-		// we need to flush the rendering thread here, otherwise it can get behind and then the stats will get behind.
-		FlushRenderingCommands();
-	}
 
-#if STATS
-	FThreadStats::ExplicitFlush(bDiscardCallstack);
-	FThreadStats::WaitForStats();
-	MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-#endif
-
-}
 
 //called via FCoreDelegates::StarvedGameLoop
 void GameLoopIsStarved()
 {
-	FlushStatsFrame(true);
+	FStats::AdvanceFrame( true, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 }
 
 
@@ -1979,19 +1974,17 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	static const auto CVarIdleWhenNotForeground = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("t.IdleWhenNotForeground"));
 	bool bIdleMode = false;
 
-	// Yield and prevent ticking and rendering when desired
-	if (FApp::IsGame() 
-		&& CVarIdleWhenNotForeground->GetValueOnGameThread()
+	// Yield cpu usage if desired
+	if (FApp::IsGame()
 		&& FPlatformProperties::SupportsWindowedMode()
+		&& CVarIdleWhenNotForeground->GetValueOnGameThread()
 		&& !FPlatformProcess::IsThisApplicationForeground())
 	{
 		bIdleMode = true;
 
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-
-		for (int32 WorldIndex = 0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (!WorldContexts[WorldIndex].World()->AreAlwaysLoadedLevelsLoaded())
+			if (!Context.World()->AreAlwaysLoadedLevelsLoaded())
 			{
 				bIdleMode = false;
 				break;
@@ -2020,7 +2013,7 @@ void FEngineLoop::Tick()
 			{
 				GFrameNumberRenderThread++;
 				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
-				RHIBeginFrame();
+				RHICmdList.BeginFrame();
 			});
 
 		// Flush debug output which has been buffered by other threads.
@@ -2044,7 +2037,7 @@ void FEngineLoop::Tick()
 		GMalloc->UpdateStats();
 	} 
 
-	FlushStatsFrame(false);
+	FStats::AdvanceFrame( false, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 
 	{ 
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );
@@ -2073,8 +2066,8 @@ void FEngineLoop::Tick()
 			FPlatformMisc::PumpMessages(true);
 		}
 
+		// Idle mode prevents ticking and rendering completely
 		const bool bIdleMode = ShouldUseIdleMode();
-
 		if (bIdleMode)
 		{
 			// Yield CPU time
@@ -2185,7 +2178,7 @@ void FEngineLoop::Tick()
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			EndFrame,
 		{
-			RHIEndFrame();
+			RHICmdList.EndFrame();
 			GDynamicRHI->PopEvent();
 		});
 	} 
@@ -2305,7 +2298,8 @@ bool FEngineLoop::AppInit( )
 	}
 
 	// Only create debug output device if a debugger is attached or we're running on a console or build machine
-	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || GIsBuildMachine)
+	// A shipping build with logging explicitly enabled will fail the IsDebuggerPresent() check, but we still need to add the debug output device for logging purposes
+	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
 	{
 		GLog->AddOutputDevice( new FOutputDeviceDebug() );
 	}
@@ -2402,6 +2396,7 @@ bool FEngineLoop::AppInit( )
 
 	//// Command line.
 	UE_LOG(LogInit, Log, TEXT("Version: %s"), *GEngineVersion.ToString());
+	UE_LOG(LogInit, Log, TEXT("API Version: %u"), MODULE_API_VERSION);
 
 #if PLATFORM_64BITS
 	UE_LOG(LogInit, Log, TEXT("Compiled (64-bit): %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));

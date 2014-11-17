@@ -50,13 +50,13 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void ReleaseRHI() override;
 
 	/**
 	 * Updates the vector field.
 	 * @param DeltaSeconds - Elapsed time since the last update.
 	 */
-	virtual void Update(float DeltaSeconds) {}
+	virtual void Update(FRHICommandListImmediate& RHICmdList, float DeltaSeconds) {}
 
 	/**
 	 * Resets the vector field simulation.

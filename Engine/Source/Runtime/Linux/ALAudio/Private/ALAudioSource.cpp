@@ -12,6 +12,8 @@
  */
 bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	check(InWaveInstance);
+
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
@@ -41,12 +43,15 @@ bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 			Update();
 
 			// Initialization was successful.
-			return true ;
+			return true;
 		}
 	}
 
 	// Failed to initialize source.
-	return false ;
+	UE_LOG(LogALAudio, Warning, TEXT("Failed to initialize sound source with WaveInstance '%s'."), *InWaveInstance->WaveData->GetName());
+	UE_LOG(LogALAudio, Warning, TEXT("  SampleRate %d"), InWaveInstance->WaveData->SampleRate);
+	UE_LOG(LogALAudio, Warning, TEXT("  Channels %d"), InWaveInstance->WaveData->NumChannels);
+	return false;
 }
 
 /**

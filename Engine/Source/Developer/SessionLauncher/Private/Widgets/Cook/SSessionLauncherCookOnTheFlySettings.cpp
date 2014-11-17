@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherCookOnTheFlySettings.cpp: Implements the SSessionLauncherCookOnTheFlySettings class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "Animation/AnimCompress.h"
 #include "AnimationCompressionPanel.h"
 
 #define LOCTEXT_NAMESPACE "AnimationCompression"

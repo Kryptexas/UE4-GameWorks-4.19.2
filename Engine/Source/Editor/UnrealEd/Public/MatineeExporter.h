@@ -7,6 +7,10 @@
 #ifndef __MATINEEEXPORTER_H__
 #define __MATINEEEXPORTER_H__
 
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+
 class UInterpData;
 class UInterpTrackMove;
 class UInterpTrackFloatProp;
@@ -19,6 +23,7 @@ class UInterpTrackVectorProp;
 class MatineeExporter
 {
 public:
+	virtual ~MatineeExporter() {}
 
 	/**
 	 * Creates and readies an empty document for export.

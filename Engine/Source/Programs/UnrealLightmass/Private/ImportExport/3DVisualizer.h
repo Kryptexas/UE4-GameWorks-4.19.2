@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	3DVisualizer.h: Helper class to visualize simple 3D geometry
-=============================================================================*/
-
 #pragma once
+
 
 namespace Lightmass
 {

@@ -346,6 +346,50 @@ struct FClothBonePlane
 	FPlane PlaneData;
 };
 
+/**
+ * now exposed a part of properties based on 3DS Max plug-in
+ * property names are also changed into 3DS Max plug-in's one
+ */
+USTRUCT()
+struct FClothPhysicsProperties
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Bending stiffness of the cloth in the range [0, 1]. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float BendResistance;
+
+	// Shearing stiffness of the cloth in the range [0, 1]. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float ShearResistance;
+
+	// Make cloth simulation less stretchy. A value smaller than 1 will turn it off. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "4.0"))
+	float StretchLimit;
+
+	// Friction coefficient in the range[0, 1]
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Friction;
+	// Spring damping of the cloth in the range[0, 1]
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Damping;
+
+	// Drag coefficient n the range [0, 1] 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Drag;
+
+	// Amount of gravity that is applied to the cloth. 
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float GravityScale;
+	// Amount of inertia that is kept when using local space simulation. Internal name is inertia scale
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float InertiaBlend;
+
+	// Minimal amount of distance particles will keep of each other.
+	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float SelfCollisionThickness;
+};
+
 USTRUCT()
 struct FClothingAssetData
 {
@@ -357,6 +401,13 @@ struct FClothingAssetData
 
 	UPROPERTY(EditAnywhere, Category=ClothingAssetData)
 	FString	ApexFileName;
+
+	/** the flag whether cloth physics properties are changed from UE4 editor or not */
+	UPROPERTY(EditAnywhere, Category = ClothingAssetData)
+	bool bClothPropertiesChanged;
+
+	UPROPERTY(EditAnywhere, Transient, Category = ClothingAssetData)
+	FClothPhysicsProperties PhysicsProperties;
 
 #if WITH_APEX_CLOTHING
 	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;
@@ -494,7 +545,7 @@ public:
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** Optimization settings used to simplify LODs of this mesh. */
@@ -601,19 +652,19 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;	
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void PreSave() override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;	
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual FString GetDesc() override;
+	virtual FString GetDetailedInfoInternal() const override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -697,7 +748,7 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName );
+	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
 
 	/** if name conflicts, it will overwrite the reference */
 	ENGINE_API void RegisterMorphTarget(UMorphTarget* MorphTarget);
@@ -708,14 +759,15 @@ public:
 	ENGINE_API void InitMorphTargets();
 
 #if WITH_APEX_CLOTHING
+	ENGINE_API bool  HasClothSectionsInAllLODs(int AssetIndex);
 	ENGINE_API bool	 HasClothSections(int32 LODIndex,int AssetIndex);
 	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, TArray<uint32>& OutSectionIndices);
 	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	ENGINE_API void	 GetClothSectionIndices(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	//moved from ApexClothingUtils because of compile issues
 	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset);
-	ENGINE_API bool  IsEnabledClothLOD(int32 AssetIndex);
-	ENGINE_API int32 GetClothAssetIndex(int32 SectionIndex);
+	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
+	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
 #endif// #if WITH_APEX_CLOTHING
 
 private:

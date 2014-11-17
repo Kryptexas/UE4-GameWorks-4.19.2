@@ -17,14 +17,15 @@ public:
 	* @param InName  The Name of this asset.
 	*/
 	FScreenShotPlatformNode( const FString& InName, const FString& InAssetName = "" )
-	: FScreenShotBaseNode( InName, InAssetName )
+	: FScreenShotBaseNode( InName, InAssetName ),
+	DisplayEveryNthScreenshot(0)
 	{}
 
 public:
 
 	// Begin IScreenShotData interface
 
-	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) OVERRIDE 
+	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override 
 	{
 		FString ScreenShotNumber = FString::Printf( TEXT( "CL #%d"), InScreenDataItem.ChangeListNumber );
 		TSharedRef<FScreenShotBaseNode> ChildNode = MakeShareable( new FScreenShotBaseNode( ScreenShotNumber, InScreenDataItem.AssetName) );
@@ -32,13 +33,13 @@ public:
 	};
 
 
-	virtual EScreenShotDataType::Type GetScreenNodeType() OVERRIDE 
+	virtual EScreenShotDataType::Type GetScreenNodeType() override 
 	{ 
 		return EScreenShotDataType::SSDT_Platform; 
 	};
 
 
-	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) OVERRIDE 
+	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) override 
 	{
 		FilteredChildren.Empty();
 
@@ -47,6 +48,10 @@ public:
 		{
 			for ( int32 Index = 0; Index < Children.Num(); Index++ )
 			{
+				if( DisplayEveryNthScreenshot > 1 && Index % DisplayEveryNthScreenshot != 0 )
+				{
+					continue;
+				}
 				FilteredChildren.Add( Children[Index] );
 			}
 		}
@@ -54,7 +59,28 @@ public:
 		return bPassesFilter;
 	};
 
+	virtual void SetDisplayEveryNthScreenshot( int32 NewLastNth ) override
+	{
+		DisplayEveryNthScreenshot = NewLastNth;
+		if( FilteredChildren.Num() > 0 )
+		{
+			FilteredChildren.Empty();
+			for ( int32 Index = 0; Index < Children.Num(); Index++ )
+			{
+				if( DisplayEveryNthScreenshot > 1 && Index % DisplayEveryNthScreenshot != 0 )
+				{
+					continue;
+				}
+				FilteredChildren.Add( Children[Index] );
+			}
+		}
+	}
+
 
 	// End IScreenShotData interface
+
+private:
+	// If > 1 we will only show every Nth screenshot.
+	uint32 DisplayEveryNthScreenshot;
 };
 

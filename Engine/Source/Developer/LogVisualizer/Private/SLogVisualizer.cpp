@@ -3,10 +3,27 @@
 #include "LogVisualizerPCH.h"
 #include "SLogBar.h"
 #include "Debug/LogVisualizerCameraController.h"
+#include "Debug/ReporterGraph.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "Json.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+
+#if WITH_EDITOR
+#	include "Editor/UnrealEd/Public/EditorComponents.h"
+#	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
+#	include "Editor/UnrealEd/Public/TexAlignTools.h"
+#	include "Editor/UnrealEd/Public/TickableEditorObject.h"
+#	include "UnrealEdClasses.h"
+#	include "Editor/UnrealEd/Public/Editor.h"
+#	include "Editor/UnrealEd/Public/EditorViewportClient.h"
+#endif
+
+#include "GameplayDebuggingComponent.h"
+
+#include "SFilterList.h"
+
+#if ENABLE_VISUAL_LOG
 
 #define LOCTEXT_NAMESPACE "SLogVisualizer"
 
@@ -22,6 +39,69 @@ namespace LogVisualizer
 	static const FString LogFileExtension = FString::Printf(TEXT("*.%s"), *LogFileExtensionPure);
 	static const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *LogFileDescription, *LogFileExtension, *LogFileExtension );
 }
+
+template <typename ItemType>
+class SLogListView : public SListView<ItemType>
+{
+public:
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (!MouseEvent.IsLeftShiftDown())
+		{
+			return SListView<ItemType>::OnMouseWheel(MyGeometry, MouseEvent);
+		};
+
+		return FReply::Unhandled();
+	}
+};
+
+FColor SLogVisualizer::ColorPalette[] = {
+	FColor(0xff00A480),
+	FColorList::Aquamarine,
+	FColorList::Cyan,
+	FColorList::Brown,
+	FColorList::Green,
+	FColorList::Orange,
+	FColorList::Magenta,
+	FColorList::BrightGold,
+	FColorList::NeonBlue,
+	FColorList::MediumSlateBlue,
+	FColorList::SpicyPink,
+	FColorList::SpringGreen,
+	FColorList::SteelBlue,
+	FColorList::SummerSky,
+	FColorList::Violet,
+	FColorList::VioletRed,
+	FColorList::YellowGreen,
+	FColor(0xff62E200),
+	FColor(0xff1F7B67),
+	FColor(0xff62AA2A),
+	FColor(0xff70227E),
+	FColor(0xff006B53),
+	FColor(0xff409300),
+	FColor(0xff5D016D),
+	FColor(0xff34D2AF),
+	FColor(0xff8BF13C),
+	FColor(0xffBC38D3),
+	FColor(0xff5ED2B8),
+	FColor(0xffA6F16C),
+	FColor(0xffC262D3),
+	FColor(0xff0F4FA8),
+	FColor(0xff00AE68),
+	FColor(0xffDC0055),
+	FColor(0xff284C7E),
+	FColor(0xff21825B),
+	FColor(0xffA52959),
+	FColor(0xff05316D),
+	FColor(0xff007143),
+	FColor(0xff8F0037),
+	FColor(0xff4380D3),
+	FColor(0xff36D695),
+	FColor(0xffEE3B80),
+	FColor(0xff6996D3),
+	FColor(0xff60D6A7),
+	FColor(0xffEE6B9E)
+};
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVisualizer)
@@ -40,6 +120,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 	CurrentViewedTime = 0.f;
 	bDrawLogEntriesPath = true;
 	bIgnoreTrivialLogs = true;
+	HistogramPreviewWindow = 50;
+	bShowHistogramLabelsOutside = false;
+	bStickToLastData = false;
 
 	UsedCategories.Empty();
 
@@ -162,12 +245,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)
 					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SAssignNew(LogFilter, SLogCategoryFilter)
-					]
 				]
 				+SOverlay::Slot()
 				.HAlign(HAlign_Right)
@@ -200,6 +277,45 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry."))
 						]
 					]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SLogVisualizer::OnChangeHistogramLabelLocation)
+							.IsChecked(this, &SLogVisualizer::GetHistogramLabelLocation)
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("VisLogHistogramLabelLocation", "Set histogram labels outside graph"))
+								.ToolTipText(LOCTEXT("VisLogHistogramLabelLocationTooltip", "Whether to show histogram labels inside graph or outside."))
+							]
+						]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SLogVisualizer::OnStickToLastData)
+							.IsChecked(this, &SLogVisualizer::GetStickToLastData)
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("VisLogStickToLastData", "Stick to recent data"))
+								.ToolTipText(LOCTEXT("VisLogStickToLastDataTooltip", "Whether to show the recent data or not."))
+							]
+						]
+				]
+			]
+
+			// Filters
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STutorialWrapper, TEXT("CategoryFilters"))
+				[
+					SAssignNew(FilterListPtr, SLogFilterList)
+					.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
+					/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
+					/*.FrontendFilters(FrontendFilters)*/
 				]
 			]
 
@@ -215,14 +331,16 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
 					.Padding(1.0)
 					[
-						SAssignNew(LogsListWidget, SListView< TSharedPtr<FLogsListItem> >)
+						SAssignNew(LogsListWidget, SLogListView< TSharedPtr<FLogsListItem> >)
 						.ItemHeight(20)
+						// Called when the user double-clicks with LMB on an item in the list
+						.OnMouseButtonDoubleClick(this, &SLogVisualizer::OnListDoubleClick)
 						.ListItemsSource(&LogsList)
 						.SelectionMode(ESelectionMode::Multi)
 						.OnGenerateRow(this, &SLogVisualizer::LogsListGenerateRow)
 						.OnSelectionChanged(this, &SLogVisualizer::LogsListSelectionChanged)
 						.HeaderRow(
-																																																																																				SNew(SHeaderRow)
+							SNew(SHeaderRow)
 							// ID
 							+SHeaderRow::Column(NAME_LogName)
 							.SortMode(this, &SLogVisualizer::GetLogsSortMode)
@@ -354,11 +472,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 		]
 	];
 
-	if (LogFilter.IsValid())
-	{
-		LogFilter->OnFiltersChanged.AddRaw(this, &SLogVisualizer::OnLogCategoryFiltersChanged);
-	}
-
 	LogVisualizer->OnLogAdded().AddSP(this, &SLogVisualizer::OnLogAdded);
 
 	TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
@@ -390,13 +503,59 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SLogVisualizer::~SLogVisualizer()
 {
-	if (LogFilter.IsValid())
-	{
-		LogFilter->OnFiltersChanged.RemoveRaw(this, &SLogVisualizer::OnLogCategoryFiltersChanged);
-	}
 	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
+}
+
+void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
+{
+#if WITH_EDITOR
+	FVector Orgin, Extent;
+
+	bool bFoundActor = false;
+	if (LogVisualizer->Logs.IsValidIndex(LogListItem->LogIndex))
+	{
+		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
+		for (FActorIterator It(GetWorld()); It; ++It)
+		{
+			AActor* Actor = Cast<AActor>(*It);
+			if (Actor->GetFName() == Log->Name)
+			{
+				Actor->GetActorBounds(false, Orgin, Extent);
+				bFoundActor = true;
+				break;
+			}
+		}
+	}
+
+	if (!bFoundActor)
+	{
+		Extent = FVector(10, 10, 10);
+	}
+
+	//if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	if (LogVisualizer->Logs.IsValidIndex(LogListItem->LogIndex))
+	{
+		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
+		//TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		if (Log.IsValid() && Log->Entries.IsValidIndex(LogEntryIndex))
+		{
+			Orgin = Log->Entries[LogEntryIndex]->Location;
+		}
+	}
+
+
+	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor && EEngine != NULL)
+	{
+		for (auto ViewportClient : EEngine->AllViewportClients)
+		{
+			//GEditor->MoveViewportCamerasToActor(SelectedActors, bActiveViewportOnly);
+			ViewportClient->FocusViewportOnBox(FBox::BuildAABB(Orgin, Extent));
+		}
+	}
+#endif
 }
 
 int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisLogEntry> >& InVisibleEntries)
@@ -423,16 +582,57 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 {
 	OutEntries.Empty();
 
-	if (LogFilter.IsValid())
+	if (FilterListPtr.IsValid())
 	{
-		for (int32 i = 0; i < Log->Entries.Num(); ++i)
+		for (int32 EntryIndex = 0; EntryIndex < Log->Entries.Num(); ++EntryIndex)
 		{
 			// if any log line is visible - add this entry
-			for (int32 j = 0; j < Log->Entries[i]->LogLines.Num(); ++j)
+			bool bAddedEntry = false;
+
+			if (!bAddedEntry)
 			{
-				if (LogFilter->CanShowLogLine(Log->Entries[i]->LogLines[j].Category.ToString(), Log->Entries[i]->LogLines[j].Verbosity))
+				for (int32 LogLineIndex = 0; LogLineIndex < Log->Entries[EntryIndex]->LogLines.Num(); ++LogLineIndex)
 				{
-					OutEntries.AddUnique(Log->Entries[i]);
+					if (FilterListPtr->IsFilterEnabled(Log->Entries[EntryIndex]->LogLines[LogLineIndex].Category.ToString(), Log->Entries[EntryIndex]->LogLines[LogLineIndex].Verbosity))
+					{
+						OutEntries.AddUnique(Log->Entries[EntryIndex]);
+						bAddedEntry = true;
+						break;
+					}
+				}
+			}
+
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (int32 ElementIndex = 0; ElementIndex < Log->Entries[EntryIndex]->ElementsToDraw.Num(); ++ElementIndex)
+			{
+				if (Log->Entries[EntryIndex]->ElementsToDraw[ElementIndex].Category == NAME_None || FilterListPtr->IsFilterEnabled(Log->Entries[EntryIndex]->ElementsToDraw[ElementIndex].Category.ToString(), Log->Entries[EntryIndex]->ElementsToDraw[ElementIndex].Verbosity))
+				{
+					OutEntries.AddUnique(Log->Entries[EntryIndex]);
+					bAddedEntry = true;
+					break;
+				}
+			}
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (int32 SampleIndex = 0; SampleIndex < Log->Entries[EntryIndex]->HistogramSamples.Num(); ++SampleIndex)
+			{
+				const FName CurrentCategory = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].Category;
+				const FName CurrentGraphName = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].GraphName;
+				const FName CurrentDataName = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName;
+
+				if (CurrentCategory == NAME_None || 
+					(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) &&
+					FilterListPtr->IsFilterEnabled(CurrentGraphName.ToString(), CurrentDataName.ToString(), ELogVerbosity::All)))
+				{
+					OutEntries.AddUnique(Log->Entries[EntryIndex]);
+					bAddedEntry = true;
 					break;
 				}
 			}
@@ -448,6 +648,15 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 void SLogVisualizer::OnLogCategoryFiltersChanged()
 {
 	RebuildFilteredList();
+
+	if (LogVisualizer && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		if (Log.IsValid() && Log->Entries.IsValidIndex(LogEntryIndex))
+		{
+			ShowEntry(Log->Entries[LogEntryIndex].Get());
+		}
+	}
 }
 
 UWorld* SLogVisualizer::GetWorld() const
@@ -479,6 +688,16 @@ void SLogVisualizer::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		DoFullUpdate();
 	}
+
+	if (bStickToLastData && World && !World->bPlayersOnly  && LogVisualizer->IsRecording()  && World->IsPlayInEditor() && LogVisualizer && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		if (Log->Entries.Num() > 0 && LogEntryIndex != Log->Entries.Num() - 1)
+		{
+			LogEntryIndex = Log->Entries.Num() - 1;
+			ShowEntry(Log->Entries[LogEntryIndex].Get());
+		}
+	}
 }
 
 FReply SLogVisualizer::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -488,6 +707,13 @@ FReply SLogVisualizer::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		OnSetZoomValue(FMath::Clamp(ZoomSliderValue + MouseEvent.GetWheelDelta() * 0.05f, 0.f, 1.f));
 		return FReply::Handled();
 	}
+
+	if (MouseEvent.IsLeftShiftDown())
+	{
+		OnSetHistogramWindowValue(MouseEvent.GetWheelDelta());
+		return FReply::Handled();
+	}
+
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
@@ -555,16 +781,59 @@ void SLogVisualizer::SelectionChanged(AActor* DebuggedActor, bool bIsBeingDebugg
 
 void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 {
+	if (!LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		return;
+	}
+
 	TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
 	check(Log.IsValid());
 
 	int32 NewEntryIndex = FMath::Clamp(LogEntryIndex + IncrementBy, 0, Log->Entries.Num() - 1);
 
-	if (LogFilter.IsValid())
+	if (FilterListPtr.IsValid())
 	{
 		while (NewEntryIndex >= 0 && NewEntryIndex < Log->Entries.Num())
 		{
-			if (LogFilter->CanShowLogEntry(Log->Entries[NewEntryIndex]))
+			bool bShouldShow = false;
+			for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->LogLines.Num(); ++LineIndex)
+			{
+				if (FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->LogLines[LineIndex].Category.ToString(), Log->Entries[NewEntryIndex]->LogLines[LineIndex].Verbosity))
+				{
+					bShouldShow = true;
+					break;
+				}
+			}
+
+			if (!bShouldShow)
+			{
+				for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->ElementsToDraw.Num(); ++LineIndex)
+				{
+					if (Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Category == NAME_None || FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Category.ToString(), Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Verbosity))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
+			if (!bShouldShow)
+			{
+				for (int32 SampleIndex = 0; SampleIndex < Log->Entries[NewEntryIndex]->HistogramSamples.Num(); ++SampleIndex)
+				{
+					const FName CurrentCategory = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].Category;
+					const FName CurrentGraphName = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].GraphName;
+					const FName CurrentDataName = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].DataName;
+					if (CurrentCategory == NAME_None ||
+						(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentGraphName.ToString(), CurrentDataName.ToString(), ELogVerbosity::All)))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
+			if (bShouldShow)
 			{
 				break;
 			}
@@ -580,7 +849,7 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 	}
 }
 
-void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
+void SLogVisualizer::AddLog(int32 LogIndex, const FActorsVisLog* Log)
 {
 	if (Log->Entries.Num() == 0)
 	{
@@ -597,8 +866,49 @@ void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
 	const float StartTimestamp = Log->Entries[0]->TimeStamp;
 	const float EndTimestamp = Log->Entries[Log->Entries.Num() - 1]->TimeStamp;
 	
+	for (int32 EntryIndex = 0; EntryIndex < Log->Entries.Num(); ++EntryIndex)
+	{
+		for (auto Iter(Log->Entries[EntryIndex]->LogLines.CreateConstIterator()); Iter; Iter++)
+		{
+			int32 Index = UsedCategories.Find(Iter->Category.ToString());
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(Iter->Category.ToString());
+				FilterListPtr->AddFilter(Iter->Category.ToString(), GetColorForUsedCategory(Index));
+			}
+		}
+
+		for (auto Iter(Log->Entries[EntryIndex]->ElementsToDraw.CreateConstIterator()); Iter; Iter++)
+		{
+			const FString CategoryAsString = Iter->Category != NAME_None ? Iter->Category.ToString() : TEXT("ShapeElement");
+
+			int32 Index = UsedCategories.Find(CategoryAsString);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CategoryAsString);
+				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
+			}
+		}
+
+		for (int32 SampleIndex = 0; SampleIndex < Log->Entries[EntryIndex]->HistogramSamples.Num(); ++SampleIndex)
+		{
+			const FString CategoryAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].Category.ToString();
+
+			int32 Index = UsedCategories.Find(CategoryAsString);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CategoryAsString);
+				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
+			}
+
+			const FString GraphNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].GraphName.ToString();
+			const FString DataNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName.ToString();
+			FilterListPtr->AddGraphFilter(GraphNameAsString, DataNameAsString, FColor::White);
+		}
+	}
+
 	LogsList.Add(MakeShareable(new FLogsListItem(Log->Name.ToString()
-		, StartTimestamp, EndTimestamp, Index)));
+		, StartTimestamp, EndTimestamp, LogIndex)));
 }
 
 void SLogVisualizer::DoFullUpdate()
@@ -609,8 +919,11 @@ void SLogVisualizer::DoFullUpdate()
 		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
 		{
 			TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
-			LogsStartTime = FMath::Min(Log->Entries[0]->TimeStamp, LogsStartTime);
-			LogsEndTime = FMath::Max(Log->Entries[Log->Entries.Num()-1]->TimeStamp, LogsEndTime);
+			if (Log->Entries.Num() > 0)
+			{
+				LogsStartTime = FMath::Min(Log->Entries[0]->TimeStamp, LogsStartTime);
+				LogsEndTime = FMath::Max(Log->Entries[Log->Entries.Num() - 1]->TimeStamp, LogsEndTime);
+			}
 		}
 	}
 
@@ -641,8 +954,22 @@ void SLogVisualizer::OnLogAdded()
 	// take last log
 	const int32 NewLogIndex = LogVisualizer->Logs.Num()-1;
 	
-	AddLog(NewLogIndex, LogVisualizer->Logs[NewLogIndex].Get());
-		
+	TSharedPtr<FLogsListItem> Item;
+	for (int32 Index = 0; Index < LogsList.Num(); ++Index)
+	{
+		Item = LogsList[Index];
+		TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
+		if (Item->Name == Logs[NewLogIndex]->Name.ToString())
+		{
+			break;
+		}
+	}
+	
+	if (!Item.IsValid())
+	{
+		AddLog(NewLogIndex, LogVisualizer->Logs[NewLogIndex].Get());
+	}		
+
 	RequestFullUpdate();
 }
 
@@ -665,6 +992,34 @@ void SLogVisualizer::LogsListSelectionChanged(TSharedPtr<FLogsListItem> Selected
 		LogEntryIndex = Log->Entries.Num() - 1;
 	}
 	
+	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		if (USelection* SelectedActors = GEditor->GetSelectedActors())
+		{
+			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+
+			if (UWorld* World = GetWorld())
+			{
+				for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+				{
+					if (APawn* CurrentPawn = *Iterator)
+					{
+						if (AController* CurrentController = CurrentPawn->GetController())
+						{
+							if (CurrentController->GetName() == Log->Name.ToString())
+							{
+								SelectedActors->Select(CurrentPawn);
+							}
+							else
+							{
+								SelectedActors->Deselect(CurrentPawn);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	//SetCurrentViewedTime(CurrentViewedTime, /*bForce=*/true);
 	
@@ -734,6 +1089,21 @@ void SLogVisualizer::SetCurrentViewedTime(float NewTime, const bool bForce)
 	}
 
 	CurrentViewedTime = NewTime;
+
+#if WITH_EDITOR
+	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor && EEngine != NULL)
+	{
+		for (int32 i = 0; i < EEngine->AllViewportClients.Num(); i++)
+		{
+			FEditorViewportClient* ViewportClient = EEngine->AllViewportClients[i];
+			if (ViewportClient)
+			{
+				ViewportClient->Invalidate();
+			}
+		}
+	}
+#endif
 }
 
 void SLogVisualizer::RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry)
@@ -762,19 +1132,21 @@ void SLogVisualizer::ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVi
 	ShowEntry(LogEntry.Get());
 }
 
-FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index) const
+FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index)
 {
-	switch (Index)
+	if (Index >= 0 && Index < sizeof(ColorPalette) / sizeof(ColorPalette[0]))
 	{
-	case 0: return FLinearColor(FColorList::Aquamarine);
-	case 1: return FLinearColor(FColorList::Cyan);	
-	case 2: return FLinearColor(FColorList::Brown);
-	case 3: return FLinearColor(FColorList::Green);
-	case 4: return FLinearColor(FColorList::Orange);
-	case 5: return FLinearColor(FColorList::Magenta);
-	default:
-		return FLinearColor::White;
+		return ColorPalette[Index];
 	}
+
+	static bool bReateColorList = false;
+	static FColorList StaticColor;
+	if (!bReateColorList)
+	{
+		bReateColorList = true;
+		StaticColor.CreateColorMap();
+	}
+	return StaticColor.GetFColorByIndex(Index);
 }
 
 TSharedRef<ITableRow> SLogVisualizer::HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable)
@@ -818,12 +1190,12 @@ void SLogVisualizer::OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, T
 void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
 {
 	TArray<FString> ExpandedCategories;
-	for (int32 i = 0; i < StatusItems.Num(); i++)
+	for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
 	{
-		const bool bIsExpanded = StatusItemsView->IsItemExpanded(StatusItems[i]);
+		const bool bIsExpanded = StatusItemsView->IsItemExpanded(StatusItems[ItemIndex]);
 		if (bIsExpanded)
 		{
-			ExpandedCategories.Add(StatusItems[i]->ItemText);
+			ExpandedCategories.Add(StatusItems[ItemIndex]->ItemText);
 		}
 	}
 
@@ -834,18 +1206,18 @@ void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
 		FString TimestampDesc = FString::Printf(TEXT("%.2fs"), LogEntry->TimeStamp);
 		StatusItems.Add(MakeShareable(new FLogStatusItem(LOCTEXT("VisLogTimestamp","Time").ToString(), TimestampDesc)));
 
-		for (int32 iCategory = 0; iCategory < LogEntry->Status.Num(); iCategory++)
+		for (int32 CategoryIndex = 0; CategoryIndex < LogEntry->Status.Num(); CategoryIndex++)
 		{
-			if (LogEntry->Status[iCategory].Data.Num() <= 0)
+			if (LogEntry->Status[CategoryIndex].Data.Num() <= 0)
 			{
 				continue;
 			}
 
-			TSharedRef<FLogStatusItem> StatusItem = MakeShareable(new FLogStatusItem(LogEntry->Status[iCategory].Category));
-			for (int32 iLine = 0; iLine < LogEntry->Status[iCategory].Data.Num(); iLine++)
+			TSharedRef<FLogStatusItem> StatusItem = MakeShareable(new FLogStatusItem(LogEntry->Status[CategoryIndex].Category));
+			for (int32 LineIndex = 0; LineIndex < LogEntry->Status[CategoryIndex].Data.Num(); LineIndex++)
 			{
 				FString KeyDesc, ValueDesc;
-				const bool bHasValue = LogEntry->Status[iCategory].GetDesc(iLine, KeyDesc, ValueDesc);
+				const bool bHasValue = LogEntry->Status[CategoryIndex].GetDesc(LineIndex, KeyDesc, ValueDesc);
 				if (bHasValue)
 				{
 					StatusItem->Children.Add(MakeShareable(new FLogStatusItem(KeyDesc, ValueDesc)));
@@ -858,13 +1230,13 @@ void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
 
 	StatusItemsView->RequestTreeRefresh();
 
-	for (int32 iItem = 0; iItem < StatusItems.Num(); iItem++)
+	for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
 	{
-		for (int32 i = 0; i < ExpandedCategories.Num(); i++)
+		for (const FString& Category : ExpandedCategories)
 		{
-			if (StatusItems[iItem]->ItemText == ExpandedCategories[i])
+			if (StatusItems[ItemIndex]->ItemText == Category)
 			{
-				StatusItemsView->SetItemExpansion(StatusItems[iItem], true);
+				StatusItemsView->SetItemExpansion(StatusItems[ItemIndex], true);
 				break;
 			}
 		}
@@ -881,9 +1253,9 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 	{
 		bool bShowLine = true;
 
-		if (LogFilter.IsValid())
+		if (FilterListPtr.IsValid())
 		{
-			bShowLine = LogFilter->CanShowLogLine(LogLine->Category.ToString(), LogLine->Verbosity);
+			bShowLine = FilterListPtr->IsFilterEnabled(LogLine->Category.ToString(), LogLine->Verbosity);
 		}
 
 		if (bShowLine)
@@ -1010,6 +1382,12 @@ void SLogVisualizer::OnZoomScrolled(float InScrollOffsetFraction)
 	}
 }
 
+void SLogVisualizer::OnSetHistogramWindowValue(float NewValue)
+{
+	HistogramPreviewWindow = FMath::Clamp(HistogramPreviewWindow + NewValue * 1.0f, 0.0f, 100.0f);
+	HistogramWindowChangedNotify.Broadcast(HistogramPreviewWindow);
+}
+
 void SLogVisualizer::OnDrawLogEntriesPathChanged(ESlateCheckBoxState::Type NewState)
 {
 	bDrawLogEntriesPath = (NewState == ESlateCheckBoxState::Checked);
@@ -1029,6 +1407,26 @@ void SLogVisualizer::OnIgnoreTrivialLogs(ESlateCheckBoxState::Type NewState)
 ESlateCheckBoxState::Type SLogVisualizer::GetIgnoreTrivialLogs() const
 {
 	return bIgnoreTrivialLogs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SLogVisualizer::OnChangeHistogramLabelLocation(ESlateCheckBoxState::Type NewState)
+{
+	bShowHistogramLabelsOutside = (NewState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SLogVisualizer::GetHistogramLabelLocation() const
+{
+	return bShowHistogramLabelsOutside ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SLogVisualizer::OnStickToLastData(ESlateCheckBoxState::Type NewState)
+{
+	bStickToLastData = (NewState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SLogVisualizer::GetStickToLastData() const
+{
+	return bStickToLastData ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SLogVisualizer::OnToggleCamera(ESlateCheckBoxState::Type NewState)
@@ -1055,7 +1453,8 @@ ESlateCheckBoxState::Type SLogVisualizer::GetToggleCameraState() const
 //----------------------------------------------------------------------//
 void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 {
-	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex) && GetWorld() != NULL)
+	UWorld* World = GetWorld();
+	if (World != NULL && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
 		const TArray<TSharedPtr<FVisLogEntry> >& Entries = Log->Entries;
@@ -1069,7 +1468,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			for (int32 Index = 1; Index < Entries.Num(); ++Index, ++Entry)
 			{
 				const FVector CurrentLocation = (*Entry)->Location;
-				DrawDebugLine(GetWorld(), Location, CurrentLocation, FColor(160,160,240));
+				DrawDebugLine(World, Location, CurrentLocation, FColor(160, 160, 240));
 				Location = CurrentLocation;
 			}
 		}
@@ -1080,7 +1479,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			const TSharedPtr<FVisLogEntry>& Entry = Entries[LogEntryIndex];
 
 			// mark current location
-			DrawDebugCone(GetWorld(), Entry->Location, /*Direction*/FVector(0,0,1), /*Length*/200.f
+			DrawDebugCone(World, Entry->Location, /*Direction*/FVector(0, 0, 1), /*Length*/200.f
 				, PI/64, PI/64, /*NumSides*/16, FColor::Red);
 			
 			UFont* Font = GEngine->GetSmallFont();
@@ -1092,11 +1491,176 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			Canvas->SetDrawColor(FColor::White);
 			Canvas->DrawText(Font, TimeStampString, EntryScreenLoc.X, EntryScreenLoc.Y);
 
+			//let's draw histogram data
+
+			static const float StartGoldenRatio[] = {
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+			};
+
+			const float GoldenRatioConjugate = 0.618033988749895f;
+
+			struct FGraphLineData
+			{
+				FName DataName;
+				TArray<FVector2D> Samples;
+			};
+			typedef TMap<FName, FGraphLineData > FGraphLines;
+
+			struct FGraphData
+			{
+				FGraphData() : Min(FVector2D(FLT_MAX, FLT_MAX)), Max(FVector2D(FLT_MIN, FLT_MIN)) {}
+
+				FVector2D Min, Max;
+				TMap<FName, FGraphLineData > GraphLines;
+			};
+
+			TMap<FName, FGraphData>	CollectedGraphs;
+
+			float MinTime, MaxTime;
+			Timeline->GetMinMaxValues(MinTime, MaxTime);
+
+			const float StartTime = Timeline->GetOffset() + MinTime;
+			const float EndTime = StartTime + (MaxTime - MinTime) / this->GetZoom();
+			const float WindowHalfWidth = (EndTime - StartTime) * HistogramPreviewWindow * 0.01 * 0.5;
+			const FVector2D TimeStampWindow(Entry->TimeStamp - WindowHalfWidth, Entry->TimeStamp + WindowHalfWidth);
+
+			int32 ColorIndex = 0;
+			for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
+			{
+				const TSharedPtr<FVisLogEntry>& CurrentEntry = Entries[EntryIndex];
+				if (HistogramPreviewWindow <= 0)
+				{
+					if (CurrentEntry->TimeStamp > Entry->TimeStamp)
+					{
+						break;
+					}
+				}
+				else
+				{
+					if (CurrentEntry->TimeStamp < TimeStampWindow.X)
+					{
+						continue;
+					}
+
+					if (CurrentEntry->TimeStamp > TimeStampWindow.Y)
+					{
+						break;
+					}
+				}
+				const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
+				{
+					FVisLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					if (!FilterListPtr.IsValid() || (FilterListPtr->IsFilterEnabled(CurrentSample.Category.ToString(), ELogVerbosity::All) &&
+						FilterListPtr->IsFilterEnabled(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All)))
+					{
+						FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
+						FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
+						LineData.DataName = CurrentSample.DataName;
+						LineData.Samples.Add( CurrentSample.SampleValue );
+
+						GraphData.Min.X = FMath::Min(GraphData.Min.X, CurrentSample.SampleValue.X);
+						GraphData.Min.Y = FMath::Min(GraphData.Min.Y, CurrentSample.SampleValue.Y);
+
+						GraphData.Max.X = FMath::Max(GraphData.Max.X, CurrentSample.SampleValue.X);
+						GraphData.Max.Y = FMath::Max(GraphData.Max.Y, CurrentSample.SampleValue.Y);
+					}
+				}
+			}
+
+			int32 GraphIndex = 0;
+			if (CollectedGraphs.Num() > 0)
+			{
+				const float GraphWidth = 0.8f / CollectedGraphs.Num();
+				const float GraphSpacing = 0.2f / (CollectedGraphs.Num()+1);
+				float CurrentX = GraphSpacing;
+				float CurrentY = (1.0f - GraphWidth) * 0.5f;
+				int32 GraphIndex = 0;
+
+				for (auto It(CollectedGraphs.CreateConstIterator()); It; ++It)
+				{
+					TWeakObjectPtr<UReporterGraph> HistogramGraph = Canvas->GetReporterGraph();
+					if (!HistogramGraph.IsValid())
+					{
+						break;
+					}
+					HistogramGraph->SetNumGraphLines(It->Value.GraphLines.Num());
+					int32 LineIndex = 0;
+					UFont* Font = GEngine->GetSmallFont();
+					int32 MaxStringSize = 0;
+					float Hue = 0;// StartGoldenRatio[GraphIndex++];
+
+					for (auto LinesIt(It->Value.GraphLines.CreateConstIterator()); LinesIt; ++LinesIt)
+					{
+						Hue += GoldenRatioConjugate;
+						if (Hue > 1)
+						{
+							Hue -= FMath::FloorToFloat(Hue);
+						}
+						HistogramGraph->GetGraphLine(LineIndex)->Color = FLinearColor::FGetHSV(Hue * 255, 0, 244);
+						HistogramGraph->GetGraphLine(LineIndex)->LineName = LinesIt->Value.DataName.ToString();
+						HistogramGraph->GetGraphLine(LineIndex)->Data.Append(LinesIt->Value.Samples);
+
+						int32 DummyY, CurrentX;
+						StringSize(Font, CurrentX, DummyY, *LinesIt->Value.DataName.ToString());
+						MaxStringSize = CurrentX > MaxStringSize ? CurrentX : MaxStringSize;
+
+						++LineIndex;
+					}
+
+					FVector2D GraphSpaceSize;
+					GraphSpaceSize.Y = GraphSpaceSize.X = 0.8f / CollectedGraphs.Num();
+
+					HistogramGraph->SetGraphScreenSize(CurrentX, CurrentX + GraphWidth, CurrentY, CurrentY + GraphWidth);
+					CurrentX += GraphWidth + GraphSpacing;
+					HistogramGraph->SetAxesMinMax(FVector2D(TimeStampWindow.X, It->Value.Min.Y), FVector2D(TimeStampWindow.Y, It->Value.Max.Y));
+					
+					HistogramGraph->SetNumThresholds(1);
+					FGraphThreshold* GraphThreshold = HistogramGraph->GetThreshold(0);
+					GraphThreshold->Threshold = 0.f;
+					GraphThreshold->Color = FLinearColor::White;
+					GraphThreshold->ThresholdName = TEXT("     0");
+					HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
+					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 200) );
+					HistogramGraph->SetLegendPosition(bShowHistogramLabelsOutside ? ELegendPosition::Outside : ELegendPosition::Inside);
+
+					HistogramGraph->bVisible = true;
+					HistogramGraph->Draw(Canvas);
+
+					++GraphIndex;
+				}
+			}
+
+
 			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetTypedData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();
 			
 			for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
 			{
+				if (FilterListPtr.IsValid() && !FilterListPtr->IsFilterEnabled(ElementToDraw->Category.ToString(), ElementToDraw->Verbosity))
+				{
+					continue;
+				}
+
 				const FColor Color = ElementToDraw->GetFColor();
 				Canvas->SetDrawColor(Color);
 
@@ -1109,7 +1673,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						const FVector* Location = ElementToDraw->Points.GetTypedData();
 						for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index, ++Location)
 						{
-							DrawDebugSphere(GetWorld(), *Location, Radius, 16, Color);
+							DrawDebugSphere(World, *Location, Radius, 16, Color);
 							if (bDrawLabel)
 							{
 								const FVector ScreenLoc = Canvas->Project(*Location);
@@ -1125,7 +1689,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						const FVector* Location = ElementToDraw->Points.GetTypedData();
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, Location += 2)
 						{
-							DrawDebugLine(GetWorld(), *Location, *(Location + 1), Color
+							DrawDebugLine(World, *Location, *(Location + 1), Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0, Thickness);
 
@@ -1155,12 +1719,13 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						for (int32 Index = 1; Index < ElementToDraw->Points.Num(); ++Index)
 						{
 							const FVector CurrentLocation = ElementToDraw->Points[Index];
-							DrawDebugLine(GetWorld(), Location, CurrentLocation, Color
+							DrawDebugLine(World, Location, CurrentLocation, Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0, Thickness);
 							Location = CurrentLocation;
 						}
 					}
+					break;
 				case FVisLogEntry::FElementToDraw::Box:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
@@ -1169,7 +1734,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
 						{
 							FBox Box(*BoxExtent, *(BoxExtent + 1));
-							DrawDebugBox(GetWorld(), Box.GetCenter(), Box.GetExtent(), Color
+							DrawDebugBox(World, Box.GetCenter(), Box.GetExtent(), Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0/*, Thickness*/);
 
@@ -1423,7 +1988,7 @@ FString SLogVisualizer::GetLogEntryStatusText() const
 	return TEXT("Pause game with Pause button\nand select log entry to start viewing\nlog's content");
 }
 
-void SLogVisualizer::OnSortByChanged(const FName& ColumnName, EColumnSortMode::Type NewSortMode)
+void SLogVisualizer::OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode)
 {
 	SortBy = ELogsSortMode::ByName;
 
@@ -1456,12 +2021,20 @@ void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 
 			if (FJsonSerializer::Deserialize(Reader, Object))
 			{
-				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(LogVisualizerJson::TAG_LOGS);
+				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(VisualLogJson::TAG_LOGS);
 				for (int32 LogIndex = 0; LogIndex < JsonLogs.Num(); ++LogIndex)
 				{
-					TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
-					LogVisualizer->AddLoadedLog(NewLog);
+					TSharedPtr<FJsonObject> JsonLogObject = JsonLogs[LogIndex]->AsObject();
+					if (JsonLogObject.IsValid() != false)
+					{
+						if (JsonLogObject->HasTypedField<EJson::String>(VisualLogJson::TAG_NAME))
+						{
+							TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
+							LogVisualizer->AddLoadedLog(NewLog);
+						}
+					}
 				}
+				bIgnoreTrivialLogs = false;
 			}
 
 			FileAr->Close();
@@ -1501,7 +2074,7 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 	
 	if (EntriesArray.Num() > 0)
 	{
-		Object->SetArrayField(LogVisualizerJson::TAG_LOGS, EntriesArray);
+		Object->SetArrayField(VisualLogJson::TAG_LOGS, EntriesArray);
 
 		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*Filename);
 		if (FileAr != NULL)
@@ -1514,3 +2087,5 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //ENABLE_VISUAL_LOG

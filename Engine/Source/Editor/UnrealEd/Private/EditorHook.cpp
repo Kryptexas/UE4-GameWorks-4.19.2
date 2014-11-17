@@ -27,7 +27,7 @@ void UUnrealEdEngine::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 {
 	// Notify all active modes of actor property changes.
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{

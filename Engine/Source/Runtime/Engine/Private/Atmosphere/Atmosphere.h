@@ -21,7 +21,7 @@ public:
 	/** 
 	 * @return ptr to the resource memory which has been preallocated
 	 */
-	virtual const void* GetResourceBulkData() const OVERRIDE
+	virtual const void* GetResourceBulkData() const override
 	{
 		check(BulkData != NULL);
 		return BulkData;
@@ -30,7 +30,7 @@ public:
 	/** 
 	 * @return size of resource memory
 	 */
-	virtual uint32 GetResourceBulkDataSize() const OVERRIDE
+	virtual uint32 GetResourceBulkDataSize() const override
 	{
 		check(BulkDataSize > 0);
 		return BulkDataSize;
@@ -39,7 +39,7 @@ public:
 	/**
 	 * Free memory after it has been used to initialize RHI resource 
 	 */
-	virtual void Discard() OVERRIDE
+	virtual void Discard() override
 	{
 	}
 
@@ -131,7 +131,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if ( TextureData && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 		{
@@ -142,35 +142,38 @@ public:
 				{
 					const uint32 DataSize = SizeX * SizeY * sizeof(FColor);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture2D(
 						SizeX, SizeY, PF_B8G8R8A8,
 						/*NumMips=*/ 1,
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			case E_Irradiance:
 				{
 					const uint32 DataSize = SizeX * SizeY * sizeof(FColor);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture2D(
 						SizeX, SizeY, PF_B8G8R8A8,
 						/*NumMips=*/ 1,
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			case E_Inscatter:
 				{
 					const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture3D(
 						SizeX, SizeY, SizeZ, PF_FloatRGBA,
 						/*NumMips=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			}
@@ -183,7 +186,7 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		TextureRHI.SafeRelease();
 	}

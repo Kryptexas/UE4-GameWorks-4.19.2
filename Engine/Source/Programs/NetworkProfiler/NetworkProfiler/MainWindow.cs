@@ -144,8 +144,13 @@ namespace NetworkProfiler
 			&&	CurrentFrame < CurrentNetworkStream.Frames.Count )
 			{
 				SummaryTextBox.Lines = CurrentNetworkStream.Frames[CurrentFrame].Filter(CurrentActorFilter,CurrentPropertyFilter,CurrentRPCFilter).ToStringArray();
+#if true
 				DetailTextBox.Lines = CurrentNetworkStream.Frames[CurrentFrame].Filter(CurrentActorFilter,CurrentPropertyFilter,CurrentRPCFilter).ToDetailedStringArray(CurrentActorFilter,CurrentPropertyFilter,CurrentRPCFilter);
-                
+#else
+				// Show a performance info
+				DetailTextBox.Lines = CurrentNetworkStream.Frames[CurrentFrame].Filter( CurrentActorFilter, CurrentPropertyFilter, CurrentRPCFilter ).ToActorPerformanceString( CurrentNetworkStream, CurrentActorFilter, CurrentPropertyFilter, CurrentRPCFilter );
+#endif
+           
 				// Populate the new actor performance view
 				CurrentNetworkStream.Frames[CurrentFrame].Filter(CurrentActorFilter, CurrentPropertyFilter, CurrentRPCFilter).ToActorPerformanceView(CurrentNetworkStream, ActorPerformanceView, CurrentActorFilter, CurrentPropertyFilter, CurrentRPCFilter);
             }

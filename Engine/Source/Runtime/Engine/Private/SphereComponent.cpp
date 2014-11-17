@@ -29,7 +29,7 @@ void USphereComponent::UpdateBodySetup()
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-		ShapeBodySetup->AggGeom.SphereElems.AddZeroed();
+		ShapeBodySetup->AggGeom.SphereElems.Add(FKSphereElem());
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
@@ -97,7 +97,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 		* @param	PDI - draw interface to render to
 		* @param	View - current view
 		*/
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_SphereSceneProxy_DrawDynamicElements );
 
@@ -110,13 +110,23 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			else
 			{
 				const FLinearColor DrawSphereColor = GetSelectionColor(SphereColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
-				DrawCircle( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), DrawSphereColor, SphereRadius, SphereSides, SDPG_World );
-				DrawCircle( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Z ), DrawSphereColor, SphereRadius, SphereSides, SDPG_World );
-				DrawCircle( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), DrawSphereColor, SphereRadius, SphereSides, SDPG_World );
+				
+				float AbsScaleX = LocalToWorld.GetScaledAxis(EAxis::X).Size();
+				float AbsScaleY = LocalToWorld.GetScaledAxis(EAxis::Y).Size();
+				float AbsScaleZ = LocalToWorld.GetScaledAxis(EAxis::Z).Size();
+				float MinAbsScale = FMath::Min3(AbsScaleX, AbsScaleY, AbsScaleZ);
+
+				FVector ScaledX = LocalToWorld.GetUnitAxis(EAxis::X) * MinAbsScale;
+				FVector ScaledY = LocalToWorld.GetUnitAxis(EAxis::Y) * MinAbsScale;
+				FVector ScaledZ = LocalToWorld.GetUnitAxis(EAxis::Z) * MinAbsScale;
+
+				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledY, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
+				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
+				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledY, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  OVERRIDE
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
 		{
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO
@@ -129,7 +139,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			return Result;
 		}
 
-		virtual uint32 GetMemoryFootprint( void ) const OVERRIDE { return( sizeof( *this ) + GetAllocatedSize() ); }
+		virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 		uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 
 	private:

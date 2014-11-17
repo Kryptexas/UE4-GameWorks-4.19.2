@@ -31,7 +31,7 @@ class FXAudio2DeviceModule : public IAudioDeviceModule
 public:
 
 	/** Creates a new instance of the audio device implemented by the module. */
-	virtual FAudioDevice* CreateAudioDevice() OVERRIDE
+	virtual FAudioDevice* CreateAudioDevice() override
 	{
 		return new FXAudio2Device;
 	}
@@ -96,7 +96,8 @@ bool FXAudio2Device::InitializeHardware()
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UINT32 DeviceCount = 0;
-	FXAudioDeviceProperties::XAudio2->GetDeviceCount( &DeviceCount );
+	ValidateAPICall(TEXT("GetDeviceCount"),
+		FXAudioDeviceProperties::XAudio2->GetDeviceCount( &DeviceCount ));
 	if( DeviceCount < 1 )
 	{
 		UE_LOG(LogInit, Log, TEXT( "No audio devices found!" ) );
@@ -105,7 +106,8 @@ bool FXAudio2Device::InitializeHardware()
 	}
 
 	// Get the details of the default device 0
-	if( FXAudioDeviceProperties::XAudio2->GetDeviceDetails( 0, &FXAudioDeviceProperties::DeviceDetails ) != S_OK )
+	if( !ValidateAPICall(TEXT("GetDeviceDetails"),
+			FXAudioDeviceProperties::XAudio2->GetDeviceDetails( 0, &FXAudioDeviceProperties::DeviceDetails )))
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to get DeviceDetails for XAudio2" ) );
 		FXAudioDeviceProperties::XAudio2 = NULL;
@@ -144,17 +146,19 @@ bool FXAudio2Device::InitializeHardware()
 	}
 
 	// Create the final output voice with either 2 or 6 channels
-	if( FXAudioDeviceProperties::XAudio2->CreateMasteringVoice( &FXAudioDeviceProperties::MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, NULL ) != S_OK )
+	if (!ValidateAPICall(TEXT("CreateMasteringVoice"), 
+			FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, NULL)))
 	{
-		UE_LOG(LogInit, Log, TEXT( "Failed to create the mastering voice for XAudio2" ) );
+		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		FXAudioDeviceProperties::XAudio2 = NULL;
 		return( false );
 	}
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
-	if (FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, NULL ) != S_OK)
+	if (!ValidateAPICall(TEXT("CreateMasteringVoice"),
+			FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, NULL )))
 	{
-		UE_LOG(LogInit, Log, TEXT( "Failed to create the mastering voice for XAudio2" ) );
+		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		FXAudioDeviceProperties::XAudio2 = NULL;
 		return false;
 	}
@@ -237,6 +241,10 @@ bool FXAudio2Device::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 
 class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
+	if (SoundWave->IsStreaming())
+	{
+		return new FOpusAudioInfo();
+	}
 #if WITH_OGGVORBIS
 	return new FVorbisAudioInfo();
 #else
@@ -254,21 +262,26 @@ bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, int32 ErrorCode )
 		switch( ErrorCode )
 		{
 		case XAUDIO2_E_INVALID_CALL:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: Invalid Call" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Invalid Call" ), Function );
 			break;
 
 		case XAUDIO2_E_XMA_DECODER_ERROR:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: XMA Decoder Error" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: XMA Decoder Error" ), Function );
 			break;
 
 		case XAUDIO2_E_XAPO_CREATION_FAILED:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: XAPO Creation Failed" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: XAPO Creation Failed" ), Function );
 			break;
 
 		case XAUDIO2_E_DEVICE_INVALIDATED:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: Device Invalidated" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Device Invalidated" ), Function );
+			break;
+
+		default:
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Unhandled error code %d" ), Function, ErrorCode );
 			break;
 		};
+
 		return( false );
 	}
 
@@ -494,7 +507,7 @@ void FXAudio2Device::TimeTest( FOutputDevice& Ar, const TCHAR* WaveAssetName )
 		}
 		
 		// If the wave loaded in fine, time the decompression
-		Wave->InitAudioResource(GetRuntimeFormat());
+		Wave->InitAudioResource(GetRuntimeFormat(Wave));
 
 		double Start = FPlatformTime::Seconds();
 

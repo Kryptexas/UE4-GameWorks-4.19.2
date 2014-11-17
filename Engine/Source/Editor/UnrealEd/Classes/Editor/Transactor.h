@@ -73,6 +73,8 @@ protected:
 		TArray<FName>		ReferencedNames;
 		/** The object to track */
 		UObject*			Object;
+		/** Annotation data for the object stored externally */
+		TSharedPtr<ITransactionObjectAnnotation> ObjectAnnotation;
 		/** Array: If an array object, reference to script array */
 		FScriptArray*		Array;
 		/** Array: Offset into the array */
@@ -84,6 +86,8 @@ protected:
 		int32				Oper;
 		/** Array: Size of each item in the array */
 		int32				ElementSize;
+		/** Array: DefaultConstructor for each item in the array */
+		STRUCT_DC			DefaultConstructor;
 		/** Array: Serializer to use for each item in the array */
 		STRUCT_AR			Serializer;
 		/** Array: Destructor for each item in the array */
@@ -96,26 +100,7 @@ protected:
 		// Constructors.
 		FObjectRecord()
 		{}
-		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor )
-			:	Object		( InObject )
-			,	Array		( InArray )
-			,	Index		( InIndex )
-			,	Count		( InCount )
-			,	Oper		( InOper )
-			,	ElementSize	( InElementSize )
-			,	Serializer	( InSerializer )
-			,	Destructor	( InDestructor )
-			,	bRestored	( false )
-			,	bWantsBinarySerialization ( true )
-		{
-			// Blueprint compile-in-place can alter class layout so use tagged serialization for objects relying on a UBlueprint's Class
-			if (UBlueprintGeneratedClass* Class = Cast<UBlueprintGeneratedClass>(InObject->GetClass()))
-			{
-				bWantsBinarySerialization = false; 
-			}
-			FWriter Writer( Data, ReferencedObjects, ReferencedNames, bWantsBinarySerialization );
-			SerializeContents( Writer, Oper );
-		}
+		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_DC InDefaultConstructor, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor );
 
 		// Functions.
 		void SerializeContents( FArchive& Ar, int32 InOper );
@@ -145,7 +130,7 @@ protected:
 				ArIsLoading = ArIsTransacting = 1;
 			}
 
-			virtual int64 Tell() OVERRIDE {return Offset;}
+			virtual int64 Tell() override {return Offset;}
 			virtual void Seek( int64 InPos ) { Offset = InPos; }
 
 		private:
@@ -218,7 +203,7 @@ protected:
 				ArIsSaving = ArIsTransacting = 1;
 			}
 
-			virtual int64 Tell() OVERRIDE {return Offset;}
+			virtual int64 Tell() override {return Offset;}
 			virtual void Seek( int64 InPos ) 
 			{
 				checkSlow(Offset<=Data.Num());
@@ -294,14 +279,14 @@ public:
 	FTransaction(  const TCHAR* InContext=NULL, const FText& InTitle=FText(), bool InFlip=0 )
 		:	Title( InTitle )
 		,	Context( InContext )
-		,	bFlip( InFlip )
-		,	Inc( -1 )
 		,	PrimaryObject(NULL)
+		,	bFlip(InFlip)
+		,	Inc(-1)
 	{}
 
 	// FTransactionBase interface.
 	virtual void SaveObject( UObject* Object );
-	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor );
+	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor );
 	virtual void SetPrimaryObject(UObject* InObject);
 
 	/**
@@ -351,6 +336,7 @@ public:
 	 */
 	void GetTransactionObjects(TArray<UObject*>& Objects);
 	void RemoveRecords( int32 Count = 1 );
+	int32 GetRecordCount() const;
 
 	/**
 	 * Outputs the contents of the ObjectMap to the specified output device.

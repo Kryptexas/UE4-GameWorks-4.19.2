@@ -88,7 +88,7 @@ namespace UnrealBuildTool
 			//
 			//	Debug
 			//
-			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 			{
 				// Disable compiler optimization.
 				Result += " /Od";
@@ -96,8 +96,8 @@ namespace UnrealBuildTool
 				// Favor code size (especially useful for embedded platforms).
 				Result += " /Os";
 
-				// Allow inline method expansion unless E&C support is requested or inlining is explicitly disabled.
-				if (!BuildConfiguration.bSupportEditAndContinue && CompileEnvironment.Config.bEnableInlining)
+				// Allow inline method expansion unless E&C support is requested
+				if (!BuildConfiguration.bSupportEditAndContinue)
 				{
 					// Allow inline method expansion of any suitable.
 					Result += " /Ob2";
@@ -116,16 +116,13 @@ namespace UnrealBuildTool
 				Result += " /Ox";
 				// Enable intrinsics
 				Result += " /Oi";
-				// Allow inline method expansion of any suitable unless it's explicitly disabled.
-				if (CompileEnvironment.Config.bEnableInlining)
-				{
-					Result += " /Ob2";
-				}
+				// Allow inline method expansion
+				Result += " /Ob2";
 
 				//
 				// LTCG
 				//
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					if (BuildConfiguration.bAllowLTCG)
 					{
@@ -197,7 +194,7 @@ namespace UnrealBuildTool
 					// Create debug info suitable for E&C if wanted.
 					if (BuildConfiguration.bSupportEditAndContinue
 						// We only need to do this in debug as that's the only configuration that supports E&C.
-						&& CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+						&& CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 					{
 						Result += " /ZI";
 					}
@@ -215,7 +212,7 @@ namespace UnrealBuildTool
 			}
 
 			// Specify the appropriate runtime library based on the platform and config.
-			if( CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+			if( CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
 			{
 				Result += " /MDd";
 			}
@@ -315,7 +312,7 @@ namespace UnrealBuildTool
 				Result += string.Format(" /WINMDFILE:\"{0}\"", Path.ChangeExtension(LinkEnvironment.Config.OutputFilePath, "winmd"));
 			}
 
-			if (LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.WinRT_ARM)
+			if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.WinRT_ARM)
 			{
 				// Link for console.
 				Result += " /SUBSYSTEM:CONSOLE";
@@ -347,7 +344,7 @@ namespace UnrealBuildTool
 			//	ReleaseLTCG
 			//
 			if (BuildConfiguration.bAllowLTCG &&
-				LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Use link-time code generation.
 				Result += " /LTCG";
@@ -361,7 +358,7 @@ namespace UnrealBuildTool
 			//
 			//	Shipping binary
 			//
-			if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Generate an EXE checksum.
 				Result += " /RELEASE";
@@ -415,7 +412,7 @@ namespace UnrealBuildTool
 			//
 			//	Shipping & LTCG
 			//
-			if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Use link-time code generation.
 				Result += " /ltcg";
@@ -523,11 +520,13 @@ namespace UnrealBuildTool
 					string OriginalPCHHeaderDirectory = Path.GetDirectoryName(SourceFile.AbsolutePath);
 					FileArguments += string.Format(" /I \"{0}\"", OriginalPCHHeaderDirectory);
 
+					var PCHExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.WinRT].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+
 					// Add the precompiled header file to the produced items list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".pch"
+							Path.GetFileName(SourceFile.AbsolutePath) + PCHExtension
 							)
 						);
 					CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
@@ -578,11 +577,13 @@ namespace UnrealBuildTool
 					CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				}
 
+				var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.WinRT].GetBinaryExtension(UEBuildBinaryType.Object);
+
 				// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByPath(
 					Path.Combine(
 						CompileEnvironment.Config.OutputDirectory,
-						Path.GetFileName(SourceFile.AbsolutePath) + ".obj"
+						Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 						)
 					);
 				CompileAction.ProducedItems.Add(ObjectFile);
@@ -645,7 +646,7 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = GetVCToolPath(CompileEnvironment.Config.TargetPlatform, CompileEnvironment.Config.TargetConfiguration, "cl");
+				CompileAction.CommandPath = GetVCToolPath(CompileEnvironment.Config.Target.Platform, CompileEnvironment.Config.Target.Configuration, "cl");
 				CompileAction.bIsVCCompiler = true;
 				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
@@ -677,8 +678,8 @@ namespace UnrealBuildTool
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
 			LinkAction.CommandPath = GetVCToolPath(
-				LinkEnvironment.Config.TargetPlatform,
-				LinkEnvironment.Config.TargetConfiguration,
+				LinkEnvironment.Config.Target.Platform,
+				LinkEnvironment.Config.Target.Configuration,
 				bIsBuildingLibrary ? "lib" : "link");
 
 			// Get link arguments.
@@ -800,7 +801,7 @@ namespace UnrealBuildTool
 			{
 				// Xbox 360 LTCG does not seem to produce those.
 				if (LinkEnvironment.Config.bHasExports &&
-					(LinkEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Shipping))
+					(LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping))
 				{
 					// Write the import library to the output directory for nFringe support.
 					FileItem ImportLibraryFile = FileItem.GetItemByPath(ImportLibraryFilePath);

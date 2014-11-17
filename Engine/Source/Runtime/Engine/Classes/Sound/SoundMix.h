@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SoundClass.h"
 #include "Audio.h"
 #include "SoundMix.generated.h"
 
@@ -112,7 +113,7 @@ struct FSoundClassAdjuster
 	
 };
 
-UCLASS(BlueprintType, dependson=(USoundClass), hidecategories=object, MinimalAPI)
+UCLASS(BlueprintType, hidecategories=object, MinimalAPI)
 class USoundMix : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -153,11 +154,11 @@ class USoundMix : public UObject
 
 protected:
 	// Begin UObject interface.
-	virtual FString GetDesc( void ) OVERRIDE;
+	virtual FString GetDesc( void ) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End UObject interface.
 
 #if WITH_EDITOR

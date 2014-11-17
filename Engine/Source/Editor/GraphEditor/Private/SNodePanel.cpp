@@ -51,13 +51,13 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		}
 	}
 
-	float GetZoomAmount(int32 InZoomLevel) const OVERRIDE
+	float GetZoomAmount(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].ZoomAmount;
 	}
 
-	int32 GetNearestZoomLevel(float InZoomAmount) const OVERRIDE
+	int32 GetNearestZoomLevel(float InZoomAmount) const override
 	{
 		for (int32 ZoomLevelIndex=0; ZoomLevelIndex < GetNumZoomLevels(); ++ZoomLevelIndex)
 		{
@@ -70,23 +70,23 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		return GetDefaultZoomLevel();
 	}
 	
-	FText GetZoomText(int32 InZoomLevel) const OVERRIDE
+	FText GetZoomText(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].DisplayText;
 	}
 	
-	int32 GetNumZoomLevels() const OVERRIDE
+	int32 GetNumZoomLevels() const override
 	{
 		return ZoomLevels.Num();
 	}
 	
-	int32 GetDefaultZoomLevel() const OVERRIDE
+	int32 GetDefaultZoomLevel() const override
 	{
 		return 12;
 	}
 
-	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const OVERRIDE
+	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].LOD;
@@ -198,7 +198,7 @@ namespace NodePanelDefs
 	static const float MouseZoomScaling = 0.05f;
 };
 
-void SNodePanel::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+void SNodePanel::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
 	// First pass nodes
@@ -599,7 +599,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 		// Track how much the mouse moved since the mouse down.
 		TotalMouseDelta += CursorDelta.Size();
 
-		const bool bShouldZoom = (bIsLeftMouseButtonDown && bIsRightMouseButtonDown) || (bIsRightMouseButtonDown && ModifierKeysState.IsAltDown());
+		const bool bShouldZoom = bIsRightMouseButtonDown && (bIsLeftMouseButtonDown || ModifierKeysState.IsAltDown() || FSlateApplication::Get().IsUsingTrackpad());
 		if (bShouldZoom)
 		{
 			FReply ReplyState = FReply::Handled();
@@ -912,6 +912,27 @@ void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocus
 	LastKeyGestureDetected.bAlt = false;
 	LastKeyGestureDetected.bCtrl = false;
 	LastKeyGestureDetected.bShift = false;
+}
+
+FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
+{
+	const EGestureEvent::Type GestureType = GestureEvent.GetGestureType();
+	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
+	if (GestureType == EGestureEvent::Magnify)
+	{
+		// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
+		const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
+		const int32 ZoomLevelDelta = FMath::FloorToInt(GestureDelta.X * 10);
+		ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+		return FReply::Handled();
+	}
+	else if (GestureType == EGestureEvent::Scroll)
+	{
+		this->bIsPanning = true;
+		ViewOffset -= GestureDelta / GetZoomAmount();
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 void SNodePanel::FindNodesAffectedByMarquee( FGraphPanelSelectionSet& OutAffectedNodes ) const

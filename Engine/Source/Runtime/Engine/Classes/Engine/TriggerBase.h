@@ -5,9 +5,12 @@
  */
 
 #pragma once
+
+#include "EngineBaseTypes.h"
+
 #include "TriggerBase.generated.h"
 
-UCLASS(dependson=AMatineeActor, ClassGroup=Common, abstract, ConversionRoot, MinimalAPI)
+UCLASS(ClassGroup=Common, abstract, ConversionRoot, MinimalAPI)
 class ATriggerBase : public AActor
 {
 	GENERATED_UCLASS_BODY()

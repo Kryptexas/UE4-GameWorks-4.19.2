@@ -83,7 +83,7 @@ class UForceFeedbackEffect : public UObject
 	float Duration;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty( struct FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty( struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
 	float GetDuration();

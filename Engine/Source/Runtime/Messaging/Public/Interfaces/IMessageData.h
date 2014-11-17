@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMessageAttachment.h: Declares the IMessageAttachment interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,32 +10,22 @@ namespace EMessageDataState
 	 */
 	enum Type
 	{
-		/**
-		 * The message data is complete.
-		 */
+		/** The message data is complete. */
 		Complete,
 
-		/**
-		 * The message data is incomplete.
-		 */
+		/** The message data is incomplete. */
 		Incomplete,
 
-		/**
-		 * The message data is invalid.
-		 */
+		/** The message data is invalid. */
 		Invalid
 	};
 }
 
 
-/**
- * Type definition for shared pointers to instances of IMessageData.
- */
+/** Type definition for shared pointers to instances of IMessageData. */
 typedef TSharedPtr<class IMessageData, ESPMode::ThreadSafe> IMessageDataPtr;
 
-/**
- * Type definition for shared references to instances of IMessageData.
- */
+/** Type definition for shared references to instances of IMessageData. */
 typedef TSharedRef<class IMessageData, ESPMode::ThreadSafe> IMessageDataRef;
 
 

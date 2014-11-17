@@ -19,8 +19,8 @@ public:
 	 * Constructor
 	 *
 	 * @param	InLabel				The label to display in the menu
- 	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
- 	 * @param	InIcon				The icon to display to the left of the label
+	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
+	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	InTextAttribute		The text string we're editing (often, a delegate will be bound to the attribute)
 	 * @param	bInReadOnly			Whether or not the text block should be read only
 	 * @param	InOnTextCommitted	Called when the user commits their change to the editable text control
@@ -81,7 +81,7 @@ public:
 	/**
 	 * Builds this MultiBlock widget up from the MultiBlock associated with it
 	 */
-	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) OVERRIDE;
+	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) override;
 
 	/**
 	 * Construct this widget

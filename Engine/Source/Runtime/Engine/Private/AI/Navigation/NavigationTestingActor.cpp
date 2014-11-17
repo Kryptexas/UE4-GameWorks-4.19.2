@@ -4,6 +4,7 @@
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
+#include "AI/Navigation/NavigationTestingActor.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
 {
@@ -50,7 +51,7 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(NavAgentProps.AgentRadius, NavAgentProps.AgentHeight / 2);
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
-	CapsuleComponent->CanBeCharacterBase = ECB_No;
+	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 
 	RootComponent = CapsuleComponent;

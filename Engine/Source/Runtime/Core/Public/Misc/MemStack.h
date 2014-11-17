@@ -19,7 +19,7 @@ enum EMemOned   {MEM_Oned  =1};
  * Items are allocated via PushBytes() or the specialized operator new()s.
  * Items are freed en masse by using FMemMark to Pop() them.
  **/
-class CORE_API FMemStack : public FThreadSingleton<FMemStack>
+class CORE_API FMemStack : public TThreadSingleton<FMemStack>
 {
 public:
 

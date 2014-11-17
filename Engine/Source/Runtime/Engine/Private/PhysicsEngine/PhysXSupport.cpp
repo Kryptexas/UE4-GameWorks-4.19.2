@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
 
@@ -708,16 +708,20 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 		return;
 	}
 
-#if WITH_SUBSTEPPING
-	if (UPhysicsSettings::Get()->bSubstepping)
+	DestructibleComponent->OnDamageEvent(damageEvent);
+}
+
+void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent)
+{
+	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(visibilityEvent.destructible->userData));
+	check(DestructibleComponent);
+
+	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
 	{
-		DestructibleComponent->GetWorld()->GetPhysicsScene()->DeferredDestructibleDamageNotify(damageEvent);
+		return;
 	}
-	else
-#endif
-	{
-		DestructibleComponent->OnDamageEvent(damageEvent);
-	}
+
+	DestructibleComponent->OnVisibilityEvent(visibilityEvent);
 }
 
 ///////// FApexPhysX3Interface //////////////////////////////////

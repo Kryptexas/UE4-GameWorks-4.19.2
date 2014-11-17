@@ -36,18 +36,18 @@ public:
 	void Construct( const FArguments& InArgs );
 protected:
 	// notifiers 
-	virtual FReply OnClick_Backward_End() OVERRIDE;
-	virtual FReply OnClick_Forward_End() OVERRIDE;
+	virtual FReply OnClick_Backward_End() override;
+	virtual FReply OnClick_Forward_End() override;
 
-	virtual FReply OnClick_Backward_Step() OVERRIDE;
-	virtual FReply OnClick_Forward_Step() OVERRIDE;
+	virtual FReply OnClick_Backward_Step() override;
+	virtual FReply OnClick_Forward_Step() override;
 
-	virtual FReply OnClick_Forward() OVERRIDE;
-	virtual FReply OnClick_Backward() OVERRIDE;
+	virtual FReply OnClick_Forward() override;
+	virtual FReply OnClick_Backward() override;
 
-	virtual FReply OnClick_ToggleLoop() OVERRIDE;
+	virtual FReply OnClick_ToggleLoop() override;
 
-	virtual void OnValueChanged(float NewValue) OVERRIDE;
+	virtual void OnValueChanged(float NewValue) override;
 
 private:
 	TWeakPtr<SMontageEditor> MontageEditor;

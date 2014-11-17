@@ -17,23 +17,4 @@ TSharedRef<FWidgetTemplateDragDropOp> FWidgetTemplateDragDropOp::New(const TShar
 	return Operation;
 }
 
-//TSharedPtr<SWidget> FWidgetTemplateDragDropOp::GetDefaultDecorator() const
-//{
-//	return 
-//		SNew(SBorder)
-//		.BorderImage(FEditorStyle::GetBrush("ContentBrowser.AssetDragDropTooltipBackground"))
-//		.Content()
-//		[
-//			SNew(SHorizontalBox)
-//
-//			+ SHorizontalBox::Slot()
-//			.AutoWidth()
-//			.HAlign(HAlign_Left)
-//			[
-//				SNew(STextBlock)
-//				.Text(Template->Name)
-//			]
-//		];
-//}
-
 #undef LOCTEXT_NAMESPACE

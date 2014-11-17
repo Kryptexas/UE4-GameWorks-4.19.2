@@ -29,7 +29,7 @@ public:
 	 *
 	 * @param InAddr the new address to use (must convert to network byte order)
 	 */
-	virtual void SetIp(uint32 InAddr) OVERRIDE
+	virtual void SetIp(uint32 InAddr) override
 	{
 		Addr.sin_addr.s_addr = htonl(InAddr);
 	}
@@ -39,7 +39,7 @@ public:
 	 *
 	 * @param InAddr the string containing the new ip address to use
 	 */
-	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) OVERRIDE
+	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
 		int32 A, B, C, D;
 		int32 Port = 0;
@@ -105,7 +105,7 @@ public:
 	 *
 	 * @param OutAddr the out param receiving the ip address
 	 */
-	virtual void GetIp(uint32& OutAddr) const OVERRIDE
+	virtual void GetIp(uint32& OutAddr) const override
 	{ 
 		OutAddr = ntohl(Addr.sin_addr.s_addr);
 	}
@@ -125,7 +125,7 @@ public:
 	 *
 	 * @param InPort the new port to use (must convert to network byte order)
 	 */
-	virtual void SetPort(int32 InPort) OVERRIDE
+	virtual void SetPort(int32 InPort) override
 	{
 		Addr.sin_port = htons(InPort);
 	}
@@ -135,7 +135,7 @@ public:
 	 *
 	 * @param OutPort the host byte order int that receives the port
 	 */
-	virtual void GetPort(int32& OutPort) const OVERRIDE
+	virtual void GetPort(int32& OutPort) const override
 	{
 		OutPort = ntohs(Addr.sin_port);
 	}
@@ -143,20 +143,20 @@ public:
 	/**
 	 * Returns the port number from this address in host byte order
 	 */
-	virtual int32 GetPort(void) const OVERRIDE
+	virtual int32 GetPort(void) const override
 	{
 		return ntohs(Addr.sin_port);
 	}
 
 	/** Sets the address to be any address */
-	virtual void SetAnyAddress(void) OVERRIDE
+	virtual void SetAnyAddress(void) override
 	{
 		SetIp(INADDR_ANY);
 		SetPort(0);
 	}
 
 	/** Sets the address to broadcast */
-	virtual void SetBroadcastAddress() OVERRIDE
+	virtual void SetBroadcastAddress() override
 	{
 		SetIp(INADDR_BROADCAST);
 		SetPort(0);
@@ -167,7 +167,7 @@ public:
 	 *
 	 * @param bAppendPort whether to append the port information or not
 	 */
-	virtual FString ToString(bool bAppendPort) const OVERRIDE
+	virtual FString ToString(bool bAppendPort) const override
 	{
 		uint32 LocalAddr = ntohl(Addr.sin_addr.s_addr);
 
@@ -191,7 +191,7 @@ public:
 	 *
 	 * @param Other the address to compare against
 	 */
-	virtual bool operator==(const FInternetAddr& Other) const OVERRIDE
+	virtual bool operator==(const FInternetAddr& Other) const override
 	{
 		FInternetAddrBSD& OtherBSD = (FInternetAddrBSD&)Other;
 		return Addr.sin_addr.s_addr == OtherBSD.Addr.sin_addr.s_addr &&
@@ -204,7 +204,7 @@ public:
 	 *
 	 * @return true if a valid IP, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return Addr.sin_addr.s_addr != 0;
 	}

@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "SceneView.h"
 #include "SceneManagement.h"
-#include "Engine.h"
+#include "EngineModule.h"
 #include "StereoRendering.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
@@ -26,6 +27,28 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarShadowFreezeCamera(
+	TEXT("r.Shadow.FreezeCamera"),
+	0,
+	TEXT("Debug the shadow methods by allowing to observe the system from outside.\n")
+	TEXT("0: default\n")
+	TEXT("1: freeze camera at current location"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<float> CVarExposureOffset(
+	TEXT("r.ExposureOffset"),
+	0.0f,
+	TEXT("For adjusting the exposure on top of post process settings and eye adaptation. For developers only. 0:default"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
+	TEXT("r.RenderTimeFrozen"),
+	0,
+	TEXT("Allows to freeze time based effects in order to provide more deterministic render profiling.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on (Note: this also disables occlusion queries)"),
+	ECVF_Cheat);
 #endif
 
 static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
@@ -170,6 +193,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsViewInfo(false)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
+	, bIsLocked(false)
+	, bStaticSceneOnly(false)
 	, RenderingCompositePassContext(0)
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -253,8 +278,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.FreezeCamera")); 
-		int32 Value = CVar->GetValueOnAnyThread();
+		int32 Value = CVarShadowFreezeCamera.GetValueOnAnyThread();
 
 		static FViewMatrices Backup = ShadowViewMatrices;
 
@@ -333,24 +357,24 @@ void FSceneView::UpdateViewMatrix()
 
 	ViewMatrices.ViewOrigin = StereoViewLocation;
 
- 	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
- 	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
- 	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FMatrix(
- 		FPlane(0,	0,	1,	0),
- 		FPlane(1,	0,	0,	0),
- 		FPlane(0,	1,	0,	0),
- 		FPlane(0,	0,	0,	1));
+	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FMatrix(
+		FPlane(0,	0,	1,	0),
+		FPlane(1,	0,	0,	0),
+		FPlane(0,	1,	0,	0),
+		FPlane(0,	0,	0,	1));
  
 	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
-  	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
+	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
 	
 	// Compute a transform from view origin centered world-space to clip space.
- 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
- 	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
 
- 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
- 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
- 	InvViewProjectionMatrix = ViewMatrices.GetInvViewProjMatrix();
+	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
+	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
+	InvViewProjectionMatrix = ViewMatrices.GetInvViewProjMatrix();
 
 }
 
@@ -867,9 +891,7 @@ void FSceneView::EndFinalPostprocessSettings()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ExposureOffset"));
-
-		float Value = CVar->GetValueOnGameThread();
+		float Value = CVarExposureOffset.GetValueOnGameThread();
 		FinalPostProcessSettings.AutoExposureBias += Value;
 	}
 #endif
@@ -948,12 +970,16 @@ void FSceneView::EndFinalPostprocessSettings()
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		static uint32 MSAAValue = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
 		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
+		const auto FeatureLevel = GetFeatureLevel();
 
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0))
+			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
+			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue == 2 || MSAAValue == 4)) )
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
@@ -1121,6 +1147,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	FamilySizeX(0),
 	FamilySizeY(0),
 	RenderTarget(CVS.RenderTarget),
+	bUseSeparateRenderTarget(false),
 	Scene(CVS.Scene),
 	EngineShowFlags(CVS.EngineShowFlags),
 	CurrentWorldTime(CVS.CurrentWorldTime),
@@ -1135,9 +1162,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	ensure(CVS.bTimesSet);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderTimeFrozen")); 
-	int32 Value = CVar->GetValueOnAnyThread();
-
+	int32 Value = CVarRenderTimeFrozen.GetValueOnAnyThread();
 	if(Value)
 	{
 		CurrentWorldTime = 0;

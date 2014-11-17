@@ -17,15 +17,15 @@ class UFbxFactory : public UFactory
 
 
 	// Begin UObject Interface
-	virtual void CleanUp() OVERRIDE;
-	virtual bool ConfigureProperties() OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void CleanUp() override;
+	virtual bool ConfigureProperties() override;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	// Begin UFactory Interface
-	virtual bool DoesSupportClass(UClass * Class) OVERRIDE;
-	virtual UClass* ResolveSupportedClass() OVERRIDE;
-	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) OVERRIDE;
+	virtual bool DoesSupportClass(UClass * Class) override;
+	virtual UClass* ResolveSupportedClass() override;
+	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	// End UFactory Interface
 	
 	/**

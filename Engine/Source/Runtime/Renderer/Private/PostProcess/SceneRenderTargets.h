@@ -9,6 +9,7 @@
 #include "ShaderParameters.h"
 #include "RenderTargetPool.h"
 #include "../SystemTextures.h"
+#include "RHIStaticStates.h"
 
 /** Number of cube map shadow depth surfaces that will be created and used for rendering one pass point light shadows. */
 static const int32 NumCubeShadowDepthSurfaces = 5;
@@ -76,6 +77,29 @@ static const int32 NumTranslucencyShadowSurfaces = 2;
 /** Downsample factor to use on the volume texture used for computing GI on translucency. */
 static const int32 TranslucentVolumeGISratchDownsampleFactor = 1;
 
+BEGIN_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct, )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferATexture )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferBTexture )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferCTexture )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferDTexture )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferETexture )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D<float4>,	GBufferATextureNonMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D<float4>,	GBufferBTextureNonMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D<float4>,	GBufferCTextureNonMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D<float4>,	GBufferDTextureNonMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D<float4>,	GBufferETextureNonMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2DMS<float4>,	GBufferATextureMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2DMS<float4>,	GBufferBTextureMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2DMS<float4>,	GBufferCTextureMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2DMS<float4>,	GBufferDTextureMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2DMS<float4>,	GBufferETextureMS )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER( SamplerState,			GBufferATextureSampler )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER( SamplerState,			GBufferBTextureSampler )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER( SamplerState,			GBufferCTextureSampler )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER( SamplerState,			GBufferDTextureSampler )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER( SamplerState,			GBufferETextureSampler )
+END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
+
 /**
  * Encapsulates the render targets used for scene rendering.
  */
@@ -91,6 +115,7 @@ protected:
 		bScreenSpaceAOIsValid(false),
 		bCustomDepthIsValid(false),
 		bPreshadowCacheNewlyAllocated(false),
+		GBufferRefCount(0),
 		BufferSize(0, 0), 
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
@@ -117,65 +142,65 @@ public:
 	/**
 	 * Clears the GBuffer render targets to default values.
 	 */
-	void ClearGBufferTargets(const FLinearColor& ClearColor);
+	void ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor);
 	/**
 	 * Sets the scene color target and restores its contents if necessary
 	 * @param bGBufferPass - Whether the pass about to be rendered is the GBuffer population pass
 	 */
-	void BeginRenderingSceneColor(bool bGBufferPass = false);
+	void BeginRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bGBufferPass = false);
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
 	 */
-	void FinishRenderingSceneColor(bool bKeepChanges = true, const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bKeepChanges = true, const FResolveRect& ResolveRect = FResolveRect());
 
 	// @return true: call FinishRenderingCustomDepth after rendering, false: don't render it, feature is disabled
-	bool BeginRenderingCustomDepth(bool bPrimitives);
+	bool BeginRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
 	// only call if BeginRenderingCustomDepth() returned true
-	void FinishRenderingCustomDepth(const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-    /**
-     * Resolve a previously rendered scene color surface.
-     */
-    void ResolveSceneColor(const FResolveRect& ResolveRect = FResolveRect());
+	/**
+	 * Resolve a previously rendered scene color surface.
+	 */
+	void ResolveSceneColor(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the GBuffer targets so that their resolved textures can be sampled. */
-	void ResolveGBufferSurfaces(const FResolveRect& ResolveRect = FResolveRect());
+	void ResolveGBufferSurfaces(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingShadowDepth();
+	void BeginRenderingShadowDepth(FRHICommandListImmediate& RHICmdList);
 
 	/** Binds the appropriate shadow depth cube map for rendering. */
-	void BeginRenderingCubeShadowDepth(int32 ShadowResolution);
+	void BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution);
 
 	/**
 	 * Called when finished rendering to the subject shadow depths so the surface can be copied to texture
 	 * @param ResolveParams - optional resolve params
 	 */
-	void FinishRenderingShadowDepth(const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingShadowDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingReflectiveShadowMap( class FLightPropagationVolume* Lpv );
-	void FinishRenderingReflectiveShadowMap( const FResolveRect& ResolveRect = FResolveRect() );
+	void BeginRenderingReflectiveShadowMap(FRHICommandListImmediate& RHICmdList, class FLightPropagationVolume* Lpv);
+	void FinishRenderingReflectiveShadowMap(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
-	void FinishRenderingCubeShadowDepth(int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
+	void FinishRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
 	
-	void BeginRenderingTranslucency(const class FViewInfo& View);
+	void BeginRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
-	bool BeginRenderingSeparateTranslucency(const FViewInfo& View, bool bFirstTimeThisFrame);
-	void FinishRenderingSeparateTranslucency(const FViewInfo& View);
+	bool BeginRenderingSeparateTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
+	void FinishRenderingSeparateTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 	void FreeSeparateTranslucency();
 
-	void ResolveSceneDepthTexture();
-	void ResolveSceneDepthToAuxiliaryTexture();
+	void ResolveSceneDepthTexture(FRHICommandListImmediate& RHICmdList);
+	void ResolveSceneDepthToAuxiliaryTexture(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingPrePass();
-	void FinishRenderingPrePass();
+	void BeginRenderingPrePass(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingSceneAlphaCopy();
-	void FinishRenderingSceneAlphaCopy();
+	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation();
-	void FinishRenderingLightAttenuation();
+	void BeginRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Cleans up editor primitive targets that we no longer need
@@ -204,8 +229,8 @@ public:
 
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI();
-	virtual void ReleaseDynamicRHI();
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// Texture Accessors -----------
 
@@ -319,7 +344,12 @@ public:
 	TRefCountPtr<IPooledRenderTarget> GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade)]; }
 
 	// ---
-
+	/** Get the uniform buffer containing GBuffer resources. */
+	FUniformBufferRHIParamRef GetGBufferResourcesUniformBuffer() const 
+	{ 
+		check(IsValidRef(GBufferResourcesUniformBuffer));
+		return GBufferResourcesUniformBuffer; 
+	}
 	/** */
 	FIntPoint GetBufferSizeXY() const { return BufferSize; }
 	/** */
@@ -358,13 +388,16 @@ public:
 
 	// ---
 
-	void FreeGBufferTargets();
+	// allows to release the GBuffer once post process materials no longer need it
+	// @param 1: add a reference, -1: remove a reference
+	void AdjustGBufferRefCount(int Delta);
 
+	//
 	void AllocGBufferTargets();
 
 private: // Get...() methods instead of direct access
 
-	// 0 before BeginRenderingSceneColor and after tone mapping
+	// 0 before BeginRenderingSceneColor and after tone mapping, for ES2 it's not released during the frame
 	TRefCountPtr<IPooledRenderTarget> SceneColor;
 	// also used as LDR scene color
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
@@ -447,6 +480,9 @@ public:
 	bool bPreshadowCacheNewlyAllocated;
 
 private:
+	/** used by AdjustGBufferRefCount */
+	int32 GBufferRefCount;
+
 	/**
 	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
 	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
@@ -477,10 +513,14 @@ private:
 
 	void AllocLightAttenuation();
 
+	// internal method, used by AdjustGBufferRefCount()
+	void FreeGBufferTargets();
+
 	EPixelFormat GetSceneColorFormat() const;
 
 private:
-
+	/** Uniform buffer containing GBuffer resources. */
+	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
 	/** e.g. 2 */
@@ -501,6 +541,8 @@ private:
 	int32 CurrentTranslucencyLightingVolumeDim;
 	/** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bpp */
 	int32 CurrentMobile32bpp;
+	/** To detect a change of the CVar r.MobileMSAA */
+	int32 CurrentMobileMSAA;
 	/** To detect a change of the CVar r.Shadow.MinResolution */
 	int32 CurrentMinShadowResolution;
 	/** To detect a change of the CVar r.LightPropagationVolume */
@@ -509,310 +551,3 @@ private:
 
 /** The global render targets used for scene rendering. */
 extern TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
-
-namespace ESceneRenderTargetsMode
-{
-	enum Type
-	{
-		SetTextures,
-		DontSet,
-		DontSetIgnoreBoundByEditorCompositing,
-		NonSceneAlignedPass,
-	};
-}
-
-/** Encapsulates scene texture shader parameter bindings. */
-class FSceneTextureShaderParameters
-{
-public:
-	/** Binds the parameters using a compiled shader's parameter map. */
-	void Bind(const FShaderParameterMap& ParameterMap);
-
-	/** Sets the scene texture parameters for the given view. */
-	template<typename TParamRef>
-	void Set(const TParamRef& ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures, ESamplerFilter ColorFilter = SF_Point) const
-	{
-		if (TextureMode == ESceneRenderTargetsMode::SetTextures)
-		{
-			// optimization possible: TShaderRHIParamRef is no param Ref
-			if (SceneColorTextureParameter.IsBound())
-			{
-				FSamplerStateRHIRef Filter;
-				switch ( ColorFilter )
-				{
-				case SF_Bilinear:
-					Filter = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-					break;
-				case SF_Trilinear:
-					Filter = TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-					break;
-				case SF_AnisotropicPoint:
-					Filter = TStaticSamplerState<SF_AnisotropicPoint,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-					break;
-				case SF_AnisotropicLinear:
-					Filter = TStaticSamplerState<SF_AnisotropicLinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-					break;
-				case SF_Point:
-				default:
-					Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-					break;
-				}
-
-				SetTextureParameter(
-					ShaderRHI,
-					SceneColorTextureParameter,
-					SceneColorTextureParameterSampler,
-					Filter,
-					GSceneRenderTargets.GetSceneColorTexture()
-					);
-			}
-
-			if (SceneAlphaCopyTextureParameter.IsBound() && GSceneRenderTargets.HasSceneAlphaCopyTexture())
-			{
-				FSamplerStateRHIRef Filter;
-				Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-				SetTextureParameter(
-					ShaderRHI,
-					SceneAlphaCopyTextureParameter,
-					SceneAlphaCopyTextureParameterSampler,
-					Filter,
-					GSceneRenderTargets.GetSceneAlphaCopyTexture()
-					);
-			}
-
-			if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
-			{
-				const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
-				SetTextureParameter(
-					ShaderRHI,
-					SceneDepthTextureParameter,
-					SceneDepthTextureParameterSampler,
-					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					*DepthTexture
-					);
-			}
-
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
-			{
-				SetTextureParameter(ShaderRHI, SceneColorSurfaceParameter, GSceneRenderTargets.GetSceneColorSurface());
-			}
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
-			{
-				if(GSupportsDepthFetchDuringDepthTest)
-				{
-					if(SceneDepthSurfaceParameter.IsBound())
-					{
-						SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetSceneDepthSurface());
-					}
-					if(SceneDepthTextureNonMS.IsBound())
-					{
-						SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetSceneDepthTexture());
-					}
-				}
-				else
-				{
-					if(SceneDepthSurfaceParameter.IsBound())
-					{
-						SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
-					}
-					if(SceneDepthTextureNonMS.IsBound())
-					{
-						SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
-					}
-				}
-			}
-		}
-		else if (TextureMode == ESceneRenderTargetsMode::DontSet)
-		{
-			// Verify that none of these were bound if we were told not to set them
-			checkSlow(!SceneColorTextureParameter.IsBound()
-				&& !SceneDepthTextureParameter.IsBound()
-				&& !SceneColorSurfaceParameter.IsBound()
-				&& !SceneDepthSurfaceParameter.IsBound()
-				&& !SceneDepthTextureNonMS.IsBound());
-		}
-		else if (TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
-		{
-			// Verify that none of these were bound if we were told not to set them
-			// ignore SceneDepthTextureNonMS
-			checkSlow(!SceneColorTextureParameter.IsBound()
-				&& !SceneDepthTextureParameter.IsBound()
-				&& !SceneColorSurfaceParameter.IsBound()
-				&& !SceneDepthSurfaceParameter.IsBound());
-		}
-		else if( TextureMode == ESceneRenderTargetsMode::NonSceneAlignedPass )
-		{
-			SetTextureParameter(ShaderRHI, SceneColorTextureParameter, GBlackTexture->TextureRHI);
-			SetTextureParameter(ShaderRHI, SceneDepthTextureParameter, GBlackTexture->TextureRHI);
-			SetTextureParameter(ShaderRHI, SceneColorSurfaceParameter, GBlackTexture->TextureRHI);
-			SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GBlackTexture->TextureRHI);
-		}
-	}
-
-	/** Serializer. */
-	friend FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& P);
-
-private:
-	/** The SceneColorTexture parameter for materials that use SceneColor */
-	FShaderResourceParameter SceneColorTextureParameter;
-	FShaderResourceParameter SceneColorTextureParameterSampler;
-	/** The SceneDepthTexture parameter for materials that use SceneDepth */
-	FShaderResourceParameter SceneDepthTextureParameter;
-	FShaderResourceParameter SceneDepthTextureParameterSampler;
-	/** The SceneAlphaCopyTexture parameter for materials that use SceneAlphaCopy */
-	FShaderResourceParameter SceneAlphaCopyTextureParameter;
-	FShaderResourceParameter SceneAlphaCopyTextureParameterSampler;
-
-	/** for MSAA access to the scene color */
-	FShaderResourceParameter SceneColorSurfaceParameter;
-	/** The SceneColorTextureMSAA parameter for materials that use SceneColorTextureMSAA */
-	FShaderResourceParameter SceneDepthSurfaceParameter;
-	/**  */
-	FShaderResourceParameter SceneDepthTextureNonMS;
-};
-
-bool IsDBufferEnabled();
-
-/** Pixel shader parameters needed for deferred passes. */
-class FDeferredPixelShaderParameters
-{
-public:
-
-	void Bind(const FShaderParameterMap& ParameterMap);
-
-	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures) const
-	{
-		// This is needed on PC ES2 for SceneAlphaCopy, probably should be refactored for performance.
-		SceneTextureParameters.Set(ShaderRHI, View, TextureMode, SF_Point);
-
-		// if() is purely an optimization and could be removed
-		if(IsDBufferEnabled())
-		{
-			IPooledRenderTarget* DBufferA = GSceneRenderTargets.DBufferA ? GSceneRenderTargets.DBufferA : GSystemTextures.BlackDummy;
-			IPooledRenderTarget* DBufferB = GSceneRenderTargets.DBufferB ? GSceneRenderTargets.DBufferB : GSystemTextures.BlackDummy;
-			IPooledRenderTarget* DBufferC = GSceneRenderTargets.DBufferC ? GSceneRenderTargets.DBufferC : GSystemTextures.BlackDummy;
-
-			// todo: optimize out when not needed
-			SetTextureParameter(ShaderRHI, DBufferATexture, DBufferATextureSampler, TStaticSamplerState<>::GetRHI(), DBufferA->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(ShaderRHI, DBufferBTexture, DBufferBTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferB->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(ShaderRHI, DBufferCTexture, DBufferCTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferC->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(ShaderRHI, DBufferATextureMS, DBufferA->GetRenderTargetItem().TargetableTexture);
-			SetTextureParameter(ShaderRHI, DBufferBTextureMS, DBufferB->GetRenderTargetItem().TargetableTexture);
-			SetTextureParameter(ShaderRHI, DBufferCTextureMS, DBufferC->GetRenderTargetItem().TargetableTexture);
-			SetTextureParameter(ShaderRHI, DBufferATextureNonMS, DBufferA->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(ShaderRHI, DBufferBTextureNonMS, DBufferB->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(ShaderRHI, DBufferCTextureNonMS, DBufferC->GetRenderTargetItem().ShaderResourceTexture);
-		}
-
-		if (TextureMode == ESceneRenderTargetsMode::SetTextures && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
-		{
-			// if there is no ambient occlusion it's better to have white there
-			IPooledRenderTarget* ScreenSpaceAO = GSceneRenderTargets.ScreenSpaceAO;
-			if(!GSceneRenderTargets.bScreenSpaceAOIsValid)
-			{
-				ScreenSpaceAO = GSystemTextures.WhiteDummy;
-			}
-
-			// if there is no custom depth it's better to have the far distance there
-			IPooledRenderTarget* CustomDepth = GSceneRenderTargets.bCustomDepthIsValid ? GSceneRenderTargets.CustomDepth : 0;
-			if(!CustomDepth)
-			{
-				CustomDepth = GSystemTextures.BlackDummy;
-			}
-
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
-			{
-				IPooledRenderTarget* GBufferA = GSceneRenderTargets.GBufferA ? GSceneRenderTargets.GBufferA : GSystemTextures.BlackDummy;
-				IPooledRenderTarget* GBufferB = GSceneRenderTargets.GBufferB ? GSceneRenderTargets.GBufferB : GSystemTextures.BlackDummy;
-				IPooledRenderTarget* GBufferC = GSceneRenderTargets.GBufferC ? GSceneRenderTargets.GBufferC : GSystemTextures.BlackDummy;
-				IPooledRenderTarget* GBufferD = GSceneRenderTargets.GBufferD ? GSceneRenderTargets.GBufferD : GSystemTextures.BlackDummy;
-
-				SetTextureParameter(ShaderRHI, GBufferATexture, GBufferATextureSampler, TStaticSamplerState<>::GetRHI(), GBufferA->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferBTexture, GBufferBTextureSampler, TStaticSamplerState<>::GetRHI(), GBufferB->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferCTexture, GBufferCTextureSampler, TStaticSamplerState<>::GetRHI(), GBufferC->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferDTexture, GBufferDTextureSampler, TStaticSamplerState<>::GetRHI(), GBufferD->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferATextureMS, GBufferA->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, GBufferBTextureMS, GBufferB->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, GBufferCTextureMS, GBufferC->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, GBufferDTextureMS, GBufferD->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, GBufferATextureNonMS, GBufferA->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferBTextureNonMS, GBufferB->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferCTextureNonMS, GBufferC->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, GBufferDTextureNonMS, GBufferD->GetRenderTargetItem().ShaderResourceTexture);
-
-				SetTextureParameter(ShaderRHI, ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, TStaticSamplerState<>::GetRHI(), ScreenSpaceAO->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, ScreenSpaceAOTextureMS, ScreenSpaceAO->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, ScreenSpaceAOTextureNonMS, ScreenSpaceAO->GetRenderTargetItem().ShaderResourceTexture);
-
-				SetTextureParameter(ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
-				SetTextureParameter(ShaderRHI, CustomDepthTextureNonMS, CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
-
-				if (GSceneRenderTargets.IsStaticLightingAllowed())
-				{
-					IPooledRenderTarget* GBufferE = GSceneRenderTargets.GBufferE ? GSceneRenderTargets.GBufferE : GSystemTextures.BlackDummy;
-
-					SetTextureParameter(ShaderRHI, GBufferETexture, GBufferETextureSampler, TStaticSamplerState<>::GetRHI(), GBufferE->GetRenderTargetItem().ShaderResourceTexture);
-					SetTextureParameter(ShaderRHI, GBufferETextureMS, GBufferE->GetRenderTargetItem().TargetableTexture);
-					SetTextureParameter(ShaderRHI, GBufferETextureNonMS, GBufferE->GetRenderTargetItem().ShaderResourceTexture);
-				}
-			}
-		}
-		else if (TextureMode == ESceneRenderTargetsMode::DontSet ||
-			TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
-		{
-			// Verify that none of these are actually bound
-			checkSlow(!GBufferATextureSampler.IsBound()
-				&& !GBufferBTextureSampler.IsBound()
-				&& !GBufferCTextureSampler.IsBound()
-				&& !GBufferDTextureSampler.IsBound()
-				&& !ScreenSpaceAOTextureSampler.IsBound()
-				&& !CustomDepthTextureSampler.IsBound()
-				&& !GBufferETextureSampler.IsBound());
-		}
-	}
-
-	friend FArchive& operator<<(FArchive& Ar,FDeferredPixelShaderParameters& P);
-
-private:
-	FSceneTextureShaderParameters SceneTextureParameters;
-	FShaderResourceParameter GBufferATextureMS;
-	FShaderResourceParameter GBufferBTextureMS;
-	FShaderResourceParameter GBufferCTextureMS;
-	FShaderResourceParameter GBufferDTextureMS;
-	FShaderResourceParameter GBufferETextureMS;
-	FShaderResourceParameter DBufferATextureMS;
-	FShaderResourceParameter DBufferBTextureMS;
-	FShaderResourceParameter DBufferCTextureMS;
-	FShaderResourceParameter ScreenSpaceAOTextureMS;
-	FShaderResourceParameter GBufferATextureNonMS;
-	FShaderResourceParameter GBufferBTextureNonMS;
-	FShaderResourceParameter GBufferCTextureNonMS;
-	FShaderResourceParameter GBufferDTextureNonMS;
-	FShaderResourceParameter GBufferETextureNonMS;
-	FShaderResourceParameter DBufferATextureNonMS;
-	FShaderResourceParameter DBufferBTextureNonMS;
-	FShaderResourceParameter DBufferCTextureNonMS;
-	FShaderResourceParameter ScreenSpaceAOTextureNonMS;
-	FShaderResourceParameter CustomDepthTextureNonMS;
-	FShaderResourceParameter GBufferATexture;
-	FShaderResourceParameter GBufferATextureSampler;
-	FShaderResourceParameter GBufferBTexture;
-	FShaderResourceParameter GBufferBTextureSampler;
-	FShaderResourceParameter GBufferCTexture;
-	FShaderResourceParameter GBufferCTextureSampler;
-	FShaderResourceParameter GBufferDTexture;
-	FShaderResourceParameter GBufferDTextureSampler;
-	FShaderResourceParameter GBufferETexture;
-	FShaderResourceParameter GBufferETextureSampler;
-	FShaderResourceParameter DBufferATexture;
-	FShaderResourceParameter DBufferATextureSampler;
-	FShaderResourceParameter DBufferBTexture;
-	FShaderResourceParameter DBufferBTextureSampler;
-	FShaderResourceParameter DBufferCTexture;
-	FShaderResourceParameter DBufferCTextureSampler;
-	FShaderResourceParameter ScreenSpaceAOTexture;
-	FShaderResourceParameter ScreenSpaceAOTextureSampler;
-	FShaderResourceParameter CustomDepthTexture;
-	FShaderResourceParameter CustomDepthTextureSampler;
-};

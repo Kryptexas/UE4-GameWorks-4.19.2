@@ -4,10 +4,10 @@
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "AndroidApplication.h"
+#include "OnlineAsyncTaskManagerGooglePlay.h"
 
 FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay()
-	: OnlineAsyncTaskThread(nullptr)
-	, IdentityInterface(nullptr)
+	: IdentityInterface(nullptr)
 	, LeaderboardsInterface(nullptr)
 	, AchievementsInterface(nullptr)
 {
@@ -72,13 +72,15 @@ IOnlineTimePtr FOnlineSubsystemGooglePlay::GetTimeInterface() const
 	return nullptr;
 }
 
-
+IOnlinePartyPtr FOnlineSubsystemGooglePlay::GetPartyInterface() const
+{
+	return nullptr;
+}
 
 IOnlineTitleFilePtr FOnlineSubsystemGooglePlay::GetTitleFileInterface() const
 {
 	return nullptr;
 }
-
 
 IOnlineEntitlementsPtr FOnlineSubsystemGooglePlay::GetEntitlementsInterface() const
 {
@@ -94,19 +96,23 @@ bool FOnlineSubsystemGooglePlay::Init()
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
 	
+	OnlineAsyncTaskThreadRunnable.Reset(new FOnlineAsyncTaskManagerGooglePlay);
+
 	IdentityInterface = MakeShareable(new FOnlineIdentityGooglePlay(this));
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
-
-	extern void AndroidThunkCpp_GooglePlayConnect();
-	AndroidThunkCpp_GooglePlayConnect();
 
 	return true;
 }
 
 bool FOnlineSubsystemGooglePlay::Tick(float DeltaTime)
 {
+	if (OnlineAsyncTaskThreadRunnable)
+	{
+		OnlineAsyncTaskThreadRunnable->GameTick();
+	}
+
 	return true;
 }
 
@@ -128,6 +134,8 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 #undef DESTRUCT_INTERFACE
+
+	OnlineAsyncTaskThreadRunnable.Reset();
 
 	return true;
 }

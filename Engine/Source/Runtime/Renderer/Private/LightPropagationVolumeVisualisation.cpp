@@ -49,17 +49,18 @@ public:
 
 	FLpvVisualiseGS()																												{}
 	explicit FLpvVisualiseGS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvVisualiseBase(Initializer)	{}
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE																					{ return FLpvVisualiseBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override																					{ return FLpvVisualiseBase::Serialize( Ar ); }
 
 	//@todo-rco: Remove this when reenabling for OpenGL
 	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View )
 	{
 		FGeometryShaderRHIParamRef ShaderRHI = GetGeometryShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 	}
 };
 
@@ -70,17 +71,18 @@ public:
 
 	FLpvVisualiseVS()	{	}
 	explicit FLpvVisualiseVS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvVisualiseBase(Initializer) {}
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE																					{ return FLpvVisualiseBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override																					{ return FLpvVisualiseBase::Serialize( Ar ); }
 
 	//@todo-rco: Remove this when reenabling for OpenGL
 	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View )
 	{
 		FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 	}
 };
 
@@ -120,11 +122,12 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		const FLightPropagationVolume* LPV,
 		const FSceneView& View )
 	{
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 
 #if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
@@ -132,14 +135,14 @@ public:
 			FTextureRHIParamRef LpvBufferSrv = LPV->LpvVolumeTextures[ 1-LPV->mWriteBufferIndex ][i]->GetRenderTargetItem().ShaderResourceTexture;
 			if ( LpvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), LpvBufferSrv );
+				RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), LpvBufferSrv);
 			}
-			SetTextureParameter( ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSrv );
+			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSrv );
 		}
 #else
 		if ( InLpvBuffer.IsBound() ) 
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), LPV->mLpvBuffers[ LPV->mWriteBufferIndex ]->SRV ); 
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), LPV->mLpvBuffers[ LPV->mWriteBufferIndex ]->SRV ); 
 		}
 #endif
 
@@ -149,22 +152,22 @@ public:
 			FTextureRHIParamRef GvBufferSrv = LPV->GvVolumeTextures[i]->GetRenderTargetItem().ShaderResourceTexture;
 			if ( GvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), GvBufferSrv );
+				RHICmdList.SetShaderTexture(ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), GvBufferSrv);
 			}
-			SetTextureParameter( ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GvBufferSrv );
+			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GvBufferSrv );
 		}
 
 #else
 		if ( InGvBuffer.IsBound() ) 
 		{
-			RHISetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), LPV->GvBuffer->SRV ); 
+			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), LPV->GvBuffer->SRV ); 
 		}
 #endif
 	}
 
 
 	// Serialization
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FLpvVisualiseBase::Serialize( Ar );
 
@@ -207,7 +210,7 @@ public:
 	FShaderResourceParameter InGvBuffer;
 #endif
 
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
 		// TODO: Is this necessary here?
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
@@ -216,11 +219,11 @@ public:
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef() );
+				RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 			}
 		}
 #else
-		if ( InLpvBuffer.IsBound() ) RHISetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+		if ( InLpvBuffer.IsBound() ) RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 #endif
 
 #if LPV_GV_VOLUME_TEXTURE
@@ -228,11 +231,11 @@ public:
 		{
 			if ( GvBufferSRVParameters[i].IsBound() )
 			{
-				RHISetShaderTexture( ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef() );
+				RHICmdList.SetShaderTexture(ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 			}
 		}
 #else
-		if ( InGvBuffer.IsBound() ) RHISetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+		if ( InGvBuffer.IsBound() ) RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
 #endif
 	}
 
@@ -244,7 +247,7 @@ IMPLEMENT_SHADER_TYPE(,FLpvVisualiseVS,TEXT("LPVVisualise"),TEXT("VShader"),SF_V
 IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_Pixel);
 
 
-void FLightPropagationVolume::Visualise( const FSceneView& View ) const
+void FLightPropagationVolume::Visualise(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const
 {
 	SCOPED_DRAW_EVENT(LpvVisualise, DEC_LIGHT);
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
@@ -253,18 +256,18 @@ void FLightPropagationVolume::Visualise( const FSceneView& View ) const
 	TShaderMapRef<FLpvVisualiseGS> GeometryShader(GetGlobalShaderMap());
 	TShaderMapRef<FLpvVisualisePS> PixelShader(GetGlobalShaderMap());
 
-	RHISetDepthStencilState( TStaticDepthStencilState<false,CF_Always>::GetRHI() );
-	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
-	RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
 
-	SetGlobalBoundShaderState(LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+	SetGlobalBoundShaderState(RHICmdList, LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-	VertexShader->SetParameters( View );
-	GeometryShader->SetParameters( View );
-	PixelShader->SetParameters( this, View );
+	VertexShader->SetParameters(RHICmdList, View);
+	GeometryShader->SetParameters(RHICmdList, View);
+	PixelShader->SetParameters(RHICmdList, this, View);
 
-	RHISetStreamSource(0, NULL, 0, 0);
-	RHIDrawPrimitive( PT_PointList, 0, 1, 32*3 );
+	RHICmdList.SetStreamSource(0, NULL, 0, 0);
+	RHICmdList.DrawPrimitive(PT_PointList, 0, 1, 32 * 3);
 
-	PixelShader->UnbindBuffers();
+	PixelShader->UnbindBuffers(RHICmdList);
 }

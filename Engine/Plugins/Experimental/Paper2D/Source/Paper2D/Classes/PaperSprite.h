@@ -3,6 +3,8 @@
 #pragma once
 
 #include "SpriteEditorOnlyTypes.h"
+#include "Engine/EngineTypes.h"
+
 #include "PaperSprite.generated.h"
 
 UENUM()
@@ -37,7 +39,7 @@ struct FPaperSpriteSocket
  * Can also contain collision shapes for the sprite.
  */
 
-UCLASS(DependsOn=UEngineTypes, BlueprintType, meta=(DisplayThumbnail = "true"))
+UCLASS(BlueprintType, meta=(DisplayThumbnail = "true"))
 class PAPER2D_API UPaperSprite : public UObject, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
@@ -58,6 +60,7 @@ protected:
 	FVector2D BakedSourceUV;
 #endif
 
+	// The source texture that the sprite comes from
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	UTexture2D* SourceTexture;
 
@@ -72,18 +75,18 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	TArray<FPaperSpriteSocket> Sockets;
 
-public:
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	TEnumAsByte<EBlendMode> BlendMode;
-
 	// Collision domain (no collision, 2D, or 3D)
 	UPROPERTY(Category=Collision, EditAnywhere)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
+	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta = (DisplayName = "Pixels per unit"))
+	float PixelsPerUnrealUnit;
+
 public:
-	// Baked physics data (3D domain).
+	// Baked physics data.
 	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
-	class UBodySetup* BodySetup3D;
+	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
 
@@ -125,16 +128,17 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	// UObject interface
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End of UObject interface
 
 	FVector2D ConvertTextureSpaceToPivotSpace(FVector2D Input) const;
 	FVector2D ConvertPivotSpaceToTextureSpace(FVector2D Input) const;
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
 	FVector ConvertPivotSpaceToTextureSpace(FVector Input) const;
+	FVector2D ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const;
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
@@ -147,8 +151,11 @@ public:
 	void RebuildCollisionData();
 	void RebuildRenderData();
 
+	void ExtractSourceRegionFromTexturePoint(const FVector2D& Point);
+
 	void FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2D& OutBoxPosition, /*out*/ FVector2D& OutBoxSize);
 	static void FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanSize, float AlphaThreshold, UTexture2D* Texture, TArray< TArray<FIntPoint> >& OutPoints);
+	static void ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects);
 	void BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner);
 
 	void BuildBoundingBoxCollisionData(bool bUseTightBounds);
@@ -159,13 +166,18 @@ public:
 	void Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target);
 
 	// Reinitializes this sprite (NOTE: Does not register existing components in the world)
+	void InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit);
 	void InitializeSprite(UTexture2D* Texture);
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension);
+	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnit);
 
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
 #endif
+
+	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
+	float GetUnrealUnitsPerPixel() const { return 1.0f / PixelsPerUnrealUnit; }
 
 	// Returns the texture this should be rendered with
 	UTexture2D* GetBakedTexture() const;
@@ -181,8 +193,8 @@ public:
 	void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
 
 	// IInterface_CollisionDataProvider interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	// End of IInterface_CollisionDataProvider
 
 
@@ -191,6 +203,7 @@ public:
 	friend class FSpriteDetailsCustomization;
 	friend class FSpriteSelectedVertex;
 	friend class FSpriteSelectedEdge;
+	friend class FSpriteSelectedSourceRegion;
 	friend struct FPaperAtlasGenerator;
 };
 

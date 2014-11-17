@@ -49,7 +49,7 @@ public:
 	void AddProperty( TSharedRef<class IPropertyHandle> InProperty );
 
 private:
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/**
 	 * @return The visibility of the reset to default widget

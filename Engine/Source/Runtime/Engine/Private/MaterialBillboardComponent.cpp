@@ -19,9 +19,10 @@ class FMaterialSpriteVertexBuffer : public FVertexBuffer
 {
 public:
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FMaterialSpriteVertex),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FMaterialSpriteVertex),BUF_Static,CreateInfo);
 	}
 };
 static TGlobalResource<FMaterialSpriteVertexBuffer> GDummyMaterialSpriteVertexBuffer;

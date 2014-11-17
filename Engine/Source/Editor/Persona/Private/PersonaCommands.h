@@ -11,7 +11,7 @@ public:
 	{
 	}	
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
  	TSharedPtr<FUICommandInfo> RecordAnimation;

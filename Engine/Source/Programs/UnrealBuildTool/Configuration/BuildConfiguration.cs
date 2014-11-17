@@ -13,10 +13,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to unify C++ code into larger files for faster compilation.
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseUnityBuild;
         /// <summary>
         /// Whether to _force_ unify C++ code into larger files for faster compilation.
         /// </summary>
+		[XmlConfig]
         public static bool bForceUnityBuild;
 
 		/// <summary>
@@ -24,72 +26,79 @@ namespace UnrealBuildTool
 		/// allows small game modules to have faster iterative compile times for single files, at the expense of slower full
 		/// rebuild times.  This setting can be overridden by the bFasterWithoutUnity option in a module's Build.cs file.
 		/// </summary>
+		[XmlConfig]
 		public static int MinGameModuleSourceFilesForUnityBuild;
-
-        /// <summary>
-        /// Whether to build with Monolithic D3D Graphics drivers
-        ///	Eventually this will become mandatory
-        /// </summary>
-        public static bool bUseMonolithicGraphicsDrivers;
 
 		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 		/// </summary>
-        public static bool bUseFastMonoCalls;
+		[XmlConfig]
+		public static bool bUseFastMonoCalls;
 
         /// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
 		/// </summary>
+		[XmlConfig]
 		public static int NumIncludedBytesPerUnityCPP;
 
 		/// <summary>
 		/// Whether to stress test the C++ unity build robustness by including all C++ files files in a project from a single unified file.
 		/// </summary>
+		[XmlConfig]
 		public static bool bStressTestUnity;
 
 		/// <summary>
 		/// Whether headers in system paths should be checked for modification when determining outdated actions.
 		/// </summary>
+		[XmlConfig]
 		public static bool bCheckSystemHeadersForModification;
 
 		/// <summary>
 		/// Whether headers in the Development\External folder should be checked for modification when determining outdated actions.
 		/// </summary>
+		[XmlConfig]
 		public static bool bCheckExternalHeadersForModification;
 
 		/// <summary>
 		/// Whether to ignore import library files that are out of date when building targets.  Set this to true to improve iteration time.
 		/// </summary>
+		[XmlConfig]
 		public static bool bIgnoreOutdatedImportLibraries;
 
 		/// <summary>
 		/// Whether to globally disable debug info generation; see DebugInfoHeuristics.cs for per-config and per-platform options.
 		/// </summary>
+		[XmlConfig]
 		public static bool bDisableDebugInfo;
 
 		/// <summary>
 		/// Whether to disable debug info on PC in development builds (for faster developer iteration, as link times are extremely fast with debug info disabled.)
 		/// </summary>
+		[XmlConfig]
 		public static bool bOmitPCDebugInfoInDevelopment;
 
 		/// <summary>
 		/// Whether PDB files should be used for Visual C++ builds.
 		/// </summary>
+		[XmlConfig]
 		public static bool bUsePDBFiles;
 
  		/// <summary>
  		/// Whether PCH files should be used.
 		/// </summary>
+		[XmlConfig]
 		public static bool bUsePCHFiles;
 
 		/// <summary>
 		/// Whether to generate command line dependencies for compile actions when requested
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseActionHistory;
 
 		/// <summary>
 		/// The minimum number of files that must use a pre-compiled header before it will be created and used.
 		/// </summary>
+		[XmlConfig]
 		public static int MinFilesUsingPrecompiledHeader;
 
 		/// <summary>
@@ -98,91 +107,109 @@ namespace UnrealBuildTool
 		/// full rebuild times for small game projects.  This can be overridden by setting MinFilesUsingPrecompiledHeaderOverride in
 		/// a module's Build.cs file
 		/// </summary>
+		[XmlConfig]
 		public static bool bForcePrecompiledHeaderForGameModules;
 
 		/// <summary>
 		/// Whether debug info should be written to the console.
 		/// </summary>
+		[XmlConfig]
 		public static bool bPrintDebugInfo;
 
 		/// <summary>
 		/// Prints performance diagnostics about include dependencies and other bits
 		/// </summary>
+		[XmlConfig]
 		public static bool bPrintPerformanceInfo;
 
 		/// <summary>
 		/// Whether to log detailed action stats. This forces local execution.
 		/// </summary>
+		[XmlConfig]
 		public static bool bLogDetailedActionStats;
 
 		/// <summary>
 		/// Whether to deploy the executable after compilation on platforms that require deployment.
 		/// </summary>
+		[XmlConfig]
 		public static bool bDeployAfterCompile;
 
 		/// <summary>
 		/// Whether to clean Builds directory on a remote Mac before building
 		/// </summary>
+		[XmlConfig]
 		public static bool bFlushBuildDirOnRemoteMac;
 
 		/// <summary>
 		/// Whether XGE may be used.
 		/// </summary>
+		[XmlConfig]
 		public static bool bAllowXGE;
 
 		/// <summary>
 		/// Whether we should just export the XGE XML and pretend it succeeded
 		/// </summary>
+		[XmlConfig]
 		public static bool bXGEExport;
 
 		/// <summary>
 		/// Whether to display the XGE build monitor.
 		/// </summary>
+		[XmlConfig]
 		public static bool bShowXGEMonitor;
 
 		/// <summary>
 		/// When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
 		/// </summary>
+		[XmlConfig]
 		public static bool bStopXGECompilationAfterErrors;
 
 		/// <summary>
 		/// When enabled, allows XGE to compile pre-compiled header files on remote machines.  Otherwise, PCHs are always generated locally.
 		/// </summary>
+		[XmlConfig]
 		public static bool bAllowRemotelyCompiledPCHs;
 
 		/// <summary>
 		/// Whether or not to delete outdated produced items.
 		/// </summary>
+		[XmlConfig]
 		public static bool bShouldDeleteAllOutdatedProducedItems;
 
 		/// <summary>
 		/// Whether to use incremental linking or not.
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseIncrementalLinking;
 
 		/// <summary>
 		/// Whether to allow the use of LTCG (link time code generation) 
 		/// </summary>
+		[XmlConfig]
 		public static bool bAllowLTCG;
 
 		/// <summary>
 		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
 		/// </summary>
+		[XmlConfig]
 		public static bool bSupportEditAndContinue;
 
 		/// <summary>
 		/// Whether to omit frame pointers or not. Disabling is useful for e.g. memory profiling on the PC
 		/// </summary>
+		[XmlConfig]
 		public static bool bOmitFramePointers;
         
 		/// <summary>
 		/// Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
 		/// </summary>
+		[XmlConfig]
 		public static double ProcessorCountMultiplier;
 
 		/// <summary>
 		/// The intermediate folder - i.e. Intermediate/Build.
 		/// </summary>
+		[XmlConfig]
 		public static string BaseIntermediateFolder;
 
 		/// <summary>
@@ -238,26 +265,31 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to generate a dSYM file or not.
 		/// </summary>
+		[XmlConfig]
 		public static bool bGeneratedSYMFile;
 
 		/// <summary>
 		/// Whether to strip iOS symbols or not (implied by bGeneratedSYMFile).
 		/// </summary>
+		[XmlConfig]
 		public static bool bStripSymbolsOnIOS;
 
 		/// <summary>
 		/// If true, then a stub IPA will be generated when compiling is done (minimal files needed for a valid IPA)
 		/// </summary>
+		[XmlConfig]
 		public static bool bCreateStubIPA;
 
 		/// <summary>
 		/// If true, then a stub IPA will be generated when compiling is done (minimal files needed for a valid IPA)
 		/// </summary>
+		[XmlConfig]
 		public static bool bCopyAppBundleBackToDevice;
 
 		/// <summary>
 		/// If true, then enable memory profiling in the build (defines USE_MALLOC_PROFILER=1 and forces bOmitFramePointers=false)
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseMallocProfiler;
 
 		/// <summary>
@@ -266,17 +298,20 @@ namespace UnrealBuildTool
 		/// /analyze option.  The compiler included with the Windows SDK supports this, as well as Team Edition
 		/// versions of Visual Studio.
 		/// </summary>
+		[XmlConfig]
 		public static bool bEnableCodeAnalysis;
 
 		/// <summary>
 		/// Enables "Shared PCHs", an experimental feature which may significantly speed up compile times by attempting to
 		/// share certain PCH files between modules that UBT detects is including those PCH's header files
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseSharedPCHs;
 
 		/// <summary>
 		/// Writes an XML summary of the compile environment for the target to the given path, but does not build it.
 		/// </summary>
+		[XmlConfig]
 		public static string WriteTargetInfoPath;
 
 		/// <summary>
@@ -284,11 +319,13 @@ namespace UnrealBuildTool
 		/// This is technically not fully correct because the dependency cache is global and each module could have a different set of include paths that could cause headers
 		/// to resolve files differently. In practice this is not the case, and significantly speeds up UBT when nothing is to be done.
 		/// </summary>
+		[XmlConfig]
 		public static bool bUseIncludeDependencyResolveCache;
 
 		/// <summary>
 		/// Used to test the dependency resolve cache. This will verify the resolve cache has no conflicts by resolving every time and checking against any previous resolve attempts.
 		/// </summary>
+		[XmlConfig]
 		public static bool bTestIncludeDependencyResolveCache;
 
 		/// <summary>
@@ -296,16 +333,17 @@ namespace UnrealBuildTool
 		/// compile against the Release CRT but leave optimizations turned off, so that it is still easy to debug.  If you enable this
 		/// setting, actual Debug versions of third party static libraries will be needed when compiling in Debug.
 		/// </summary>
+		[XmlConfig]
 		public static bool bDebugBuildsActuallyUseDebugCRT;
 
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
-		public static void Reset()
+		public static void LoadDefaults()
 		{
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
-            bAllowXGE = true;
+			bAllowXGE = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
 			bCheckExternalHeadersForModification = false;
@@ -349,7 +387,7 @@ namespace UnrealBuildTool
 			// these private PCHs do yield fastest incremental compiles for single files, it causes full rebuilds to
 			// take an inordinate amount of time, and intermediates will use up many gigabytes of disk space.
 			bUseSharedPCHs = true;
-	
+
 			WriteTargetInfoPath = null;
 
 			// Using unity build to coalesce source files allows for much faster full rebuild times.  For fastest iteration times on single-file
@@ -357,7 +395,7 @@ namespace UnrealBuildTool
 			// the synthesized file names for unity code files may change between builds.
 			bUseUnityBuild = true;
 
-            bForceUnityBuild = false;
+			bForceUnityBuild = false;
 
 			// For programmers working on gameplay code, it's convenient to have fast iteration times when changing only single source
 			// files.  We've set this default such that smaller gameplay modules will not use the unity build feature, allowing them
@@ -385,17 +423,11 @@ namespace UnrealBuildTool
 			bTestIncludeDependencyResolveCache = false;
 			// if we are testing the resolve cache, we require UBT to use it.
 			bUseIncludeDependencyResolveCache = true;
-            
-            //IMPORTANT THIS IS THE MAIN SWITCH FOR MONO.
-            // New Monolithic Graphics drivers replace D3D and are *mostly* API compatible
-            // Eventually this will become mandatory
-            //  if this is set to true, then mono will be on by default on Dingo, and if false it will be off by default on Dingo.
-            //  This can be overridden by -monolithicdrivers or -nomonolithicdrivers in the NMAKE params.
-			bUseMonolithicGraphicsDrivers = true;
+
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
-			bUseFastMonoCalls = true;
+			bUseFastMonoCalls = false;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -406,9 +438,6 @@ namespace UnrealBuildTool
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
-
-			// Load eventual XML configuration files if they exist to override default values.
-			XmlConfigLoader.Load(typeof(BuildConfiguration));
 		}
 
 		/// <summary>
@@ -421,7 +450,7 @@ namespace UnrealBuildTool
 		/// <param name="bCreateDebugInfo">True if debug info should be created</param>
 		public static void ValidateConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
 
 			// E&C support.
 			if( bSupportEditAndContinue )

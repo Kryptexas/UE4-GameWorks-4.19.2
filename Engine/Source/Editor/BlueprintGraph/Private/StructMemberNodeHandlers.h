@@ -14,8 +14,8 @@ public:
 	{
 	}
 
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE;
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) OVERRIDE;
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override;
 };
 
 class FKCHandler_StructMemberVariableSet : public FKCHandler_VariableSet
@@ -26,5 +26,5 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override;
 };

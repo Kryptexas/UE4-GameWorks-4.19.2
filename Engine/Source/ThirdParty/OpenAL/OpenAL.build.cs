@@ -9,7 +9,7 @@ public class OpenAL : ModuleRules
 		Type = ModuleType.External;
 		string version = "1.15.1";
 
-		string OpenALPath = UEBuildConfiguration.UEThirdPartyDirectory + "OpenAL/" + version + "/";
+		string OpenALPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenAL/" + version + "/";
 		PublicIncludePaths.Add(OpenALPath + "include");
         
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -22,7 +22,7 @@ public class OpenAL : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(OpenALPath + "lib/Linux/");
+			PublicLibraryPaths.Add(OpenALPath + "lib/Linux/" + Target.Architecture);
 			PublicAdditionalLibraries.Add("openal");
 		}
     }

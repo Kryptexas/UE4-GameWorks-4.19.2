@@ -169,8 +169,20 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * 
 		}
 		else
 		{
-			// pick first one
-			FbxAnimStack* CurAnimStack = FbxImporter->Scene->GetSrcObject<FbxAnimStack>(0);
+			// find the correct animation based on import data
+			FbxAnimStack* CurAnimStack = nullptr;
+			
+			//ignore the source animation name if there's only one animation in the file.
+			//this is to make it easier for people who use content creation programs that only export one animation and/or ones that don't allow naming animations			
+			if (FbxImporter->Scene->GetSrcObjectCount(FbxCriteria::ObjectType(FbxAnimStack::ClassId)) > 1 && !ImportData->SourceAnimationName.IsEmpty())
+			{
+				CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->FindSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), TCHAR_TO_ANSI(*ImportData->SourceAnimationName), 0));
+			}
+			else
+			{
+				CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->GetSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), 0));
+			}
+			
 			if (CurAnimStack)
 			{
 				// set current anim stack
@@ -277,6 +289,12 @@ bool UnFbx::FFbxImporter::IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TA
 		}
 
 		FbxTimeSpan AnimTimeSpan = GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
+		if (AnimTimeSpan.GetDuration() <= 0)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FBXImport_ZeroLength", "Animation Stack {0} does not contain any valid key. Try different time options when import."), FText::FromString(CurAnimStack->GetName()))));
+			continue;
+		}
+
 		ValidTakeCount++;
 		{
 			bool bBlendCurveFound = false;
@@ -449,6 +467,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton * Skeleton, UObj
 	int32 ValidTakeCount = 0;
 	if (IsValidAnimationData(SortedLinks, NodeArray, ValidTakeCount) == false)
 	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FBXImport_InvalidAnimationData", "This does not contain any valid animation takes.")));
 		return NULL;
 	}
 
@@ -618,6 +637,12 @@ bool UnFbx::FFbxImporter::ValidateAnimStack(TArray<FbxNode*>& SortedLinks, TArra
 
 	AnimTimeSpan = GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
 	
+	// if no duration is found, return false
+	if (AnimTimeSpan.GetDuration() <= 0)
+	{
+		return false;
+	}
+
 	const FBXImportOptions* ImportOption = GetImportOptions();
 	// only add morph time if not setrange. If Set Range there is no reason to override time
 	if ( bImportMorph && ImportOption->AnimationLengthImportType != FBXALIT_SetRange)
@@ -701,7 +726,6 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 				NewInterpMode = RCIM_Cubic;
 				// get tangents
 				{
-					float LeaveTangent, ArriveTangent;
 					LeaveTangent = Key.GetDataFloat(FbxAnimCurveDef::eRightSlope);
 
 					if ( KeyIndex > 0 )
@@ -887,9 +911,21 @@ namespace AnimationTransformDebug
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * DestSeq, const FString & FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
+	float PreviousSequenceLength = DestSeq->SequenceLength;
 
 	// if you have one pose(thus 0.f duration), it still contains animation, so we'll need to consider that as MINIMUM_ANIMATION_LENGTH time length
 	DestSeq->SequenceLength = FGenericPlatformMath::Max<float>(SequenceLength.GetSecondDouble(), MINIMUM_ANIMATION_LENGTH);
+
+	if(PreviousSequenceLength > MINIMUM_ANIMATION_LENGTH && DestSeq->RawCurveData.FloatCurves.Num() > 0)
+	{
+		// The sequence already existed when we began the import. We need to scale the key times for all curves to match the new 
+		// duration before importing over them. This is to catch any user-added curves
+		float ScaleFactor = DestSeq->SequenceLength / PreviousSequenceLength;
+		for(FFloatCurve& Curve : DestSeq->RawCurveData.FloatCurves)
+		{
+			Curve.FloatCurve.ScaleCurve(0.0f, ScaleFactor);
+		}
+	}
 
 	//
 	// shape animation START

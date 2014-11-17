@@ -5,6 +5,7 @@
 #include "GraphDiffControl.h"
 #include "EdGraphUtilities.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 
@@ -57,7 +58,7 @@ public:
 	}
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(Previous, "Prev", "Go to previous difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7, EModifierKey::Control));
 		UI_COMMAND(Next, "Next", "Go to next difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7));
@@ -558,9 +559,9 @@ void SBehaviorTreeDiff::FBehaviorTreeDiffPanel::OnSelectionChanged( const FGraph
 	}
 }
 
-bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyVisible(UProperty const * const InProperty) const
+bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const
 {
-	return !InProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
+	return !PropertyAndParent.Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance);
 }
 
 bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyEditable()

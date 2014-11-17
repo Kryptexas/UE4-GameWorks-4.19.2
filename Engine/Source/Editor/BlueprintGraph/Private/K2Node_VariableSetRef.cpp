@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
+#include "K2Node_VariableSetRef.h"
 
 static FString TargetVarPinName(TEXT("Target"));
 static FString VarValuePinName(TEXT("Value"));
@@ -18,7 +19,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_VariableSetRef* VarRefNode = CastChecked<UK2Node_VariableSetRef>(Node);
 		UEdGraphPin* ValuePin = VarRefNode->GetValuePin();
@@ -65,7 +66,7 @@ public:
 		}
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_VariableSetRef* VarRefNode = CastChecked<UK2Node_VariableSetRef>(Node);
 		UEdGraphPin* VarTargetPin = VarRefNode->GetTargetPin();
@@ -137,24 +138,6 @@ FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else
 	{
 		return NSLOCTEXT("K2Node", "SetRefVarNodeTitle", "Set By-Ref Var");
-	}
-}
-
-FString UK2Node_VariableSetRef::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* TargetPin = GetTargetPin();
-
-	if( TargetPin && TargetPin->PinType.PinCategory != Schema->PC_Wildcard )
-	{
-		return FString::Printf(TEXT("Set %s"), *Schema->TypeToString(TargetPin->PinType));
-	}
-	else
-	{
-		return TEXT("Set By-Ref Var");
 	}
 }
 

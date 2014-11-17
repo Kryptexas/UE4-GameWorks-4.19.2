@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "EdGraphPin.h"
+
 #include "EdGraphSchema.generated.h"
+
+class FSlateRect;
+class UEdGraphNode;
 
 /** Distinguishes between different graph types. Graphs can have different properties; for example: functions have one entry point, ubergraphs can have multiples. */
 UENUM()
@@ -145,7 +150,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 
 	// Simple type info
 	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_NewNode"); return Type;}
-	virtual FString GetTypeId() const OVERRIDE { return StaticGetTypeId(); } 
+	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -163,9 +168,9 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 	{}
 
 	// FEdGraphSchemaAction interface
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) OVERRIDE;
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode = true) OVERRIDE;
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
+	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode = true) override;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FEdGraphSchemaAction interface
 
 	template <typename NodeType>
@@ -184,7 +189,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 {
 	static FString StaticGetTypeId() { static FString Type = TEXT("FEdGraphSchemaAction_Dummy"); return Type; }
-	virtual FString GetTypeId() const OVERRIDE{ return StaticGetTypeId(); }
+	virtual FString GetTypeId() const override{ return StaticGetTypeId(); }
 
 	FEdGraphSchemaAction_Dummy()
 	: FEdGraphSchemaAction()
@@ -332,8 +337,8 @@ public:
 	ENGINE_API FCategorizedGraphActionListBuilder(FString const& Category = TEXT(""));
 
 	// FGraphActionListBuilderBase Interface
-	ENGINE_API virtual void AddAction(const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = TEXT("") ) OVERRIDE;
-	ENGINE_API virtual void AddActionList(const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = TEXT("")) OVERRIDE;
+	ENGINE_API virtual void AddAction(const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = TEXT("") ) override;
+	ENGINE_API virtual void AddActionList(const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = TEXT("")) override;
 	// End of FGraphActionListBuilderBase Interface
 
 private:
@@ -549,6 +554,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/** If we should disallow viewing and editing of the supplied pin */
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const { return false; }
 
+	/** Should the Pin in question display an asset picker */
+	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const { return true; }
+
 	/**
 	 * Gets the draw color of a pin based on it's type.
 	 *
@@ -608,11 +616,17 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 */
 	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin);
 
+	/** Split a pin in to subelements */
+	virtual void SplitPin(UEdGraphPin* Pin) const { };
+
+	/** Collapses a pin and its siblings back in to the original pin */
+	virtual void RecombinePin(UEdGraphPin* Pin) const { };
+
 	/** Break links on this pin and create links instead on MoveToPin */
-	virtual FPinConnectionResponse MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin, bool bIsIntermeadiateMove = false) const;
+	virtual FPinConnectionResponse MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin, bool bIsIntermediateMove = false) const;
 
 	/** Copies pin links from one pin to another without breaking the original links */
-	virtual FPinConnectionResponse CopyPinLinks(UEdGraphPin& CopyFromPin, UEdGraphPin& CopyToPin, bool bIsIntermeadiateCopy = false) const;
+	virtual FPinConnectionResponse CopyPinLinks(UEdGraphPin& CopyFromPin, UEdGraphPin& CopyToPin, bool bIsIntermediateCopy = false) const;
 
 	/** Is self pin type? */
 	virtual bool IsSelfPin(const UEdGraphPin& Pin) const   {return false;}

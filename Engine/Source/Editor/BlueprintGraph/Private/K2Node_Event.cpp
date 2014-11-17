@@ -47,7 +47,7 @@ FNodeHandlingFunctor* UK2Node_Event::CreateNodeHandler(FKismetCompilerContext& C
 
 FLinearColor UK2Node_Event::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -87,41 +87,6 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else
 	{
 		return FText::FromName(CustomFunctionName);
-	}
-}
-
-FString UK2Node_Event::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (bOverrideFunction || (CustomFunctionName == NAME_None))
-	{
-		FString FunctionName = EventSignatureName.ToString(); // If we fail to find the function, still want to write something on the node.
-
-		if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
-		{
-			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
-		}
-
-		FString TitleString = FString(TEXT("Event ")) + FunctionName;
-
-		if(TitleType == ENodeTitleType::FullTitle && EventSignatureClass != NULL && EventSignatureClass->IsChildOf(UInterface::StaticClass()))
-		{
-			FString SourceString = EventSignatureClass->GetName();
-
-			// @todo: This action won't be necessary once the new name convention is used.
-			if(SourceString.EndsWith(TEXT("_C")))
-			{
-				SourceString = SourceString.LeftChop(2);
-			}
-
-			TitleString += FString(TEXT("\n")) + FString::Printf(TEXT("From %s"), *SourceString);
-		}
-
-		return TitleString;
-	}
-	else
-	{
-		return CustomFunctionName.ToString();
 	}
 }
 
@@ -655,6 +620,13 @@ FText UK2Node_Event::GetToolTipHeading() const
 		CompleteHeading = EventHeading;
 	}
 	return CompleteHeading;
+}
+
+void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Event" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetFunctionName().ToString() ));
 }
 
 bool UK2Node_Event::IsDeprecated() const

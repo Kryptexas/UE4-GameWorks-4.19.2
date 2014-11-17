@@ -23,7 +23,7 @@ class UInterpTrackInstAnimControl : public UInterpTrackInst
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UInterpTrackInst Instance
-	virtual void InitTrackInst(UInterpTrack* Track) OVERRIDE;
+	virtual void InitTrackInst(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

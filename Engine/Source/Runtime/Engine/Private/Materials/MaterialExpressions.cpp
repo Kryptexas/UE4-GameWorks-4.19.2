@@ -5,6 +5,136 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+
+#include "Materials/MaterialExpressionAbs.h"
+#include "Materials/MaterialExpressionActorPositionWS.h"
+#include "Materials/MaterialExpressionAdd.h"
+#include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionAtmosphericFogColor.h"
+#include "Materials/MaterialExpressionBlackBody.h"
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "Materials/MaterialExpressionBumpOffset.h"
+#include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "Materials/MaterialExpressionCameraVectorWS.h"
+#include "Materials/MaterialExpressionCeil.h"
+#include "Materials/MaterialExpressionClamp.h"
+#include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionConstantBiasScale.h"
+#include "Materials/MaterialExpressionCosine.h"
+#include "Materials/MaterialExpressionCrossProduct.h"
+#include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionCustomTexture.h"
+#include "Materials/MaterialExpressionDDX.h"
+#include "Materials/MaterialExpressionDDY.h"
+#include "Materials/MaterialExpressionDepthFade.h"
+#include "Materials/MaterialExpressionDepthOfFieldFunction.h"
+#include "Materials/MaterialExpressionDeriveNormalZ.h"
+#include "Materials/MaterialExpressionDesaturation.h"
+#include "Materials/MaterialExpressionDistance.h"
+#include "Materials/MaterialExpressionDistanceCullFade.h"
+#include "Materials/MaterialExpressionDivide.h"
+#include "Materials/MaterialExpressionDotProduct.h"
+#include "Materials/MaterialExpressionDynamicParameter.h"
+#include "Materials/MaterialExpressionEyeAdaptation.h"
+#include "Materials/MaterialExpressionFeatureLevelSwitch.h"
+#include "Materials/MaterialExpressionFloor.h"
+#include "Materials/MaterialExpressionFmod.h"
+#include "Materials/MaterialExpressionFontSample.h"
+#include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Materials/MaterialExpressionFrac.h"
+#include "Materials/MaterialExpressionFresnel.h"
+#include "Materials/MaterialExpressionFunctionInput.h"
+#include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionGIReplace.h"
+#include "Materials/MaterialExpressionIf.h"
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLightmapUVs.h"
+#include "Materials/MaterialExpressionLightmassReplace.h"
+#include "Materials/MaterialExpressionLightVector.h"
+#include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionMakeMaterialAttributes.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialExpressionMax.h"
+#include "Materials/MaterialExpressionMin.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Materials/MaterialExpressionNoise.h"
+#include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionObjectBounds.h"
+#include "Materials/MaterialExpressionObjectOrientation.h"
+#include "Materials/MaterialExpressionObjectPositionWS.h"
+#include "Materials/MaterialExpressionObjectRadius.h"
+#include "Materials/MaterialExpressionOneMinus.h"
+#include "Materials/MaterialExpressionPanner.h"
+#include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
+#include "Materials/MaterialExpressionStaticSwitchParameter.h"
+#include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionParticleColor.h"
+#include "Materials/MaterialExpressionParticleDirection.h"
+#include "Materials/MaterialExpressionParticleMacroUV.h"
+#include "Materials/MaterialExpressionParticleMotionBlurFade.h"
+#include "Materials/MaterialExpressionParticlePositionWS.h"
+#include "Materials/MaterialExpressionParticleRadius.h"
+#include "Materials/MaterialExpressionParticleRelativeTime.h"
+#include "Materials/MaterialExpressionParticleSize.h"
+#include "Materials/MaterialExpressionParticleSpeed.h"
+#include "Materials/MaterialExpressionPerInstanceFadeAmount.h"
+#include "Materials/MaterialExpressionPerInstanceRandom.h"
+#include "Materials/MaterialExpressionPixelDepth.h"
+#include "Materials/MaterialExpressionPixelNormalWS.h"
+#include "Materials/MaterialExpressionPower.h"
+#include "Materials/MaterialExpressionQualitySwitch.h"
+#include "Materials/MaterialExpressionReflectionVectorWS.h"
+#include "Materials/MaterialExpressionRotateAboutAxis.h"
+#include "Materials/MaterialExpressionRotator.h"
+#include "Materials/MaterialExpressionSceneColor.h"
+#include "Materials/MaterialExpressionSceneDepth.h"
+#include "Materials/MaterialExpressionSceneTexelSize.h"
+#include "Materials/MaterialExpressionSceneTexture.h"
+#include "Materials/MaterialExpressionScreenPosition.h"
+#include "Materials/MaterialExpressionSine.h"
+#include "Materials/MaterialExpressionSpeedTree.h"
+#include "Materials/MaterialExpressionSphereMask.h"
+#include "Materials/MaterialExpressionSphericalParticleOpacity.h"
+#include "Materials/MaterialExpressionSquareRoot.h"
+#include "Materials/MaterialExpressionStaticBool.h"
+#include "Materials/MaterialExpressionStaticSwitch.h"
+#include "Materials/MaterialExpressionSubtract.h"
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureObject.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionParticleSubUV.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionTextureObjectParameter.h"
+#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
+#include "Materials/MaterialExpressionAntialiasedTextureMask.h"
+#include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
+#include "Materials/MaterialExpressionTextureSampleParameterCube.h"
+#include "Materials/MaterialExpressionTextureSampleParameterMovie.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionTime.h"
+#include "Materials/MaterialExpressionTransform.h"
+#include "Materials/MaterialExpressionTransformPosition.h"
+#include "Materials/MaterialExpressionTwoSidedSign.h"
+#include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionVertexNormalWS.h"
+#include "Materials/MaterialExpressionViewSize.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialFunction.h"
+
+#include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
 #if WITH_EDITOR
 #include "Slate.h"
@@ -23,6 +153,7 @@ if( ExpressionInput.Expression == ToBeRemovedExpression )										\
 #if WITH_EDITOR
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCoordinateCheck;
+FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCommentFix;
 #endif // #if WITH_EDITOR
 
 /** Returns whether the given expression class is allowed. */
@@ -766,14 +897,14 @@ void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* InMaterial, int32 
 
 		if( bUseMaterialAttributes )
 		{
-			InMaterial->SetLightingModel(MLM_DefaultLit);
+			InMaterial->SetShadingModel(MSM_DefaultLit);
 			InMaterial->bUseMaterialAttributes = true;
 			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_MaterialAttributes);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 		else
 		{
-			InMaterial->SetLightingModel(MLM_Unlit);
+			InMaterial->SetShadingModel(MSM_Unlit);
 			InMaterial->bUseMaterialAttributes = false;
 
 			// Connect the selected expression to the emissive node of the expression preview material.  The emissive material is not affected by light which is why its a good choice.
@@ -818,6 +949,25 @@ bool UMaterialExpression::GetAllInputExpressions(TArray<UMaterialExpression*>& I
 		return true;
 	}
 }
+
+bool UMaterialExpression::CanRenameNode() const
+{
+	return false;
+}
+
+FString UMaterialExpression::GetEditableName() const
+{
+	// This function is only safe to call in a class that has implemented CanRenameNode() to return true
+	check(false);
+	return TEXT("");
+}
+
+void UMaterialExpression::SetEditableName(const FString& NewName)
+{
+	// This function is only safe to call in a class that has implemented CanRenameNode() to return true
+	check(false);
+}
+
 #endif
 
 bool UMaterialExpression::ContainsInputLoop()
@@ -1557,6 +1707,10 @@ bool UMaterialExpressionTextureSampleParameter2D::TextureIsValid( UTexture* InTe
 		{
 			Result = true;
 		}
+		if ( InTexture->IsA(UTexture2DDynamic::StaticClass()) )
+		{
+			Result = true;
+		}
 	}
 	return Result;
 }
@@ -1582,6 +1736,19 @@ bool UMaterialExpressionTextureSampleParameter::MatchesSearchQuery( const TCHAR*
 
 	return Super::MatchesSearchQuery(SearchQuery);
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionTextureSampleParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionTextureSampleParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
+
 
 //
 //  UMaterialExpressionTextureSampleParameterCube
@@ -1996,7 +2163,7 @@ UMaterialExpressionConstant::UMaterialExpressionConstant(const class FPostConstr
 
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 
-	bCollapsed = false;
+	bCollapsed = true;
 }
 
 int32 UMaterialExpressionConstant::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -2039,7 +2206,7 @@ UMaterialExpressionConstant2Vector::UMaterialExpressionConstant2Vector(const cla
 
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
-	bCollapsed = false;
+	bCollapsed = true;
 }
 
 int32 UMaterialExpressionConstant2Vector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -2375,7 +2542,7 @@ UMaterialExpressionTextureCoordinate::UMaterialExpressionTextureCoordinate(const
 
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
 
-	bCollapsed = false;
+	bCollapsed = true;
 }
 
 
@@ -2741,7 +2908,7 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const class FPostConstructI
 	static FConstructorStatics ConstructorStatics;
 
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
-	bCollapsed = false;
+	bCollapsed = true;
 	ConstCoordinate = 0;
 }
 
@@ -2802,7 +2969,7 @@ UMaterialExpressionRotator::UMaterialExpressionRotator(const class FPostConstruc
 
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
 
-	bCollapsed = false;
+	bCollapsed = true;
 }
 
 int32 UMaterialExpressionRotator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -3400,6 +3567,18 @@ bool UMaterialExpressionParameter::MatchesSearchQuery( const TCHAR* SearchQuery 
 	return Super::MatchesSearchQuery(SearchQuery);
 }
 
+#if WITH_EDITOR
+FString UMaterialExpressionParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
+
 void UMaterialExpressionParameter::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
 	int32 CurrentSize = OutParameterNames.Num();
@@ -3791,12 +3970,12 @@ bool UMaterialExpressionQualitySwitch::IsInputConnectionRequired(int32 InputInde
 bool UMaterialExpressionQualitySwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	TArray<FExpressionInput*> Inputs = GetInputs();
+	TArray<FExpressionInput*> ExpressionInputs = GetInputs();
 
-	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
+	for (FExpressionInput* ExpressionInput : ExpressionInputs)
 	{
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-		if (Inputs[Index]->Expression && !Inputs[Index]->Expression->ContainsInputLoop() && Inputs[Index]->Expression->IsResultMaterialAttributes(Inputs[Index]->OutputIndex))
+		if (ExpressionInput->Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
 		{
 			return true;
 		}
@@ -3894,12 +4073,12 @@ bool UMaterialExpressionFeatureLevelSwitch::IsInputConnectionRequired(int32 Inpu
 bool UMaterialExpressionFeatureLevelSwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	TArray<FExpressionInput*> Inputs = GetInputs();
+	TArray<FExpressionInput*> ExpressionInputs = GetInputs();
 
-	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
+	for (FExpressionInput* ExpressionInput : ExpressionInputs)
 	{
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-		if (Inputs[Index]->Expression && !Inputs[Index]->Expression->ContainsInputLoop() && Inputs[Index]->Expression->IsResultMaterialAttributes(Inputs[Index]->OutputIndex))
+		if (ExpressionInput->Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
 		{
 			return true;
 		}
@@ -5352,6 +5531,18 @@ bool UMaterialExpressionFontSampleParameter::MatchesSearchQuery( const TCHAR* Se
 	return Super::MatchesSearchQuery(SearchQuery);
 }
 
+#if WITH_EDITOR
+FString UMaterialExpressionFontSampleParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionFontSampleParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
+
 void UMaterialExpressionFontSampleParameter::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
 	int32 CurrentSize = OutParameterNames.Num();
@@ -6020,6 +6211,10 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 	{
 		GMaterialFunctionsThatNeedCoordinateCheck.Set(this);
 	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COMMENTS)
+	{
+		GMaterialFunctionsThatNeedCommentFix.Set(this);
+	}
 #endif // #if WITH_EDITOR
 }
 
@@ -6072,6 +6267,12 @@ void UMaterialFunction::PostLoad()
 		{
 			UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments, false);
 		}
+		UMaterial::FixCommentPositions(FunctionEditorComments);
+	}
+	else if (GMaterialFunctionsThatNeedCommentFix.Get(this))
+	{
+		GMaterialFunctionsThatNeedCommentFix.Clear(this);
+		UMaterial::FixCommentPositions(FunctionEditorComments);
 	}
 #endif // #if WITH_EDITOR
 }
@@ -6568,7 +6769,7 @@ bool UMaterialExpressionMaterialFunctionCall::IsInputConnectionRequired(int32 In
 
 static FString GetInputDefaultValueString(EFunctionInputType InputType, const FVector4& PreviewValue)
 {
-	checkAtCompileTime(FunctionInput_Scalar < FunctionInput_Vector4, ERROR_EnumValuesOutOfOrder);
+	static_assert(FunctionInput_Scalar < FunctionInput_Vector4, "Enum values out of order.");
 	check(InputType <= FunctionInput_Vector4);
 
 	FString ValueString = FString::Printf(TEXT("DefaultValue = (%.2f"), PreviewValue.X);
@@ -8428,6 +8629,23 @@ UMaterialExpressionLandscapeLayerBlend::UMaterialExpressionLandscapeLayerBlend(c
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
 }
 
+void UMaterialExpressionLandscapeLayerBlend::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADD_LB_WEIGHTBLEND)
+	{
+		// convert any LB_AlphaBlend entries to LB_WeightBlend
+		for (FLayerBlendInput& LayerInput : Layers)
+		{
+			if (LayerInput.BlendType == LB_AlphaBlend)
+			{
+				LayerInput.BlendType = LB_WeightBlend;
+			}
+		}
+	}
+}
+
 const TArray<FExpressionInput*> UMaterialExpressionLandscapeLayerBlend::GetInputs()
 {
 	TArray<FExpressionInput*> Result;
@@ -8515,35 +8733,39 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 
 		FLayerBlendInput& Layer = Layers[LayerIdx];
 
-		// Height input
-		const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
-
-		const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
-		if( WeightCode != INDEX_NONE )
+		// LB_AlphaBlend layers are blended last
+		if (Layer.BlendType != LB_AlphaBlend)
 		{
-			switch( Layer.BlendType )
-			{
-			case LB_AlphaBlend:
-				{
-					// Store the weight plus accumulate the sum of all weights so far
-					WeightCodes[LayerIdx] = WeightCode;
-					WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
-				}
-				break;
-			case LB_HeightBlend:
-				{
-					bNeedsRenormalize = true;
-
-					// Modify weight with height
-					int32 ModifiedWeightCode = Compiler->Clamp(
-						Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
-						Compiler->Constant(0.f), Compiler->Constant(1.f) );
-
-					// Store the final weight plus accumulate the sum of all weights so far
-					WeightCodes[LayerIdx] = ModifiedWeightCode;
-					WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
-				}
-				break;
+		    // Height input
+		    const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
+    
+		    const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
+		    if( WeightCode != INDEX_NONE )
+		    {
+			    switch( Layer.BlendType )
+			    {
+			    case LB_WeightBlend:
+				    {
+					    // Store the weight plus accumulate the sum of all weights so far
+					    WeightCodes[LayerIdx] = WeightCode;
+					    WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
+				    }
+				    break;
+			    case LB_HeightBlend:
+				    {
+					    bNeedsRenormalize = true;
+    
+					    // Modify weight with height
+					    int32 ModifiedWeightCode = Compiler->Clamp(
+						    Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
+						    Compiler->Constant(0.f), Compiler->Constant(1.f) );
+    
+					    // Store the final weight plus accumulate the sum of all weights so far
+					    WeightCodes[LayerIdx] = ModifiedWeightCode;
+					    WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
+				    }
+				    break;
+			    }
 			}
 		}
 	}
@@ -8574,9 +8796,24 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 		}
 	}
 
-	if( OutputCode != INDEX_NONE )
+	// Blend in LB_AlphaBlend layers
+	for (FLayerBlendInput& Layer : Layers)
 	{
-		//We've definitely passed the reentrant check here so we're good to call IsResultMaterialAttributes().
+		if (Layer.BlendType == LB_AlphaBlend)
+		{
+			const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName, Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
+			if (WeightCode != INDEX_NONE)
+			{
+				const int32 LayerCode = Layer.LayerInput.Expression ? Layer.LayerInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant3(Layer.ConstLayerInput.X, Layer.ConstLayerInput.Y, Layer.ConstLayerInput.Z);
+				// Blend in the layer using the alpha value
+				OutputCode = Compiler->Lerp(OutputCode, LayerCode, WeightCode);
+			}
+		}
+	}
+	
+	if (OutputCode != INDEX_NONE)
+	{
+		// We've definitely passed the reentrant check here so we're good to call IsResultMaterialAttributes().
 		bool bFoundExpression = false;
 		bool bIsResultMaterialAttributes = false;
 		for (int32 LayerIdx = 0; LayerIdx < Layers.Num(); LayerIdx++)
@@ -9248,6 +9485,57 @@ void UMaterialExpressionSpeedTree::GetCaption(TArray<FString>& OutCaptions) cons
 {
 	OutCaptions.Add(TEXT("SpeedTree"));
 }
+
+void UMaterialExpressionSpeedTree::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.UE4Ver() < VER_UE4_SPEEDTREE_WIND_V7)
+	{
+		// update wind presets for speedtree v7
+		switch (WindType)
+		{
+		case STW_Fastest:
+			WindType = STW_Better;
+			break;
+		case STW_Fast:
+			WindType = STW_Palm;
+			break;
+		case STW_Better:
+			WindType = STW_Best;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+#if WITH_EDITOR
+
+bool UMaterialExpressionSpeedTree::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+
+	if (GeometryType == STG_Billboard)
+	{
+		if (InProperty->GetFName() == TEXT("LODType"))
+		{
+			bIsEditable = false;
+		}
+	}
+	else
+	{
+		if (InProperty->GetFName() == TEXT("BillboardThreshold"))
+		{
+			bIsEditable = false;
+		}
+	}
+
+	return bIsEditable;
+}
+
+#endif
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionEyeAdaptation

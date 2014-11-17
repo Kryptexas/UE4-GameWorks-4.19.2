@@ -11,3 +11,4 @@
  *****************************************************************************/
 
 TSharedPtr<FSlateApplicationBase> FSlateApplicationBase::CurrentBaseApplication = nullptr;
+TSharedPtr<GenericApplication> FSlateApplicationBase::PlatformApplication = nullptr;

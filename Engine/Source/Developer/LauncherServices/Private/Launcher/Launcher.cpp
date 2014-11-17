@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Launcher.cpp: Implements the FLauncher class.
-=============================================================================*/
-
 #include "LauncherServicesPrivatePCH.h"
 
 
@@ -16,11 +12,11 @@ ILauncherWorkerPtr FLauncher::Launch( const ITargetDeviceProxyManagerRef& Device
 	{
 		FLauncherWorker* LauncherWorker = new FLauncherWorker(DeviceProxyManager, Profile);
 
-		if ((LauncherWorker != NULL) && (FRunnableThread::Create(LauncherWorker, TEXT("LauncherWorker"), false, false, 0, TPri_Normal) != NULL))
+		if ((LauncherWorker != nullptr) && (FRunnableThread::Create(LauncherWorker, TEXT("LauncherWorker")) != nullptr))
 		{
 			return MakeShareable(LauncherWorker);
 		}			
 	}
 
-	return NULL;
+	return nullptr;
 }

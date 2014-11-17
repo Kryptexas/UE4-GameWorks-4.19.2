@@ -6,7 +6,7 @@
 #include "StatsData.h"
 
 /** The global thread pool */
-FQueuedThreadPool*		GThreadPool = NULL;
+FQueuedThreadPool*		GThreadPool						= NULL;
 
 CORE_API bool IsInGameThread()
 {
@@ -21,6 +21,19 @@ CORE_API bool IsInSlateThread()
 	return GSlateLoadingThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GSlateLoadingThreadId;
 }
 
+CORE_API int32 GIsRenderingThreadSuspended = 0;
+
+CORE_API FRunnableThread* GRenderingThread = NULL;
+
+CORE_API bool IsInActualRenderingThread()
+{
+	return GRenderingThread && FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID();
+}
+
+CORE_API bool IsInRenderingThread()
+{
+	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
+}
 
 
 // Fake threads
@@ -35,10 +48,6 @@ class FFakeThread : public FRunnableThread
 
 	/** Thread is suspended. */
 	bool bIsSuspended;
-	/** Thread should delete itself. */
-	bool bDeleteSelf;
-	/** Thread should automatically delete the runnable associated with it. */
-	bool bDeleteRunnable;
 	/** Name of this thread. */
 	FString Name;
 	/** Runnable object associated with this thread. */
@@ -53,8 +62,6 @@ public:
 	 */
 	FFakeThread()
 		: bIsSuspended(false)
-		, bDeleteSelf(false)
-		, bDeleteRunnable(false)
 		, Runnable(NULL)
 		, ThreadId(ThreadIdCounter++)
 	{
@@ -83,12 +90,12 @@ public:
 	}
 
 	// FRunnableThread interface
-	virtual void SetThreadPriority(EThreadPriority NewPriority) OVERRIDE
+	virtual void SetThreadPriority(EThreadPriority NewPriority) override
 	{
 		// Not relevant.
 	}
 
-	virtual void Suspend(bool bShouldPause) OVERRIDE
+	virtual void Suspend(bool bShouldPause) override
 	{
 		bIsSuspended = bShouldPause;
 	}
@@ -96,35 +103,26 @@ public:
 	virtual bool Kill(bool bShouldWait)
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
-		if (bDeleteRunnable)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
-		if (bDeleteSelf)
-		{
-			delete this;
-		}
 		return true;
 	}
 
-	virtual void WaitForCompletion() OVERRIDE
+	virtual void WaitForCompletion() override
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
 	}
 
-	virtual uint32 GetThreadID() OVERRIDE
+	virtual uint32 GetThreadID() override
 	{
 		return ThreadId;
 	}
 
-	virtual FString GetThreadName() OVERRIDE
+	virtual FString GetThreadName() override
 	{
 		return Name;
 	}
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* ThreadName,
-		bool bAutoDeleteSelf,bool bAutoDeleteRunnable,uint32 InStackSize,
+		uint32 InStackSize,
 		EThreadPriority InThreadPri, uint64 InThreadAffinityMask)
 
 	{
@@ -134,21 +132,6 @@ public:
 			InRunnable->Init();
 		}		
 		return Runnable != NULL;
-	}
-
-	virtual bool NotifyCreated() OVERRIDE
-	{
-		return false;
-	}
-
-	/**	 
-	 * Change the thread processor affinity
-	 *
-	 * @param AffinityMask A bitfield indicating what processors the thread is allowed to run on
-	 */
-	virtual void SetThreadAffinityMask(uint64 AffinityMask)
-	{
-
 	}
 };
 uint32 FFakeThread::ThreadIdCounter = 0xffff;
@@ -220,12 +203,22 @@ FRunnableThread::~FRunnableThread()
 }
 
 FRunnableThread* FRunnableThread::Create(
-	class FRunnable* InRunnable, 
-	const TCHAR* ThreadName, 
+	class FRunnable* InRunnable,
+	const TCHAR* ThreadName,
 	bool bAutoDeleteSelf,
-	bool bAutoDeleteRunnable, 
+	bool bAutoDeleteRunnable,
 	uint32 InStackSize,
 	EThreadPriority InThreadPri,
+	uint64 InThreadAffinityMask)
+{
+	return Create(InRunnable, ThreadName, InStackSize, InThreadPri, InThreadAffinityMask);
+}
+
+FRunnableThread* FRunnableThread::Create(
+	class FRunnable* InRunnable, 
+	const TCHAR* ThreadName,
+	uint32 InStackSize,
+	EThreadPriority InThreadPri, 
 	uint64 InThreadAffinityMask)
 {
 	FRunnableThread* NewThread = NULL;
@@ -236,13 +229,8 @@ FRunnableThread* FRunnableThread::Create(
 		NewThread = FPlatformProcess::CreateRunnableThread();
 		if (NewThread)
 		{
-			if( !InThreadAffinityMask )
-			{
-				InThreadAffinityMask = AffinityManagerGetAffinity( ThreadName );
-			}
-
 			// Call the thread's create method
-			if (NewThread->CreateInternal(InRunnable,ThreadName,bAutoDeleteSelf,bAutoDeleteRunnable,InStackSize,InThreadPri,InThreadAffinityMask) == false)
+			if (NewThread->CreateInternal(InRunnable,ThreadName,InStackSize,InThreadPri,InThreadAffinityMask) == false)
 			{
 				// We failed to start the thread correctly so clean up
 				delete NewThread;
@@ -254,17 +242,12 @@ FRunnableThread* FRunnableThread::Create(
 	{
 		// Create a fake thread when multithreading is disabled.
 		NewThread = new FFakeThread();
-		if (NewThread->CreateInternal(InRunnable,ThreadName,bAutoDeleteSelf,bAutoDeleteRunnable,InStackSize,InThreadPri) == false)
+		if (NewThread->CreateInternal(InRunnable,ThreadName,InStackSize,InThreadPri) == false)
 		{
 			// We failed to start the thread correctly so clean up
 			delete NewThread;
 			NewThread = NULL;
 		}
-	}
-	if (NewThread && NewThread->NotifyCreated())
-	{
-		// The thread was marked to delete itself and it already has.
-		NewThread = NULL;
 	}
 
 	if( NewThread )
@@ -316,7 +299,7 @@ protected:
 	 * The real thread entry point. It waits for work events to be queued. Once
 	 * an event is queued, it executes it and goes back to waiting.
 	 */
-	virtual uint32 Run() OVERRIDE
+	virtual uint32 Run() override
 	{
 		while (!TimeToDie)
 		{
@@ -345,6 +328,7 @@ public:
 		, TimeToDie(0)
 		, QueuedWork(NULL)
 		, OwningThreadPool(NULL)
+		, Thread(NULL)
 	{
 	}
 
@@ -368,7 +352,7 @@ public:
 
 		OwningThreadPool = InPool;
 		DoWorkEvent = FPlatformProcess::CreateSynchEvent();
-		Thread = FRunnableThread::Create( this, *PoolThreadName, false, false, InStackSize, ThreadPriority );
+		Thread = FRunnableThread::Create(this, *PoolThreadName, InStackSize, ThreadPriority, FPlatformAffinity::GetPoolThreadMask());
 		check(Thread);
 		return true;
 	}
@@ -465,7 +449,7 @@ public:
 		Destroy();
 	}
 
-	virtual bool Create(uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) OVERRIDE
+	virtual bool Create(uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) override
 	{
 		// Make sure we have synch objects
 		bool bWasSuccessful = true;
@@ -500,7 +484,7 @@ public:
 		return bWasSuccessful;
 	}
 
-	virtual void Destroy() OVERRIDE
+	virtual void Destroy() override
 	{
 		if (SynchQueue)
 		{
@@ -545,7 +529,7 @@ public:
 		}
 	}
 
-	void AddQueuedWork(FQueuedWork* InQueuedWork) OVERRIDE
+	void AddQueuedWork(FQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -581,7 +565,7 @@ public:
 		}
 	}
 
-	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) OVERRIDE
+	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -593,7 +577,7 @@ public:
 		return !!QueuedWork.RemoveSingle(InQueuedWork);
 	}
 
-	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) OVERRIDE
+	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) override
 	{
 		check(InQueuedThread != NULL);
 		FQueuedWork* Work = NULL;
@@ -626,3 +610,32 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 	return new FQueuedThreadPoolBase;
 }
 
+/*-----------------------------------------------------------------------------
+	FThreadSingletonInitializer
+-----------------------------------------------------------------------------*/
+
+FThreadSingleton* FThreadSingletonInitializer::Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot )
+{
+	check( CreateFunc != nullptr );
+	check( DestroyFunc != nullptr );
+	if( TlsSlot == 0 )
+	{
+		check( IsInGameThread() );
+		TlsSlot = FPlatformTLS::AllocTlsSlot();
+	}
+	FThreadSingleton* ThreadSingleton = (FThreadSingleton*)FPlatformTLS::GetTlsValue( TlsSlot );
+	if( !ThreadSingleton )
+	{
+		const uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
+		ThreadSingleton = (*CreateFunc)();
+		FRunnableThread::GetThreadRegistry().Lock();
+		FRunnableThread* RunnableThread = FRunnableThread::GetThreadRegistry().GetThread( ThreadId );
+		if( RunnableThread )
+		{
+			RunnableThread->OnThreadDestroyed().AddRaw( ThreadSingleton, DestroyFunc );
+		}
+		FRunnableThread::GetThreadRegistry().Unlock();
+		FPlatformTLS::SetTlsValue( TlsSlot, ThreadSingleton );
+	}
+	return ThreadSingleton;
+}

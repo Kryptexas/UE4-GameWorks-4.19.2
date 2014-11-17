@@ -14,6 +14,6 @@ class UAnimGraphNode_StateMachine : public UAnimGraphNode_StateMachineBase
 	FAnimNode_StateMachine Node;
 
 	// UAnimGraphNode_StateMachineBase interface
-	virtual FAnimNode_StateMachine& GetNode() OVERRIDE { return Node; }
+	virtual FAnimNode_StateMachine& GetNode() override { return Node; }
 	// End of UAnimGraphNode_StateMachineBase interface
 };

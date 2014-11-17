@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeRandom.h"
 
 #if WITH_EDITOR
 	#include "UnrealEd.h"

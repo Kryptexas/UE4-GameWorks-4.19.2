@@ -1079,6 +1079,21 @@ namespace AutomationTool
 			return UnrealBuildTool.UEBuildPlatform.GetBuildPlatform(Platform).CanUseXGE();
 		}
 
+		public string[] GetExternalFileList(BuildAgenda Agenda)
+		{
+			// Create the file list
+			string AdditionalArguments = "";
+			foreach (var Target in Agenda.Targets)
+			{
+				RunUBT(CmdEnv, UBTExecutable, Target.UprojectPath, Target.TargetName, Target.Platform.ToString(), Target.Config.ToString(), "-generateexternalfilelist" + AdditionalArguments + " " + Target.UBTArgs);
+				AdditionalArguments = " -mergeexternalfilelist";
+			}
+
+			// Read it in, and return the filenames as an array of strings
+			string FileListPath = CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
+			return UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames.ToArray();
+		}
+
 		/// <summary>
 		/// Executes a build.
 		/// </summary>

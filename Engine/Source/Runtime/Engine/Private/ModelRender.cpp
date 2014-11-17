@@ -6,8 +6,10 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "Model.h"
 #include "HModel.h"
-
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 namespace
 {
@@ -41,7 +43,8 @@ void FModelVertexBuffer::InitRHI()
 	if( Size > 0 )
 	{
 		// Create the buffer.
-		VertexBufferRHI = RHICreateVertexBuffer(Size,&Vertices,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&Vertices);
+		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 	}
 }
 
@@ -201,7 +204,7 @@ public:
 		return ModelHitProxy;
 	}
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE
+	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
 	{
 		// Reset any batches leftover from last frame.
 		PerViewBatches.Reset();
@@ -480,7 +483,7 @@ public:
 		return Result;
 	}
 
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return !MaterialRelevance.bDisableDepthTest;
 	}

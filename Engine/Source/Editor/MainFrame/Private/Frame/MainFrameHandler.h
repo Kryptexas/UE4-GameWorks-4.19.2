@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainFrameHandler.h: Declares the FMainFrameHandler class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -55,9 +51,8 @@ public:
 		}
 		else
 		{
-			GConfig->EmptySection(TEXT("EditorLayouts"), *GEditorUserSettingsIni);
+			GConfig->EmptySection(TEXT("EditorLayouts"), *GEditorLayoutIni);
 		}
-
 
 		// Clear the callback for destructionfrom the main tab; otherwise it will re-enter this shutdown function.
 		if ( MainTabPtr.IsValid() )
@@ -77,7 +72,7 @@ public:
 
 		// Save out any config settings for the editor so they don't get lost
 		GEditor->SaveConfig();
-		GEditorModeTools().SaveConfig();
+		GLevelEditorModeTools().SaveConfig();
 
 		// Delete user settings, if requested
 		if (FUnrealEdMisc::Get().IsDeletePreferences())
@@ -178,10 +173,10 @@ public:
 			bool bOkToExit = true;
 
 			// Check if level Mode is open this does PostEditMove processing on actors when it closes so need to do this first before save dialog
-			if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Level ) || 
-				GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_StreamingLevel) )
+			if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Level ) || 
+				GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_StreamingLevel) )
 			{
-				GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+				GLevelEditorModeTools().ActivateDefaultMode();
 				bOkToExit = false;
 			}
 
@@ -242,7 +237,7 @@ public:
 		TSharedRef<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
 		
 		// Persistent layouts should get stored using the specified method.
-		GlobalTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( &FLayoutSaveRestore::SaveTheLayout ) );
+		GlobalTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FMainFrameHandler::HandleTabManagerPersistLayout));
 		
 		const bool bIncludeGameName = true;
 		GlobalTabManager->SetApplicationTitle( StaticGetApplicationTitle( bIncludeGameName ) );
@@ -323,6 +318,13 @@ public:
 		}
 	}
 
+private:
+
+	// Callback for persisting the Level Editor's layout.
+	void HandleTabManagerPersistLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave )
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	}
 
 private:
 

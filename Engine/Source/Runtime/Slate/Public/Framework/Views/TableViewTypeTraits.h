@@ -22,6 +22,7 @@ template<typename T> struct TIsValidListItem< TWeakObjectPtr<T> >						{ enum { 
  */
 template <typename T> struct TListTypeTraits
 {
+	static_assert(TIsValidListItem<T>::Value, "Item type T must be a pointer or a TSharedPtr.");
 };
 
 
@@ -227,7 +228,7 @@ public:
 		return InPtr != NULL;
 	}
 
-	static void ResetPtr( T* InPtr )
+	static void ResetPtr( T*& InPtr )
 	{
 		InPtr = NULL;
 	}

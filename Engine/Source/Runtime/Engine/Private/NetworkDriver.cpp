@@ -7,8 +7,11 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
-#include "NavigationPathBuilder.h"
+#include "Engine/ActorChannel.h"
+#include "Engine/VoiceChannel.h"
+#include "GameFramework/GameNetworkManager.h"
 #include "OnlineSubsystemUtils.h"
+#include "NetworkingDistanceConstants.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
@@ -55,6 +58,35 @@ DEFINE_STAT(STAT_PercentOutVoice);
 #define DEBUG_REMOTEFUNCTION(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
 #endif
 
+// CVars
+static TAutoConsoleVariable<int32> CVarSetNetDormancyEnabled(
+	TEXT("net.DormancyEnable"),
+	1,
+	TEXT("Enables Network Dormancy System for reducing CPU and bandwidth overhead of infrequently updated actors\n")
+	TEXT("1 Enables network dormancy. 0 disables network dormancy."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetDormancyDraw(
+	TEXT("net.DormancyDraw"),
+	0,
+	TEXT("Draws debug information for network dormancy\n")
+	TEXT("1 Enables network dormancy debugging. 0 disables."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarNetDormancyDrawCullDistance(
+	TEXT("net.DormancyDrawCullDistance"),
+	5000.f,
+	TEXT("Cull distance for net.DormancyDraw. World Units")
+	TEXT("Max world units an actor can be away from the local view to draw its dormancy status"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
+	TEXT("net.DormancyValidate"),
+	0,
+	TEXT("Validates that dormant actors do not change state while in a dormant state (on server only)")
+	TEXT("0: Dont validate. 1: Validate on wake up. 2: Validate on each net update"),
+	ECVF_Default);
+
 /*-----------------------------------------------------------------------------
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
@@ -96,11 +128,13 @@ void UNetDriver::PostInitProperties()
 		PacketSimulationSettings.RegisterCommands();
 		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
 #endif
-		RoleProperty       = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
-		RemoteRoleProperty = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
+		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
+		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
-		MasterMap          = new UPackageMap(FPostConstructInitializeProperties(), FNetObjectIsDynamic::CreateUObject(this, &UNetDriver::NetObjectIsDynamic));
-		ProfileStats	   = FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
+		GuidCache			= TSharedPtr< FNetGUIDCache >( new FNetGUIDCache( this ) );
+		NetCache			= TSharedPtr< FClassNetCacheMgr >( new FClassNetCacheMgr() );
+
+		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
 	}
 	// By default we're the game net driver and any child ones must override this
 	NetDriverName = NAME_GameNetDriver;
@@ -291,9 +325,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		ClientConnections[i]->Tick();
 	}
 
-	
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyDraw"));
-	if (CVar && CVar->GetValueOnGameThread() > 0)
+	if (CVarNetDormancyDraw.GetValueOnGameThread() > 0)
 	{
 		DrawNetDriverDebug();
 	}
@@ -612,7 +644,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	UObject * TargetObj = SubObject ? SubObject : Actor;
 
 	// Make sure this function exists for both parties.
-	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( TargetObj->GetClass() );
+	FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
 	if (!ClassCache)
 	{
 		DEBUG_REMOTEFUNCTION(TEXT("ClassNetCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
@@ -958,7 +990,7 @@ void UNetDriver::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	// Prevent referenced objects from being garbage collected.
-	Ar << ClientConnections << ServerConnection << MasterMap << RoleProperty << RemoteRoleProperty;
+	Ar << ClientConnections << ServerConnection << RoleProperty << RemoteRoleProperty;
 
 	if (Ar.IsCountingMemory())
 	{
@@ -983,14 +1015,14 @@ void UNetDriver::FinishDestroy()
 		// Low level destroy.
 		LowLevelDestroy();
 
-		// Delete the master package map.
-		MasterMap = NULL;
+		// Delete the guid cache
+		GuidCache.Reset();
 	}
 	else
 	{
 		check(ServerConnection==NULL);
 		check(ClientConnections.Num()==0);
-		check(MasterMap==NULL);
+		check(!GuidCache.IsValid());
 	}
 	Super::FinishDestroy();
 }
@@ -1141,8 +1173,6 @@ bool UNetDriver::HandleNetDisconnectCommand( const TCHAR* Cmd, FOutputDevice& Ar
 bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if WITH_SERVER_CODE
-	UPackageMap * PackageMap = new( this )UPackageMap( FPostConstructInitializeProperties(), MasterMap->ObjectIsDynamicDelegate );
-
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		bool bHasNetFields = false;
@@ -1171,7 +1201,7 @@ bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice&
 
 			if ( Function != NULL && Function->FunctionFlags & FUNC_NetServer )
 			{
-				FClassNetCache * ClassCache = PackageMap->GetClassNetCache( *ClassIt );
+				FClassNetCache * ClassCache = NetCache->GetClassNetCache( *ClassIt );
 
 				FFieldNetCache * FieldCache = ClassCache->GetFromField( Function );
 
@@ -1282,7 +1312,8 @@ FActorDestructionInfo *	CreateDestructionInfo( UNetDriver * NetDriver, AActor* T
 	if (DestructionInfo)
 		return DestructionInfo;
 
-	FNetworkGUID NetGUID = NetDriver->MasterMap->GetObjectNetGUID(ThisActor);
+	FNetworkGUID NetGUID = NetDriver->GuidCache->GetOrAssignNetGUID( ThisActor );
+
 	FActorDestructionInfo &NewInfo = NetDriver->DestroyedStartupOrDormantActors.FindOrAdd( NetGUID );
 	NewInfo.DestroyedPosition = ThisActor->GetActorLocation();
 	NewInfo.NetGUID = NetGUID;
@@ -1322,7 +1353,7 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 	const bool bIsServer = ServerConnection == NULL;
 	if (bIsServer)
 	{
-		const bool bIsActorStatic = MasterMap->GetObjectNetGUID(ThisActor).IsStatic();
+		const bool bIsActorStatic = !GuidCache->IsDynamicObject( ThisActor );
 		const bool bActorHasRole = ThisActor->GetRemoteRole() != ROLE_None;
 		const bool ShouldCreateDestructionInfo = bIsServer && bIsActorStatic && bActorHasRole && !IsSeamlessTravel;
 
@@ -1445,8 +1476,7 @@ void UNetDriver::FlushActorDormancy(AActor * Actor)
 	// way too, since we dont have to check every dormant actor in ::ServerReplicateActor to see if it needs to go out of dormancy
 
 #if WITH_SERVER_CODE
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyEnable"));
-	if (CVar && CVar->GetValueOnGameThread() == 0)
+	if (CVarSetNetDormancyEnabled.GetValueOnGameThread() == 0)
 		return;
 
 	check(Actor);
@@ -2122,16 +2152,14 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
 
 					// Skip Actor if dormant
-					static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyEnable"));
-					if ( !CVar || CVar->GetValueOnGameThread() == 1 )
+					if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() == 1 )
 					{
 						// If actor is already dormant on this channel, then skip replication entirely
 						if ( Connection->DormantActors.Contains( Actor ) )
 						{
 							// net.DormancyValidate can be set to 2 to validate dormant actor properties on every replicate
 							// (this could be moved to be done every tick instead of every net update if necessary, but seems excessive)
-							static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
-							if ( ValidateCVar && ValidateCVar->GetValueOnGameThread() == 2 )
+							if ( CVarNetDormancyValidate.GetValueOnGameThread() == 2 )
 							{
 								TSharedRef< FObjectReplicator > * Replicator = Connection->DormantReplicatorMap.Find( Actor );
 
@@ -2355,8 +2383,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							// we can't create the channel if the client is in a different world than we are
 							// or the package map doesn't support the actor's class/archetype (or the actor itself in the case of serializable actors)
 							// or it's an editor placed actor and the client hasn't initialized the level it's in
-							if ( Channel == NULL && Connection->PackageMap->SupportsObject(Actor->GetClass()) &&
-									Connection->PackageMap->SupportsObject(Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype()) )
+							if ( Channel == NULL && GuidCache->SupportsObject(Actor->GetClass()) &&
+									GuidCache->SupportsObject(Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype()) )
 							{
 								if (bLevelInitializedForActor)
 								{
@@ -2603,8 +2631,7 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("net.DormancyDrawCullDistance"));
-	const float CullDist = CVar ? CVar->GetValueOnGameThread() : 5000.f;
+	const float CullDist = CVarNetDormancyDrawCullDistance.GetValueOnGameThread();
 
 	for (FActorIterator It(GetWorld()); It; ++It)
 	{
@@ -2828,40 +2855,6 @@ bool UNetDriver::VerifyPackageInfo(FPackageInfo& Info)
 	return true;
 }
 
-void UNetDriver::ResetPackageMaps()
-{
-	if (MasterMap)
-	{
-		MasterMap->ResetPackageMap();
-	}
-
-	if (ServerConnection && ServerConnection->PackageMap)
-	{
-		ServerConnection->PackageMap->ResetPackageMap();
-	}
-
-	for (auto It = ClientConnections.CreateIterator(); It; ++It)
-	{
-		UNetConnection *connection = *It;
-		if (connection->PackageMap)
-		{
-			connection->PackageMap->ResetPackageMap();
-		}
-	}
-}
-
-void UNetDriver::LockPackageMaps()
-{
-	for (auto It = ClientConnections.CreateIterator(); It; ++It)
-	{
-		UNetConnection *connection = *It;
-		if (connection->PackageMap)
-		{
-			connection->PackageMap->SetLocked(true);
-		}
-	}
-}
-
 void UNetDriver::SetWorld(class UWorld* InWorld)
 {
 	if (World)
@@ -2884,6 +2877,12 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 void UNetDriver::ResetGameWorldState()
 {
 	DestroyedStartupOrDormantActors.Empty();
+
+	if ( NetCache.IsValid() )
+	{
+		NetCache->ClearClassNetCache();	// Clear the cache net: it will recreate itself after seamless travel
+	}
+
 	if (ServerConnection)
 	{
 		ServerConnection->ResetGameWorldState();
@@ -2896,13 +2895,10 @@ void UNetDriver::ResetGameWorldState()
 
 void UNetDriver::CleanPackageMaps()
 {
-	if (MasterMap)
-	{
-		MasterMap->CleanPackageMap();
-	}
-	if (ServerConnection && ServerConnection->PackageMap)
-	{
-		ServerConnection->PackageMap->CleanPackageMap();
+	if ( IsServer() && GuidCache.IsValid()  )
+	{ 
+		// Only the server makes this call initially, client will call when the GuidSequence increments on their end
+		GuidCache->CleanReferences();
 	}
 }
 

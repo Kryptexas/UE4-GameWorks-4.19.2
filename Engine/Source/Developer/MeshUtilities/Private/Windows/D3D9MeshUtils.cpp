@@ -58,7 +58,7 @@ FD3D9MeshUtilities::FD3D9MeshUtilities()
 
 	RegisterClassExW(&wc);
 
-	DummyWindowHandle = CreateWindowExW(NULL, wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 0, 0, 100, 100, NULL, NULL, wc.hInstance, NULL);
+	DummyWindowHandle = CreateWindowExW(0, wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 0, 0, 100, 100, NULL, NULL, wc.hInstance, NULL);
 
 	D3DPRESENT_PARAMETERS d3dpp;
 

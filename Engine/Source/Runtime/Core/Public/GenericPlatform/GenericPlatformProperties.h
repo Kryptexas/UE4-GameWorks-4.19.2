@@ -17,16 +17,6 @@
 struct FGenericPlatformProperties
 {
 	/**
-	 * Gets the platform's user friendly display name.
-	 *
-	 * @return The display name string.
-	 */
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "";
-	}
-
-	/**
 	 * Gets the platform's physics format.
 	 *
 	 * @return The physics format name.
@@ -200,6 +190,14 @@ struct FGenericPlatformProperties
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
 		return false;
+	}
+
+	/**
+	 * Whether this platform wants to allow framerate smoothing or not.
+	 */
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
 	}
 
 	static FORCEINLINE bool SupportsHighQualityLightmaps()

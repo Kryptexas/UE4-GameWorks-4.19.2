@@ -2,11 +2,13 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLandscapeLayerBlend.generated.h"
 
 UENUM()
 enum ELandscapeLayerBlendType
 {
+	LB_WeightBlend,
 	LB_AlphaBlend,
 	LB_HeightBlend,
 	LB_MAX,
@@ -63,22 +65,23 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 
 
 	// Begin UObject Interface
+	void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
 #endif
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual const TArray<FExpressionInput*> GetInputs() OVERRIDE;
-	virtual FExpressionInput* GetInput(int32 InputIndex) OVERRIDE;
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
-	virtual UTexture* GetReferencedTexture() OVERRIDE;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual const TArray<FExpressionInput*> GetInputs() override;
+	virtual FExpressionInput* GetInput(int32 InputIndex) override;
+	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual UTexture* GetReferencedTexture() override;
 	// End UMaterialExpression Interface
 
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}

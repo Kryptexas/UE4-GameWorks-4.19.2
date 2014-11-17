@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Photon.cpp: Static lighting photon mapping implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightingSystem.h"
 #include "MonteCarlo.h"
@@ -257,7 +253,7 @@ void FStaticLightingSystem::EmitDirectPhotons(
 	{
 		FDirectPhotonEmittingThreadRunnable* ThreadRunnable = new(DirectPhotonEmittingThreads) FDirectPhotonEmittingThreadRunnable(this, ThreadIndex, Input);
 		const FString ThreadName = FString::Printf(TEXT("DirectPhotonEmittingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 
 	const double StartEmittingDirectPhotonsMainThread = FPlatformTime::Seconds();
@@ -692,7 +688,7 @@ void FStaticLightingSystem::EmitIndirectPhotons(
 	{
 		FIndirectPhotonEmittingThreadRunnable* ThreadRunnable = new(IndirectPhotonEmittingThreads) FIndirectPhotonEmittingThreadRunnable(this, ThreadIndex, Input);
 		const FString ThreadName = FString::Printf(TEXT("IndirectPhotonEmittingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 
 	const double StartEmittingIndirectPhotonsMainThread = FPlatformTime::Seconds();
@@ -1135,7 +1131,7 @@ void FStaticLightingSystem::MarkIrradiancePhotons(const FBoxSphereBounds& Import
 	{
 		FIrradiancePhotonMarkingThreadRunnable* ThreadRunnable = new(IrradiancePhotonMarkingThreads) FIrradiancePhotonMarkingThreadRunnable(this, ThreadIndex, IrradiancePhotons);
 		const FString ThreadName = FString::Printf(TEXT("IrradiancePhotonMarkingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 
 	const double MainThreadStartTime = FPlatformTime::Seconds();
@@ -1299,7 +1295,7 @@ void FStaticLightingSystem::CalculateIrradiancePhotons(const FBoxSphereBounds& I
 	{
 		FIrradiancePhotonCalculatingThreadRunnable* ThreadRunnable = new(IrradiancePhotonThreads) FIrradiancePhotonCalculatingThreadRunnable(this, ThreadIndex, IrradiancePhotons);
 		const FString ThreadName = FString::Printf(TEXT("IrradiancePhotonCalculatingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 
 	const double MainThreadStartTime = FPlatformTime::Seconds();
@@ -1498,7 +1494,7 @@ void FStaticLightingSystem::CacheIrradiancePhotons()
 	{
 		FMappingProcessingThreadRunnable* ThreadRunnable = new(IrradiancePhotonCachingThreads) FMappingProcessingThreadRunnable(this, ThreadIndex, StaticLightingTask_CacheIrradiancePhotons);
 		const FString ThreadName = FString::Printf(TEXT("IrradiancePhotonCachingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 
 	// Start the static lighting thread loop on the main thread, too.

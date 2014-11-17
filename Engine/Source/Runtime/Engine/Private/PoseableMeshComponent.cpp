@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "AnimTree.h"
+#include "Animation/AnimInstance.h"
 
 UPoseableMeshComponent::UPoseableMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -41,7 +43,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 	return false;
 }
 
-void UPoseableMeshComponent::RefreshBoneTransforms()
+void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
 

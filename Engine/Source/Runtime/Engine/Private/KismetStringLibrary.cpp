@@ -81,6 +81,11 @@ FString UKismetStringLibrary::Conv_RotatorToString(FRotator InRot)
 	return InRot.ToString();	
 }
 
+FString UKismetStringLibrary::Conv_TransformToString(const FTransform& InTrans)
+{
+	return FString::Printf(TEXT("Translation: %s Rotation: %s Scale %s"), *InTrans.GetTranslation().ToString(), *InTrans.Rotator().ToString(), *InTrans.GetScale3D().ToString());
+}
+
 FString UKismetStringLibrary::Conv_ObjectToString(class UObject* InObj)
 {
 	return (InObj != NULL) ? InObj->GetName() : FString(TEXT("None"));
@@ -251,6 +256,14 @@ FString UKismetStringLibrary::GetSubstring(const FString& SourceString, int32 St
 	return SourceString.Mid(StartIndex, Length);
 }
 
+int32 UKismetStringLibrary::FindSubstring(const FString& SearchIn, const FString& Substring, bool bUseCase, bool bSearchFromEnd, int32 StartPosition)
+{
+	ESearchCase::Type Case = bUseCase ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase;
+	ESearchDir::Type Dir = bSearchFromEnd ? ESearchDir::FromEnd : ESearchDir::FromStart;
+
+	return SearchIn.Find(Substring, Case, Dir, StartPosition);
+}
+
 int32 UKismetStringLibrary::GetCharacterAsNumber(const FString& SourceString, int32 Index)
 {
 	if ((Index >= 0) && (Index < SourceString.Len()))
@@ -269,4 +282,23 @@ TArray<FString> UKismetStringLibrary::ParseIntoArray(const FString& SourceString
 	TArray<FString> SeparatedStrings;
 	const int32 nArraySize = SourceString.ParseIntoArray(&SeparatedStrings, *Delimiter, CullEmptyStrings);
 	return SeparatedStrings;
+}
+
+TArray<FString> UKismetStringLibrary::GetCharacterArrayFromString(const FString& SourceString)
+{
+	TArray<FString> SeparatedChars;
+
+	if (!SourceString.IsEmpty())
+	{
+		for (auto CharIt(SourceString.CreateConstIterator()); CharIt; ++CharIt)
+		{
+			TCHAR Char = *CharIt;
+			SeparatedChars.Add(FString(1, &Char));
+		}
+
+		// Remove the null terminator on the end
+		SeparatedChars.RemoveAt(SeparatedChars.Num() - 1, 1);
+	}
+
+	return SeparatedChars;
 }

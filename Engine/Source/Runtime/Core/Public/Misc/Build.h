@@ -205,7 +205,7 @@
 		#define NO_LOGGING									0
 	#else
 		#define DO_GUARD_SLOW								0
-#define DO_CHECK											USE_CHECKS_IN_SHIPPING
+		#define DO_CHECK									USE_CHECKS_IN_SHIPPING
 		#define STATS										0
 		#define ALLOW_DEBUG_FILES							0
 		#define NO_LOGGING									!USE_LOGGING_IN_SHIPPING
@@ -232,3 +232,6 @@
 #ifndef LOOKING_FOR_PERF_ISSUES
 	#define LOOKING_FOR_PERF_ISSUES (0 && !(UE_BUILD_SHIPPING))
 #endif
+
+/** Enable the use of the network profiler as long as we are a build that includes stats */
+#define USE_NETWORK_PROFILER         STATS

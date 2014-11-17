@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 
 #if WITH_SUBSTEPPING
 
@@ -63,6 +64,24 @@ void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform
 		TargetState.KinematicTarget = KinmaticTarget;
 	}
 #endif
+}
+
+bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance * Body, FTransform & OutTM) const
+{
+#if WITH_PHYSX
+	const PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
+	SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+	if (const FPhysTarget * TargetState = PhysTargetBuffers[External].Find(Body))
+	{
+		if (TargetState->bKinematicTarget)
+		{
+			OutTM = TargetState->KinematicTarget.TargetTM;
+			return true;
+		}
+	}
+#endif
+
+	return false;
 }
 
 void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
@@ -163,11 +182,11 @@ void FPhysSubstepTask::ApplyTorques(const FPhysTarget & PhysTarget, FBodyInstanc
 }
 
 /** Interpolates kinematic actor transform - Assumes caller has obtained writer lock */
-void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance, float Alpha)
+void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance, float InAlpha)
 {
 #if WITH_PHYSX
 	PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic();
-	Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
+	InAlpha = FMath::Clamp(InAlpha, 0.f, 1.f);
 
 	/** Interpolate kinematic actors */
 	if (PhysTarget.bKinematicTarget)
@@ -180,8 +199,8 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 			const FTransform & StartTM = KinematicTarget.OriginalTM;
 			FTransform InterTM = FTransform::Identity;
 
-			InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), Alpha));
-			InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), Alpha));
+			InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), InAlpha));
+			InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), InAlpha));
 
 			const PxTransform PNewPose = U2PTransform(InterTM);
 			check(PNewPose.isValid());
@@ -191,7 +210,7 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 #endif
 }
 
-void FPhysSubstepTask::SubstepInterpolation(float Alpha)
+void FPhysSubstepTask::SubstepInterpolation(float InAlpha)
 {
 #if WITH_PHYSX
 #if WITH_APEX
@@ -221,11 +240,11 @@ void FPhysSubstepTask::SubstepInterpolation(float Alpha)
 
 		ApplyForces(PhysTarget, BodyInstance);
 		ApplyTorques(PhysTarget, BodyInstance);
-		InterpolateKinematicActor(PhysTarget, BodyInstance, Alpha);
+		InterpolateKinematicActor(PhysTarget, BodyInstance, InAlpha);
 	}
 
 	/** Final substep */
-	if (Alpha >= 1.f)
+	if (InAlpha >= 1.f)
 	{
 		Targets.Empty(Targets.Num());
 	}
@@ -296,10 +315,12 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	float DeltaTime = bLastSubstep ? (DeltaSeconds - TotalSubTime) : SubTime;
 	float Interpolation = bLastSubstep ? 1.f : Alpha;
 
+#if WITH_VEHICLE
 	if (VehicleManager)
 	{
 		VehicleManager->Update(DeltaTime);
 	}
+#endif
 
 	SubstepInterpolation(Interpolation);
 

@@ -168,7 +168,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.AutoWidth()
 							[
 								SAssignNew(Autoconnect, SCheckBox)
-								.IsChecked( TBSettings.bAutoConnectAtStartup )
+								.IsChecked( TBSettings.bAutoConnectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
 							]
 							+SHorizontalBox::Slot()
 							.AutoWidth()
@@ -183,7 +183,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.AutoWidth()
 							[
 								SAssignNew(SingleSignOn, SCheckBox)
-								.IsChecked( TBSettings.bUseSingleSignOn )
+								.IsChecked( TBSettings.bUseSingleSignOn ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
 								.OnCheckStateChanged( this, &STaskSettings::OnSingleSignOnChanged )
 							]
 							+SHorizontalBox::Slot()

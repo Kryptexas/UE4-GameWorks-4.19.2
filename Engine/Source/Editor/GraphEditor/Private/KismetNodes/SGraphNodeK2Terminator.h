@@ -15,7 +15,7 @@ public:
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const;
 
 protected:
-	virtual void UpdateGraphNode() OVERRIDE;
+	virtual void UpdateGraphNode() override;
 };
 
 #endif // __SGraphNodeK2Terminator_h__

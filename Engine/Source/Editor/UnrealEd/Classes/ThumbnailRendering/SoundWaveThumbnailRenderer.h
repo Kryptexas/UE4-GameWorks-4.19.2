@@ -14,7 +14,7 @@ class USoundWaveThumbnailRenderer : public UThumbnailRenderer
 	GENERATED_UCLASS_BODY()
 
 	// Begin UThumbnailRenderer Object
-	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas) override;
 	// End UThumbnailRenderer Object
 };
 

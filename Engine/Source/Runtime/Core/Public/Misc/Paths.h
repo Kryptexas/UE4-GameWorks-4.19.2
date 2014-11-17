@@ -198,6 +198,11 @@ public:
 	static FString AutomationTransientDir();
 
 	/**
+	* @return The directory for automation log files.
+	*/
+	static FString AutomationLogDir();
+
+	/**
 	 * @return The directory for local files used in cloud emulation or support
 	 */
 	static FString CloudDir();

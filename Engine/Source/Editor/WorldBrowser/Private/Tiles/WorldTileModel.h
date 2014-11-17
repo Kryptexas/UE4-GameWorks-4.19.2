@@ -1,8 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "Landscape/LandscapeProxy.h"
 
 class FWorldTileCollectionModel;
 class UWorldTileDetails;
+
 //
 typedef TArray<TSharedPtr<class FWorldTileModel>> FWorldTileModelList;
 
@@ -28,7 +32,8 @@ public:
 		XNegative,
 		YNegative,
 		XPositive,
-		YPositive
+		YPositive,
+		Any
 	};
 
 	/**
@@ -63,26 +68,22 @@ public:
 
 public:
 	// FLevelModel interface
-	virtual UObject* GetNodeObject() OVERRIDE;
-	virtual ULevel* GetLevelObject() const OVERRIDE;
-	virtual FName GetAssetName() const OVERRIDE;
-	virtual FName GetLongPackageName() const OVERRIDE;
-	virtual void Update() OVERRIDE;
-	virtual void LoadLevel() OVERRIDE;
-	virtual void SetVisible(bool bVisible) OVERRIDE;
-	virtual bool HitTest2D(const FVector2D& Point) const OVERRIDE;
-	virtual FVector2D GetLevelPosition2D() const OVERRIDE;
-	virtual FVector2D GetLevelSize2D() const OVERRIDE;
-	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
-	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
-	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const OVERRIDE;
-	virtual void OnLevelAddedToWorld(ULevel* InLevel) OVERRIDE;
-	virtual void OnLevelRemovedFromWorld() OVERRIDE;
-	virtual void OnParentChanged() OVERRIDE;
+	virtual UObject* GetNodeObject() override;
+	virtual ULevel* GetLevelObject() const override;
+	virtual FName GetAssetName() const override;
+	virtual FName GetLongPackageName() const override;
+	virtual void Update() override;
+	virtual void LoadLevel() override;
+	virtual void SetVisible(bool bVisible) override;
+	virtual bool HitTest2D(const FVector2D& Point) const override;
+	virtual FVector2D GetLevelPosition2D() const override;
+	virtual FVector2D GetLevelSize2D() const override;
+	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;
+	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const override;
+	virtual void OnLevelAddedToWorld(ULevel* InLevel) override;
+	virtual void OnLevelRemovedFromWorld() override;
+	virtual void OnParentChanged() override;
 	// FLevelModel interface end
-		
-	/** @return The landscape actor in case this level is landscape based */
-	ALandscapeProxy* GetLandcape() const;
 	
 	/** Adds new streaming level*/
 	void AddStreamingLevel(UClass* InStreamingClass, const FName& InPackageName);
@@ -107,9 +108,15 @@ public:
 
 	/** Whether this level landscape based or not */
 	bool IsLandscapeBased() const;
-	
+
+	/** Whether this level based on tiled landscape or not */
+	bool IsTiledLandscapeBased() const;
+		
 	/** Whether this level has ALandscapeProxy or not */
 	bool IsLandscapeProxy() const;
+
+	/** @return The landscape actor in case this level is landscape based */
+	ALandscapeProxy* GetLandscape() const;
 	
 	/** Whether this level in provided layers list */
 	bool IsInLayersList(const TArray<FWorldTileLayer>& InLayerList) const;
@@ -171,21 +178,12 @@ private:
 	
 	/** Handler for ParentPackageName event from Tile details object  */
 	void OnParentPackageNamePropertyChanged();
-	
-	/** Handler for StreamingLevels event from Tile details object  */
-	void OnStreamingLevelsPropertyChanged();
-	
+
 	/** Handler for LOD settings changes event from Tile details object  */
 	void OnLODSettingsPropertyChanged();
 	
 	/** Handler for ZOrder chnages event from Tile details object  */
 	void OnZOrderPropertyChanged();
-	
-	/** Tile tooltips support */
-	FText GetPositionText() const;
-	FText GetBoundsExtentText() const;
-	FText GetLevelLayerNameText() const;
-	FText GetLevelLayerDistanceText() const;
 	
 public:
 	/** This tile index in world composition tile list */

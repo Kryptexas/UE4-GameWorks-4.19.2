@@ -8,10 +8,19 @@
 #include "SCascadeEmitterCanvas.h"
 #include "CascadeEmitterCanvasClient.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
 
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
-	: CascadePtr(InCascade)
+	: FEditorViewportClient(GLevelEditorModeTools())
+	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, EmitterWidth(180)
 	, EmitterCollapsedWidth(18)
@@ -111,8 +120,10 @@ FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCa
 	check(IconTex[Icon_RenderPoint]);
 	IconTex[Icon_RenderNone] = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_None.CASC_None"), NULL, LOAD_None, NULL);
 	check(IconTex[Icon_RenderNone]);
+	IconTex[Icon_RenderLights] = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_Lights.CASC_Lights"), NULL, LOAD_None, NULL);
+	check(IconTex[Icon_RenderLights]);
 	IconTex[Icon_CurveEdit] = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_CurveEd.CASC_CurveEd"), NULL, LOAD_None, NULL);
-	check(IconTex[Icon_CurveEdit]);
+	check(IconTex[Icon_RenderLights]);
 	IconTex[Icon_3DDrawEnabled] = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_ModuleEnable.CASC_ModuleEnable"), NULL, LOAD_None, NULL);
 	check(IconTex[Icon_3DDrawEnabled]);
 	IconTex[Icon_3DDrawDisabled] = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_ModuleDisable.CASC_ModuleDisable"), NULL, LOAD_None, NULL);
@@ -296,8 +307,9 @@ bool FCascadeEmitterCanvasClient::InputKey(FViewport* Viewport, int32 Controller
 						{
 						case ERM_Normal:	DrawMode	= ERM_Point;	break;
 						case ERM_Point:		DrawMode	= ERM_Cross;	break;
-						case ERM_Cross:		DrawMode	= ERM_None;		break;
-						case ERM_None:		DrawMode	= ERM_Normal;	break;
+						case ERM_Cross:		DrawMode	= ERM_LightsOnly;		break;
+						case ERM_LightsOnly:		DrawMode = ERM_None;		break;
+						case ERM_None:		DrawMode = ERM_Normal;	break;
 						}
 						CascadePtr.Pin()->SetSelectedEmitter(Emitter);
 						UParticleLODLevel* LODLevel = CascadePtr.Pin()->GetCurrentlySelectedLODLevel(Emitter);
@@ -1132,6 +1144,9 @@ void FCascadeEmitterCanvasClient::DrawHeaderBlock(int32 Index, int32 XPos, UPart
 		break;
 	case ERM_Cross:
 		IconTxtr	= GetIconTexture(Icon_RenderCross);
+		break;
+	case ERM_LightsOnly:
+		IconTxtr = GetIconTexture(Icon_RenderLights);
 		break;
 	case ERM_None:
 		IconTxtr	= GetIconTexture(Icon_RenderNone);

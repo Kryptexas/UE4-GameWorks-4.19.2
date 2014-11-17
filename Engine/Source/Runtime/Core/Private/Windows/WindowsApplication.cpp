@@ -61,6 +61,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	const bool bClassRegistered = RegisterClass( InstanceHandle, IconHandle );
 
 	// Initialize OLE for Drag and Drop support.
+	CA_SUPPRESS(6031);
 	OleInitialize( NULL );
 
 	TextInputMethodSystem = MakeShareable( new FWindowsTextInputMethodSystem );
@@ -103,7 +104,10 @@ bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON 
 
 FWindowsApplication::~FWindowsApplication()
 {
-	TextInputMethodSystem->Terminate();
+	if (TextInputMethodSystem.IsValid())
+	{
+		TextInputMethodSystem->Terminate();
+	}
 
 	::CoUninitialize();
 	OleUninitialize();
@@ -156,7 +160,7 @@ void FWindowsApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWind
 	}
 	else
 	{
-		::SetCapture( NULL );
+		::ReleaseCapture();
 	}
 }
 
@@ -410,13 +414,16 @@ void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics 
 
 	// Get the screen rect of the primary monitor, excluding taskbar etc.
 	RECT WorkAreaRect;
-	WorkAreaRect.top = WorkAreaRect.bottom = WorkAreaRect.left = WorkAreaRect.right = 0;
-	SystemParametersInfo( SPI_GETWORKAREA, 0, &WorkAreaRect, 0 );
+	if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &WorkAreaRect, 0))
+	{
+		WorkAreaRect.top = WorkAreaRect.bottom = WorkAreaRect.left = WorkAreaRect.right = 0;
+	}
+
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = WorkAreaRect.left;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = WorkAreaRect.top;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = WorkAreaRect.right;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = WorkAreaRect.bottom;
-
+	
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
 	OutDisplayMetrics.VirtualDisplayRect.Top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );
@@ -430,6 +437,27 @@ void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics 
 void FWindowsApplication::GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
 {
 	OutDisplayMetrics = InitialDisplayMetrics;
+}
+
+EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
+{
+	OSVERSIONINFOEX VersionInfo;
+	FMemory::MemZero(VersionInfo);
+	VersionInfo.dwMajorVersion = 6;
+	VersionInfo.dwMinorVersion = 2;
+	VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+
+	DWORDLONG LongConditionMask = 0;
+	int ConditionMask = VER_GREATER_EQUAL;
+	VER_SET_CONDITION(LongConditionMask, VER_MAJORVERSION, ConditionMask);
+	VER_SET_CONDITION(LongConditionMask, VER_MINORVERSION, ConditionMask);
+
+	if (::VerifyVersionInfo(&VersionInfo, VER_MAJORVERSION | VER_MINORVERSION, LongConditionMask) != 0)
+	{
+		return EWindowTitleAlignment::Center;
+	}		
+
+	return EWindowTitleAlignment::Left;
 }
 
 void FWindowsApplication::DestroyApplication()
@@ -1533,10 +1561,7 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
 		{
 			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
-			if ( Device.IsValid() )
-			{
-				ExternalInputDevices.Add(Device);
-			}
+			AddExternalInputDevice(Device);			
 		}
 
 		bHasLoadedInputPlugins = true;
@@ -1568,6 +1593,14 @@ void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeed
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
 		(*DeviceIt)->SetChannelValues(ControllerId, Values);
+	}
+}
+
+void FWindowsApplication::AddExternalInputDevice(TSharedPtr<IInputDevice> InputDevice)
+{
+	if (InputDevice.IsValid())
+	{
+		ExternalInputDevices.Add(InputDevice);
 	}
 }
 

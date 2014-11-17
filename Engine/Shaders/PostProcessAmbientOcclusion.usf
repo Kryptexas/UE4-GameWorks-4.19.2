@@ -558,7 +558,7 @@ void BasePassAOPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 	float StaticFraction = ScreenSpaceAOandSSRShaderParams[3].z;
 
 	// can be optimized
-	float AOMask = (ScreenSpaceData.GBuffer.LightingModelId != LIGHTINGMODELID_UNLIT);
+	float AOMask = (ScreenSpaceData.GBuffer.ShadingModelID != SHADINGMODELID_UNLIT);
 
 	OutColor = lerp(1.0f, ScreenSpaceData.AmbientOcclusion * ScreenSpaceData.GBuffer.GBufferAO, AOMask * StaticFraction);
 }

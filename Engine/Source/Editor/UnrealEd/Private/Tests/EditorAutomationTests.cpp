@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "Tests/AutomationTestSettings.h"
 #include "ObjectTools.h"
 #include "Json.h"
 #include "AssetRegistryModule.h"
@@ -11,6 +12,7 @@
 #include "ScopedTransaction.h"
 #include "LevelEditor.h"
 #include "ModuleManager.h"
+#include "MainFrame.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -18,6 +20,8 @@
 
 #include "SlateWordWrapper.h"
 #include "AutomationCommon.h"
+#include "AutomationEditorCommon.h"
+
 
 //DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
 
@@ -77,6 +81,79 @@ bool FCloseAllAssetEditorsCommand::Update()
 	FAssetEditorManager::Get().CloseAllAssetEditors();
 
 	return true;
+}
+
+/**
+* Change the attributes for a point light in the level.
+*/
+struct PointLightParameters
+{
+	APointLight* PointLight;
+	float LightBrightness;
+	float LightRadius;
+	FVector LightLocation;
+	FColor LightColor;
+	PointLightParameters()
+		: PointLight(nullptr)
+		, LightBrightness(5000.0f)
+		, LightRadius(1000.0f)
+		, LightLocation(FVector(0.0f, 0.0f, 0.0f))
+		, LightColor(FColor(255, 255, 255))
+	{
+	}
+};
+
+//Updates the properties of a specified point light.
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(PointLightUpdateCommand, PointLightParameters, PointLightUsing);
+
+bool PointLightUpdateCommand::Update()
+{
+	//Set the point light mobility, brightness, radius, and light color.
+	PointLightUsing.PointLight->SetMobility(EComponentMobility::Movable);
+	PointLightUsing.PointLight->SetBrightness(PointLightUsing.LightBrightness);
+	PointLightUsing.PointLight->SetLightColor(PointLightUsing.LightColor);
+	PointLightUsing.PointLight->TeleportTo(PointLightUsing.LightLocation, FRotator(0, 0, 0));
+	PointLightUsing.PointLight->SetRadius(PointLightUsing.LightRadius);
+	return true;
+}
+
+/**
+* Duplicates a point light.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(PointLightDuplicationCommand, PointLightParameters, PointLightDuplicating);
+
+bool PointLightDuplicationCommand::Update()
+{
+
+	FScopedTransaction DuplicateLightScope(NSLOCTEXT("UnrealEd.Test", "DuplicateLightScope", "Duplicate Light Scope"));
+
+	//Duplicate the light.
+	bool bOffsetLocations = false;
+	GEditor->edactDuplicateSelected(PointLightDuplicating.PointLight->GetLevel(), bOffsetLocations);
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = static_cast<AActor*>(*It);
+		Actor->TeleportTo(FVector(PointLightDuplicating.LightLocation), FRotator(0, 0, 0));
+	}
+	return true;
+}
+
+/**
+* This will then take a screenshot of the editor, only if it has been enabled.
+*/
+void TakeLatentAutomationScreenshot(struct WindowScreenshotParameters ScreenshotParameters, FString BaseFileName, FString ScreenshotTitle, FString ScreenshotFolderName, bool bIncludeHardwareDetails)
+{
+	//Update the screenshot name, then take a screenshot.
+	if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
+	{
+		//Update the screenshot name and get the location of where it will be saved.
+		ScreenshotParameters.ScreenshotName = TEXT("ScreenshotTitle");
+		FString TestName = FString::Printf(TEXT("%s/%s"), *BaseFileName, *ScreenshotFolderName);
+		AutomationCommon::GetScreenshotPath(TestName, ScreenshotParameters.ScreenshotName, bIncludeHardwareDetails);
+
+		//Take a screenshot
+		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -150,7 +227,7 @@ public:
  * in the Content Browser (does not allow for specific settings to be made per import factory). Cannot be run in a commandlet
  * as it executes code that routes through Slate UI.
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FGenericImportAssetsAutomationTest, "Editor.Import", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FGenericImportAssetsAutomationTest, "Editor.Import", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI) )
 
 /** 
  * Requests a enumeration of all sample assets to import
@@ -874,7 +951,45 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 
-	FEditorAutomationTestUtilities::LoadMap(MapName);
+	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().IsScreenshotAllowed();
+	if( bTakeScreenshots )
+	{
+		//Find the main editor window
+		TArray<TSharedRef<SWindow> > AllWindows;
+		FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
+		if( AllWindows.Num() == 0 )
+		{
+			UE_LOG(LogEditorAutomationTests, Error, TEXT("ERROR: Could not find the main editor window."));
+			return false;
+		}
+		WindowScreenshotParameters WindowParameters;
+		WindowParameters.CurrentWindow = AllWindows[0];
+
+		//Disable Eye Adaptation
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EyeAdaptationQuality"));
+		CVar->Set(0);
+
+		//Create a screen shot filename and path
+		const FString TestName = FString::Printf(TEXT("LoadAllMaps_Editor/%s"), *FPaths::GetBaseFilename(MapName));
+		AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, true);
+
+		//Load the map
+		FEditorAutomationTestUtilities::LoadMap(MapName);
+
+		//If we don't have NoTextureStreaming enabled, give the textures some time to load.
+		if( !FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
+		{
+			//Give the contents some time to load
+			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.5f));
+		}
+		//Take the screen shot
+		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
+	}
+	else
+	{
+		//Load the map
+		FEditorAutomationTestUtilities::LoadMap(MapName);
+	}
 
 	return true;
 }
@@ -1035,7 +1150,7 @@ bool FBSPValidation::RunTest(const FString& Parameters)
 	DirectionalLight->SetBrightness(3.142f);
 	DirectionalLight->SetLightColor(FColor::White);
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 	
 	return true;
 }
@@ -1109,7 +1224,7 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 	DirectionalLight->SetBrightness(3.142f);
 	DirectionalLight->SetLightColor(FColor::White);
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	return true;
 }
@@ -1153,19 +1268,33 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 {
 	UWorld* World = GEditor->NewMap();
 
+	//Set the Test Name which is used later for getting the directory to store the screenshots.
+	const FString BaseFileName = TEXT("ConvertMeshTest");
+	
+	//Creating the parameters needed for latent screenshot capturing.
+	WindowScreenshotParameters ConvertMeshParameters;
+	
+	//Check if the main frame is loaded.  When using the old main frame it may not be.
+	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
+	{
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		//Now set the WindowScreenshot struct CurrentWindow name to be the mainframe.
+		ConvertMeshParameters.CurrentWindow = MainFrame.GetParentWindow();
+	}
+
+	//Set the screenshot name.
+	ConvertMeshParameters.ScreenshotName = BaseFileName;
+
 	//Adjust camera in viewports
 	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
 	{
 		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[i];
 		if(!ViewportClient->IsOrtho())
 		{
-			ViewportClient->SetViewLocation( FVector(448, 902, 423) );
-			ViewportClient->SetViewRotation( FRotator(0, 270, 0) );
+			ViewportClient->SetViewLocation( FVector(190, 590, 360) );
+			ViewportClient->SetViewRotation( FRotator(0, -90, 0) );
 		}
 	}
-
-	//Gather assets
-	UObject* EditorCubeMesh = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(),NULL,TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"),NULL,LOAD_None,NULL);
 
 	//BSP TO BLOCKING VOLUME
 	{
@@ -1178,7 +1307,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		CubeAdditiveBrushBuilder->Y = 256.0f;
 		CubeAdditiveBrushBuilder->Z = 256.0f;
 		CubeAdditiveBrushBuilder->Build(World);
-		GEditor->Exec( World, TEXT("BRUSH MOVETO X=768 Y=0 Z=768"));
+		GEditor->Exec( World, TEXT("BRUSH MOVETO X=384 Y=0 Z=384"));
 		GEditor->Exec( World, TEXT("BRUSH ADD"));
 
 		//find brush that was just added by finding the brush not in our previous list
@@ -1206,7 +1335,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		CubeAdditiveBrushBuilder->Y = 256.0f;
 		CubeAdditiveBrushBuilder->Z = 256.0f;
 		CubeAdditiveBrushBuilder->Build(World);
-		GEditor->Exec( World, TEXT("BRUSH MOVETO X=0 Y=0 Z=0"));
+		GEditor->Exec( World, TEXT("BRUSH MOVETO X=0 Y=0 Z=384"));
 		GEditor->Exec( World, TEXT("BRUSH ADD"));
 
 		//find brush that was just added by finding the brush not in our previous list
@@ -1218,7 +1347,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		//generate static mesh package name
 		FString PackageName = FPackageName::FilenameToLongPackageName(FPaths::AutomationTransientDir() + TEXT("ConvertToBSPToStaticMesh"));
 		//Convert brush to specific package name
-		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, FText::FromString(PackageName));
+		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, PackageName);
 
 		//find the package
 		UPackage* NewPackage = FindPackage(NULL, *PackageName);
@@ -1238,15 +1367,12 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		}
 	}
 
+	TakeLatentAutomationScreenshot(ConvertMeshParameters, BaseFileName, FString::Printf(TEXT("FinalConvertMesh")), FString::Printf(TEXT("04_Final")), false);
+	
+	//Wait to give the screenshot capture some time to complete.
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
-	//Directional Light
-	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), FVector(384, 0, 384)));
-	DirectionalLight->SetMobility(EComponentMobility::Movable);
-	DirectionalLight->SetActorRotation(FRotator(314, 339, 0));
-	DirectionalLight->SetBrightness(3.142f);
-	DirectionalLight->SetLightColor(FColor::White);
-
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	return true;
 }
@@ -1391,7 +1517,22 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPlacement, "QA.Point Light Placement", EA
 
 bool FLightPlacement::RunTest(const FString& Parameters)
 {
-	//Open a new empty map
+	//Initialize the parameters for taking a screenshot as well as update the placed point light.
+	WindowScreenshotParameters PointLightPlacementWindowParameters;
+	PointLightParameters LightParameters;
+	bool bUndo = true;
+
+	//Set the CurrentWindow to the Mainframe.  This information is used for taking a screenshot later.
+	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
+	{
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		PointLightPlacementWindowParameters.CurrentWindow = MainFrame.GetParentWindow();
+	}
+
+	//Set the Test Name which is used later for getting the directory to store the screenshots.
+	const FString BaseFileName = TEXT("PointLightPlacementTest");
+
+	//Open a new blank map.
 	UWorld* World = GEditor->NewMap();
 
 	//Move the perspective viewport view to show the test.
@@ -1406,7 +1547,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	}
 
 	{
-		//Gather assets
+		//Gather assets.
 		UObject* Astroid = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/Content/EditorAutomation/Astroid.Astroid"), NULL, LOAD_None, NULL);
 		//Add Astroid mesh to the world
 		AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Astroid));
@@ -1414,34 +1555,53 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 		StaticMesh->SetActorRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 	}
 
-	//Point Light
+	//Create the point light and set it's mobility, brightness, and light color.
 	APointLight* PointLight = Cast<APointLight>(GEditor->AddActor(World->GetCurrentLevel(), APointLight::StaticClass(), FVector(0.0f, 0.0f, 400.0f)));
-	PointLight->SetMobility(EComponentMobility::Movable);
-	PointLight->SetBrightness(5000.0f);
-	PointLight->SetLightColor(FColor(255, 0, 0));
+	LightParameters.PointLight = PointLight;
+	LightParameters.LightColor = FColor(255, 0, 0);
+	LightParameters.LightLocation = FVector(0.0f, 0.0f, 400.0f);
+	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
 
-	//Duplicate the point light
-	{
-		FScopedTransaction DuplicateLightScope( NSLOCTEXT("UnrealEd.Test", "DuplicateLightScope", "Duplicate Light Scope") );
+	//Wait
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
-		//Duplicate the light
-		bool bOffsetLocations = false;
-		GEditor->edactDuplicateSelected(PointLight->GetLevel(), bOffsetLocations);
-		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-		{
-			AActor* Actor = static_cast<AActor*>( *It );
-			Actor->TeleportTo(FVector(10.0f,10.0f,400.0f), FRotator(0, 0, 0));
-		}
-	}
+	//Take a screenshot of the newly placed point light.
+	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("PlacedPointLight")), FString::Printf(TEXT("01_Placed")), true);
 
-	//Undo the duplication then redo it
-	GEditor->UndoTransaction();
-	GEditor->RedoTransaction();
+	//Duplicate the point light.
+	LightParameters.LightLocation = FVector(10.0f, 10.0f, 400.0f);
+	ADD_LATENT_AUTOMATION_COMMAND(PointLightDuplicationCommand(LightParameters));
 
-	//Update the duplicated asset
-	PointLight->TeleportTo(FVector(500.0f,300.0f, 300.0f), FRotator(0, 0, 0));
-	PointLight->SetRadius( 500.0f );
-	PointLight->SetLightColor(FColor(255, 255, 255));
+	//Wait
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+
+	//Take a screenshot of the duplicated point light.
+	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("DuplicatedLight")), FString::Printf(TEXT("02_Dupe")), true);
+
+	//Undo the duplication.
+	ADD_LATENT_AUTOMATION_COMMAND(FUndoRedoCommand(true));
+
+	//Wait
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+
+	//Take a screenshot of the scene after the duplication has been undone.
+	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("UndoDuplicationPointLight")), FString::Printf(TEXT("03_Undo")), true);
+
+	//Redo the duplication.
+	ADD_LATENT_AUTOMATION_COMMAND(FUndoRedoCommand(false));
+
+	//Update the original point light actor.
+	LightParameters.LightRadius = 500.0f;
+	LightParameters.LightLocation = FVector(500.0f, 300.0f, 500.0f);
+	LightParameters.LightColor = FColor(255, 255, 255);
+	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
+
+	//Wait
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+
+	//Take a screenshot of the final scene.
+	//It is expected to show two moveable point lights (one red, one white) and a static mesh.
+	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("FinalPointLight")), FString::Printf(TEXT("04_Final")), true);
 
 	return true;
 }
@@ -1453,7 +1613,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
  * Unit test to find all timelines in blueprints and list the events that can trigger them.
  * Timelines implicitly tick and are usually used for cosmetic events, so they can cause performance problems on dedicated servers.
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FTraceAllTimelinesAutomationTest, "Performance Audits.Find Timelines On Server", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser)
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FTraceAllTimelinesAutomationTest, "Performance Audits.Find Timelines On Server", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
 
 /** 
  * Requests an enumeration of all blueprints to be loaded
@@ -1844,6 +2004,157 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 	return bPassed;
 }
 
+/** Static Mesh UV test specific data */
+namespace StaticMeshUVTest
+{
+	/** States the test can be in */
+	namespace EStaticMeshUVTestState
+	{
+		enum Type
+		{
+			Ready,
+			WaitingForPackage,
+			PackageLoaded
+		};
+	}
+
+	class FUVTestHelper
+	{
+	public:
+
+		/** Constructor */
+		FUVTestHelper(FAutomationTestBase* BaseTest) :
+			CurrentState(EStaticMeshUVTestState::Ready),
+			CurrentPackage(NULL),
+			LoadedPackageCount(0),
+			CurrentTest(BaseTest)
+		{
+			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
+			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
+		}
+
+		/**
+		 * Update the static mesh UV test
+		 * @return true if the test is complete
+		 */
+		bool Update()
+		{
+			bool bTestDone = false;
+			switch(CurrentState)
+			{
+			case EStaticMeshUVTestState::Ready:
+				LoadNextPackage();
+				break;
+			case EStaticMeshUVTestState::PackageLoaded:
+				bTestDone = ProcessCurrentPackage();
+				break;
+			case EStaticMeshUVTestState::WaitingForPackage:
+			default:
+				break;
+			}
+
+			if( bTestDone )
+			{
+				CollectGarbage(RF_Native);
+			}
+			return bTestDone;
+		}
+
+	private:
+
+		/** 
+		 * Callback when a package has finished loading
+		 */
+		void PackageLoadCallback(const FString& PackageName, UPackage* LoadedPackage)
+		{
+			CurrentPackage = LoadedPackage;
+			CurrentState = EStaticMeshUVTestState::PackageLoaded;
+			ContentPackages.RemoveAt(0);
+		}
+
+		/** 
+		 * Loads the next package into memory
+		 */
+		void LoadNextPackage()
+		{
+			CurrentTest->SetSuppressLogs(true);
+			const FString PackageName = ContentPackages[0];
+			CurrentPackage =  FindPackage(NULL, *PackageName);
+			if( CurrentPackage )
+			{
+				//Already loaded, check for static meshes
+				CurrentState = EStaticMeshUVTestState::PackageLoaded;
+				ContentPackages.RemoveAt(0);
+			}
+			else
+			{
+				LoadPackageAsync(PackageName,FLoadPackageAsyncDelegate::CreateRaw(this, &FUVTestHelper::PackageLoadCallback));
+				CurrentState = EStaticMeshUVTestState::WaitingForPackage;
+			}
+		}
+
+		/** 
+		 * Performs the UV test on any static meshes in the current package
+		 */
+		bool ProcessCurrentPackage()
+		{
+			LoadedPackageCount++;
+			CurrentTest->SetSuppressLogs(false);
+
+			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+			{
+				UObject* Object = *ObjIt;
+				if (Object != NULL)
+				{
+					//Call CheckLightMapUVs on all static meshes in this package
+					if( Object->IsA(UStaticMesh::StaticClass()) && Object->IsIn(CurrentPackage) )
+					{
+						UStaticMesh::CheckLightMapUVs((UStaticMesh*)Object,MissingUVMessages,BadUVMessages,ValidUVMessages,true);
+					}
+				}
+			}
+
+			if( ( (LoadedPackageCount % 10) == 0 ) )
+			{
+				CollectGarbage(RF_Native);
+			}
+
+			CurrentState = EStaticMeshUVTestState::Ready;
+
+			//We are done when we are out of packages to process
+			return ContentPackages.Num() == 0;
+		}
+
+		// List of packages to test
+		TArray<FString> ContentPackages;
+		// The state of the current test (Ready, WaitingForPackage, PackageLoaded) 
+		EStaticMeshUVTestState::Type CurrentState;
+		// The current package we are checking for static meshes
+		UPackage* CurrentPackage;
+		// How many packages we have loaded
+		uint32 LoadedPackageCount;
+		// Pointer to the current test
+		FAutomationTestBase* CurrentTest;
+
+		// Missing UV messages
+		TArray<FString> MissingUVMessages;
+		// Bas UV messages
+		TArray<FString> BadUVMessages;
+		// Valid UV messages
+		TArray<FString> ValidUVMessages;
+	};
+}
+
+/**
+ * Latent command wrapper for the static mesh UV test
+ */
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FPerformUVTestCommand, TSharedPtr<StaticMeshUVTest::FUVTestHelper>, TestInfo);
+
+bool FPerformUVTestCommand::Update()
+{
+	return TestInfo->Update();
+}
+
 /**
  * StaticMeshUVsTest
  */
@@ -1854,52 +2165,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Editor.Content.Static Mes
  */
 bool FStaticMeshUVsTest::RunTest(const FString& Parameters)
 {
-	TArray<FString> MissingUVMessages;
-	TArray<FString> BadUVMessages;
-	TArray<FString> ValidUVMessages;
-	
-	//Create our package list
-	TArray<FString> ContentPackages;
-	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
-	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Found %i Packages."), ContentPackages.Num() );
-
-	for( int32 PackageID = 0; PackageID < ContentPackages.Num(); ++PackageID)
-	{
-		const FString PackageName = ContentPackages[PackageID];
-
-		UPackage* Package = NULL;
-		{
-			SetSuppressLogs(true);	
-			Package = LoadPackage( NULL, *PackageName, LOAD_NoWarn | LOAD_Quiet );
-			SetSuppressLogs(false);	
-		}
-		if (Package != NULL)
-		{
-			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
-			{
-				UObject* Object = *ObjIt;
-				if (Object != NULL)
-				{
-					//Call CheckLightMapUVs on all static meshes in this package
-					if( Object->IsA(UStaticMesh::StaticClass()) && Object->IsIn(Package) )
-					{
-						UStaticMesh::CheckLightMapUVs((UStaticMesh*)Object,MissingUVMessages,BadUVMessages,ValidUVMessages,true);
-					}
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Error loading package %s."), *PackageName );
-		}
-		
-		//Collect garbage on every Nth package to keep memory usage down.
-		if( ( (++PackageID % 10) == 0 ) )
-		{
-			CollectGarbage(RF_Native);
-		}
-	}
-	CollectGarbage(RF_Native);
+	TSharedPtr<StaticMeshUVTest::FUVTestHelper> TestHelper = MakeShareable(new StaticMeshUVTest::FUVTestHelper(this));
+	ADD_LATENT_AUTOMATION_COMMAND(FPerformUVTestCommand(TestHelper));
 	return true;
 }

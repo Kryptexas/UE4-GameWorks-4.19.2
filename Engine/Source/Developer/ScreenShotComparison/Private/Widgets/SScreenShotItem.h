@@ -37,7 +37,19 @@ private:
 	 */
 	void LoadBrush();
 
+	/**
+	 * Handles the user clicking on the image
+	 */
+	FReply OnImageClicked(const FGeometry& InGeometry, const FPointerEvent& InEvent);
+
+	/** 
+	 * Gets the actual size of the image
+	 */
+	FIntPoint GetActualImageSize();
 private:
+
+	//The cached actual size of the screenshot
+	FIntPoint CachedActualImageSize;
 
 	//Holds the dynamic brush.
 	TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;

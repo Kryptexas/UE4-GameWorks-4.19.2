@@ -71,8 +71,7 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 
 	for (int32 Index = 0; Index < InFiles.Num(); Index++)
 	{
-		FullCommand += TEXT(" ");
-		FullCommand += InFiles[Index];
+		FullCommand += TEXT(" \"") + InFiles[Index] + TEXT("\"");
 	}
 
 	// always non-interactive
@@ -106,7 +105,7 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 	// parse output & errors
 	TArray<FString> Errors;
 	StdError.ParseIntoArray(&Errors, TEXT("\r\n"), true);
-	OutErrorMessages.Append(Errors);
+	OutErrorMessages.Append(MoveTemp(Errors));
 
 	return ReturnCode == 0;
 }
@@ -355,6 +354,8 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 	static const FString Kind(TEXT("kind"));
 	static const FString File(TEXT("file"));
 	static const FString Action(TEXT("action"));
+	static const FString CopyFrom_Path(TEXT("copyfrom-path"));
+	static const FString CopyFrom_Rev(TEXT("copyfrom-rev"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -415,10 +416,22 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 						if(PathNode->GetAttribute(Kind) == File)
 						{
 							// check if this path matches our file
-							FString RelativeFilename = PathNode->GetContent();
-							if(RelativeFilename == RepoName)
+							SourceControlRevision->RepoFilename = PathNode->GetContent();
+							if(SourceControlRevision->RepoFilename == RepoName)
 							{
 								SourceControlRevision->Action = TranslateAction(PathNode->GetAttribute(Action));
+
+								const FString CopyFromPath = PathNode->GetAttribute(CopyFrom_Path);
+								const FString CopyFromRev = PathNode->GetAttribute(CopyFrom_Rev);
+								if(CopyFromPath.Len() > 0 && CopyFromRev.Len() > 0)
+								{
+									TSharedRef<FSubversionSourceControlRevision, ESPMode::ThreadSafe> CopyFromRevision = MakeShareable(new FSubversionSourceControlRevision);
+									CopyFromRevision->Filename = CopyFromPath;
+									CopyFromRevision->RevisionNumber = FCString::Atoi(*CopyFromRev);
+
+									SourceControlRevision->BranchSource = CopyFromRevision;
+								}
+
 								break;
 							}
 						}
@@ -434,12 +447,14 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 	}
 }
 
-void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
+void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutWorkingCopyRoot, FString& OutRepoRoot)
 {
 	static const FString Info(TEXT("info"));
 	static const FString Entry(TEXT("entry"));
 	static const FString Wc_Info(TEXT("wc-info"));
 	static const FString WcRoot_AbsPath(TEXT("wcroot-abspath"));
+	static const FString Repository(TEXT("repository"));
+	static const FString Root(TEXT("root"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -455,6 +470,20 @@ void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
 			continue;
 		}
 
+		const FXmlNode* RepositoryNode = EntryNode->FindChildNode(Repository);
+		if(RepositoryNode == NULL)
+		{
+			continue;
+		}
+
+		const FXmlNode* RootNode = RepositoryNode->FindChildNode(Root);
+		if(RootNode == NULL)
+		{
+			continue;
+		}
+
+		OutRepoRoot = RootNode->GetContent();
+
 		const FXmlNode* WcInfoNode = EntryNode->FindChildNode(Wc_Info);
 		if(WcInfoNode == NULL)
 		{
@@ -469,7 +498,7 @@ void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
 
 		FString WcRootAbsPath = WcRootAbsPathNode->GetContent();
 		FPaths::NormalizeDirectoryName(WcRootAbsPath);
-		OutRepoRoot = WcRootAbsPath;
+		OutWorkingCopyRoot = WcRootAbsPath;
 		break;
 	}
 }
@@ -486,6 +515,7 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 	static const FString Owner(TEXT("owner"));
 	static const FString Repos_Status(TEXT("repos-status"));
 	static const FString None(TEXT("none"));
+	static const FString Copied(TEXT("copied"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -530,6 +560,63 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 						if(PathAttrib.StartsWith(InWorkingCopyRoot))
 						{
 							State.WorkingCopyState = GetWorkingCopyState(WcStatusNode->GetAttribute(Item));
+							if(State.WorkingCopyState == EWorkingCopyState::Added)
+							{
+								const FString CopiedAttrib = WcStatusNode->GetAttribute(Copied);
+								if(CopiedAttrib == TEXT("true"))
+								{
+									State.bCopied = true;
+								}
+							}
+							else if( State.WorkingCopyState == EWorkingCopyState::Conflicted )
+							{
+								// As far as I can tell this is the "correct" way of finding out what revisions are in conflict.
+								// Bunny ears around correct because we're dirstatting and parsing filenames, which can obviously
+								// result in undesirable behavior:
+								TArray<FString> Filenames;
+								// Looking for two files that end in .r####, # of digits is unbounded:
+								FString WildCard = PathAttrib + ".r*";
+								IFileManager::Get().FindFiles( Filenames, *WildCard, true /*=Files*/, false /*=Directories*/ );
+								if( Filenames.Num() == 2 )
+								{
+									int MergeBaseFileRevNumber;
+									{
+										// This is just a guess, we'll swap filenames if it turns out that Filenames[0] is actually
+										// the conflicting file:
+										FString PendingMergeBaseFile = Filenames[0];
+										FString PendingMergeConflictingFile = Filenames[1];
+
+										// Helper function to find the filename with the lower .r###:
+										const auto EndingToInt = [](const FString& FileName)
+										{
+											int32 Idx = -1;
+											const bool found = FileName.FindLastChar('r', Idx);
+											check(found); // regex failed, Filenames should only contain files that end in .r*
+											int32 RetVal = -1;
+											TTypeFromString<int>::FromString(RetVal, &FileName[Idx + 1]);
+											return RetVal;
+										};
+										int FirstFile = EndingToInt(PendingMergeBaseFile);
+										int SecondFile = EndingToInt(PendingMergeConflictingFile);
+										check(FirstFile != SecondFile);
+										if (FirstFile > SecondFile)
+										{
+											// Guessed wrong, swap our decision!
+											Swap(PendingMergeBaseFile, PendingMergeConflictingFile);
+											Swap(FirstFile, SecondFile);
+										}
+
+										MergeBaseFileRevNumber = FirstFile;
+									}
+
+									// Save the result, this information can be used to perform a merge operation:
+									State.PendingMergeBaseFileRevNumber = MergeBaseFileRevNumber;
+
+									// For the file into a 'locked' state, since it's in conflict, if we don't do
+									// this we can't perform a merge because of logic in the asset tools module:
+									State.LockState = ELockState::Locked;
+								}
+							}
 						}
 						else
 						{
@@ -614,11 +701,10 @@ bool UpdateCachedStates(const TArray<FSubversionSourceControlState>& InStates)
 	{
 		const FSubversionSourceControlState& InState = InStates[StatusIndex];
 		TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> State = Provider.GetStateInternal(InState.LocalFilename);
-		State->bNewerVersionOnServer = InState.bNewerVersionOnServer;
-		State->WorkingCopyState = InState.WorkingCopyState;
-		State->LockState = InState.LockState;
-		State->LockUser = InState.LockUser;
+		auto History = MoveTemp(State->History);
+		*State = InState;
 		State->TimeStamp = FDateTime::Now();
+		State->History = MoveTemp(History);
 	}
 
 	return InStates.Num() > 0;

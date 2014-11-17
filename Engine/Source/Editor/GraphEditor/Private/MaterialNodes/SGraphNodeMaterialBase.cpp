@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
+#include "Materials/MaterialExpression.h"
 #include "SGraphNodeMaterialBase.h"
 #include "ScopedTransaction.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
@@ -9,7 +10,7 @@
 * Simple representation of the backbuffer that the preview canvas renders to
 * This class may only be accessed from the render thread
 */
-class FSlateBackBufferTarget : public FRenderTarget
+class FSlateMaterialPreviewRenderTarget : public FRenderTarget
 {
 public:
 	/** FRenderTarget interface */
@@ -118,7 +119,7 @@ FIntPoint FPreviewViewport::GetSize() const
 
 FPreviewElement::FPreviewElement()
 	: ExpressionPreview(NULL)
-	, RenderTarget(new FSlateBackBufferTarget)
+	, RenderTarget(new FSlateMaterialPreviewRenderTarget)
 	, bIsRealtime(false)
 {
 }
@@ -171,11 +172,12 @@ bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const 
 	return false;
 }
 
-void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
+void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer)
 {
 	// Clip the canvas to avoid having to set UV values
 	FIntRect ClippingRect = RenderTarget->GetClippingRect();
-	RHISetScissorRect(	true,
+
+	RHICmdList.SetScissorRect(true,
 						ClippingRect.Min.X,
 						ClippingRect.Min.Y,
 						ClippingRect.Max.X,
@@ -197,7 +199,7 @@ void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
 		Canvas.Flush(true);
 	}
 	RenderTarget->ClearRenderTargetTexture();
-	RHISetScissorRect(false,0,0,0,0);
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
 /////////////////////////////////////////////////////

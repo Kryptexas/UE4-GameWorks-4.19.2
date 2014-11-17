@@ -183,6 +183,11 @@ void FDetailItemNode::GenerateChildren( bool bUpdateFilteredNodes )
 {
 	Children.Empty();
 
+	if (!ParentCategory.IsValid())
+	{
+		return;
+	}
+
 	if( Customization.HasPropertyNode() )
 	{
 		Customization.PropertyRow->OnGenerateChildren( Children );

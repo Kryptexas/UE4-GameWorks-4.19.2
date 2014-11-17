@@ -33,7 +33,6 @@ DECLARE_DELEGATE_OneParam(FOnAssetRenameCommitted, const TArray<FAssetData>& /*A
 #include "CollectionViewUtils.h"
 #include "SCollectionView.h"
 #include "AssetViewSortManager.h"
-#include "OtherDevelopersAssetFilter.h"
 #include "SAssetView.h"
 #include "SAssetPicker.h"
 #include "SPathPicker.h"

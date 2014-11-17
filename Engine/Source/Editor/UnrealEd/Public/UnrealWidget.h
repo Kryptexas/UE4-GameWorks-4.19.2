@@ -6,6 +6,8 @@
 
 #pragma once
 
+class FEditorViewportClient;
+
 class FWidget : public FGCObject
 {
 public:
@@ -142,7 +144,7 @@ public:
 	 *
 	 * @param Ar	FArchive to serialize with
 	 */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/**
 	 * Gets the axis to draw based on the current widget mode
@@ -193,8 +195,8 @@ private:
 	struct FThickArcParams
 	{
 		FThickArcParams(FPrimitiveDrawInterface* InPDI, const FVector& InPosition, UMaterialInterface* InMaterial, const float InInnerRadius, const float InOuterRadius)
-			: PDI(InPDI)
-			, Position(InPosition)
+			: Position(InPosition)
+			, PDI(InPDI)
 			, Material(InMaterial)
 			, InnerRadius(InInnerRadius)
 			, OuterRadius(InOuterRadius)

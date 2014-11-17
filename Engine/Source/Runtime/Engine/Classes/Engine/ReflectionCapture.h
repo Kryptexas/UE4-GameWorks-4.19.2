@@ -17,10 +17,10 @@ class AReflectionCapture : public AActor
 	TSubobjectPtr<UBillboardComponent> SpriteComponent;
 #endif // WITH_EDITORONLY_DATA
 	
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return false; }
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 public:
 #if WITH_EDITOR
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
+	virtual void PostEditMove(bool bFinished) override;
 #endif // WITH_EDITOR
 
 };

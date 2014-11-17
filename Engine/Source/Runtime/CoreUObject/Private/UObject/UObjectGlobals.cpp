@@ -803,10 +803,12 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 		}
 
 		// Save the filename we load from
+		CA_SUPPRESS(28182)
 		Result->FileName = FName(*FileToLoad);
 
 		// is there a script SHA hash for this package?
 		uint8 SavedScriptSHA[20];
+		CA_SUPPRESS(6011)
 		bool bHasScriptSHAHash = FSHA1::GetFileSHAHash(*Linker->LinkerRoot->GetName(), SavedScriptSHA, false);
 		if (bHasScriptSHAHash)
 		{
@@ -873,8 +875,8 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 				{
 					ResetLoaders(Result);
 				}
-  				delete Linker->Loader;
-  				Linker->Loader = NULL;
+				delete Linker->Loader;
+				Linker->Loader = NULL;
 			}
 			else
 			{
@@ -1508,8 +1510,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 			if ( !DupObjectInfo.DuplicatedObject->IsTemplate() )
 			{
 				// Don't want to call PostLoad on class duplicated CDOs
-				DupObjectInfo.DuplicatedObject->PostLoad();
-				DupObjectInfo.DuplicatedObject->PostLoadSubobjects(NULL);
+				DupObjectInfo.DuplicatedObject->ConditionalPostLoad();
 			}
 			DupObjectInfo.DuplicatedObject->CheckDefaultSubobjects();
 		}
@@ -1561,9 +1562,10 @@ bool SaveToTransactionBuffer(UObject* Object, bool bMarkDirty)
 
 	// Neither PIE world objects nor script packages should end up in the transaction buffer. Additionally, in order
 	// to save a copy of the object, we must have a transactor and the object must be transactional.
-	if ( GUndo && 
-		 Object->HasAnyFlags( RF_Transactional ) &&
-		 ( ( Object->GetOutermost()->PackageFlags & ( PKG_PlayInEditor|PKG_ContainsScript ) ) == 0 ) )
+	const bool IsTransactional = Object->HasAnyFlags(RF_Transactional);
+	const bool IsNotPIEOrContainsScriptObject = ( ( Object->GetOutermost()->PackageFlags & ( PKG_PlayInEditor | PKG_ContainsScript ) ) == 0 );
+
+	if ( GUndo && IsTransactional && IsNotPIEOrContainsScriptObject )
 	{
 		// Mark the package dirty, if requested
 		if ( bMarkDirty )
@@ -1851,16 +1853,20 @@ UObject::UObject(const class FPostConstructInitializeProperties& PCIP)
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
 static int32 GIsInConstructor = 0;
+/* Object that is currently being constructed with PCIP */
+static UObject* GConstructedObject = NULL;
 
 FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
 	Obj(NULL),
 	ObjectArchetype(NULL),
 	bCopyTransientsFromClassDefaults(false),
 	bShouldIntializePropsFromArchetype(true),
-	InstanceGraph(NULL)
+	InstanceGraph(NULL),
+	LastConstructedObject(GConstructedObject)
 {
-	// Mark we're in the constructor now.
+	// Mark we're in the constructor now.	
 	GIsInConstructor++;
+	GConstructedObject = Obj;
 }	
 
 FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
@@ -1869,10 +1875,12 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* 
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
 	bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults),
 	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
-	InstanceGraph(InInstanceGraph)
+	InstanceGraph(InInstanceGraph),
+	LastConstructedObject(GConstructedObject)
 {
 	// Mark we're in the constructor now.
 	GIsInConstructor++;
+	GConstructedObject = Obj;
 }
 
 /**
@@ -1883,6 +1891,7 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	// Let the FObjectFinders know we left the constructor.
 	GIsInConstructor--;
 	check(GIsInConstructor >= 0);
+	GConstructedObject = LastConstructedObject;
 
 //	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
 	check(Obj);
@@ -1904,15 +1913,15 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	}
 	if (bShouldIntializePropsFromArchetype)
 	{
-	    UClass* BaseClass = (bIsCDO && !GIsDuplicatingClassForReinstancing) ? Obj->GetClass()->GetSuperClass() : Class;
-	    if (BaseClass == NULL)
-	    {
-		    check(Class==UObject::StaticClass());
-		    BaseClass = Class;
-	    }
-    
-	    UObject* Defaults = ObjectArchetype ? ObjectArchetype : BaseClass->GetDefaultObject(false); // we don't create the CDO here if it doesn't already exist
-	    InitProperties(Obj, BaseClass, Defaults, bCopyTransientsFromClassDefaults);
+		UClass* BaseClass = (bIsCDO && !GIsDuplicatingClassForReinstancing) ? Obj->GetClass()->GetSuperClass() : Class;
+		if (BaseClass == NULL)
+		{
+			check(Class==UObject::StaticClass());
+			BaseClass = Class;
+		}
+	
+		UObject* Defaults = ObjectArchetype ? ObjectArchetype : BaseClass->GetDefaultObject(false); // we don't create the CDO here if it doesn't already exist
+		InitProperties(Obj, BaseClass, Defaults, bCopyTransientsFromClassDefaults);
 	}
 
 	bool bAllowInstancing = (InstanceGraph == NULL) || InstanceGraph->IsSubobjectInstancingEnabled();
@@ -2028,6 +2037,11 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	{
 		Obj->CheckDefaultSubobjects();
 	}
+}
+
+UClass* FPostConstructInitializeProperties::GetClass() const
+{
+	return Obj->GetClass();
 }
 
 void FSubobjectPtr::Set(UObject* InObject)
@@ -2160,6 +2174,10 @@ UObject* StaticConstructObject
 	return Result;
 }
 
+void FPostConstructInitializeProperties::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
+{
+	UE_CLOG(GIsInConstructor && Outer == GConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
+}
 
 /**
  * Stores the object flags for all objects in the tracking array.
@@ -2251,11 +2269,11 @@ public:
 	}
 
 	// FReferenceCollector interface
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE
+	virtual bool IsIgnoringArchetypeRef() const override
 	{
 		return false;
 	}
-	virtual bool IsIgnoringTransient() const OVERRIDE
+	virtual bool IsIgnoringTransient() const override
 	{
 		return false;
 	}
@@ -2365,7 +2383,7 @@ private:
 		ObjectsToSerialize.Add( Object );
 	}
 
-	virtual void HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty ) OVERRIDE
+	virtual void HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty ) override
 	{
 		checkSlow( !InObject || InObject->IsValidLowLevel() );		
 		if( InObject )

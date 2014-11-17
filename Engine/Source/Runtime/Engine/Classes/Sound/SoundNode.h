@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ActiveSound.h"
 #include "SoundNode.generated.h"
 
 /*-----------------------------------------------------------------------------
@@ -64,10 +65,10 @@ class ENGINE_API USoundNode : public UObject
 public:
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 #if WITH_EDITORONLY_DATA
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif //WITH_EDITORONLY_DATA
 	// End UObject Interface
@@ -163,16 +164,7 @@ public:
 	 * Used to create a unique string to identify unique nodes
 	 */
 	virtual FString GetUniqueString() const;
-	static FORCEINLINE UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex)
-	{
-		checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue '%s'"), ChildIndex, *CastChecked<USoundCue>(ChildNode->GetOuter())->GetFullName());
-		return ((ParentWaveInstanceHash << ChildIndex) ^ (UPTRINT)ChildNode);
-	}
-
-	static FORCEINLINE UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex)
-	{
-		checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue"), ChildIndex);
-		return ((ParentWaveInstanceHash << ChildIndex) ^ ChildNodeHash);
-	}
+	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex);
+	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex);
 };
 

@@ -89,7 +89,6 @@ namespace UnrealBuildTool
 			Result += " -Wno-switch-enum";
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 			Result += " -Wno-null-arithmetic";			// needed for external headers we can't change
-			Result += " -Wno-deprecated-declarations";	// needed for wxWidgets
 			Result += " -Wno-return-type-c-linkage";	// needed for PhysX
 			Result += " -Wno-ignored-attributes";		// needed for nvtesslib
 			Result += " -Wno-uninitialized";
@@ -104,7 +103,7 @@ namespace UnrealBuildTool
 			Result += " -mmacosx-version-min=" + MacOSVersion;
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
 				Result += " -O3";
 			}
@@ -193,18 +192,6 @@ namespace UnrealBuildTool
 			// Needed to make sure install_name_tool will be able to update paths in Mach-O headers
 			Result += " -headerpad_max_install_names";
 
-			// link in the frameworks
-			Result += " -framework Cocoa";
-			Result += " -framework Carbon";
-			Result += " -framework AudioToolbox";
-			Result += " -framework AudioUnit";
-			Result += " -framework CoreAudio";
-			Result += " -framework CoreVideo";
-			Result += " -framework CoreMedia";
-			Result += " -framework AVFoundation";
-			Result += " -framework IOKit";
-			Result += " -framework CoreServices";	// for DirectoryWatcher (FSEvents)
-			
 			Result += " -lc++"; // for STL used in HLSLCC
 
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
@@ -246,7 +233,8 @@ namespace UnrealBuildTool
 			{
 				// Add the precompiled header file's path to the include path so GCC can find it.
 				// This needs to be before the other include paths to ensure GCC uses it instead of the source header file.
-				PCHArguments += string.Format(" -include \"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(".gch", ""));
+				var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Mac].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+				PCHArguments += string.Format(" -include \"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, ""));
 			}
 
 			// Add include paths to the argument list.
@@ -345,11 +333,12 @@ namespace UnrealBuildTool
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
+					var PrecompiledHeaderExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Mac].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced item list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".gch"
+							Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledHeaderExtension
 							)
 						);
 
@@ -367,12 +356,12 @@ namespace UnrealBuildTool
 						CompileAction.bIsUsingPCH = true;
 						CompileAction.PrerequisiteItems.Add(CompileEnvironment.PrecompiledHeaderFile);
 					}
-
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Mac].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
 					FileItem ObjectFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".o"
+							Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 							)
 						);
 
@@ -391,8 +380,69 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
-				CompileAction.CommandPath = "xcrun";
-				CompileAction.CommandArguments = MacCompiler + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				
+				string CompilerBundleIdentifier = Environment.GetEnvironmentVariable("GCC_VERSION");
+				string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+				if(CompilerBundleIdentifier == null || CompilerBundleIdentifier == "" 
+					|| CompilerBundleIdentifier == "com.apple.compilers.llvm.clang.1_0" 
+					|| (StaticAnalysisMode != null && StaticAnalysisMode != ""))
+				{
+					CompileAction.CommandPath = MacCompiler;
+					if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+					{
+						FileArguments = " --analyze " + FileArguments;
+					}
+				}
+				else
+				{
+					CompileAction.CommandPath = null;
+					string UserDir = Environment.GetEnvironmentVariable("HOME");
+					string XcodePlugins = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/";
+					if(Directory.Exists(XcodePlugins))
+					{
+						IEnumerable<string> Plugins = Directory.EnumerateDirectories(XcodePlugins, "*.xcplugin");
+						foreach(string Plugin in Plugins)
+						{
+							string Resources = Plugin + "/Contents/Resources";
+							string[] CompilerSpecs = Directory.GetFiles(Resources, "*.xcspec");
+							if(CompilerSpecs.Length > 0)
+							{
+								IEnumerable<string> Lines = File.ReadLines(CompilerSpecs[0]);
+								bool bFindExecPath = false;
+								bool bFoundExecPath = false;
+								foreach(string Line in Lines)
+								{
+									if(!bFindExecPath && Line.Contains(CompilerBundleIdentifier))
+									{
+										bFindExecPath = true;
+									}
+									else if(bFindExecPath && Line.Contains("ExecPath"))
+									{
+										char[] CharsToTrim = {';', '"'};
+										string ExecPath = Line.Trim().Substring(12).TrimEnd(CharsToTrim);
+										CompileAction.CommandPath = ExecPath;
+										bFoundExecPath = true;
+										break;
+									}
+								}
+								if(bFoundExecPath)
+								{
+									break;
+								}
+							}
+						}
+					}
+					else
+					{
+						throw new BuildException("Couldn't find Xcode compiler plugins path: {0}", XcodePlugins);
+					}
+					
+					if(CompileAction.CommandPath == null)
+					{
+						throw new BuildException("Couldn't find Xcode compiler: {0}", CompilerBundleIdentifier);
+					}
+				}
+				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.StatusDetailedDescription = SourceFile.Description;
@@ -410,27 +460,17 @@ namespace UnrealBuildTool
 			Writer.Write(PreLine + "\n");
 		}
 
-		private string LoadEngineCLVersion()
+		private int LoadEngineCL()
 		{
 			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			string EngineVersion = "0";
 			foreach (string Line in VersionHeader)
 			{
 				if (Line.StartsWith("#define ENGINE_VERSION "))
 				{
-					EngineVersion = Line.Split(' ')[2];
+					return int.Parse(Line.Split(' ')[2]);
 				}
 			}
-			if (EngineVersion.Length > 6)
-			{
-				EngineVersion = EngineVersion.Insert(EngineVersion.Length - 2, ".");
-				EngineVersion = EngineVersion.Insert(EngineVersion.Length - 5, ".");
-			}
-			else
-			{
-				EngineVersion = LoadEngineDisplayVersion(true);
-			}
-			return EngineVersion;
+			return 0;
 		}
 
 		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
@@ -481,6 +521,28 @@ namespace UnrealBuildTool
 			return LauncherVersionMajor + "." + LauncherVersionMinor + "." + LauncherVersionPatch;
 		}
 
+		private string LoadEngineAPIVersion()
+		{
+			int CL = 0;
+			foreach (string Line in File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h"))
+			{
+				string[] Tokens = Line.Split(' ', '\t');
+				if (Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
+				{
+					if(Tokens[2] == "BUILT_FROM_CHANGELIST")
+					{
+						CL = LoadEngineCL();
+					}
+					else
+					{
+						CL = int.Parse(Tokens[2]);
+					}
+					break;
+				}
+			}
+			return String.Format("{0}.{1}.{2}", CL / (100 * 100), (CL / 100) % 100, CL % 100);
+		}
+
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
 			bool bIsBuildingLibrary = LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly;
@@ -497,9 +559,9 @@ namespace UnrealBuildTool
 			LinkAction.CommandPath = "/bin/sh";
 			LinkAction.CommandDescription = "Link";
 
-			string EngineCLVersion = LoadEngineCLVersion();
+			string EngineAPIVersion = LoadEngineAPIVersion();
 			string EngineDisplayVersion = LoadEngineDisplayVersion(true);
-			string VersionArg = LinkEnvironment.Config.bIsBuildingDLL ? " -current_version " + EngineCLVersion + " -compatibility_version " + EngineDisplayVersion : "";
+			string VersionArg = LinkEnvironment.Config.bIsBuildingDLL ? " -current_version " + EngineAPIVersion + " -compatibility_version " + EngineDisplayVersion : "";
 
 			string Linker = bIsBuildingLibrary ? MacArchiver : MacLinker;
 			string LinkCommand = "xcrun " + Linker + VersionArg + " " + (bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment));
@@ -518,31 +580,18 @@ namespace UnrealBuildTool
 			// This is fixed in later step, FixDylibDependencies. For this and to know what libraries to copy whilst creating an app bundle,
 			// we gather the list of engine dylibs.
 			List<string> EngineAndGameLibraries = new List<string>();
-			
-			string DylibsPath = "@executable_path";
+
+			string DylibsPath = "@rpath";
 
 			string AbsolutePath = OutputFile.AbsolutePath.Replace("\\", "/");
 			if (!AbsolutePath.Contains("/Engine/Binaries/Mac/"))
 			{
-				if (AbsolutePath.Contains("/Engine/Plugins/"))
-				{
-					string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(OutputFile.AbsolutePath), ".");
-					if (!LinkEnvironment.Config.bIsBuildingConsoleApplication)
-					{
-						DylibsPath += Path.Combine("/../../../..", RelativePath);
-					}
-					else
-					{
-						DylibsPath += Path.Combine("/..", RelativePath);
-					}
-				}
-				else
-				{
-					DylibsPath = "@loader_path";
-				}
+				DylibsPath = AbsolutePath.Contains("/Plugins/") ? "@rpath" : "@loader_path";
 			}
-
-			DylibsPath = DylibsPath.Replace("\\", "/");
+			if (!bIsBuildingLibrary)
+			{
+				LinkCommand += " -rpath @loader_path/ -rpath @executable_path/";
+			}
 
 			List<string> ThirdPartyLibraries = new List<string>();
 
@@ -564,9 +613,10 @@ namespace UnrealBuildTool
 				}
 			}
 
-
 			if (!bIsBuildingLibrary || LinkEnvironment.Config.bIncludeDependentLibrariesInLibrary)
 			{
+				List<string> RPaths = new List<string>();
+
 				// Add the additional libraries to the argument list.
 				foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 				{
@@ -624,6 +674,16 @@ namespace UnrealBuildTool
 					{
 						LinkCommand += string.Format(" -l{0}", AdditionalLibrary);
 					}
+
+					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
+					{
+						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
+						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
+						{
+							RPaths.Add(RelativePath);
+							LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+						}
+					}
 				}
 
 				foreach (string AdditionalLibrary in LinkEnvironment.Config.DelayLoadDLLs)
@@ -635,6 +695,16 @@ namespace UnrealBuildTool
 					}
 
 					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
+
+					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
+					{
+						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
+						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
+						{
+							RPaths.Add(RelativePath);
+							LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+						}
+					}
 				}
 			}
 
@@ -826,7 +896,6 @@ namespace UnrealBuildTool
 					string GameName = ExeNameParts[0];
 
 					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/MacOS\"", ExeName);
-					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources/English.lproj\"", ExeName);
 					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources/RadioEffectUnit.component/Contents/MacOS\"", ExeName);
 					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources/RadioEffectUnit.component/Contents/Resources/English.lproj\"", ExeName);
 
@@ -837,19 +906,35 @@ namespace UnrealBuildTool
 					string BundleVersion = ExeName.StartsWith("UnrealEngineLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
 					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 
-					// Copy resources
-					string CustomIcon = EngineSourcePath + "/Programs/" + GameName + "/Resources/Mac/" + GameName + ".icns";
-					if (!File.Exists(CustomIcon))
+					string UProjectFilePath = UProjectInfo.GetProjectFilePath(GameName);
+					string CustomResourcesPath = "";
+					if (string.IsNullOrEmpty(UProjectFilePath))
 					{
-						CustomIcon = EngineSourcePath + "/Programs/NoRedist/" + GameName + "/Resources/Mac/" + GameName + ".icns";
-					}
-					if (File.Exists(CustomIcon))
-					{
-						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
+						string[] TargetFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), GameName + ".Target.cs", SearchOption.AllDirectories);
+						if (TargetFiles.Length == 1)
+						{
+							CustomResourcesPath = Path.GetDirectoryName(TargetFiles[0]) + "/Resources/Mac";
+						}
+						else
+						{
+							Log.TraceWarning("Found {0} Target.cs files for {1}", TargetFiles.Length, GameName);
+						}
 					}
 					else
 					{
-						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/{1}.icns\" \"{2}.app/Contents/Resources/{1}.icns\"", EngineSourcePath, IconName, ExeName);
+						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath) + "/Source/" + GameName + "/Resources/Mac";
+					}
+
+					// Copy resources
+					string CustomIcon = CustomResourcesPath + "/" + GameName + ".icns";
+					if (!File.Exists(CustomIcon))
+					{
+						CustomIcon = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + IconName + ".icns";
+					}
+					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
+
+					if (ExeName.StartsWith("UE4Editor"))
+					{
 					}
 
 					if (ExeName.StartsWith("UE4Editor"))
@@ -857,18 +942,10 @@ namespace UnrealBuildTool
 						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
 					}
 
-					string InfoPlistFile = EngineSourcePath + "/Programs/" + GameName + "/Resources/Mac/Info.plist";
+					string InfoPlistFile = CustomResourcesPath + "/Info.plist";
 					if (!File.Exists(InfoPlistFile))
 					{
-						InfoPlistFile = EngineSourcePath + "/Programs/NoRedist/" + GameName + "/Resources/Mac/Info.plist";
-						if (!File.Exists(InfoPlistFile))
-						{
-							InfoPlistFile = EngineSourcePath + "/Programs/Mac/" + GameName + "/Resources/Mac/Info.plist";
-						}
-						if (!File.Exists(InfoPlistFile))
-						{
-							InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (GameName.EndsWith("Editor") ? "Info-Editor.plist" : "Info.plist");
-						}
+						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (GameName.EndsWith("Editor") ? "Info-Editor.plist" : "Info.plist");
 					}
 					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
 
@@ -882,30 +959,10 @@ namespace UnrealBuildTool
 					// Generate PkgInfo file
 					AppendMacLine(CreateAppBundleScript, "echo 'echo -n \"APPL????\"' | bash > \"{0}.app/Contents/PkgInfo\"", ExeName);
 
-					// Copy InfoPlist.strings using iconv to convert to UTF-16 in the process
-					AppendMacLine(CreateAppBundleScript, "iconv -f UTF-8 -t UTF-16 \"{0}/Runtime/Launch/Resources/Mac/English.lproj/InfoPlist.strings\" > \"{1}.app/Contents/Resources/English.lproj/InfoPlist.strings\"", EngineSourcePath, ExeName);
-
 					// Copy RadioEffect component
 					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit\"", EngineSourcePath, ExeName);
 					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings\"", EngineSourcePath, ExeName);
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc\"", EngineSourcePath, ExeName);
 					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Info.plist\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/Info.plist\"", EngineSourcePath, ExeName);
-
-					// Compile XIB resource
-					string XIBFile = EngineSourcePath + "/Programs/" + GameName + "/Resources/Mac/MainMenu.xib";
-					if (!File.Exists(XIBFile))
-					{
-						XIBFile = EngineSourcePath + "/Programs/NoRedist/" + GameName + "/Resources/Mac/MainMenu.xib";
-						if (!File.Exists(XIBFile))
-						{
-							XIBFile = EngineSourcePath + "/Programs/Mac/" + GameName + "/Resources/Mac/MainMenu.xib";
-						}
-						if (!File.Exists(XIBFile))
-						{
-							XIBFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/English.lproj/MainMenu.xib";
-						}
-					}
-					AppendMacLine(CreateAppBundleScript, "\"{0}usr/bin/ibtool\" --errors --warnings --notices --output-format human-readable-text --compile \"{2}.app/Contents/Resources/English.lproj/MainMenu.nib\" \"{1}\" --sdk \"{0}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX{3}.sdk\"", DeveloperDir, XIBFile, ExeName, MacOSSDKVersion);
 
 					// Make sure OS X knows the bundle was updated
 					AppendMacLine(CreateAppBundleScript, "touch -c \"{0}.app\"", ExeName);
@@ -917,11 +974,8 @@ namespace UnrealBuildTool
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UE4.icns")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UProject.icns")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/Info.plist")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/English.lproj/InfoPlist.strings")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/English.lproj/MainMenu.xib")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Info.plist")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "DylibCopy.sh")));
 				}
@@ -937,7 +991,7 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-		public FileItem FixDylibDependencies(LinkEnvironment LinkEnvironment, FileItem Executable)
+		FileItem FixDylibDependencies(LinkEnvironment LinkEnvironment, FileItem Executable)
 		{
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
@@ -1022,7 +1076,7 @@ namespace UnrealBuildTool
 		 * 
 		 * @param Executable FileItem describing the executable to generate app bundle for
 		 */
-		public FileItem CreateAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
+		FileItem CreateAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
 		{
 			// Make a file item for the source and destination files
 			string FullDestPath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
@@ -1109,7 +1163,7 @@ namespace UnrealBuildTool
 
 			// We need to know what third party dylibs would be copied to the bundle
 			var Modules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-			var BinaryLinkEnvironment = new LinkEnvironment(Binary.Target.GlobalLinkEnvironment);
+			var BinaryLinkEnvironment = Binary.Target.GlobalLinkEnvironment.DeepCopy();
 			var BinaryDependencies = new List<UEBuildBinary>();
 			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
 			foreach (var Module in Modules)
@@ -1139,11 +1193,8 @@ namespace UnrealBuildTool
 				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
 				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/InfoPlist.strings");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/MainMenu.nib");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Info.plist");
 
 				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
@@ -1203,6 +1254,27 @@ namespace UnrealBuildTool
 			}
 
 			base.PostBuildSync(Target);
+		}
+
+		public override ICollection<FileItem> PostBuild (FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+		{
+			var OutputFiles = base.PostBuild (Executable, BinaryLinkEnvironment);
+
+			// if building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
+			if (ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac) {
+				return OutputFiles;
+			}
+
+			if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary) {
+				return OutputFiles;
+			}
+			FileItem FixDylibOutputFile = FixDylibDependencies(BinaryLinkEnvironment, Executable);
+			OutputFiles.Add(FixDylibOutputFile);
+			if (BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
+				return OutputFiles;
+
+			OutputFiles.Add(CreateAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
+			return OutputFiles;
 		}
 	};
 }

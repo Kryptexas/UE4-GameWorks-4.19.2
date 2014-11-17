@@ -32,6 +32,10 @@ namespace UnrealBuildTool
 					{
 						PythonPath = Utils.IsRunningOnMono ? "python" : "python.exe";
 					}
+					else
+					{
+						PythonPath += Utils.IsRunningOnMono ? "/python" : "/python.exe";
+					}
                     EMCCPath = "\"" + EMCCPath + "\""; 
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
@@ -75,7 +79,8 @@ namespace UnrealBuildTool
 
             // we have to specify the full amount of memory with Asm.JS (1.5 G)
             // I wonder if there's a per game way to change this. 
-            Result += " -s TOTAL_MEMORY=1610612736";
+			int TotalMemory = 256 * 1024 * 1024;
+            Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
 
             // no need for exceptions
             Result += " -s DISABLE_EXCEPTION_CATCHING=1";
@@ -88,26 +93,9 @@ namespace UnrealBuildTool
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
             Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
 
-            if (TargetConfiguration == CPPTargetConfiguration.Debug)
-            {
-	            Result += " -O0";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
-            {
-	            Result += " -s GL_ASSERTIONS=1 ";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Development)
-            {
-                Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Shipping)
-            {
-	            Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
-
             // NOTE: This may slow down the compiler's startup time!
             { 
-                Result += " --memory-init-file 1";
+                Result += " -s NO_EXIT_RUNTIME=1 --memory-init-file 1";
             }
 
             return Result;
@@ -115,9 +103,9 @@ namespace UnrealBuildTool
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.TargetConfiguration, CompileEnvironment.Config.TargetArchitecture);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
 
-			if (CompileEnvironment.Config.TargetArchitecture != "-win32")
+			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
 				// do we want debug info?
 				/*			if (CompileEnvironment.Config.bCreateDebugInfo)
@@ -126,6 +114,38 @@ namespace UnrealBuildTool
 							}*/
 
 				Result += " -Wno-warn-absolute-paths ";
+
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+				{
+					Result += " -O0";
+				}
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+				{
+					Result += " -s GL_ASSERTIONS=1 ";
+				}
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+				{
+					if (UEBuildConfiguration.bCompileForSize)
+					{
+						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
+					}
+					else
+					{
+						Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+					}
+				}
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+				{
+					if (UEBuildConfiguration.bCompileForSize)
+					{
+						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
+					}
+					else
+					{
+						Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+					}
+				}
+
 			}
 
 			return Result;
@@ -135,7 +155,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (CompileEnvironment.Config.TargetArchitecture != "-win32")
+			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
 				Result = " -std=c++11";
 			}
@@ -151,21 +171,21 @@ namespace UnrealBuildTool
 
 		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.TargetConfiguration, LinkEnvironment.Config.TargetArchitecture);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 
-			if (LinkEnvironment.Config.TargetArchitecture != "-win32")
+			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
 
 				// enable verbose mode
 				Result += " -v";
 
-				if (LinkEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
 				{
 					// enable caching of intermediate date
 					Result += " --jcache -g";
 				}
 
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					// check for alignment/etc checking
 					//Result += " -s SAFE_HEAP=1";
@@ -174,6 +194,23 @@ namespace UnrealBuildTool
 
 					// enable assertions in non-Shipping/Release builds
 					Result += " -s ASSERTIONS=1";
+				}
+
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+				{
+					Result += " -O0";
+				}
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+				{
+					Result += " -s GL_ASSERTIONS=1 ";
+				}
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+				{
+					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+				}
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+				{
+					Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
 				}
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
@@ -191,7 +228,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (LinkEnvironment.Config.TargetArchitecture == "-win32")
+			if (LinkEnvironment.Config.Target.Architecture == "-win32")
 			{
 				// Prevents the linker from displaying its logo for each invocation.
 				Result += " /NOLOGO";
@@ -208,7 +245,7 @@ namespace UnrealBuildTool
 				//
 				//	Shipping & LTCG
 				//
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					// Use link-time code generation.
 					Result += " /ltcg";
@@ -270,7 +307,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			if (CompileEnvironment.Config.TargetArchitecture == "-win32")
+			if (CompileEnvironment.Config.Target.Architecture == "-win32")
 			{
 				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName);
 			}
@@ -317,12 +354,12 @@ namespace UnrealBuildTool
 
 				// Add the source file path to the command-line.
                 string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
-
+				var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.HTML5].GetBinaryExtension(UEBuildBinaryType.Object);
             	// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByPath(
 					Path.Combine(
 						CompileEnvironment.Config.OutputDirectory,
-						Path.GetFileName(SourceFile.AbsolutePath) + (".o")
+					Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 						)
 					);
 				CompileAction.ProducedItems.Add(ObjectFile);
@@ -331,7 +368,7 @@ namespace UnrealBuildTool
 				// Add C or C++ specific compiler arguments.
 				if (bIsPlainCFile)
 				{
-					FileArguments += GetCLArguments_C(CompileEnvironment.Config.TargetArchitecture);
+					FileArguments += GetCLArguments_C(CompileEnvironment.Config.Target.Architecture);
 				}
 				else
 				{
@@ -370,7 +407,7 @@ namespace UnrealBuildTool
 		{
 			CPPOutput Result = new CPPOutput();
 
-			if (Environment.Config.TargetArchitecture == "-win32")
+			if (Environment.Config.Target.Architecture == "-win32")
 			{
 				return base.CompileRCFiles(Environment, RCFiles);
 			}
@@ -435,7 +472,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			if (LinkEnvironment.Config.TargetArchitecture == "-win32")
+			if (LinkEnvironment.Config.Target.Architecture == "-win32")
             {
                 return base.LinkFiles(LinkEnvironment, bBuildImportLibraryOnly);
             }
@@ -463,7 +500,10 @@ namespace UnrealBuildTool
                 FileItem Item = FileItem.GetExistingItemByPath(InputFile);
                 if (Item != null)
                 {
-                    LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
+                    if (Item.ToString().Contains(".js"))
+                        LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
+                    else
+                        LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
                     LinkAction.PrerequisiteItems.Add(Item);
                 }
             }

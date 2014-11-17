@@ -2,133 +2,69 @@
 
 #pragma once
 
+#include "PluginDescriptor.h"
 
 /**
- * Info about a single plugin
+ * Enum for where a plugin is loaded from
  */
-class FPluginInfo : public FProjectOrPluginInfo
+struct EPluginLoadedFrom
 {
-public:
-	struct ELoadedFrom
+	enum Type
 	{
-		enum Type
-		{
-			/** Plugin is built-in to the engine */
-			Engine,
+		/** Plugin is built-in to the engine */
+		Engine,
 
-			/** Project-specific plugin, stored within a game project directory */
-			GameProject
-		};
+		/** Project-specific plugin, stored within a game project directory */
+		GameProject
 	};
-			
-
-	/** Where does this plugin live? */
-	ELoadedFrom::Type LoadedFrom;
-
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Everything Below this line is serialized. If you add or remove properties, you must update
-	// FPlugin::PerformAdditionalSerialization and FPlugin::PerformAdditionalDeserialization
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/** Can this plugin contain content? */
-	bool bCanContainContent;
-
-	/** Marks the plugin as beta in the UI */
-	bool bIsBetaVersion;
-
-	/** Plugin info constructor */
-	FPluginInfo()
-		: FProjectOrPluginInfo()
-		, LoadedFrom( ELoadedFrom::Engine )
-		, bCanContainContent( false )
-		, bIsBetaVersion( false )
-	{
-	}
 };
-
 
 /**
  * Instance of a plugin in memory
  */
-class FPlugin : public FProjectOrPlugin
+class FPluginInstance
 {
-
 public:
+	/** The name of the plugin */
+	FString Name;
+
+	/** The filename that the plugin was loaded from */
+	FString FileName;
+
+	/** The plugin's settings */
+	FPluginDescriptor Descriptor;
+
+	/** Where does this plugin live? */
+	EPluginLoadedFrom::Type LoadedFrom;
+
+	/** True if the plugin is marked as enabled */
+	bool bEnabled;
 
 	/**
 	 * FPlugin constructor
 	 */
-	FPlugin();
-
-	/**
-	 * Registers the content mount points for this delegate. This allows content to be created in the root folder for this plugin.
-	 *
-	 * @param	RegisterMountPointDelegate	Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access content path mounting functionality from Core.
-	 */
-	void RegisterPluginMountPoints( const IPluginManager::FRegisterMountPointDelegate& RegisterMountPointDelegate );
-
-	/** @return Exposes access to the plugin's descriptor */
-	const FPluginInfo& GetPluginInfo()
-	{
-		return PluginInfo;
-	}
-
-	/** Returns this plugin's name */
-	const FString& GetPluginName() const;
-
-	/** Sets the "enabled" state for this plugin */
-	void SetEnabled(bool bNewPluginEnabled);
-
-	/** Returns true if this plugin is currently marked as "enabled" */
-	bool IsEnabled() const;
-
-	/** Tells the descriptor where it was loaded from */
-	void SetLoadedFrom(FPluginInfo::ELoadedFrom::Type NewLoadedFrom);
-
-protected:
-	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() OVERRIDE	{ return PluginInfo; }
-	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const OVERRIDE { return PluginInfo; }
-
-	virtual bool PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject) OVERRIDE;
-	virtual void PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const OVERRIDE;
-
-private:
-
-	/** The descriptor of this plugin that we loaded from disk */
-	FPluginInfo PluginInfo;
-
-	/** True if the plugin is marked as enabled */
-	bool bPluginEnabled;
+	FPluginInstance(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom::Type InLoadedFrom);
 };
 
-
-
 /**
- * ProjectAndPluginManager manages available code and content extensions (both loaded and not loaded.)
+ * FPluginManager manages available code and content extensions (both loaded and not loaded.)
  */
 class FPluginManager : public IPluginManager
 {
-
 public:
-
 	/** Constructor */
 	FPluginManager();
 
 	/** Destructor */
 	~FPluginManager();
 
-
-public:
-
 	/** IPluginManager interface */
-	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
-	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) OVERRIDE;
-	virtual bool IsPluginModule( const FName ModuleName ) const OVERRIDE;
-	virtual bool AreEnabledPluginModulesUpToDate() OVERRIDE;
-	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const OVERRIDE;
-	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) OVERRIDE;
-	virtual bool IsRestartRequired() const OVERRIDE;
+	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
+	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
+	virtual bool IsPluginModule( const FName ModuleName ) const override;
+	virtual bool AreEnabledPluginModulesUpToDate() override;
+	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
+	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
 
 private:
 
@@ -139,21 +75,15 @@ private:
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
 	void EnablePluginsThatAreConfiguredToBeEnabled();
 
-	/** Registers content mount points for all enabled plugins */
-	void RegisterEnabledPluginMountPoints();
-
-	/** Returns all plugins currently configured to be enabled */
-	void GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginNames) const;
-
-	/** Sets the list of currently configured plugins */
-	void ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled);
-
 private:
 	/** All of the plugins that we know about */
-	TArray< TSharedRef< FPlugin > > AllPlugins;
+	TArray< TSharedRef< FPluginInstance > > AllPlugins;
 
 	/** Map from module name to plugin containing that module */
-	TMap< FName, TSharedRef< FPlugin > > ModulePluginMap;
+	TMap< FName, TSharedRef< FPluginInstance > > ModulePluginMap;
+
+	/** All the plugin content folders */
+	TArray<FPluginContentFolder> ContentFolders;
 
 	/** Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access
 	    content path mounting functionality from Core. */
@@ -161,9 +91,6 @@ private:
 
 	/** The earliest phase that modules are loaded requires some additional initialization */
 	bool bEarliestPhaseProcessed;
-
-	/** true if plugin changes have been made that will only take effect after a restart */
-	bool bRestartRequired;
 };
 
 

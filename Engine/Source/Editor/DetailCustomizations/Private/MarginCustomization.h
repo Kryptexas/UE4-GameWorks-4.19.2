@@ -2,15 +2,15 @@
 
 #pragma once
 
-class FMarginStructCustomization : public IStructCustomization
+class FMarginStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;              
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
 
 private:
 
@@ -40,12 +40,7 @@ private:
 	/**
 	 * Update the margin text from the margin property values
 	 */
-	void UpdateMarginTextFromProperties();
-
-	/**
-	 * Called on change of property value
-	 */
-	void OnPropertyChanged();
+	FString GetMarginTextFromProperties() const;
 
 	/**
 	 * Gets the value as a float for the provided property handle
@@ -81,11 +76,9 @@ private:
 	 * Called when a value stops being changed by a slider
 	 */
 	void OnEndSliderMovement( float NewValue );
-
-	/**
-	 * Constrain the specified property value pair so that the sum is less than 1.0
-	 */
-	void ConstrainPropertyValues( int32 PropertyIndex );
+	
+	/** Handle to the margin being customized */
+	TSharedPtr<IPropertyHandle> StructPropertyHandle;
 
 	/** Child property handles */
 	TArray< TSharedRef<IPropertyHandle> > ChildPropertyHandles;
@@ -98,8 +91,5 @@ private:
 
 	/** Margin text editable text box */
 	TSharedPtr<SEditableTextBox> MarginEditableTextBox;
-
-	/** Margin text */
-	FString MarginText;
 };
 

@@ -347,7 +347,7 @@ public:
 
 	/**
 	 *	Attempts to a new subsequent task. If this event has already fired, false is returned and action must be taken to ensure that the task will still fire even though this event cannot be a prerequisite (because it is already finished).
-	 *	@return true if the task was sucessfully set up as a subsequent. false if the event has already fired.
+	 *	@return true if the task was successfully set up as a subsequent. false if the event has already fired.
 	**/
 	bool AddSubsequent(class FBaseGraphTask* Task)
 	{
@@ -817,9 +817,10 @@ public:
 	FCustomNameGraphTaskBase(const TCHAR* TaskClassName, const TCHAR* TaskName)
 	{
 #if STATS
-		const FName StatName = FName(*(FString(TaskClassName) + TEXT(".") + FString(TaskName)));
+		const FString LongName = FString(TaskClassName) + TEXT(".") + FString(TaskName);
+		const FName StatName = FName( *LongName );
 
-		FStartupMessages::Get().AddMetadata(StatName, TEXT(""),
+		FStartupMessages::Get().AddMetadata(StatName, *LongName,
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupName(),
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupCategory(),
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetDescription(),
@@ -829,7 +830,7 @@ public:
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupName(),
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupCategory(),
 			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::DefaultEnable,
-			true, EStatDataType::ST_int64, TEXT(""), true);
+			true, EStatDataType::ST_int64, *LongName, true);
 #endif
 	}
 

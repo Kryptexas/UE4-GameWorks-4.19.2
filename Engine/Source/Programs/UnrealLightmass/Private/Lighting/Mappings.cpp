@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Mappings.cpp: Static lighting mapping implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Importer.h"
 

@@ -358,6 +358,15 @@ public:
 	virtual void Run() = 0;
 };
 
+/**
+ * Delegate type for when a test screenshot has been captured
+ *
+ * The first parameter is the width.
+ * The second parameter is the height.
+ * The third parameter is the array of bitmap data.
+ * The fourth parameter is the screen shot filename.
+ */
+DECLARE_DELEGATE_FourParams(FOnTestScreenshotCaptured, int32, int32, const TArray<FColor>&, const FString&);
 
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
@@ -489,6 +498,28 @@ public:
 	 */
 	void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn);
 
+	/**
+	 * Accessor for delegate called when a png screenshot is captured 
+	 */
+	FOnTestScreenshotCaptured& OnScreenshotCaptured();
+
+	/**
+	 * Sets screenshot options
+	 * @param bInScreenshotsEnabled - If screenshots are enabled
+	 * @param bInUseFullSizeScreenshots - If true, we won't resize the screenshots
+	 */
+	void SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots );
+
+	/**
+	 * Gets if screenshots are allowed
+	 */
+	bool IsScreenshotAllowed() const;
+
+	/**
+	 * Gets if we are using fulll size screenshots
+	 */
+	bool ShouldUseFullSizeScreenshots() const;
+
 private:
 
 	/** Special feedback context used exclusively while automation testing */
@@ -531,7 +562,7 @@ private:
 		 * @param	V		String to serialize within the context
 		 * @param	Event	Event associated with the string
 		 */
-		virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+		virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 		/**
 		 * Set the automation test associated with the feedback context. The automation test is where all warnings, errors, etc.
@@ -629,8 +660,17 @@ private:
 	/** Whether we want to convert Anim Blueprint **/
 	bool bVisualCommandletFilterOn;
 
+	/** Wheather screenshots are enabled */
+	bool bScreenshotsEnabled;
+
+	/** Wheather we should resize screenshots or not */
+	bool bUseFullSizeScreenShots;
+
 	/** Participation role as given by the automation controller */
 	uint32 NetworkRoleIndex;
+
+	/** Delegate called at the end of the frame when a screenshot is captured and a .png is requested */
+	FOnTestScreenshotCaptured TestScreenshotCapturedDelegate;
 };
 
 
@@ -961,7 +1001,7 @@ class CommandName : public IAutomationLatentCommand \
 	public: \
 	virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 }
 
 #define DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
@@ -973,7 +1013,7 @@ class CommandName : public IAutomationLatentCommand \
 		{} \
 		virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 	private: \
 	ParamType ParamName; \
 }
@@ -984,7 +1024,7 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 	public: \
 	virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 }
 
 #define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
@@ -996,7 +1036,7 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 		{} \
 		virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 	private: \
 	ParamType ParamName; \
 }
@@ -1015,7 +1055,7 @@ public: \
 	F##ClassDeclaration(int32 InRoleIndex) : RoleIndex(InRoleIndex) {} \
 	virtual ~F##ClassDeclaration() {} \
 	virtual uint32 GetRoleIndex() const { return RoleIndex; } \
-	virtual void Run() OVERRIDE 
+	virtual void Run() override 
 
 //close the class and add to the framework
 #define END_NETWORK_AUTOMATION_COMMAND(ClassDeclaration,InRoleIndex) }; \
@@ -1044,13 +1084,13 @@ public: \
 		virtual bool IsStressTest() const { return false; } \
 		virtual uint32 GetRequiredDeviceNum() const { return 1; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
 			OutBeautifiedNames.Add(PrettyName); \
 			OutTestCommands.Add(FString()); \
 		} \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 #define IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE( TClass, PrettyName, TFlags ) \
@@ -1063,9 +1103,9 @@ public: \
 		virtual bool IsStressTest() const { return true; } \
 		virtual uint32 GetRequiredDeviceNum() const { return 1; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const OVERRIDE; \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override; \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 #define IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants) \
@@ -1077,13 +1117,13 @@ public: \
 		virtual uint32 GetTestFlags() const { return (TFlags & ~(EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_Commandlet | EAutomationTestFlags::ATF_SmokeTest)); } \
 		virtual uint32 GetRequiredDeviceNum() const { return NumParticipants; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
 			OutBeautifiedNames.Add(PrettyName); \
 			OutTestCommands.Add(FString()); \
 		} \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 

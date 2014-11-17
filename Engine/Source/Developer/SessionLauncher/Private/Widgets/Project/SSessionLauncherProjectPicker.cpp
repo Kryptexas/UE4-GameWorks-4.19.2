@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherUnrealProjectPicker.cpp: Implements the SSessionLauncherUnrealProjectPicker class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 
@@ -63,117 +59,120 @@ TSharedRef<SWidget> SSessionLauncherProjectPicker::MakeProjectMenuWidget( )
 	return MenuBuilder.MakeWidget();
 }
 
+
 TSharedRef<SWidget> SSessionLauncherProjectPicker::MakeProjectWidget()
 {
 	TSharedRef<SWidget> Widget = SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot()
+	+ SVerticalBox::Slot()
 		.FillHeight(0.5)
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			.Padding(8.0)
-			[
-				SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(8.0)
 				[
-					SNew(SSessionLauncherFormLabel)
-					.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoProjectSelectedError", "A Project must be selected."))
-					.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoProjectSelected)
-					.LabelText(LOCTEXT("ProjectComboBoxLabel", "Project:"))
-				]
+					SNew(SVerticalBox)
 
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-					[
-						// project selector
-						SNew(SComboButton)
-						.ButtonContent()
+					+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(STextBlock)
-							.Text(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonText)
+							SNew(SSessionLauncherFormLabel)
+								.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoProjectSelectedError", "A Project must be selected."))
+								.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoProjectSelected)
+								.LabelText(LOCTEXT("ProjectComboBoxLabel", "Project:"))
 						]
-						.ContentPadding(FMargin(6.0f, 2.0f))
-							.MenuContent()
-							[
-								MakeProjectMenuWidget()
-							]
-						.ToolTipText(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonToolTip)
-					]
-			]
+
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							// project selector
+							SNew(SComboButton)
+								.ButtonContent()
+								[
+									SNew(STextBlock)
+										.Text(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonText)
+								]
+								.ContentPadding(FMargin(6.0f, 2.0f))
+								.MenuContent()
+								[
+									MakeProjectMenuWidget()
+								]
+								.ToolTipText(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonToolTip)
+						]
+				]
 		];
 
 	return Widget;
 }
+
 
 TSharedRef<SWidget> SSessionLauncherProjectPicker::MakeProjectAndConfigWidget()
 {
 	TSharedRef<SWidget> Widget = SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot()
+	+ SVerticalBox::Slot()
 		.FillHeight(0.5)
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			.Padding(8.0)
-			[
-				SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(8.0)
 				[
-					SNew(SSessionLauncherFormLabel)
-					.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoProjectSelectedError", "A Project must be selected."))
-					.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoProjectSelected)
-					.LabelText(LOCTEXT("ProjectComboBoxLabel", "Project:"))
-				]
+					SNew(SVerticalBox)
 
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-					[
-						// project selector
-						SNew(SComboButton)
-						.ButtonContent()
+					+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(STextBlock)
-							.Text(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonText)
+							SNew(SSessionLauncherFormLabel)
+								.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoProjectSelectedError", "A Project must be selected."))
+								.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoProjectSelected)
+								.LabelText(LOCTEXT("ProjectComboBoxLabel", "Project:"))
 						]
-						.ContentPadding(FMargin(6.0f, 2.0f))
-							.MenuContent()
-							[
-								MakeProjectMenuWidget()
-							]
-						.ToolTipText(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonToolTip)
-					]
 
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 8.0f, 0.0f, 0.0f)
-					[
-						SNew(SSessionLauncherFormLabel)
-						.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoBuildConfigurationSelectedError", "A Build Configuration must be selected."))
-						.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoBuildConfigurationSelected)
-						.LabelText(LOCTEXT("ConfigurationComboBoxLabel", "Build Configuration:"))
-					]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							// project selector
+							SNew(SComboButton)
+								.ButtonContent()
+								[
+									SNew(STextBlock)
+										.Text(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonText)
+								]
+								.ContentPadding(FMargin(6.0f, 2.0f))
+								.MenuContent()
+								[
+									MakeProjectMenuWidget()
+								]
+								.ToolTipText(this, &SSessionLauncherProjectPicker::HandleProjectComboButtonToolTip)
+						]
 
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-					[
-						// build configuration selector
-						SNew(SSessionLauncherBuildConfigurationSelector)
-						.OnConfigurationSelected(this, &SSessionLauncherProjectPicker::HandleBuildConfigurationSelectorConfigurationSelected)
-						.Text(this, &SSessionLauncherProjectPicker::HandleBuildConfigurationSelectorText)
-					]
-			]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+						[
+							SNew(SSessionLauncherFormLabel)
+								.ErrorToolTipText(NSLOCTEXT("SSessionLauncherBuildValidation", "NoBuildConfigurationSelectedError", "A Build Configuration must be selected."))
+								.ErrorVisibility(this, &SSessionLauncherProjectPicker::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoBuildConfigurationSelected)
+								.LabelText(LOCTEXT("ConfigurationComboBoxLabel", "Build Configuration:"))
+						]
+
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							// build configuration selector
+							SNew(SSessionLauncherBuildConfigurationSelector)
+								.OnConfigurationSelected(this, &SSessionLauncherProjectPicker::HandleBuildConfigurationSelectorConfigurationSelected)
+								.Text(this, &SSessionLauncherProjectPicker::HandleBuildConfigurationSelectorText)
+						]
+				]
 		];
 
 	return Widget;
 }
+
 
 /* SSessionLauncherProjectPicker callbacks
  *****************************************************************************/

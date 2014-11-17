@@ -425,6 +425,9 @@ public:
 	/** @return true if the window is maximized, false otherwise*/
 	bool IsWindowMaximized() const;
 
+	/** @return true of the window is minimized (iconic), false otherwise */
+	bool IsWindowMinimized() const;
+
 	/** Maximize the window if bInitiallyMaximized is set */
 	void InitialMaximize();
 
@@ -515,16 +518,6 @@ public:
 		bHasMinimizeButton = false;
 	}
 
-	bool HasMaximizeButton( )
-	{
-		return bHasMaximizeButton;
-	}
-
-	bool HasMinimizeButton( )
-	{
-		return bHasMinimizeButton;
-	}
-
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
 		TitleBar = InTitleBar;
@@ -552,16 +545,16 @@ public:
 	/** @return Gets the radius of the corner rounding of the window. */
 	int32 GetCornerRadius();
 
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override;
 
 	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent );
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize() const override;
 
 	/** Marks this window as having been drawn at least once */
 	inline void MarkAsDrawn()
@@ -603,24 +596,6 @@ public:
 	void SetOnWorldSwitchHack( FOnSwitchWorldHack& InOnWorldSwitchHack );
 
 	/**
-	 * Static: Marks the specified window as drawn
-	 *
-	 * @param	Window	The window to mark as drawn
-	 */
-	static void MarkWindowAsDrawn( SWindow* Window )
-	{
-		Window->MarkAsDrawn();
-	}
-
-	/**
-	 * @return Returns a delegate that can be used to mark window as drawn. The delegate is safe to call from a different thread.
-	 */
-	FSimpleDelegate MakeMarkWindowAsDrawnDelegate()
-	{
-		return FSimpleDelegate::CreateStatic( &MarkWindowAsDrawn, this );
-	}
-
-	/**
 	 * Hack to switch worlds
 	 *
 	 * @param WorldId: User ID for a world that should be restored or -1 if no restore
@@ -635,7 +610,7 @@ public:
 
 	// Begin SWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	// End SWidget overrides
 

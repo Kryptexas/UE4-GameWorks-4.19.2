@@ -29,6 +29,9 @@
 */
 
 #include "UnrealEd.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
 #include "Factories.h"
 #include "Engine.h"
 #include "TextureLayout.h"
@@ -37,6 +40,7 @@
 #include "PackageTools.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
 
@@ -58,7 +62,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 	BasePackageName = PackageTools::SanitizePackageName(BasePackageName);
 
 	UTexture* ExistingTexture = NULL;
-	UPackage* TexturePacakge = NULL;
+	UPackage* TexturePackage = NULL;
 	// First check if the asset already exists.
 	{
 		FString ObjectPath = BasePackageName + TEXT(".") + TextureName;
@@ -74,11 +78,11 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 		FString FinalPackageName;
 		AssetToolsModule.Get().CreateUniqueAssetName(BasePackageName, Suffix, FinalPackageName, TextureName);
 
-		TexturePacakge = CreatePackage(NULL, *FinalPackageName);
+		TexturePackage = CreatePackage(NULL, *FinalPackageName);
 	}
 	else
 	{
-		TexturePacakge = ExistingTexture->GetOutermost();
+		TexturePackage = ExistingTexture->GetOutermost();
 	}
 
 
@@ -130,7 +134,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 		}
 
 		UnrealTexture = (UTexture*)TextureFact->FactoryCreateBinary(
-			UTexture2D::StaticClass(), TexturePacakge, *TextureName, 
+			UTexture2D::StaticClass(), TexturePackage, *TextureName, 
 			RF_Standalone|RF_Public, NULL, TextureType, 
 			PtrTexture, PtrTexture+DataBinary.Num(), GWarn );
 
@@ -140,7 +144,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 			FAssetRegistryModule::AssetCreated(UnrealTexture);
 
 			// Set the dirty flag so this package will get saved later
-			TexturePacakge->SetDirtyFlag(true);
+			TexturePackage->SetDirtyFlag(true);
 		}
 		TextureFact->RemoveFromRoot();
 	}
@@ -272,7 +276,7 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 							MyCoordExpression->UTiling = ScaleU;
 							MyCoordExpression->VTiling = ScaleV;
 							UnrealTextureExpression->Coordinates.Expression = MyCoordExpression;
-							MyCoordExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X+175);
+							MyCoordExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X-175);
 							MyCoordExpression->MaterialExpressionEditorY = FMath::TruncToInt(Location.Y);
 
 						}

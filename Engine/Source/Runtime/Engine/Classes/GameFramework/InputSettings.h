@@ -47,6 +47,10 @@ class ENGINE_API UInputSettings
 	UPROPERTY(config, EditAnywhere, Category="Mobile")
 	bool bAlwaysShowTouchInterface;
 
+	/** Whether or not to show the console on 4 finger tap, on mobile platforms */
+	UPROPERTY(config, EditAnywhere, Category="Mobile")
+	bool bShowConsoleOnFourFingerTap;
+
 	/** The default on-screen touch input interface for the game (can be null to disable the onscreen interface) */
 	UPROPERTY(config, EditAnywhere, Category="Mobile", meta=(AllowedClasses="TouchInterface"))
 	FStringAssetReference DefaultTouchInterface;
@@ -55,9 +59,10 @@ class ENGINE_API UInputSettings
 	UPROPERTY(config, EditAnywhere, Category="Console")
 	FKey ConsoleKey;
 
+
 	// UObject interface
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface
 
@@ -71,4 +76,6 @@ class ENGINE_API UInputSettings
 
 	void GetActionNames(TArray<FName>& ActionNames) const;
 	void GetAxisNames(TArray<FName>& AxisNames) const;
+private:
+	void ForceRebuildKeymaps();
 };

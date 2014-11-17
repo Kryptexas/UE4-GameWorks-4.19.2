@@ -12,8 +12,8 @@ class FMaterialInstanceEditor : public IMaterialEditor, public FNotifyHook, publ
 {
 public:
 	
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	/**
 	 * Edits the specified material instance object
@@ -27,18 +27,18 @@ public:
 	virtual ~FMaterialInstanceEditor();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 
 	/** @return Returns the color and opacity to use for the color that appears behind the tab text for this toolkit's tab in world-centric mode. */
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** The material instance applied to the preview mesh. */
-	virtual UMaterialInterface* GetMaterialInterface() const OVERRIDE;
+	virtual UMaterialInterface* GetMaterialInterface() const override;
 
 	/** Pre edit change notify for properties. */
 	virtual void NotifyPreChange( UProperty* PropertyAboutToChange );
@@ -121,7 +121,7 @@ private:
 	void ExtendToolbar();
 
 	/** Allows editor to veto the setting of a preview mesh */
-	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) OVERRIDE;
+	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) override;
 
 	/**	Spawns the preview tab */
 	TSharedRef<SDockTab> SpawnTab_Preview( const FSpawnTabArgs& Args );
@@ -139,8 +139,8 @@ private:
 	void Refresh();
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo( bool bSuccess ) OVERRIDE;
-	virtual void PostRedo( bool bSuccess ) OVERRIDE;
+	virtual void PostUndo( bool bSuccess ) override;
+	virtual void PostRedo( bool bSuccess ) override;
 	// End of FEditorUndoClient
 
 private:

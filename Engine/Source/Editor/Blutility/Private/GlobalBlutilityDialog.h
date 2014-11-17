@@ -8,8 +8,8 @@
 class FGlobalBlutilityDialog : public FAssetEditorToolkit, public FGCObject
 {
 public:
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	TSharedRef<SDockTab> SpawnTab_DetailsPanel( const FSpawnTabArgs& SpawnTabArgs );
 
 	/**
@@ -29,15 +29,15 @@ public:
 	virtual ~FGlobalBlutilityDialog();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 
 	/** @return Returns the color and opacity to use for the color that appears behind the tab text for this toolkit's tab in world-centric mode. */
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 private:
 

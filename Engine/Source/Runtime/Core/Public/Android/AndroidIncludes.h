@@ -50,7 +50,7 @@ struct RECT
 #include "Android/AndroidMemory.h"
 #include "Android/AndroidString.h"
 #include "Android/AndroidMisc.h"
-#include "Android/AndroidStackWalk.h"
+#include "Android/AndroidPlatformStackWalk.h"
 #include "Android/AndroidMath.h"
 #include "Android/AndroidTime.h"
 #include "Android/AndroidProcess.h"
@@ -61,6 +61,7 @@ struct RECT
 #include "Android/AndroidFile.h"
 #include "Android/AndroidSurvey.h"
 #include "Android/AndroidHttp.h"
+#include "Android/AndroidAffinity.h"
 
 // include platform properties and typedef it for the runtime
 #include "AndroidProperties.h"

@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "Shader.h"
 #include "SceneManagement.h"
 #include "ShaderParameters.h"
@@ -119,11 +118,11 @@ public:
 	ENGINE_API FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	
 	template<typename ShaderRHIParamRef>
-	void SetParameters(const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
 	{
 		check(GetUniformBufferParameter<FViewUniformShaderParameters>().IsInitialized());
 		CheckShaderIsValid();
-		SetUniformBufferParameter(ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
 	}
 
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, FShaderCompilerEnvironment&);
@@ -207,6 +206,7 @@ extern void ProcessCompiledGlobalShaders(const TArray<FShaderCompileJob*>& Compi
  * @param SerializedShaderResources		Serialized shader resources
  * @param MeshMaterialMaps				Mesh material maps
  * @param ModifiedFiles					Returns the list of modified files if not NULL
+ * @param bCompileChangedShaders		Whether to compile all changed shaders or the specific material that is passed
  **/
 extern ENGINE_API void RecompileShadersForRemote( 
 	const FString& PlatformName, 
@@ -215,4 +215,5 @@ extern ENGINE_API void RecompileShadersForRemote(
 	const TArray<FString>& MaterialsToLoad, 
 	const TArray<uint8>& SerializedShaderResources, 
 	TArray<uint8>* MeshMaterialMaps, 
-	TArray<FString>* ModifiedFiles );
+	TArray<FString>* ModifiedFiles,
+	bool bCompileChangedShaders = true);

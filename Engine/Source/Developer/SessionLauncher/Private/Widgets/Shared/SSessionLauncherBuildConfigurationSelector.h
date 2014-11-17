@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherBuildConfigurationSelector.h: Declares the SSessionLauncherBuildConfigurationSelector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -31,14 +27,13 @@ public:
 		SLATE_ATTRIBUTE(FString, Text)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs )
 	{
@@ -80,7 +75,6 @@ public:
 		];
 	}
 
-
 private:
 
 	// Callback for clicking a menu entry.
@@ -88,7 +82,6 @@ private:
 	{
 		OnConfigurationSelected.ExecuteIfBound(Configuration);
 	}
-
 
 private:
 

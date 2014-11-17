@@ -1050,7 +1050,7 @@ FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* H
 **/
 static class FFNameExec: private FSelfRegisteringExec
 {
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		// Display information about the name table only rather than using HASH
 		if( FParse::Command( &Cmd, TEXT("NAMEHASH") ) )

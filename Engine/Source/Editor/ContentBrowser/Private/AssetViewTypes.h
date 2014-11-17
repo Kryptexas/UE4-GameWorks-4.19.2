@@ -23,6 +23,8 @@ struct FAssetViewItem
 	{
 	}
 
+	virtual ~FAssetViewItem() {}
+
 	/** Get the type of this asset item */
 	virtual EAssetItemType::Type GetType() const = 0;
 
@@ -57,12 +59,12 @@ struct FAssetViewAsset : public FAssetViewItem
 	}
 
 	// FAssetViewItem interface
-	virtual EAssetItemType::Type GetType() const OVERRIDE
+	virtual EAssetItemType::Type GetType() const override
 	{
 		return EAssetItemType::Normal;
 	}
 
-	virtual bool IsTemporaryItem() const OVERRIDE
+	virtual bool IsTemporaryItem() const override
 	{
 		return false;
 	}
@@ -100,12 +102,12 @@ struct FAssetViewFolder : public FAssetViewItem
 	}
 
 	// FAssetViewItem interface
-	virtual EAssetItemType::Type GetType() const OVERRIDE
+	virtual EAssetItemType::Type GetType() const override
 	{
 		return EAssetItemType::Folder;
 	}
 
-	virtual bool IsTemporaryItem() const OVERRIDE
+	virtual bool IsTemporaryItem() const override
 	{
 		return false;
 	}
@@ -127,18 +129,18 @@ struct FAssetViewCreation : public FAssetViewAsset, public FGCObject
 	{}
 
 	// FAssetViewItem interface
-	virtual EAssetItemType::Type GetType() const OVERRIDE
+	virtual EAssetItemType::Type GetType() const override
 	{
 		return EAssetItemType::Creation;
 	}
 
-	virtual bool IsTemporaryItem() const OVERRIDE
+	virtual bool IsTemporaryItem() const override
 	{
 		return true;
 	}
 
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		Collector.AddReferencedObject(AssetClass);
 		Collector.AddReferencedObject(Factory);
@@ -157,12 +159,12 @@ struct FAssetViewDuplication : public FAssetViewAsset
 	{}
 
 	// FAssetViewItem interface
-	virtual EAssetItemType::Type GetType() const OVERRIDE
+	virtual EAssetItemType::Type GetType() const override
 	{
 		return EAssetItemType::Duplication;
 	}
 
-	virtual bool IsTemporaryItem() const OVERRIDE
+	virtual bool IsTemporaryItem() const override
 	{
 		return true;
 	}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageResequencer.h: Declares the FUdpMessageResequencer class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -62,7 +58,6 @@ public:
 	 * Resequences the specified message.
 	 *
 	 * @param Message The message to resequence.
-	 *
 	 * @return true if the message is in sequence, false otherwise.
 	 */
 	bool Resequence(const FReassembledUdpMessagePtr& Message)

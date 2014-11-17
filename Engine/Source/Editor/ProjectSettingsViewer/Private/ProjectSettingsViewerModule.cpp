@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectSettingsViewerModule.cpp: Implements the FProjectSettingsViewerModule class.
-=============================================================================*/
-
 #include "ProjectSettingsViewerPrivatePCH.h"
+#include "Engine/Console.h"
+#include "ProjectTargetPlatformEditor.h"
+#include "Settings/CookerSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
@@ -21,9 +20,9 @@ class FProjectSettingsViewerModule
 {
 public:
 
-	// Begin ISettingsViewer interface
+	// ISettingsViewer interface
 
-	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) OVERRIDE
+	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) override
 	{
 		FGlobalTabmanager::Get()->InvokeTab(ProjectSettingsTabName);
 		ISettingsEditorModelPtr SettingsEditorModel = SettingsEditorModelPtr.Pin();
@@ -39,13 +38,11 @@ public:
 		}
 	}
 
-	// End ISettingsViewer interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 
@@ -62,18 +59,16 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hide);
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 
@@ -89,7 +84,7 @@ protected:
 			GetMutableDefault<UEngine>()
 		);
 
-		// Audio settings
+		// audio settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Audio",
 			LOCTEXT("EngineAudioSettingsName", "Audio"),
 			LOCTEXT("ProjectAudioSettingsDescription", "Audio settings."),
@@ -103,14 +98,14 @@ protected:
 			GetMutableDefault<UCollisionProfile>()
 		);
 
-		// game console settings
+		// command console settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Console",
 			LOCTEXT("ProjectConsoleSettingsName", "Console"),
 			LOCTEXT("ProjectConsoleSettingsDescription", "Configure the in-game input console."),
-			GetMutableDefault<UConsole>()
+			GetMutableDefault<UConsoleSettings>()
 		);
 
-		// Input settings
+		// input settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Input",
 			LOCTEXT("EngineInputSettingsName", "Input"),
 			LOCTEXT("ProjectInputSettingsDescription", "Input settings, including default input action and axis bindings."),
@@ -151,6 +146,13 @@ protected:
 			LOCTEXT("ProjectRenderingSettingsDescription", "Rendering settings."),
 			GetMutableDefault<URendererSettings>()
 		);
+
+		// Rendering settings
+		SettingsModule.RegisterSettings("Project", "Engine", "Cooker",
+			LOCTEXT("CookerSettingsName", "Cooker"),
+			LOCTEXT("CookerSettingsDescription", "Various cooker settings."),
+			GetMutableDefault<UCookerSettings>()
+			);
 	}
 
 	/**
@@ -179,15 +181,20 @@ protected:
 			GetMutableDefault<UProjectPackagingSettings>()
 		);
 
+		// platforms settings
+		TWeakPtr<SWidget> ProjectTargetPlatformEditorPanel = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").CreateProjectTargetPlatformEditorPanel();
+		SettingsModule.RegisterSettings("Project", "Game", "SupportedPlatforms",
+			LOCTEXT("ProjectSupportedPlatformsSettingsName", "Supported Platforms"),
+			LOCTEXT("ProjectSupportedPlatformsSettingsDescription", "Specify which platforms your project supports."),
+			ProjectTargetPlatformEditorPanel.Pin().ToSharedRef()
+		);
+
 		// movie settings
 		SettingsModule.RegisterSettings("Project", "Game", "Movies",
 			LOCTEXT("MovieSettingsName", "Movies"),
 			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
 			GetMutableDefault<UMoviePlayerSettings>()
 		);
-
-		// update the visible packaging enum values
-		UProjectPackagingSettings::UpdateBuildConfigurationVisibility();
 /*
 		// game session
 		SettingsModule.RegisterSettings("Project", "Game", "GameSession",
@@ -229,6 +236,7 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Game", "General");
 			SettingsModule->UnregisterSettings("Project", "Game", "Maps");
 			SettingsModule->UnregisterSettings("Project", "Game", "Packaging");
+			SettingsModule->UnregisterSettings("Project", "Game", "SupportedPlatforms");
 			SettingsModule->UnregisterSettings("Project", "Game", "Movies");
 //			SettingsModule->UnregisterSettings("Project", "Game", "GameSession");
 //			SettingsModule->UnregisterSettings("Project", "Game", "HUD");

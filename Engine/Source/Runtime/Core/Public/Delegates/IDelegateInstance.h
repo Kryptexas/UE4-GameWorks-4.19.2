@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IDelegateInstance.cpp: Declares the IDelegateInstance interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -52,30 +48,30 @@ public:
 	/**
 	 * Returns raw pointer to the delegate method.
 	 *
-	 * @return  Raw pointer to the delegate method.
+	 * @return Raw pointer to the delegate method.
 	 */
 	virtual const void* GetRawMethodPtr( ) const = 0;
 
 	/**
 	 * Returns raw pointer to UserObject,
 	 *
-	 * @return  Raw pointer to UserObject.
+	 * @return Raw pointer to UserObject.
 	 */
 	virtual const void* GetRawUserObject( ) const = 0;
 
 	/**
 	 * Returns the type of delegate instance
 	 *
-	 * @return  Delegate instance type
+	 * @return Delegate instance type
 	 */
 	virtual EDelegateInstanceType::Type GetType( ) const = 0;
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,
 	 *
-	 * @param  InUserObject
+	 * @param InUserObject
 	 *
-	 * @return  True if delegate is bound to the specified UserObject
+	 * @return True if delegate is bound to the specified UserObject
 	 */
 	virtual bool HasSameObject( const void* InUserObject ) const = 0;
 
@@ -83,7 +79,7 @@ public:
 	 * Checks to see if the user object bound to this delegate can ever be valid again.
 	 * used to compact multicast delegate arrays so they don't expand without limit.
 	 *
-	 * @return  True if the user object can never be used again
+	 * @return True if the user object can never be used again
 	 */
 	virtual bool IsCompactable( ) const
 	{
@@ -93,7 +89,7 @@ public:
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
-	 * @return  True if the user object is still valid and it's safe to execute the function call
+	 * @return True if the user object is still valid and it's safe to execute the function call
 	 */
 	virtual bool IsSafeToExecute( ) const = 0;
 

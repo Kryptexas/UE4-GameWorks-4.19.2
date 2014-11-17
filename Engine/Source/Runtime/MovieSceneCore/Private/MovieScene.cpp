@@ -4,30 +4,7 @@
 #include "MovieScene.h"
 
 
-bool FMovieSceneSpawnable::Serialize(FArchive& Ar)
-{
-	Ar << Guid;
-	Ar << Name;
-
-#if WITH_EDITOR
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS)
-	{
-		UBlueprint* ObsoleteBlueprint = NULL;
-		Ar << ObsoleteBlueprint;
-		if(ObsoleteBlueprint)
-		{
-			GeneratedClass = ObsoleteBlueprint->GeneratedClass;
-		}
-	}
-	else
-#endif //WITH_EDITOR
-	{
-		Ar << GeneratedClass;
-	}
-	return true;
-}
-
-FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
+FMovieSceneSpawnable::FMovieSceneSpawnable( const FText& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
 {
 	Guid = FGuid::NewGuid();
 	Name = InitName;
@@ -37,7 +14,7 @@ FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* Ini
 
 
 
-FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass* InitPossessedObjectClass )
+FMovieScenePossessable::FMovieScenePossessable( const FText& InitName, UClass* InitPossessedObjectClass )
 {
 	Guid = FGuid::NewGuid();
 	Name = InitName;
@@ -72,7 +49,7 @@ UMovieScene::UMovieScene( const FPostConstructInitializeProperties& PCIP )
 
 #if WITH_EDITOR
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieSceneCore!
-FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
+FGuid UMovieScene::AddSpawnable( const FText& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
 {
 	check( (Blueprint != NULL) && (Blueprint->GeneratedClass) );
 
@@ -82,7 +59,7 @@ FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UOb
 	Spawnables.Add( NewSpawnable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewSpawnable.GetGuid(), NewSpawnable.GetName() );
+	new (ObjectBindings) FMovieSceneObjectBinding( NewSpawnable.GetGuid(), NewSpawnable.GetDisplayName() );
 
 	return NewSpawnable.GetGuid();
 }
@@ -152,7 +129,7 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnable( const FGuid& Guid )
 }
 
 
-FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePreviewObject )
+const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePreviewObject ) const
 {
 	check( GamePreviewObject != NULL );
 
@@ -160,7 +137,7 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePre
 	const bool bIsGamePreviewObject = !!( GamePreviewObject->GetOutermost()->PackageFlags & PKG_PlayInEditor );
 	check( bIsGamePreviewObject );
 
-	for( auto CurSpawnableIt( Spawnables.CreateIterator() ); CurSpawnableIt; ++CurSpawnableIt )
+	for( auto CurSpawnableIt( Spawnables.CreateConstIterator() ); CurSpawnableIt; ++CurSpawnableIt )
 	{
 		auto& CurSpawnable = *CurSpawnableIt;
 		if( CurSpawnable.GetCounterpartGamePreviewObject() == GamePreviewObject )
@@ -173,7 +150,7 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePre
 }
 
 
-FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
+FGuid UMovieScene::AddPossessable( const FText& Name, UClass* Class )
 {
 	Modify();
 
@@ -181,7 +158,7 @@ FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
 	Possessables.Add( NewPossessable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewPossessable.GetGuid(), NewPossessable.GetName() );
+	new (ObjectBindings) FMovieSceneObjectBinding( NewPossessable.GetGuid(), NewPossessable.GetDisplayName() );
 
 	return NewPossessable.GetGuid();
 }
@@ -295,8 +272,10 @@ void UMovieScene::RemoveObjectBinding( const FGuid& Guid )
 UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTrackName ) const
 {
 	UMovieSceneTrack* FoundTrack = NULL;
-	check( UniqueTrackName != NAME_None && ObjectGuid.IsValid() )
-
+	
+	check( UniqueTrackName != NAME_None );
+	check( ObjectGuid.IsValid() );
+	
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
 		const FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];

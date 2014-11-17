@@ -46,20 +46,20 @@ public:
 
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End UPrimitiveComponent interface.
 
 	// Begin UActorComponent interface.
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	virtual void SendRenderTransform_Concurrent() override;
 	// End UActorComponent interface.
 
 	// Begin UObject interface.
-	virtual void PostInterpChange(UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 };

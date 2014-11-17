@@ -13,6 +13,7 @@
 /* Dependencies
  *****************************************************************************/
 
+#include "ImageWrapper.h"
 #include "ModuleManager.h"
 #include "IFilter.h"
 #include "TextFilter.h"
@@ -30,5 +31,6 @@
 #include "SScreenPlatformRow.h"
 #include "SScreenViewRow.h"
 #include "SScreenShotBrowser.h"
+#include "SScreenShotImagePopup.h"
 
 #endif // __ScreenShotComparisonPrivatePCH_h__

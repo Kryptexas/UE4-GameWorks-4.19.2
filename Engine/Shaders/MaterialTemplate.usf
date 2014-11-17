@@ -16,11 +16,6 @@
 
 #define NUM_MATERIAL_TEXCOORDS_VERTEX %s
 #define NUM_MATERIAL_TEXCOORDS %s
-
-#if (USE_INSTANCING || PARTICLE_MESH_INSTANCED) && NUM_MATERIAL_TEXCOORDS_VERTEX > 4
-	#undef NUM_MATERIAL_TEXCOORDS_VERTEX
-	#define NUM_MATERIAL_TEXCOORDS_VERTEX 4
-#endif
  
 #if MATERIAL_ATMOSPHERIC_FOG
 	#include "AtmosphereCommon.usf"
@@ -232,6 +227,8 @@ struct FMaterialVertexParameters
 #if USE_INSTANCING
 	/** Per-instance properties. */
 	float4x4 InstanceLocalToWorld;
+	float3x3 InstanceWorldToLocal;
+	float3 InstanceLocalPosition;
 	float2 PerInstanceParams;
 #elif PARTICLE_MESH_FACTORY
 	/** Per-particle properties. */
@@ -292,7 +289,7 @@ MaterialFloat3 TransformLocalVectorToTangent(FMaterialPixelParameters Parameters
 MaterialFloat3 TransformLocalVectorToWorld(FMaterialVertexParameters Parameters,MaterialFloat3 InLocalVector)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return mul((MaterialFloat3x3)Parameters.InstanceLocalToWorld, InLocalVector);
+		return mul(InLocalVector, (half3x3)Parameters.InstanceLocalToWorld);
 	#else
 		return mul(InLocalVector, GetLocalToWorld3x3());
 	#endif
@@ -332,7 +329,7 @@ float3 TransformLocalPositionToWorld(FMaterialPixelParameters Parameters,float3 
 float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3 InLocalPosition)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return mul(Parameters.InstanceLocalToWorld, float4(InLocalPosition, 1)).xyz;
+		return mul(float4(InLocalPosition, 1), Parameters.InstanceLocalToWorld).xyz;
 	#else
 		return mul(float4(InLocalPosition, 1), Primitive.LocalToWorld).xyz;
 	#endif
@@ -359,7 +356,7 @@ float3 GetObjectWorldPosition(FMaterialTessellationParameters Parameters)
 float3 GetObjectWorldPosition(FMaterialVertexParameters Parameters)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return float3(Parameters.InstanceLocalToWorld[0].w,Parameters.InstanceLocalToWorld[1].w,Parameters.InstanceLocalToWorld[2].w);
+		return Parameters.InstanceLocalToWorld[3].xyz;
 	#else
 		return Primitive.ObjectWorldPositionAndRadius.xyz;
 	#endif
@@ -647,133 +644,155 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 /** Vertex offset for SpeedTree wind and LOD */
 float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold) 
 {
-	#if (USE_INSTANCING || PARTICLE_MESH_INSTANCED)
-
-		// SpeedTree VBs run over instancing data currently, so if you use a SpeedTree mesh instanced, the SpeedTree wind code is disabled
-		return float3(0,0,0);
-
-	#else
-
-		float3 TreePos = Primitive.ObjectWorldPositionAndRadius.xyz;
-
-		// SpeedTrees should only be uniformly scaled, but if necessary, it takes a few more instructions
-		float TreeScale = length(mul(float3(0,0,1), (float3x3)Primitive.LocalToWorld));
-						/*float3(length((float3)Primitive.LocalToWorld[0]),
-								length((float3)Primitive.LocalToWorld[1]),
-								length((float3)Primitive.LocalToWorld[2]));*/
-
-		// @todo There is probably a more optimal way to get the rotated (but not translated or scaled) vertex position needed for correct wind
-		float3 OriginalPosition = mul(float4(Parameters.WorldPosition.xyz, 1), Primitive.WorldToLocal).xyz;
-		OriginalPosition = mul(OriginalPosition, (float3x3)Primitive.LocalToWorld) / TreeScale;
-
-		float3 FinalPosition = OriginalPosition;
-	
-		if (GeometryType == 4)
-		{
-			if (BillboardThreshold < 1.0)
-			{
-				// billboard meshes can have triangles drop out if they aren't facing the camera
-				// this rotates the view direction around so we ignore the local Z component
-				float3 LocalView2D = normalize(float3(mul(View.ViewForward, (float3x3)Primitive.WorldToLocal).xy, 0));
-				float3 LocalNormal2D = mul(Parameters.TangentToWorld[2], (float3x3)Primitive.WorldToLocal);
-				if (dot(LocalView2D, LocalNormal2D) > (-1.0 + BillboardThreshold * 0.25))
-				{
-					FinalPosition = float3(0,0,0);
-				}
-			}
-		}
-		else
-		{
-			// geometry other than billboads can do smooth lod and wind effects (other than global) 
-			// extra data is required in the texcoords for this, which is only available on SpeedTrees
-
-			// todo: smooth LOD needs some values that are currently difficule
-			const float LodInterp = 0.0;
-
-			// Compute percentage along in this lod
-			/*float LodInterp = length(TreePos - View.ViewOrigin.xyz);
-			LodInterp = saturate(LodInterp * SpeedTreeData.LodInfo.y);
-			LodInterp = frac(LodInterp * SpeedTreeData.LodInfo.x);*/
-
-			// rotated normal needed in a few places
-			float3 Normal = Parameters.TangentToWorld[2];
-
-			// branches and fronds
-			if (GeometryType < 2) 
-			{
-				// smooth LOD
-				if (LODType == 1) 
-				{
-					float3 LODPos = float3(Parameters.TexCoords[4].x, Parameters.TexCoords[4].y, Parameters.TexCoords[3].x);
-					LODPos = (mul(LODPos, (float3x3)Primitive.LocalToWorld)) / TreeScale;
-					FinalPosition = lerp(FinalPosition, LODPos, LodInterp);
-				}
-
-				// frond wind, if needed
-				if (GeometryType == 1 && WindType == 2)
-				{
-					float2 TexCoords = Parameters.TexCoords[0];
-					float4 WindExtra = float4(Parameters.TexCoords[1].x, Parameters.TexCoords[1].y, Parameters.TexCoords[2].x, 0.0);
-					FinalPosition = RippleFrond(FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
-				}
-			}
-
-			// leaves and facing leaves
-			if (GeometryType == 3 || 
-				(GeometryType == 2 && (LODType == 1 || WindType != 0)))
-			{
-				// remove anchor pos from vertex position
-				float3 Anchor = float3(Parameters.TexCoords[4].x, Parameters.TexCoords[4].y, Parameters.TexCoords[3].x);
-				Anchor = (mul(Anchor, (float3x3)Primitive.LocalToWorld)) / TreeScale;
-				FinalPosition -= Anchor;
-
-				// smooth LOD
-				if (LODType == 1) 
-				{
-					float LODScalar = Parameters.TexCoords[3].y;
-					FinalPosition *= lerp(1.0, LODScalar, LodInterp);
-				}
-
-				// face camera-facing leaves to the camera, if needed
-				// @todo Needs to face the light during shadow rendering
-				if (GeometryType == 3) 
-				{
-					// have to rotate the view into local space
-					FinalPosition = FinalPosition.x * View.ViewRight + 
-									FinalPosition.y * View.ViewUp + 
-									FinalPosition.z * View.ViewForward;
-				}
-
-				// leaf wind
-				if (WindType != 0) 
-				{
-					float4 WindExtra = float4(Parameters.TexCoords[1].x, Parameters.TexCoords[1].y, Parameters.TexCoords[2].x, Parameters.TexCoords[2].y);
-					float LeafWindTrigOffset = FinalPosition.x + FinalPosition.y;
-					FinalPosition = LeafWind(WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
-				}
-				
-				// move leaf back to anchor
-				FinalPosition += Anchor;
-			}
-
-			if (WindType != 0)
-			{
-				// branch wind (applies to all geometry)
-				float2 VertBranchWind = Parameters.TexCoords[5];
-				FinalPosition = BranchWind(FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
-			}	
-		}
-
-		// global wind can apply to the whole tree, even billboards
-		if (WindType != 0)
-		{
-			FinalPosition = GlobalWind(FinalPosition, TreePos, true);
-		}
-
-		// convert into a world space offset
-		return (FinalPosition - OriginalPosition) * TreeScale;
-
+	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || PARTICLE_MESH_FACTORY
+		return float4(0,0,0);
 	#endif
+
+	#if USE_INSTANCING
+		float3x3 LocalToWorld = (float3x3)Parameters.InstanceLocalToWorld;
+		float3x3 WorldToLocal = Parameters.InstanceWorldToLocal;
+		float3 LocalPosition = Parameters.InstanceLocalPosition;
+	#else
+		float3x3 LocalToWorld = (float3x3)Primitive.LocalToWorld;
+		float3x3 WorldToLocal = (float3x3)Primitive.WorldToLocal;
+		float3 LocalPosition = mul(float4(Parameters.WorldPosition.xyz, 1), Primitive.WorldToLocal).xyz;
+	#endif
+
+	float3 TreePos = GetObjectWorldPosition(Parameters);
+
+	// compute LOD by finding screen space size
+	float LodInterp = 1.0;
+	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
+	{
+		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndSceneTexelSize.x * View.ViewToClip[0][0],
+												View.ViewSizeAndSceneTexelSize.y * View.ViewToClip[1][1]);
+		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
+									max(1.0, dot(TreePos - View.ViewOrigin, View.ViewForward));
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius / (View.ViewSizeAndSceneTexelSize.x * View.ViewSizeAndSceneTexelSize.y);
+		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
+	}
+
+	TreePos *= 0.001; // The only other use of the tree position is as an offset into trig functions, but big numbers don't play nice there
+
+	// SpeedTrees should only be uniformly scaled, but if necessary, it takes a few more instructions
+	float TreeScale = length(mul(float3(0,0,1), LocalToWorld));
+					//float3(length((float3)LocalToWorld[0]),
+					//		length((float3)LocalToWorld[1]),
+					//		length((float3)LocalToWorld[2]));
+
+
+	// @todo There is probably a more optimal way to get the rotated (but not translated or scaled) vertex position needed for correct wind
+	float3 OriginalPosition = LocalPosition;
+	OriginalPosition = mul(OriginalPosition, LocalToWorld) / TreeScale;
+
+	float3 FinalPosition = OriginalPosition;
+	
+	if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_BILLBOARD)
+	{
+		if (BillboardThreshold < 1.0)
+		{
+			// billboard meshes can have triangles drop out if they aren't facing the camera
+			// this rotates the view direction around so we ignore the local Z component
+			float3 LocalView2D = normalize(float3(View.ViewForward.xy, 0));
+			float3 LocalNormal2D = normalize(float3(Parameters.TangentToWorld[2].xy, 0));
+			if (dot(LocalView2D, LocalNormal2D) > (-1.0 + BillboardThreshold * 0.25))
+			{
+				FinalPosition = float3(0,0,0);
+			}
+		}
+	}
+	else
+	{
+		// rotated normal needed in a few places
+		float3 Normal = Parameters.TangentToWorld[2];
+
+		// branches and fronds
+		if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_BRANCH || GeometryType == SPEEDTREE_GEOMETRY_TYPE_FROND) 
+		{
+			// smooth LOD
+			#if !USE_INSTANCING
+				if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
+				{
+					float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
+					LODPos = mul(LODPos, LocalToWorld) / TreeScale;
+					FinalPosition = lerp(LODPos, FinalPosition, LodInterp);
+				}
+			#endif
+
+			// frond wind, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FROND && WindType == SPEEDTREE_WIND_TYPE_PALM)
+			{
+				float2 TexCoords = Parameters.TexCoords[0];
+				float4 WindExtra = float4(Parameters.TexCoords[5].x, Parameters.TexCoords[5].y, Parameters.TexCoords[6].x, 0.0);
+				FinalPosition = RippleFrond(FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
+			}
+		}
+
+		// leaves and facing leaves
+		if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF || 
+				(GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF && 
+				(LODType == SPEEDTREE_LOD_TYPE_SMOOTH || (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM))))
+		{
+			// remove anchor pos from vertex position
+			float3 Anchor = float3(Parameters.TexCoords[4].y, Parameters.TexCoords[5].x, Parameters.TexCoords[5].y);
+			Anchor = (mul(Anchor, LocalToWorld)) / TreeScale;
+			FinalPosition -= Anchor;
+
+			// smooth LOD
+			#if !USE_INSTANCING
+				if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
+				{
+					if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF)
+					{
+						float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
+						LODPos = mul(LODPos, LocalToWorld) / TreeScale - Anchor;
+						FinalPosition = lerp(LODPos, FinalPosition, LodInterp);
+					}
+					else
+					{
+						float LODScalar = Parameters.TexCoords[3].x;
+						FinalPosition *= lerp(LODScalar, 1.0, LodInterp);
+					}
+				}
+			#endif
+
+			// face camera-facing leaves to the camera, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
+			{
+				// have to rotate the view into local space
+				FinalPosition = FinalPosition.x * View.ViewRight + 
+								FinalPosition.y * View.ViewUp + 
+								FinalPosition.z * View.ViewForward;
+			}
+
+			// leaf wind
+			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM) 
+			{
+				float4 WindExtra = float4(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x, Parameters.TexCoords[7].y);
+				float LeafWindTrigOffset = Anchor.x + Anchor.y;
+				FinalPosition = LeafWind(WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
+			}
+				
+			// move leaf back to anchor
+			FinalPosition += Anchor;
+		}
+
+		if (WindType > SPEEDTREE_WIND_TYPE_FAST)
+		{
+			// branch wind (applies to all geometry)
+			float2 VertBranchWind = Parameters.TexCoords[2];
+			FinalPosition = BranchWind(FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
+		}	
+	}
+
+	// global wind can apply to the whole tree, even billboards
+	if (WindType != SPEEDTREE_WIND_TYPE_NONE)
+	{
+		FinalPosition = GlobalWind(FinalPosition, TreePos, true);
+	}
+
+	// convert into a world space offset
+	return (FinalPosition - OriginalPosition) * TreeScale;
 }
 
 #endif
@@ -794,23 +813,23 @@ MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 #if NEEDS_SCENE_TEXTURES
 #include "DeferredShadingCommon.usf"		// GetGBufferData()
 
-float3 GetLightingModelColor(FGBufferData GBuffer)
+float3 GetShadingModelColor(FGBufferData GBuffer)
 {
 	// TODO: PS4 doesn't optimize out correctly the switch(), so it thinks it needs all the Samplers even if they get compiled out
 	//	This will get fixed after launch per Sony...
 #if PS4_PROFILE
-		 if (GBuffer.LightingModelId == LIGHTINGMODELID_UNLIT) return float3(0.1f, 0.1f, 0.2f); // Dark Blue
-	else if (GBuffer.LightingModelId == LIGHTINGMODELID_DEFAULT_LIT) return float3(0.1f, 1.0f, 0.1f); // Green
-	else if (GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE) return float3(1.0f, 0.1f, 0.1f); // Red
-	else if (GBuffer.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN) return float3(0.6f, 0.4f, 0.1f); // Brown
+		 if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT) return float3(0.1f, 0.1f, 0.2f); // Dark Blue
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_DEFAULT_LIT) return float3(0.1f, 1.0f, 0.1f); // Green
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE) return float3(1.0f, 0.1f, 0.1f); // Red
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN) return float3(0.6f, 0.4f, 0.1f); // Brown
 	else return float3(1.0f, 1.0f, 1.0f); // White
 #else
-	switch(GBuffer.LightingModelId)
+	switch(GBuffer.ShadingModelID)
 	{
-		case LIGHTINGMODELID_UNLIT: return float3(0.1f, 0.1f, 0.2f); // Dark Blue
-		case LIGHTINGMODELID_DEFAULT_LIT: return float3(0.1f, 1.0f, 0.1f); // Green
-		case LIGHTINGMODELID_SUBSURFACE: return float3(1.0f, 0.1f, 0.1f); // Red
-		case LIGHTINGMODELID_PREINTEGRATED_SKIN: return float3(0.6f, 0.4f, 0.1f); // Brown
+		case SHADINGMODELID_UNLIT: return float3(0.1f, 0.1f, 0.2f); // Dark Blue
+		case SHADINGMODELID_DEFAULT_LIT: return float3(0.1f, 1.0f, 0.1f); // Green
+		case SHADINGMODELID_SUBSURFACE: return float3(1.0f, 0.1f, 0.1f); // Red
+		case SHADINGMODELID_PREINTEGRATED_SKIN: return float3(0.6f, 0.4f, 0.1f); // Brown
 		default: return float3(1.0f, 1.0f, 1.0f); // White
 	}
 #endif
@@ -828,7 +847,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 	else if (SceneTextureIndex == 1)	return ScreenSpaceData.GBuffer.Depth;
 	else if (SceneTextureIndex == 2)	return float4(ScreenSpaceData.GBuffer.DiffuseColor, 0);
 	else if (SceneTextureIndex == 3)	return float4(ScreenSpaceData.GBuffer.SpecularColor, 0);
-	else if (SceneTextureIndex == 4)	return float4(ScreenSpaceData.GBuffer.SubsurfaceColor, 0);
+	else if (SceneTextureIndex == 4)	return float4(ScreenSpaceData.GBuffer.CustomData, 0);
 	else if (SceneTextureIndex == 5)	return float4(ScreenSpaceData.GBuffer.BaseColor, 0);
 	else if (SceneTextureIndex == 6)	return ScreenSpaceData.GBuffer.Specular;
 	else if (SceneTextureIndex == 7)	return ScreenSpaceData.GBuffer.Metallic;
@@ -846,7 +865,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 	else if (SceneTextureIndex == 19)	return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);
 	else if (SceneTextureIndex == 20)	return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
-	else if (SceneTextureIndex == 22)	return float4(GetLightingModelColor(ScreenSpaceData.GBuffer), 1);
+	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
 #else
 	switch(SceneTextureIndex)
@@ -862,7 +881,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 		// PPI_SpecularColor
 		case 3: return float4(ScreenSpaceData.GBuffer.SpecularColor, 0);
 		// PPI_SubsurfaceColor
-		case 4: return float4(ScreenSpaceData.GBuffer.SubsurfaceColor, 0);
+		case 4: return float4(ScreenSpaceData.GBuffer.CustomData, 0);
 		// PPI_BaseColor
 		case 5: return float4(ScreenSpaceData.GBuffer.BaseColor, 0);
 		// PPI_Specular
@@ -897,8 +916,8 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 		case 20: return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
 		// PPI_DecalMask
 		case 21: return ScreenSpaceData.GBuffer.DecalMask;
-		// PPI_LightingModel
-		case 22: return float4(GetLightingModelColor(ScreenSpaceData.GBuffer), 1);
+		// PPI_ShadingModel
+		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 		// PPI_AmbientOcclusion
 		case 23: return ScreenSpaceData.AmbientOcclusion;
 		default:

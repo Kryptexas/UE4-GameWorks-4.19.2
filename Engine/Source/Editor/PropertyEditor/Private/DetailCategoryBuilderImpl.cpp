@@ -86,11 +86,11 @@ FDetailCategoryImpl::FDetailCategoryImpl( FName InCategoryName, TSharedRef<FDeta
 	, bHasFilterStrings( false )
 	, bHasVisibleDetails( true )
 {
-	const UClass* BaseClass = InDetailLayout->GetDetailsView().GetBaseClass();
+	const UStruct* BaseStruct = InDetailLayout->GetDetailsView().GetBaseStruct();
 	// Use the base class name if there is one otherwise this is a generic category not specific to a class
-	FName BaseClassName = BaseClass ? BaseClass->GetFName() : FName("Generic");
+	FName BaseStructName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 
-	CategoryPathName = BaseClassName.ToString() + TEXT(".") + CategoryName.ToString();
+	CategoryPathName = BaseStructName.ToString() + TEXT(".") + CategoryName.ToString();
 
 	GConfig->GetBool( TEXT("DetailCategoriesAdvanced"), *CategoryPathName, bUserShowAdvanced, GEditorUserSettingsIni );
 
@@ -447,11 +447,11 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& L
 	}
 	else
 	{
-		const UClass* BaseClass = GetParentLayoutImpl().GetDetailsView().GetBaseClass();
+		const UStruct* BaseStruct = GetParentLayoutImpl().GetDetailsView().GetBaseStruct();
 		// Use the base class name if there is one otherwise this is a generic category not specific to a class
-		FName BaseClassName = BaseClass ? BaseClass->GetFName() : FName("Generic");
+		FName BaseStructName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 
-		FString CategoryStr = InCategoryName != NAME_None ? InCategoryName.ToString() : BaseClassName.ToString();
+		FString CategoryStr = InCategoryName != NAME_None ? InCategoryName.ToString() : BaseStructName.ToString();
 		FString SourceCategoryStr = FName::NameToDisplayString( CategoryStr, false );
 
 		bool FoundText = false;
@@ -462,7 +462,7 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& L
 		}
 		else
 		{
-			FoundText = FText::FindText( TEXT("DetailCategory.ClassName"), BaseClassName.ToString(), /*OUT*/DisplayNameText );
+			FoundText = FText::FindText(TEXT("DetailCategory.ClassName"), BaseStructName.ToString(), /*OUT*/DisplayNameText);
 		}
 
 		if ( FoundText )

@@ -38,7 +38,7 @@ public:
 	{
 	}
 
-	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const OVERRIDE
+	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
 		/** Size of each font texture, width and height */
 		const uint32 TextureSize = 1024;
@@ -204,12 +204,14 @@ void FSlateOpenGLRenderer::UpdateFullscreenState( const TSharedRef<SWindow> InWi
 
 void FSlateOpenGLRenderer::ReleaseDynamicResource( const FSlateBrush& Brush )
 {
+	ensure( IsInGameThread() );
 	TextureManager->ReleaseDynamicTextureResource( Brush );
 }
 
 
 bool FSlateOpenGLRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes)
 {
+	ensure( IsInGameThread() );
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
 }
 

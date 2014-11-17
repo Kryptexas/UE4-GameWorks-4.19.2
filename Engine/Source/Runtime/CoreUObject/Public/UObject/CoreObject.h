@@ -25,17 +25,26 @@ class COREUOBJECT_API UPackage : public UObject
 
 public:
 	/** delegate type for package dirty state events.  ( Params: UPackage* ModifiedPackage ) */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPackageDirtyStateUpdated, class UPackage*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPackageDirtyStateChanged, class UPackage*);
 	/** delegate type for package saved events ( Params: const FString& PackageFileName, UObject* Outer ) */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageSaved, const FString&, UObject*);					
+	/** delegate type for when a package is marked as dirty via UObjectBaseUtilty::MarkPackageDirty ( Params: UPackage* ModifiedPackage, bool bWasDirty ) */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageMarkedDirty, class UPackage*, bool);
 
 	/** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
 	 *  has completed and was successfull. */
 	static FOnPackageSaved PackageSavedEvent;
-	/** Delegate to notify subscribers about the dirty state of a package being set.
+	/** Delegate to notify subscribers when the dirty state of a package is changed.
 	 *  Allows the editor to register the modified package as one that should be prompted for source control checkout. 
 	 *  Use Package->IsDirty() to get the updated dirty state of the package */
-	static FOnPackageDirtyStateUpdated PackageDirtyStateUpdatedEvent;
+	static FOnPackageDirtyStateChanged PackageDirtyStateChangedEvent;
+	/** 
+	 * Delegate to notify subscribers when a package is marked as dirty via UObjectBaseUtilty::MarkPackageDirty 
+	 * Note: Unlike FOnPackageDirtyStateChanged, this is always called, even when the package is already dirty
+	 * Use bWasDirty to check the previous dirty state of the package
+	 * Use Package->IsDirty() to get the updated dirty state of the package
+	 */
+	static FOnPackageMarkedDirty PackageMarkedDirtyEvent;
 
 private:
 #if !IS_MONOLITHIC
@@ -63,6 +72,8 @@ private:
 	/** for packages that were a forced export in another package (seekfree loading), the name of that base package, otherwise NAME_None */
 	FName ForcedExportBasePackageName;
 public:
+
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all packages have stable net names
 
 	/** Package flags, serialized.*/
 	uint32	PackageFlags;
@@ -98,7 +109,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** Packages are never assets */
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual bool IsAsset() const override { return false; }
 
 	// UPackage interface.
 
@@ -496,10 +507,11 @@ public:
 	void RemoveMetaDataOutsidePackage();
 
 	// UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
+	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface
 
 #if HACK_HEADER_GENERATOR

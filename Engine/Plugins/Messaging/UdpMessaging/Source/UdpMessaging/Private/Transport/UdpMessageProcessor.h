@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageProcessor.h: Declares the FUdpMessageProcessor class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -118,7 +114,6 @@ public:
 	 *
 	 * @param Data The segment data.
 	 * @param Sender The sender's network endpoint.
-	 *
 	 * @return true if the segment was queued up, false otherwise.
 	 */
 	bool EnqueueInboundSegment( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );
@@ -128,7 +123,6 @@ public:
 	 *
 	 * @param Data The message data to send.
 	 * @param Recipient The recipient's IPv4 endpoint.
-	 *
 	 * @return true if the message was queued up, false otherwise.
 	 */
 	bool EnqueueOutboundMessage( const IMessageDataRef& Data, const FGuid& Recipient );
@@ -162,17 +156,12 @@ public:
 	
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE;
-
-	virtual uint32 Run( ) OVERRIDE;
-
-	virtual void Stop( ) OVERRIDE;
-
-	virtual void Exit( ) OVERRIDE { }
-	
-	// End FRunnable interface
+	virtual bool Init( ) override;
+	virtual uint32 Run( ) override;
+	virtual void Stop( ) override;
+	virtual void Exit( ) override { }
 
 protected:
 
@@ -209,7 +198,6 @@ protected:
 	 * @param Header The segment header.
 	 * @param Data The segment data.
 	 * @param Sender The segment sender.
-	 *
 	 * @return true if the segment passed the filter, false otherwise.
 	 */
 	bool FilterSegment( const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );

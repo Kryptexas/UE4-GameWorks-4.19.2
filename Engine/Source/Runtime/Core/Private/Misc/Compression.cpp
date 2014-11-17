@@ -73,6 +73,59 @@ uint64 FCompression::CompressorSrcBytes	= 0;
 /** Nubmer of bytes after compression.		*/
 uint64 FCompression::CompressorDstBytes	= 0;
 
+static ECompressionFlags CheckGlobalCompressionFlags(ECompressionFlags Flags)
+{
+	static bool GAlwaysBiasCompressionForSize = false;
+	if(FPlatformProperties::HasEditorOnlyData())
+	{
+		static bool GTestedCmdLine = false;
+		if(!GTestedCmdLine && FCommandLine::IsInitialized())
+		{
+			GTestedCmdLine = true;
+			// Override compression settings wrt size.
+			GAlwaysBiasCompressionForSize = FParse::Param(FCommandLine::Get(),TEXT("BIASCOMPRESSIONFORSIZE"));
+		}
+	}
+
+	// Always bias for speed if option is set.
+	if(GAlwaysBiasCompressionForSize)
+	{
+		int32 NewFlags = Flags;
+		NewFlags &= ~COMPRESS_BiasSpeed;
+		NewFlags |= COMPRESS_BiasMemory;
+		Flags = (ECompressionFlags)NewFlags;
+	}
+
+	return Flags;
+}
+
+/**
+* Thread-safe abstract compression routine to query memory requirements for a compression operation.
+*
+* @param	Flags						Flags to control what method to use and optionally control memory vs speed
+* @param	UncompressedSize			Size of uncompressed data in bytes
+* @return The maximum possible bytes needed for compression of data buffer of size UncompressedSize
+*/
+int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 UncompressedSize ) 
+{
+	int32 CompressionBound = UncompressedSize;
+	// make sure a valid compression scheme was provided
+	check(Flags & COMPRESS_ZLIB);
+
+	Flags = CheckGlobalCompressionFlags(Flags);
+
+	switch(Flags & COMPRESSION_FLAGS_TYPE_MASK)
+	{
+	case COMPRESS_ZLIB:
+		CompressionBound = compressBound(UncompressedSize);
+		break;
+	default:
+		break;
+	}
+
+	return CompressionBound;
+}
+
 /**
  * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
  * buffer. Updates CompressedSize with size of compressed data. Compression controlled by the passed in flags.
@@ -93,26 +146,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 
 	bool bCompressSucceeded = false;
 
-	static bool GAlwaysBiasCompressionForSize = false;
-	if (FPlatformProperties::HasEditorOnlyData())
-	{
-		static bool GTestedCmdLine = false;
-		if (!GTestedCmdLine && FCommandLine::IsInitialized())
-		{
-			GTestedCmdLine = true;
-			// Override compression settings wrt size.
-			GAlwaysBiasCompressionForSize = FParse::Param( FCommandLine::Get(), TEXT("BIASCOMPRESSIONFORSIZE") );
-		}
-	}
-
-	// Always bias for speed if option is set.
-	if( GAlwaysBiasCompressionForSize )
-	{
-		int32 NewFlags = Flags;
-		NewFlags &= ~COMPRESS_BiasSpeed;
-		NewFlags |= COMPRESS_BiasMemory;
-		Flags = (ECompressionFlags) NewFlags;
-	}
+	Flags = CheckGlobalCompressionFlags(Flags);
 
 	switch(Flags & COMPRESSION_FLAGS_TYPE_MASK)
 	{
@@ -168,7 +202,7 @@ bool FCompression::UncompressMemory( ECompressionFlags Flags, void* Uncompressed
 			UE_LOG(LogCompression, Warning, TEXT("FCompression::UncompressMemory - This compression type not supported"));
 			bUncompressSucceeded = false;
 	}
-	INC_FLOAT_STAT_BY(STAT_UncompressorTime,(float)(FPlatformTime::Seconds()-UncompressorStartTime));
+	STAT(if (FThreadStats::IsThreadingReady()) { INC_FLOAT_STAT_BY(STAT_UncompressorTime,(float)(FPlatformTime::Seconds()-UncompressorStartTime))} );
 	
 	return bUncompressSucceeded;
 }

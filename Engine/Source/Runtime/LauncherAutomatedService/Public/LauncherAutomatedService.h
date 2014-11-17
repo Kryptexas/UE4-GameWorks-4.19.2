@@ -1,24 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherAutomatedService.h: LauncherAutomatedService module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
 #include "ModuleInterface.h"
 
 
-/* Interfaces
+/* Public Includes
  *****************************************************************************/
 
 #include "IAutomatedTestManager.h"
-
 #include "ILauncherAutomatedServiceProvider.h"
-
 #include "ILauncherAutomatedServiceModule.h"

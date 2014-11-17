@@ -47,6 +47,9 @@ public:
 	DECLARE_EVENT(FGameProjectGenerationModule, FAddCodeToProjectDialogOpenedEvent);
 	FAddCodeToProjectDialogOpenedEvent& OnAddCodeToProjectDialogOpened() { return AddCodeToProjectDialogOpenedEvent; }
 
+	/** Tries to make the project file writable. Prompts to check out as necessary. */
+	virtual void TryMakeProjectFileWriteable();
+
 	/** Prompts the user to update his project file, if necessary. */
 	virtual void CheckForOutOfDateGameProjectFile();
 
@@ -64,6 +67,18 @@ public:
 
 	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
 	virtual void CheckAndWarnProjectFilenameValid();
+
+	/**
+	 * Update the list of supported target platforms based upon the parameters provided
+	 * This will take care of checking out and saving the updated .uproject file automatically
+	 * 
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	virtual void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
+
+	/** Clear the list of supported target platforms */
+	virtual void ClearSupportedTargetPlatforms();
 
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;

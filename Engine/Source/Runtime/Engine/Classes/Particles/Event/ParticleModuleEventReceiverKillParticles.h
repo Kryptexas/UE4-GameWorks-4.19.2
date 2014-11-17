@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "ParticleModuleEventReceiverKillParticles.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Kill All"))
@@ -15,7 +16,7 @@ class UParticleModuleEventReceiverKillParticles : public UParticleModuleEventRec
 
 
 	// Begin UParticleModuleEventBase Interface
-	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) OVERRIDE;
+	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) override;
 	// End UParticleModuleEventBase Interface
 };
 

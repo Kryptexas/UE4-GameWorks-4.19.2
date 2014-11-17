@@ -4,6 +4,7 @@
 
 #include "TextureDefines.h"
 #include "MaterialShared.h"
+#include "RenderResource.h"
 #include "Texture.generated.h"
 
 // This needs to be mirrored in EditorFactories.cpp.
@@ -283,10 +284,10 @@ struct FTexturePlatformData
 #endif
 
 	/** Default constructor. */
-	FTexturePlatformData();
+	ENGINE_API FTexturePlatformData();
 
 	/** Destructor. */
-	~FTexturePlatformData();
+	ENGINE_API ~FTexturePlatformData();
 
 	/**
 	 * Try to load mips from the derived data cache.
@@ -505,6 +506,12 @@ public:
 	/** The texture's resource, can be NULL */
 	class FTextureResource*	Resource;
 
+	/** Stable RHI texture reference that refers to the current RHI texture. Note this is manually refcounted! */
+	FTextureReference TextureReference;
+
+	/** Release fence to know when resources have been freed on the rendering thread. */
+	FRenderCommandFence ReleaseFence;
+
 	/** delegate type for texture save events ( Params: UTexture* TextureToSave ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnTextureSaved, class UTexture*);
 	/** triggered before a texture is being saved */
@@ -518,7 +525,7 @@ public:
 	/**
 	 * Creates a new resource for the texture, and updates any cached references to the resource.
 	 */
-	virtual void UpdateResource();
+	ENGINE_API virtual void UpdateResource();
 
 	/**
 	 * Implemented by subclasses to create a new resource for the texture.
@@ -569,7 +576,7 @@ public:
 	/**
 	 * Serializes cooked platform data.
 	 */
-	void SerializeCookedPlatformData(class FArchive& Ar);
+	ENGINE_API void SerializeCookedPlatformData(class FArchive& Ar);
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -580,7 +587,7 @@ public:
 	/**
 	 * Begins caching platform data in the background for the platform requested
 	 */
-	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
 
 
 	/**
@@ -596,12 +603,12 @@ public:
 	/**
 	 * Blocks on async cache tasks and prepares platform data for use.
 	 */
-	void FinishCachePlatformData();
+	ENGINE_API void FinishCachePlatformData();
 
 	/**
 	 * Forces platform data to be rebuilt.
 	 */
-	void ForceRebuildPlatformData();
+	ENGINE_API void ForceRebuildPlatformData();
 
 	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
 
@@ -619,14 +626,14 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void PreSave() override;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void FinishDestroy() override;
 	// End UObject interface.
 
 	/**
@@ -637,7 +644,7 @@ public:
 	 *
 	 *	@return	float					The average brightness of the texture
 	 */
-	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale);
+	ENGINE_API virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale);
 	
 	// @todo document
 	ENGINE_API static const TCHAR* GetTextureGroupString(TextureGroup InGroup);

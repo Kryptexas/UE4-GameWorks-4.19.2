@@ -824,7 +824,7 @@ private:
 	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
 	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
 	{ return new ShaderClass(Initializer); } \
-	virtual uint32 GetTypeSize() const OVERRIDE { return sizeof(*this); }
+	virtual uint32 GetTypeSize() const override { return sizeof(*this); }
 #define DECLARE_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut) \
 	DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,)
 
@@ -1122,11 +1122,11 @@ public:
 	TShaderMapRef(const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex):
 	 Shader(ShaderIndex->template GetShader<ShaderType>()) // gcc3 needs the template quantifier so it knows the < is not a less-than
 	{}
-	ShaderType* operator->() const
+	FORCEINLINE ShaderType* operator->() const
 	{
 		return Shader;
 	}
-	ShaderType* operator*() const
+	FORCEINLINE ShaderType* operator*() const
 	{
 		return Shader;
 	}
@@ -1320,6 +1320,7 @@ extern SHADERCORE_API FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeN
 
 /** Helper function to dispatch a compute shader while checking that parameters have been set correctly. */
 extern SHADERCORE_API void DispatchComputeShader(
+	FRHICommandListImmediate& RHICmdList,
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,
@@ -1327,6 +1328,7 @@ extern SHADERCORE_API void DispatchComputeShader(
 
 /** Helper function to dispatch a compute shader indirectly while checking that parameters have been set correctly. */
 extern SHADERCORE_API void DispatchIndirectComputeShader(
+	FRHICommandListImmediate& RHICmdList,
 	FShader* Shader,
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset);
@@ -1338,4 +1340,4 @@ extern SHADERCORE_API const TArray<FName>& GetTargetShaderFormats();
 extern SHADERCORE_API FName GetRuntimeShaderFormat();
 
 /** Appends to KeyString for all shaders. */
-extern SHADERCORE_API void ShaderMapAppendKeyString(FString& KeyString);
+extern SHADERCORE_API void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString);

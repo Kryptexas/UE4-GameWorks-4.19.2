@@ -126,7 +126,7 @@ FPrimitiveSceneInfo::~FPrimitiveSceneInfo()
 	check(!OctreeId.IsValidId());
 }
 
-void FPrimitiveSceneInfo::AddStaticMeshes()
+void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
 {
 	// Cache the primitive's static mesh elements.
 	FBatchingSPDI BatchingSPDI(this);
@@ -145,11 +145,11 @@ void FPrimitiveSceneInfo::AddStaticMeshes()
 
 		// By this point, the index buffer render resource must be initialized
 		// Add the static mesh to the appropriate draw lists.
-		Mesh.AddToDrawLists(Scene);
+		Mesh.AddToDrawLists(RHICmdList, Scene);
 	}
 }
 
-void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists)
+void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists)
 {
 	check(IsInRenderingThread());
 	
@@ -176,7 +176,7 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists)
 
 	if (bUpdateStaticDrawLists)
 	{
-		AddStaticMeshes();
+		AddStaticMeshes(RHICmdList);
 	}
 
 	// create potential storage for our compact info
@@ -293,7 +293,7 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	}
 }
 
-void FPrimitiveSceneInfo::ConditionalUpdateStaticMeshes()
+void FPrimitiveSceneInfo::ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
 {
 	if (bNeedsStaticMeshUpdate)
 	{
@@ -303,7 +303,7 @@ void FPrimitiveSceneInfo::ConditionalUpdateStaticMeshes()
 		for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
 		{
 			StaticMeshes[MeshIndex].RemoveFromDrawLists();
-			StaticMeshes[MeshIndex].AddToDrawLists(Scene);
+			StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
 		}
 	}
 }

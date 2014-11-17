@@ -34,7 +34,6 @@ namespace UnrealBuildTool.Rules
                     "Kismet",
                     "KismetCompiler",
                     "GraphEditor",
-                    "portmidi",
                     "WorkspaceMenuStructure",//@TODO: This makes it depend on a module in editor, even if that module does not depend on other editor stuff!
                     "LiveEditorListenServer"
 				}
@@ -51,6 +50,8 @@ namespace UnrealBuildTool.Rules
 					// ... add any modules that your module loads dynamically here ...
 				}
 			);
+			
+			AddThirdPartyPrivateStaticDependencies(Target, "portmidi");
 		}
 	}
 }

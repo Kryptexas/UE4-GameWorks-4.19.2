@@ -17,11 +17,11 @@ public:
 
 	// Begin IAutomationControllerModule Interface
 
-	virtual IAutomationControllerManagerRef GetAutomationController( ) OVERRIDE;
+	virtual IAutomationControllerManagerRef GetAutomationController( ) override;
 
-	virtual void Init() OVERRIDE;
+	virtual void Init() override;
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	// End IAutomationControllerModule Interface
 
@@ -30,11 +30,11 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
-	virtual bool SupportsDynamicReloading() OVERRIDE;
+	virtual bool SupportsDynamicReloading() override;
 
 	// End IModuleInterface interface
 

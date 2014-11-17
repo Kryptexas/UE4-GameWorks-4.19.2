@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMessageContext.h: Declares the IMessageContext interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,19 +22,13 @@ namespace EMessageScope
 	 */
 	enum Type
 	{
-		/**
-		 * Deliver to subscribers in the same thread.
-		 */
+		/** Deliver to subscribers in the same thread. */
 		Thread,
 
-		/**
-		 * Deliver to subscribers in the same process.
-		 */
+		/** Deliver to subscribers in the same process. */
 		Process,
 
-		/**
-		 * Deliver to subscribers on the network.
-		 */
+		/** Deliver to subscribers on the network. */
 		Network,
 
 		/**
@@ -51,34 +41,38 @@ namespace EMessageScope
 }
 
 
-/**
- * Type definition for message endpoint identifiers.
- */
+/** Type definition for message endpoint identifiers. */
 typedef FGuid FMessageAddress;
 
-/**
- * Type definition for shared pointers to instances of IMessageContext.
- */
+/** Type definition for shared pointers to instances of IMessageContext. */
 typedef TSharedPtr<class IMessageContext, ESPMode::ThreadSafe> IMessageContextPtr;
 
-/**
- * Type definition for shared references to instances of IMessageContext.
- */
+/** Type definition for shared references to instances of IMessageContext. */
 typedef TSharedRef<class IMessageContext, ESPMode::ThreadSafe> IMessageContextRef;
 
-/**
- * Type definition for message scope ranges.
- */
+/** Type definition for message scope ranges. */
 typedef TRange<EMessageScope::Type> FMessageScopeRange;
 
-/**
- * Type definition for message scope range bounds.
- */
+/** Type definition for message scope range bounds. */
 typedef TRangeBound<EMessageScope::Type> FMessageScopeRangeBound;
 
 
 /**
  * Interface for message contexts.
+ *
+ * A message context is created internally by the message bus to store additional information about a
+ * message needed to describe and correctly route the message to recipients. The two most common aspects
+ * of message contexts used by recipients are the sender address and message attachments.
+ *
+ * The sender address (@see GetSender) is often needed to send a reply message to a message sender, i.e.
+ * in response to a published message. The message attachment (@see GetAttchment) is an optional bundle
+ * of binary bulk data that is transferred independently from the message itself and allows for transferring
+ * larger amounts of data that would otherwise clog up the messaging system.
+ *
+ * In case a message was forwarded by another endpoint, the context of the original sender can be accessed
+ * using the @see GetOriginalContext method.
+ *
+ * @see IMessageAttachment
  */
 class IMessageContext
 {
@@ -87,7 +81,7 @@ public:
 	/**
 	 * Gets the message attachment, if present.
 	 *
-	 * @return A pointer to the message attachment, or NULL if no attachment is present.
+	 * @return A pointer to the message attachment, or nullptr if no attachment is present.
 	 */
 	virtual IMessageAttachmentPtr GetAttachment( ) const = 0;
 
@@ -102,7 +96,6 @@ public:
 	 * Gets the message address of the endpoint that forwarded this message.
 	 *
 	 * @return The forwarder's address.
-	 *
 	 * @see IsForwarded
 	 */
 	virtual const FMessageAddress& GetForwarder( ) const = 0;
@@ -188,7 +181,6 @@ public:
 	 * Checks whether this is a forwarded message.
 	 *
 	 * @return true if the message was forwarded, false otherwise.
-	 *
 	 * @see GetForwarder
 	 */
 	virtual bool IsForwarded( ) const = 0;

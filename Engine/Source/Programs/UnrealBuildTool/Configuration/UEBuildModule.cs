@@ -11,16 +11,93 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-	/** Type of module. */
+	/** Type of module. Mirrored in UHT as EBuildModuleType */
 	public enum UEBuildModuleType
 	{
-		EngineModule,
-		GameModule,
+		Unknown,
+		Runtime,
+		Developer,
+		Editor,
+		ThirdParty,
+		Program,
+		Game,
+	}
+	public static class UEBuildModuleTypeExtensions
+	{
+		public static bool IsEngineModule(this UEBuildModuleType ModuleType)
+		{
+			return ModuleType != UEBuildModuleType.Game;
+		}
 	}
 	
 	/** A unit of code compilation and linking. */
 	public abstract class UEBuildModule
 	{
+		/** Known module folders */
+		public static readonly string RuntimeFolder = String.Format("{0}Runtime{0}", Path.DirectorySeparatorChar);
+		public static readonly string DeveloperFolder = String.Format("{0}Developer{0}", Path.DirectorySeparatorChar);
+		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
+		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
+
+		public static UEBuildModuleType GetPluginModuleType(string ModuleName)
+		{
+			UEBuildModuleType ModuleType = UEBuildModuleType.Unknown;
+			PluginInfo Info = Plugins.GetPluginInfoForModule(ModuleName);
+			if (null == Info)
+			{
+				return ModuleType;
+			}
+			foreach (PluginInfo.PluginModuleInfo ModuleInfo in Info.Modules)
+			{
+				if (ModuleInfo.Name == ModuleName)
+				{
+					switch (ModuleInfo.Type)
+					{
+						case PluginInfo.PluginModuleType.Developer:
+							ModuleType = UEBuildModuleType.Developer;
+							break;
+						case PluginInfo.PluginModuleType.Editor:
+						case PluginInfo.PluginModuleType.EditorNoCommandlet:
+							ModuleType = UEBuildModuleType.Editor;
+							break;
+						case PluginInfo.PluginModuleType.Program:
+							ModuleType = UEBuildModuleType.Program;
+							break;
+						case PluginInfo.PluginModuleType.Runtime:
+						case PluginInfo.PluginModuleType.RuntimeNoCommandlet:
+							ModuleType = UEBuildModuleType.Runtime;
+							break;
+						default:
+							throw new BuildException("Unhandled plugin module type {0}", ModuleInfo.Type.ToString());
+					}
+					// break out of loop
+					break;
+				}
+			}
+			return ModuleType;
+		}
+
+		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
+		{
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.RuntimeFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Runtime;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.DeveloperFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Developer;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.EditorFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Editor;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Program;
+			}
+			return ModuleType;
+		}
+
 		/** Converts an optional string list parameter to a well-defined list. */
 		protected static List<string> ListFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
 		{
@@ -55,6 +132,7 @@ namespace UnrealBuildTool
 		protected readonly List<string> PublicLibraryPaths;
 		protected readonly List<string> PublicAdditionalLibraries;
 		protected readonly List<string> PublicFrameworks;
+		protected readonly List<string> PublicWeakFrameworks;
 		protected readonly List<UEBuildFramework> PublicAdditionalFrameworks;
 		protected readonly List<string> PublicAdditionalShadowFiles;
 
@@ -98,6 +176,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicLibraryPaths = null,
 			IEnumerable<string> InPublicAdditionalLibraries = null,
 			IEnumerable<string> InPublicFrameworks = null,
+			IEnumerable<string> InPublicWeakFrameworks = null,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
 			IEnumerable<string> InPublicIncludePathModuleNames = null,
@@ -122,7 +201,8 @@ namespace UnrealBuildTool
 			PublicLibraryPaths = ListFromOptionalEnumerableStringParameter(InPublicLibraryPaths);
 			PublicAdditionalLibraries = ListFromOptionalEnumerableStringParameter(InPublicAdditionalLibraries);
 			PublicFrameworks = ListFromOptionalEnumerableStringParameter(InPublicFrameworks);
-			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new List<UEBuildFramework>() : new List<UEBuildFramework>( InPublicAdditionalFrameworks );
+			PublicWeakFrameworks = ListFromOptionalEnumerableStringParameter(InPublicWeakFrameworks);
+			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new List<UEBuildFramework>() : new List<UEBuildFramework>(InPublicAdditionalFrameworks);
 			PublicAdditionalShadowFiles = ListFromOptionalEnumerableStringParameter(InPublicAdditionalShadowFiles);
 			PublicIncludePathModuleNames = ListFromOptionalEnumerableStringParameter( InPublicIncludePathModuleNames );
 			PublicDependencyModuleNames = ListFromOptionalEnumerableStringParameter(InPublicDependencyModuleNames);
@@ -193,6 +273,19 @@ namespace UnrealBuildTool
 				}
 			}
 			PublicFrameworks.Add(LibraryName);
+		}
+
+		/** Adds a public weak framework */
+		public virtual void AddPublicWeakFramework(string LibraryName, bool bCheckForDuplicates = true)
+		{
+			if (bCheckForDuplicates == true)
+			{
+				if (PublicWeakFrameworks.Contains(LibraryName))
+				{
+					return;
+				}
+			}
+			PublicWeakFrameworks.Add(LibraryName);
 		}
 
 		/** Adds a public additional framework */
@@ -476,6 +569,9 @@ namespace UnrealBuildTool
 					var IncludePathModule = Target.GetModuleByName(IncludePathModuleName);
 					IncludePathModule.SetupPublicCompileEnvironment( SourceBinary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref VisitedModules );
 				}
+
+				// Add the module's directory to the include path, so we can root #includes to it
+				IncludePaths.Add(Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ModuleDirectory, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/'));
 			}
 		}
 		
@@ -517,6 +613,7 @@ namespace UnrealBuildTool
 			ref List<string> LibraryPaths,
 			ref List<string> AdditionalLibraries,
 			ref List<string> Frameworks,
+			ref List<string> WeakFrameworks,
 			ref List<UEBuildFramework> AdditionalFrameworks,
 			ref List<string> AdditionalShadowFiles,
 			ref List<string> DelayLoadDLLs,
@@ -558,7 +655,7 @@ namespace UnrealBuildTool
 							bool bIsInStaticLibrary = (DependencyModule.Binary != null && DependencyModule.Binary.Config.Type == UEBuildBinaryType.StaticLibrary);
 							if (bIsExternalModule || bIsInStaticLibrary)
 							{
-								DependencyModule.SetupPublicLinkEnvironment(SourceBinary, ref LibraryPaths, ref AdditionalLibraries, ref Frameworks,
+								DependencyModule.SetupPublicLinkEnvironment(SourceBinary, ref LibraryPaths, ref AdditionalLibraries, ref Frameworks, ref WeakFrameworks,
 									ref AdditionalFrameworks, ref AdditionalShadowFiles, ref DelayLoadDLLs, ref BinaryDependencies, ref VisitedModules);
 							}
 						}
@@ -568,6 +665,7 @@ namespace UnrealBuildTool
 					LibraryPaths.AddRange(PublicLibraryPaths);
 					AdditionalLibraries.AddRange(PublicAdditionalLibraries);
 					Frameworks.AddRange(PublicFrameworks);
+					WeakFrameworks.AddRange(PublicWeakFrameworks);
 					// Remember the module so we can refer to it when needed
 					foreach ( var Framework in PublicAdditionalFrameworks )
 					{
@@ -588,7 +686,7 @@ namespace UnrealBuildTool
 			)
 		{
 			// Allow the module's public dependencies to add library paths and additional libraries to the link environment.
-			SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,
+			SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,ref LinkEnvironment.Config.WeakFrameworks,
 				ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
 
 			// Also allow the module's public and private dependencies to modify the link environment.
@@ -598,7 +696,7 @@ namespace UnrealBuildTool
 			foreach (var DependencyName in AllDependencyModuleNames)
 			{
 				var DependencyModule = Target.GetModuleByName(DependencyName);
-				DependencyModule.SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,
+				DependencyModule.SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,ref LinkEnvironment.Config.WeakFrameworks,
 					ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
 			}
 		}
@@ -667,6 +765,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicLibraryPaths = null,
 			IEnumerable<string> InPublicAdditionalLibraries = null,
 			IEnumerable<string> InPublicFrameworks = null,
+			IEnumerable<string> InPublicWeakFrameworks = null,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
@@ -684,7 +783,8 @@ namespace UnrealBuildTool
 			InPublicLibraryPaths:			InPublicLibraryPaths,
 			InPublicAdditionalLibraries:	InPublicAdditionalLibraries,
 			InPublicFrameworks:             InPublicFrameworks,
-			InPublicAdditionalFrameworks:	InPublicAdditionalFrameworks,
+			InPublicWeakFrameworks:			InPublicWeakFrameworks,
+			InPublicAdditionalFrameworks: 	InPublicAdditionalFrameworks,
 			InPublicAdditionalShadowFiles:  InPublicAdditionalShadowFiles,
 			InPublicDependencyModuleNames:	InPublicDependencyModuleNames,
 			InPublicDelayLoadDLLs:			InPublicDelayLoadDLLs
@@ -791,9 +891,6 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
-		/** Enable inlining */
-		public bool bEnableInlining = true;
-
 		/** Path to this module's redist static library */
 		public string RedistStaticLibraryPath = null;
 
@@ -862,6 +959,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicDelayLoadDLLs,
 			IEnumerable<string> InPublicAdditionalLibraries,
 			IEnumerable<string> InPublicFrameworks,
+			IEnumerable<string> InPublicWeakFrameworks,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
 			IEnumerable<string> InPrivateIncludePaths,
@@ -878,7 +976,6 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining,
 			bool bInBuildSourceFiles
 			)
 			: base(	InTarget,
@@ -892,6 +989,7 @@ namespace UnrealBuildTool
 					null, 
 					InPublicAdditionalLibraries,
 					InPublicFrameworks,
+					InPublicWeakFrameworks,
 					InPublicAdditionalFrameworks,
 					InPublicAdditionalShadowFiles,
 					InPublicIncludePathModuleNames,
@@ -926,13 +1024,12 @@ namespace UnrealBuildTool
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InEnableExceptions;
-			bEnableInlining                        = InEnableInlining;
 		}
 
 		// UEBuildModule interface.
 		public override List<FileItem> Compile(CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, bool bCompileMonolithic)
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.TargetPlatform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
 			var LinkInputFiles = new List<FileItem>();
 			if( ProjectFileGenerator.bGenerateProjectFiles && IntelliSenseGatherer == null)
@@ -983,6 +1080,11 @@ namespace UnrealBuildTool
 					FileItem Item = FileItem.GetItemByFullPath(DefRC);
 					SourceFilesToBuild.RCFiles.Add(Item);
 				}
+
+				// Always compile in the API version resource separately. This is required for the module manager to detect compatible API versions.
+				string ModuleVersionRC = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Runtime/Core/Resources/Windows/ModuleVersionResource.rc.inl"));
+				FileItem ModuleVersionItem = FileItem.GetItemByFullPath(ModuleVersionRC);
+				if(!SourceFilesToBuild.RCFiles.Contains(ModuleVersionItem)) SourceFilesToBuild.RCFiles.Add(ModuleVersionItem);
 			}
 
 			// Check to see if this is an Engine module (including program or plugin modules).  That is, the module is located under the "Engine" folder
@@ -1023,7 +1125,7 @@ namespace UnrealBuildTool
 
 			// Precompiled header support.
 			bool bWasModuleCodeCompiled = false;
-			if (BuildPlatform.ShouldUsePCHFiles(CompileEnvironment.Config.TargetPlatform, CompileEnvironment.Config.TargetConfiguration))
+			if (BuildPlatform.ShouldUsePCHFiles(CompileEnvironment.Config.Target.Platform, CompileEnvironment.Config.Target.Configuration))
 			{
 				var PCHTimerStart = DateTime.UtcNow;
 
@@ -1041,7 +1143,7 @@ namespace UnrealBuildTool
 					Log.TraceVerbose("Module '{0}' was not allowed to use SharedPCHs, because we're compiling to a library in monolithic mode", this.Name );
 				}
 
-				bool bUseSharedPCHFiles  = BuildConfiguration.bUseSharedPCHs && (bDisableSharedPCHFiles == false);
+				bool bUseSharedPCHFiles  = BuildConfiguration.bUseSharedPCHs && (bDisableSharedPCHFiles == false) && !UnrealBuildTool.BuildingRocket();
 				bool bIsASharedPCHModule = bUseSharedPCHFiles && GlobalCompileEnvironment.SharedPCHHeaderFiles.Any( PCH => PCH.Module == this );
 
 				// Map from pch header string to the source files that use that PCH
@@ -1051,6 +1153,11 @@ namespace UnrealBuildTool
 				double SharedPCHTotalTime = 0.0;
 				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 				{
+					
+					if (CPPFile.AbsolutePath.IndexOf("ActorConstruction.cpp", StringComparison.InvariantCultureIgnoreCase) >= 0)
+					{
+						Log.TraceVerbose("ActorConstruction.cpp");
+					}
 					if (bUseSharedPCHFiles)
 					{
 						var SharedPCHStartTime = DateTime.UtcNow;
@@ -1240,7 +1347,8 @@ namespace UnrealBuildTool
 				{
 					// Setup a new compile environment for this module's source files.  It's pretty much the exact same as the
 					// module's compile environment, except that it will include a PCH file.
-					var ModulePCHCompileEnvironment = new CPPEnvironment( ModuleCompileEnvironment );
+
+					var ModulePCHCompileEnvironment = ModuleCompileEnvironment.DeepCopy();
 					ModulePCHCompileEnvironment.Config.PrecompiledHeaderAction          = PrecompiledHeaderAction.Include;
 					ModulePCHCompileEnvironment.Config.PrecompiledHeaderIncludeFilename = ModulePCHEnvironment.PrecompiledHeaderIncludeFilename.AbsolutePath;
 					ModulePCHCompileEnvironment.Config.PCHHeaderNameInCode              = ModulePCHEnvironment.PCHHeaderNameInCode;
@@ -1346,9 +1454,7 @@ namespace UnrealBuildTool
 				// Create a link environment for it
 				LinkEnvironment RedistLinkEnvironment = new LinkEnvironment();
 				RedistLinkEnvironment.InputFiles.AddRange(LinkInputFiles);
-				RedistLinkEnvironment.Config.TargetArchitecture    = CompileEnvironment.Config.TargetArchitecture;
-				RedistLinkEnvironment.Config.TargetConfiguration   = CompileEnvironment.Config.TargetConfiguration;
-				RedistLinkEnvironment.Config.TargetPlatform        = CompileEnvironment.Config.TargetPlatform;
+				RedistLinkEnvironment.Config.Target                = CompileEnvironment.Config.Target;
 				RedistLinkEnvironment.Config.bIsBuildingDLL        = false;
 				RedistLinkEnvironment.Config.bIsBuildingLibrary    = true;
 				RedistLinkEnvironment.Config.IntermediateDirectory = Binary.Config.IntermediateDirectory;
@@ -1385,7 +1491,7 @@ namespace UnrealBuildTool
 			var SharedPCHCodeOptimization = SharedPCHEnvironment.OptimizeCode;
 			var ModuleCodeOptimization    = ModuleCompileEnvironment.Config.OptimizeCode;
 
-			if (CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
 				if (SharedPCHCodeOptimization == ModuleRules.CodeOptimization.InNonDebugBuilds)
 				{
@@ -1426,7 +1532,7 @@ namespace UnrealBuildTool
 
 		private FileItem ProcessDependencies(FileItem CPPFile, CPPEnvironment ModuleCompileEnvironment)
 		{
-			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(CPPFile, ModuleCompileEnvironment.Config.TargetPlatform);
+			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(CPPFile, ModuleCompileEnvironment.Config.Target.Platform);
 			if (BuildConfiguration.bPrintDebugInfo)
 			{
 				Log.TraceVerbose("Found direct includes for {0}: {1}", Path.GetFileName(CPPFile.AbsolutePath), string.Join(", ", DirectIncludeFilenames.Select(F => F.IncludeName)));
@@ -1473,7 +1579,7 @@ namespace UnrealBuildTool
 		/// <returns>The new module compile environment.</returns>
 		public CPPEnvironment CreateModuleCompileEnvironment(CPPEnvironment BaseCompileEnvironment)
 		{
-			var Result = new CPPEnvironment(BaseCompileEnvironment);
+			var Result = BaseCompileEnvironment.DeepCopy();
 
 			// Override compile environment
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
@@ -1483,13 +1589,12 @@ namespace UnrealBuildTool
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
 			Result.Config.MinFilesUsingPrecompiledHeaderOverride = MinFilesUsingPrecompiledHeaderOverride;
 			Result.Config.bEnableExceptions                      = bEnableExceptions;
-			Result.Config.bEnableInlining                        = bEnableInlining;
 			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
 
 			// Switch the optimization flag if we're building a game module
-			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && Type == UEBuildModuleType.GameModule)
+			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && Type == UEBuildModuleType.Game)
 			{
-				Result.Config.TargetConfiguration = CPPTargetConfiguration.Debug;
+				Result.Config.Target.Configuration = CPPTargetConfiguration.Debug;
 			}
 
 			// Add the module's private definitions.
@@ -1511,7 +1616,7 @@ namespace UnrealBuildTool
 
 			if(RedistStaticLibraryPath != null)
 			{
-				LinkEnvironment.Config.AdditionalLibraries.Add(RedistStaticLibraryPath);
+				LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(RedistStaticLibraryPath));
 			}
 		}
 
@@ -1619,6 +1724,7 @@ namespace UnrealBuildTool
 			CachedModuleUHTInfo = new UHTModuleInfo {
 				ModuleName                  = this.Name,
 				ModuleDirectory             = this.ModuleDirectory,
+				ModuleType					= this.Type.ToString(),
 				PublicUObjectClassesHeaders = _AllClassesHeaders    .ToList(),
 				PublicUObjectHeaders        = _PublicUObjectHeaders .ToList(),
 				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList()
@@ -1722,7 +1828,7 @@ namespace UnrealBuildTool
 
 								// If it's an engine module, output intermediates to the engine intermediates directory. 
 								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
-								if (PluginInfo == null && IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+								if (IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 								{
 									IntermediateDirectory = Target.EngineIntermediateDirectory;
 								}
@@ -1802,12 +1908,12 @@ namespace UnrealBuildTool
 					// Intermediates under Engine intermediate folder (program name will be appended later)
 					RootDirectory = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
 				}
-				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName());
+				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName(), "Inc");
 			}
 			else if (Plugins.IsPluginModule(ModuleName))
 			{
 				// Plugin module
-				BaseDirectory = Path.Combine(Plugins.GetPluginInfoForModule(ModuleName).Directory, BuildConfiguration.PlatformIntermediateFolder);
+				BaseDirectory = Plugins.GetPluginInfoForModule(ModuleName).IntermediateIncPath;
 			}
 			else
 			{
@@ -1819,11 +1925,11 @@ namespace UnrealBuildTool
 					BaseDirectory = ProjectFileGenerator.EngineRelativePath;
 				}
 
-				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder));
+				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder, "Inc"));
 			}
 
 			// Construct the intermediate path.
-			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, "Inc", ModuleName);
+			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, ModuleName);
 			return GeneratedCodeDirectory + Path.DirectorySeparatorChar;
 		}
 
@@ -1852,6 +1958,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicDelayLoadDLLs,
 			IEnumerable<string> InPublicAdditionalLibraries,
 			IEnumerable<string> InPublicFrameworks,
+			IEnumerable<string> InPublicWeakFrameworks,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
 			IEnumerable<string> InPrivateIncludePaths,
@@ -1868,16 +1975,15 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining,
 			bool bInBuildSourceFiles
 			)
 		: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,InDefinitions,
-			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,
+			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
-			InEnableExceptions, InEnableInlining, bInBuildSourceFiles)
+			InEnableExceptions, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = ListFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}
@@ -1885,7 +1991,7 @@ namespace UnrealBuildTool
 		// UEBuildModule interface.
 		public override List<FileItem> Compile( CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, bool bCompileMonolithic )
 		{
-			var ModuleCLREnvironment = new CPPEnvironment(CompileEnvironment);
+			var ModuleCLREnvironment = CompileEnvironment.DeepCopy();
 
 			// Setup the module environment for the project CLR mode
 			ModuleCLREnvironment.Config.CLRMode = CPPCLRMode.CLREnabled;

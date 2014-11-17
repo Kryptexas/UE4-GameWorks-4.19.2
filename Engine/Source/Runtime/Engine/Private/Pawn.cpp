@@ -7,11 +7,14 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
-#include "NavigationPathBuilder.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
+#include "NetworkingDistanceConstants.h"
+#include "VisualLog.h"
+#include "AIController.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -27,10 +30,6 @@ APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	AIControllerClass = AAIController::StaticClass();
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	GameplayDebuggingComponentClass = UGameplayDebuggingComponent::StaticClass();
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
 	bCanBeDamaged = true;
 	
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
@@ -126,45 +125,6 @@ void APawn::UpdateNavAgent()
 
 void APawn::PawnStartFire(uint8 FireModeNum) {}
 
-class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFound)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent == NULL)
-	{
-		//let's see if we have it replicated but DebugComponent variable is not 
-		TArray<UGameplayDebuggingComponent*> Components;
-		GetComponents(Components);
-		if (Components.Num() > 0)
-		{
-			DebugComponent = Components[0];
-		}
-
-		if (DebugComponent == NULL && bCreateIfNotFound && GetNetMode() < NM_Client)
-		{
-			UE_VLOG(GetOwner(), LogGDT, Log, TEXT("APawn: Creating GDT Component for Pawn: '%s'"), *GetName());
-			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
-			DebugComponent->SetIsReplicated(true);
-			DebugComponent->Activate();
-			DebugComponent->RegisterComponent();
-		}
-	}
-	return DebugComponent;
-#else
-	return NULL;
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
-void APawn::RemoveDebugComponent()
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent != NULL)
-	{
-		DebugComponent->DestroyComponent();
-		DebugComponent = NULL;
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
 AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 {
 	if (Pawn != NULL && Pawn->GetMovementBase())
@@ -178,9 +138,9 @@ AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 bool APawn::CanBeBaseForCharacter(class APawn* APawn) const
 {
 	UPrimitiveComponent* RootPrimitive = GetRootPrimitiveComponent();
-	if (RootPrimitive && RootPrimitive->CanBeCharacterBase != ECB_Owner)
+	if (RootPrimitive && RootPrimitive->CanCharacterStepUpOn != ECB_Owner)
 	{
-		return RootPrimitive->CanBeCharacterBase == ECB_Yes;
+		return RootPrimitive->CanCharacterStepUpOn == ECB_Yes;
 	}
 
 	return Super::CanBeBaseForCharacter(APawn);
@@ -280,6 +240,10 @@ float APawn::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APla
 	return NetPriority * Time;
 }
 
+bool APawn::ShouldTickIfViewportsOnly() const 
+{ 
+	return IsLocallyControlled() && Cast<APlayerController>(GetController()); 
+}
 
 FVector APawn::GetPawnViewLocation() const
 {
@@ -985,10 +949,6 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 
 	DOREPLIFETIME_CONDITION( APawn, Controller,			COND_OwnerOnly );
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DOREPLIFETIME(APawn, DebugComponent);
-#endif
 }
 
 void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)

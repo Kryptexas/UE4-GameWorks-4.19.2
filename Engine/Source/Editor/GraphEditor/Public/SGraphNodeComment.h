@@ -27,48 +27,48 @@ public:
 	SLATE_END_ARGS()
 
 	// Begin SWidget Interface
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ) OVERRIDE;
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	// End SWidget Interface
 
 	// Begin SNodePanel::SNode interface
-	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const OVERRIDE;
+	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
 	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const;
-	virtual bool ShouldAllowCulling() const OVERRIDE { return false; }
+	virtual bool ShouldAllowCulling() const override { return false; }
 	// End SNodePanel::SNode interface
 
 	// Begin SPanel Interface
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize() const override;
 	// End SPanel interface
 
 	// Begin SGraphNode Interface
-	virtual bool IsNameReadOnly() const OVERRIDE;
+	virtual bool IsNameReadOnly() const override;
 	// ENd SGraphNode Interface
 
 	void Construct( const FArguments& InArgs, UEdGraphNode* InNode );
 
 	/** return if the node can be selected, by pointing given location */
-	virtual bool CanBeSelected( const FVector2D& MousePositionInNode ) const OVERRIDE;
+	virtual bool CanBeSelected( const FVector2D& MousePositionInNode ) const override;
 
 	/** return size of the title bar */
-	virtual FVector2D GetDesiredSizeForMarquee() const OVERRIDE;
+	virtual FVector2D GetDesiredSizeForMarquee() const override;
 
 	/** return rect of the title bar */
-	virtual FSlateRect GetTitleRect() const OVERRIDE;
+	virtual FSlateRect GetTitleRect() const override;
 
 protected:
 	// SGraphNode Interface
-	virtual void UpdateGraphNode() OVERRIDE;
-	virtual bool ShouldScaleNodeComment()const OVERRIDE;
+	virtual void UpdateGraphNode() override;
+	virtual bool ShouldScaleNodeComment()const override;
 
 	/**
 	 * Helper method to update selection state of comment and any nodes 'contained' within it
@@ -78,7 +78,7 @@ protected:
 	void HandleSelection(bool bIsSelected, bool bUpdateNodesUnderComment = false) const;
 
 	/** called when user is moving the comment node */
-	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter ) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter ) override;
 
 private:
 

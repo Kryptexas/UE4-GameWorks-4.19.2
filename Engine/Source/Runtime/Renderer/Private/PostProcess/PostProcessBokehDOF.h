@@ -15,7 +15,7 @@ class FRCPassPostProcessVisualizeDOF : public TRenderingCompositePassBase<1, 1>
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
@@ -27,7 +27,7 @@ class FRCPassPostProcessBokehDOFSetup : public TRenderingCompositePassBase<2, 1>
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
@@ -41,7 +41,7 @@ public:
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 	static void ComputeDepthOfFieldParams(const FRenderingCompositePassContext& Context, FVector4 Out[2]);

@@ -4,11 +4,18 @@
 	FoliageEdMode.h: Foliage editing
 ================================================================================*/
 
-
-#ifndef __FoliageEdMode_h__
-#define __FoliageEdMode_h__
-
 #pragma once
+
+// Forward declarations
+class ULandscapeComponent;
+class UFoliageType;
+
+#include "InstancedFoliage.h"
+
+//
+// Forward declarations.
+//
+class UStaticMesh;
 
 // Current user settings in Foliage UI
 struct FFoliageUISettings
@@ -40,29 +47,31 @@ struct FFoliageUISettings
 	float GetUnpaintDensity() const { return UnpaintDensity; }
 	void SetUnpaintDensity(float InUnpaintDensity) { UnpaintDensity = InUnpaintDensity; }
 	bool GetFilterLandscape() const { return bFilterLandscape ? true : false; }
-	void SetFilterLandscape(bool InbFilterLandscape ) { bFilterLandscape = InbFilterLandscape; }
+	void SetFilterLandscape(bool InbFilterLandscape) { bFilterLandscape = InbFilterLandscape; }
 	bool GetFilterStaticMesh() const { return bFilterStaticMesh ? true : false; }
-	void SetFilterStaticMesh(bool InbFilterStaticMesh ) { bFilterStaticMesh = InbFilterStaticMesh; }
+	void SetFilterStaticMesh(bool InbFilterStaticMesh) { bFilterStaticMesh = InbFilterStaticMesh; }
 	bool GetFilterBSP() const { return bFilterBSP ? true : false; }
-	void SetFilterBSP(bool InbFilterBSP ) { bFilterBSP = InbFilterBSP; }
+	void SetFilterBSP(bool InbFilterBSP) { bFilterBSP = InbFilterBSP; }
+	bool GetFilterTranslucent() const { return bFilterTranslucent; }
+	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
 
 	FFoliageUISettings()
-	:	WindowX(-1)
-	,	WindowY(-1)
-	,	WindowWidth(284)
-	,	WindowHeight(400)
-	,	bPaintToolSelected(true)
-	,	bReapplyToolSelected(false)
-	,	bSelectToolSelected(false)
-	,	bLassoSelectToolSelected(false)
-	,	bPaintBucketToolSelected(false)
-	,	bReapplyPaintBucketToolSelected(false)
-	,	Radius(512.f)
-	,	PaintDensity(0.5f)
-	,	UnpaintDensity(0.f)
-	,	bFilterLandscape(true)
-	,	bFilterStaticMesh(true)
-	,	bFilterBSP(true)
+		: WindowX(-1)
+		, WindowY(-1)
+		, WindowWidth(284)
+		, WindowHeight(400)
+		, bPaintToolSelected(true)
+		, bReapplyToolSelected(false)
+		, bSelectToolSelected(false)
+		, bLassoSelectToolSelected(false)
+		, bPaintBucketToolSelected(false)
+		, bReapplyPaintBucketToolSelected(false)
+		, Radius(512.f)
+		, PaintDensity(0.5f)
+		, UnpaintDensity(0.f)
+		, bFilterLandscape(true)
+		, bFilterStaticMesh(true)
+		, bFilterBSP(true)
 	{
 	}
 
@@ -91,17 +100,18 @@ public:
 	bool bFilterLandscape;
 	bool bFilterStaticMesh;
 	bool bFilterBSP;
+	bool bFilterTranslucent;
 };
 
 
 struct FFoliageMeshUIInfo
 {
-	UStaticMesh* StaticMesh;
+	UFoliageType* Settings;
 	FFoliageMeshInfo* MeshInfo;
-	
-	FFoliageMeshUIInfo(UStaticMesh* InStaticMesh, FFoliageMeshInfo* InMeshInfo)
-	:	StaticMesh(InStaticMesh)
-	,	MeshInfo(InMeshInfo)
+
+	FFoliageMeshUIInfo(UFoliageType* InSettings, FFoliageMeshInfo* InMeshInfo)
+		: Settings(InSettings)
+		, MeshInfo(InMeshInfo)
 	{}
 };
 
@@ -112,28 +122,28 @@ class FMeshInfoSnapshot
 	TArray<FVector> Locations;
 public:
 	FMeshInfoSnapshot(FFoliageMeshInfo* MeshInfo)
-	:	Hash(*MeshInfo->InstanceHash)
+		: Hash(*MeshInfo->InstanceHash)
 	{
 		Locations.AddUninitialized(MeshInfo->Instances.Num());
-		for( int32 Idx=0;Idx<MeshInfo->Instances.Num();Idx++ )
+		for (int32 Idx = 0; Idx < MeshInfo->Instances.Num(); Idx++)
 		{
 			Locations[Idx] = MeshInfo->Instances[Idx].Location;
 		}
 	}
 
-	int32 CountInstancesInsideSphere( const FSphere& Sphere )
+	int32 CountInstancesInsideSphere(const FSphere& Sphere)
 	{
-		TSet<int32> TempInstances;
-		Hash.GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W,Sphere.W,Sphere.W)), TempInstances );
+		int32 Count = 0;
 
-		int32 Count=0;
-		for( TSet<int32>::TConstIterator It(TempInstances); It; ++It )
+		auto TempInstances = Hash.GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W)));
+		for (int32 Idx : TempInstances)
 		{
-			if( FSphere(Locations[*It],0.f).IsInside(Sphere) )
+			if (FSphere(Locations[Idx], 0.f).IsInside(Sphere))
 			{
 				Count++;
 			}
-		}	
+		}
+
 		return Count;
 	}
 };
@@ -154,16 +164,19 @@ public:
 	virtual ~FEdModeFoliage();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+	/** FEdMode: Called when the mode is created */
+	virtual void Initialize() override;
 
 	/** FEdMode: Called when the mode is entered */
-	virtual void Enter() OVERRIDE;
+	virtual void Enter() override;
 
 	/** FEdMode: Called when the mode is exited */
-	virtual void Exit() OVERRIDE;
+	virtual void Exit() override;
 
 	/** FEdMode: Called after an Undo operation */
-	virtual void PostUndo() OVERRIDE;
+	virtual void PostUndo() override;
 
 	/** Called when the current level changes */
 	void NotifyNewCurrentLevel();
@@ -187,7 +200,7 @@ public:
 	 *
 	 * @return	true if input was handled
 	 */
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE;
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 
 	/**
 	 * FEdMode: Called when the mouse is moved while a window input capture is in effect
@@ -199,119 +212,120 @@ public:
 	 *
 	 * @return	true if input was handled
 	 */
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
+	virtual bool CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
 
 	/** FEdMode: Called when a mouse button is pressed */
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
 	/** FEdMode: Called when a mouse button is released */
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
 	/** FEdMode: Called once per frame */
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE;
+	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
 
 	/** FEdMode: Called when a key is pressed */
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE;
+	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override;
 
 	/** FEdMode: Called when mouse drag input it applied */
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) OVERRIDE;
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override;
 
 	/** FEdMode: Render elements for the Foliage tool */
-	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) OVERRIDE;
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
 
 	/** FEdMode: Render HUD elements for this tool */
-	virtual void DrawHUD( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas ) OVERRIDE;
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) override;
 
 	/** FEdMode: Handling SelectActor */
-	virtual bool Select( AActor* InActor, bool bInSelected ) OVERRIDE;
+	virtual bool Select(AActor* InActor, bool bInSelected) override;
 
 	/** FEdMode: Check to see if an actor can be selected in this mode - no side effects */
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE;
+	virtual bool IsSelectionAllowed(AActor* InActor, bool bInSelection) const override;
 
 	/** FEdMode: Called when the currently selected actor has changed */
-	virtual void ActorSelectionChangeNotify() OVERRIDE;
+	virtual void ActorSelectionChangeNotify() override;
 
 	/** Notifies all active modes of mouse click messages. */
-	bool HandleClick(FLevelEditorViewportClient* InViewportClient,  HHitProxy *HitProxy, const FViewportClick &Click );
+	bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
 
 	/** FEdMode: widget handling */
-	virtual FVector GetWidgetLocation() const OVERRIDE;
+	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove();
-	virtual bool ShouldDrawWidget() const OVERRIDE;
-	virtual bool UsesTransformWidget() const OVERRIDE ;
-	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const OVERRIDE;
+	virtual bool ShouldDrawWidget() const override;
+	virtual bool UsesTransformWidget() const override;
+	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;
 
-	virtual bool DisallowMouseDeltaTracking() const OVERRIDE;
+	virtual bool DisallowMouseDeltaTracking() const override;
 
 	/** Forces real-time perspective viewports */
-	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
+	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);
 
 	/** Trace under the mouse cursor and update brush position */
-	void FoliageBrushTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY );
+	void FoliageBrushTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY);
 
-	/** Generate start/end points for a random trace inside the sphere brush. 
+	/** Generate start/end points for a random trace inside the sphere brush.
 	    returns a line segment inside the sphere parallel to the view direction */
-	void GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd );
+	void GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd);
 
 	/** Apply brush */
-	void ApplyBrush( FLevelEditorViewportClient* ViewportClient );
+	void ApplyBrush(FEditorViewportClient* ViewportClient);
 
 	/** Update existing mesh info for current level */
 	void UpdateFoliageMeshList();
 
 	TArray<struct FFoliageMeshUIInfo>& GetFoliageMeshList();
-	
+
 	/** Add a new mesh */
-	void AddFoliageMesh(UStaticMesh* StaticMesh);
+	void AddFoliageMesh(UStaticMesh* Mesh);
+	void AddFoliageMesh(UFoliageType* Settings);
 
 	/** Remove a mesh */
-	bool RemoveFoliageMesh(UStaticMesh* StaticMesh);
+	bool RemoveFoliageMesh(UFoliageType* Settings);
 
 	/** Reapply cluster settings to all the instances */
-	void ReallocateClusters(UStaticMesh* StaticMesh);
+	void ReallocateClusters(UFoliageType* Settings);
 
 	/** Replace a mesh with another one */
-	bool ReplaceStaticMesh(UStaticMesh* OldStaticMesh, UStaticMesh* NewStaticMesh, bool& bOutMeshMerged);
+	bool ReplaceStaticMesh(UFoliageType* Settings, UStaticMesh* NewStaticMesh, bool& bOutMeshMerged);
 
 	/** Bake meshes to StaticMeshActors */
-	void BakeFoliage(UStaticMesh* StaticMesh, bool bSelectedOnly);
+	void BakeFoliage(UFoliageType* Settings, bool bSelectedOnly);
 
-	/** 
+	/**
 	 * Copy the settings object for this static mesh
 	 *
 	 * @param StaticMesh	The static mesh to copy the settings of.
 	 *
 	 * @return The duplicated settings now assigned to the static mesh.
 	 */
-	UInstancedFoliageSettings* CopySettingsObject(UStaticMesh* StaticMesh);
+	UFoliageType* CopySettingsObject(UFoliageType* Settings);
 
 	/** Replace the settings object for this static mesh with the one specified */
-	void ReplaceSettingsObject(UStaticMesh* StaticMesh, UInstancedFoliageSettings* NewSettings);
+	void ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageType* NewSettings);
 
-	/** 
-	 * Save the settings object 
+	/**
+	 * Save the settings object
 	 *
 	 * @param InSettingsPackageName		The name for the settings package.
 	 * @param StaticMesh				The static mesh to save the settings of.
 	 *
 	 * @return The settings the static mesh is now using.
 	 */
-	UInstancedFoliageSettings* SaveSettingsObject(const FText& InSettingsPackageName, UStaticMesh* StaticMesh);
+	UFoliageType* SaveSettingsObject(const FText& InSettingsPackageName, UFoliageType* Settings);
 
 	/** Apply paint bucket to actor */
 	void ApplyPaintBucket(AActor* Actor, bool bRemove);
 private:
 	/** Add instances inside the brush to match DesiredInstanceCount */
-	void AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageActor* IFA, UStaticMesh* StaticMesh, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure );
+	void AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure);
 
 	/** Remove instances inside the brush to match DesiredInstanceCount */
-	void RemoveInstancesForBrush( AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure );
+	void RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure);
 
 	/** Reapply instance settings to exiting instances */
-	void ReapplyInstancesForBrush( UWorld* InWorld, AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, TArray<int32>& ExistingInstances );
+	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, TArray<int32>& ExistingInstances);
 
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
-	bool GetStaticMeshVertexColorForHit( UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor ) const;
+	bool GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor) const;
 
 	bool bBrushTraceValid;
 	FVector BrushLocation;
@@ -319,13 +333,13 @@ private:
 	UStaticMeshComponent* SphereBrushComponent;
 
 	// Landscape layer cache data
-	TMap<FName, TMap<class ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCaches;
+	TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCaches;
 
 	// Placed level data
-	TArray<struct FFoliageMeshUIInfo> FoliageMeshList;
+	TArray<FFoliageMeshUIInfo> FoliageMeshList;
 
 	// Cache of instance positions at the start of the transaction
-	TMap<UStaticMesh*, class FMeshInfoSnapshot> InstanceSnapshot;
+	TMap<UFoliageType*, FMeshInfoSnapshot> InstanceSnapshot;
 
 	bool bToolActive;
 	bool bCanAltDrag;
@@ -333,6 +347,3 @@ private:
 	// The actor that owns any currently visible selections
 	AInstancedFoliageActor* SelectionIFA;
 };
-
-
-#endif	// __FoliageEdMode_h__

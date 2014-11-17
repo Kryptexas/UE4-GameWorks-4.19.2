@@ -8,4 +8,4 @@
 
 // @param >0, WorkScale 10 for normal precision and runtime of less than a second
 // @param bDebugOut has no effect in shipping
-void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut = false);
+void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut = false);

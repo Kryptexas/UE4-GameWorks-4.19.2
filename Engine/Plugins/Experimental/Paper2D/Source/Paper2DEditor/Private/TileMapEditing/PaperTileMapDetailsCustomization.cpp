@@ -24,14 +24,14 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 {
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	
-	UPaperTileMapRenderComponent* TileMap = NULL;
+	UPaperTileMap* TileMap = NULL;
 	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
 		if (AActor* CurrentActor = Cast<AActor>(SelectedObjects[ObjectIndex].Get()))
 		{
 			if (UPaperTileMapRenderComponent* CurrentTileMap = CurrentActor->FindComponentByClass<UPaperTileMapRenderComponent>())
 			{
-				TileMap = CurrentTileMap;
+				TileMap = CurrentTileMap->TileMap;
 				break;
 			}
 		}
@@ -111,7 +111,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 FReply FPaperTileMapDetailsCustomization::EnterTileMapEditingMode()
 {
-	GEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
+	GLevelEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
 	return FReply::Handled();
 }
 
@@ -131,14 +131,14 @@ FReply FPaperTileMapDetailsCustomization::AddCollisionLayerClicked()
 
 EVisibility FPaperTileMapDetailsCustomization::GetNonEditModeVisibility() const
 {
-	return GEditorModeTools().IsModeActive(FEdModeTileMap::EM_TileMap) ? EVisibility::Collapsed : EVisibility::Visible;
+	return GLevelEditorModeTools().IsModeActive(FEdModeTileMap::EM_TileMap) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 UPaperTileLayer* FPaperTileMapDetailsCustomization::AddLayer(bool bCollisionLayer)
 {
 	UPaperTileLayer* NewLayer = NULL;
 
-	if (UPaperTileMapRenderComponent* TileMap = TileMapPtr.Get())
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
 	{
 		const FScopedTransaction Transaction( LOCTEXT("TileMapAddLayer", "Add New Layer") );
 		TileMap->SetFlags(RF_Transactional);

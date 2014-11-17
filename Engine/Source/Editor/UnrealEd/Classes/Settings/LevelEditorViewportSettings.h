@@ -7,7 +7,35 @@
 #pragma once
 
 #include "Viewports.h"
+#include "Editor/UnrealEdTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
+
+
+/**
+ * Enumerates modes for the viewport's rotation grid.
+ */
+UENUM()
+enum ERotationGridMode
+{
+	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ) */
+	GridMode_DivisionsOf360,
+
+	/** Uses the user defined grid values */
+	GridMode_Common,
+};
+
+
+/**
+ * Enumerates camera control types for the W, A, S and D keys.
+ */
+UENUM()
+enum EWASDType
+{
+	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
+	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
+	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
+	WASD_MAX,
+};
 
 
 /**
@@ -449,7 +477,7 @@ protected:
 
 	// Begin UObject overrides
 
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 	// End UObject overrides
 

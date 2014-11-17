@@ -151,10 +151,26 @@ private:
 			// parse the device model
 			FString Model;
 			FParse::Value(*DeviceString, TEXT("model:"), Model);
+			if (Model.IsEmpty())
+			{
+				FString ModelCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.model"), *SerialNumber);
+				FString RoProductModel;
+				ExecuteAdbCommand(*ModelCommand, &RoProductModel, nullptr);
+				const TCHAR* Ptr = *RoProductModel;
+				FParse::Line(&Ptr, Model);
+			}
 
 			// parse the device model
 			FString DeviceName;
 			FParse::Value(*DeviceString, TEXT("device:"), DeviceName);
+			if (DeviceName.IsEmpty())
+			{
+				FString DeviceCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.device"), *SerialNumber);
+				FString RoProductDevice;
+				ExecuteAdbCommand(*DeviceCommand, &RoProductDevice, nullptr);
+				const TCHAR* Ptr = *RoProductDevice;
+				FParse::Line(&Ptr, DeviceName);
+			}
 
 			// add the device to the map
 			{
@@ -231,7 +247,7 @@ public:
 
 		// create and fire off our device detection thread
 		DetectionThreadRunnable = new FAndroidDeviceDetectionRunnable(ADBPath, DeviceMap, &DeviceMapLock);
-		DetectionThread = FRunnableThread::Create(DetectionThreadRunnable, TEXT("FAndroidDeviceDetectionRunnable"), false);
+		DetectionThread = FRunnableThread::Create(DetectionThreadRunnable, TEXT("FAndroidDeviceDetectionRunnable"));
 	}
 
 	virtual ~FAndroidDeviceDetection()
@@ -243,12 +259,12 @@ public:
 		}
 	}
 
-	virtual const TMap<FString,FAndroidDeviceInfo>& GetDeviceMap() OVERRIDE
+	virtual const TMap<FString,FAndroidDeviceInfo>& GetDeviceMap() override
 	{
 		return DeviceMap;
 	}
 
-	virtual FCriticalSection* GetDeviceMapLock() OVERRIDE
+	virtual FCriticalSection* GetDeviceMapLock() override
 	{
 		return &DeviceMapLock;
 	}
@@ -289,7 +305,7 @@ public:
 		AndroidDeviceDetectionSingleton = nullptr;
 	}
 
-	virtual IAndroidDeviceDetection* GetAndroidDeviceDetection() OVERRIDE
+	virtual IAndroidDeviceDetection* GetAndroidDeviceDetection() override
 	{
 		if (AndroidDeviceDetectionSingleton == nullptr)
 		{

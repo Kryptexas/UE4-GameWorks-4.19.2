@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateReflectorModule.cpp: Implements the FSlateReflectorModule class.
-=============================================================================*/
-
 #include "SlateReflectorPrivatePCH.h"
 #include "ModuleManager.h"
 
@@ -19,9 +15,9 @@ class FSlateReflectorModule
 {
 public:
 
-	// Begin ISlateReflectorModule interface
+	// ISlateReflectorModule interface
 
-	virtual TSharedRef<SWidget> GetWidgetReflector( ) OVERRIDE
+	virtual TSharedRef<SWidget> GetWidgetReflector( ) override
 	{
 		TSharedPtr<SWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
 
@@ -34,7 +30,7 @@ public:
 		return WidgetReflector.ToSharedRef();
 	}
 
-	virtual void RegisterTabSpawner( const TSharedRef<FWorkspaceItem>& WorkspaceGroup ) OVERRIDE
+	virtual void RegisterTabSpawner( const TSharedRef<FWorkspaceItem>& WorkspaceGroup ) override
 	{
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WidgetReflector", FOnSpawnTab::CreateRaw(this, &FSlateReflectorModule::MakeWidgetReflectorTab) )
 			.SetDisplayName(LOCTEXT("WidgetReflectorTitle", "Widget Reflector"))
@@ -48,20 +44,16 @@ public:
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("WidgetReflector");
 	}
 
-	// End ISlateReflectorModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		UnregisterTabSpawner();
 	}
-
-	// End IModuleInterface interface
 
 private:
 

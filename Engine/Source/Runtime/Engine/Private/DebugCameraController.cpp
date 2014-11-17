@@ -6,6 +6,11 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/SpectatorPawn.h"
+#include "GameFramework/SpectatorPawnMovement.h"
+#include "Engine/DebugCameraHUD.h"
+#include "LightMap.h"
+
 
 /** The currently selected actor. */
 AActor* GDebugSelectedActor = NULL;
@@ -240,7 +245,7 @@ void ADebugCameraController::PostInitializeComponents()
 	SpawnInfo.bNoCollisionFail = true;
 	MyHUD = GetWorld()->SpawnActor<ADebugCameraHUD>( SpawnInfo );
 
-	ChangeState(NAME_Spectating);
+	ChangeState(NAME_Inactive);
 }
 
 void ADebugCameraController::OnActivate( APlayerController* OriginalPC )

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileServerConnection.h: Declares the FNetworkFileServerClientConnection class.
-=============================================================================*/
-
 #include "NetworkFileSystemPrivatePCH.h"
 #include "PackageName.h"
 #include "TargetPlatform.h"
@@ -12,13 +8,10 @@
 /* FNetworkFileServerClientConnection structors
  *****************************************************************************/
 
-FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FFileRequestDelegate& InFileRequestDelegate, 
 		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	: LastHandleId(0)
-	, MCSocket(NULL)
 	, Sandbox(NULL)
-	, Socket(InSocket)
-	, bNeedsToStop(false)
 	, ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
 	if (InFileRequestDelegate.IsBound())
@@ -30,79 +23,10 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket*
 	{
 		RecompileShadersDelegate = InRecompileShadersDelegate;
 	}
-
-#if UE_BUILD_DEBUG
-	// this thread needs more space in debug builds as it tries to log messages and such
-	const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
-#else
-	const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
-#endif
-	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, NetworkFileServerThreadSize, TPri_AboveNormal);
 }
 
 
 FNetworkFileServerClientConnection::~FNetworkFileServerClientConnection( )
-{
-	// Kill the running thread.
-	if( Thread != NULL )
-	{
-		Thread->Kill(true);
-
-		delete Thread;
-		Thread = NULL;
-	}
-
-	// We are done with the socket.
-	Socket->Close();
-	ISocketSubsystem::Get()->DestroySocket(Socket);
-	Socket = NULL;
-}
-
-
-/* FRunnable overrides
- *****************************************************************************/
-
-bool FNetworkFileServerClientConnection::Init( )
-{
-#if USE_MCSOCKET_FOR_NFS
-	MCSocket = new FMultichannelTCPSocket(Socket, 64 * 1024 * 1024);
-#endif
-	return true;
-}
-
-
-uint32 FNetworkFileServerClientConnection::Run( )
-{
-	while (!bNeedsToStop)
-	{
-		// read a header and payload pair
-		FArrayReader Payload; 
-#if USE_MCSOCKET_FOR_NFS
-		if (FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-		if (FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FSocket(Socket)) == false)
-#endif
-		{
-			// if we failed to receive the payload, then the client is most likely dead, so, we can kill this connection
-			// @todo: Add more error codes, maybe some errors shouldn't kill the connection
-			break;
-		}
-
-		// now process the contents of the payload
-		ProcessPayload(Payload);
-	}
-
-	bNeedsToStop = true;
-	return 0;
-}
-
-
-void FNetworkFileServerClientConnection::Stop( )
-{
-	bNeedsToStop = true;
-}
-
-void FNetworkFileServerClientConnection::Exit()
 {
 	// close all the files the client had opened through us when the client disconnects
 	for (TMap<uint64, IFileHandle*>::TIterator It(OpenFiles); It; ++It)
@@ -112,13 +36,7 @@ void FNetworkFileServerClientConnection::Exit()
 
 	delete Sandbox;
 	Sandbox = NULL;	
-
-#if	USE_MCSOCKET_FOR_NFS
-	delete MCSocket;
-	MCSocket = NULL;
-#endif // USE_MCSOCKET_FOR_NFS	
 }
-
 
 /* FStreamingNetworkFileServerConnection implementation
  *****************************************************************************/
@@ -143,6 +61,33 @@ void FNetworkFileServerClientConnection::ConvertClientFilenameToServerFilename(F
 #endif
 		}
 	}
+}
+
+/**
+ * Fixup sandbox paths to match what package loading will request on the client side.  e.g.
+ * Sandbox path: "../../../Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset ->
+ * client path: "../../../Samples/Showcases/Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset"
+ * This ensures that devicelocal-cached files will be properly timestamp checked before deletion.
+ */
+static TMap<FString, FDateTime> FixupSandboxPathsForClient(FSandboxPlatformFile* Sandbox, const TMap<FString, FDateTime>& SandboxPaths, const FString& LocalEngineDir, const FString& LocalGameDir)
+{
+	TMap<FString, FDateTime> FixedFiletimes;
+	FString SandboxEngine = Sandbox->ConvertToSandboxPath(*LocalEngineDir) + TEXT("/");
+
+	// we need to add an extra bit to the game path to make the sandbox convert it correctly (investigate?)
+	// @todo: double check this
+	FString SandboxGame = Sandbox->ConvertToSandboxPath(*(LocalGameDir + TEXT("a.txt"))).Replace(TEXT("a.txt"), TEXT(""));
+
+	// since the sandbox remaps from A/B/C to C, and the client has no idea of this, we need to put the files
+	// into terms of the actual LocalGameDir, which is all that the client knows about
+	for (TMap<FString, FDateTime>::TConstIterator It(SandboxPaths); It; ++It)
+	{
+		FString Fixed = Sandbox->ConvertToSandboxPath(*It.Key());
+		Fixed = Fixed.Replace(*SandboxEngine, *LocalEngineDir);
+		Fixed = Fixed.Replace(*SandboxGame, *LocalGameDir);
+		FixedFiletimes.Add(Fixed, It.Value());
+	}
+	return FixedFiletimes;
 }
 
 void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(FString& FilenameToConvert)
@@ -170,7 +115,7 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 
 static FCriticalSection SocketCriticalSection;
 
-void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
+void FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& Out)
 {
 	// first part of the payload is always the command
 	uint32 Cmd;
@@ -181,11 +126,8 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 	// what type of message is this?
 	NFS_Messages::Type Msg = NFS_Messages::Type(Cmd);
 
-	// allocate an archive for the commands to write to
-	FBufferArchive Out;
-
 	// make sure the first thing is GetFileList which initializes the game/platform
-	checkf(Msg == NFS_Messages::GetFileList || Sandbox != NULL, TEXT("The first client message MUST be GetFileList, not %d"), (int32)Msg);
+	checkf(Msg == NFS_Messages::GetFileList || Msg == NFS_Messages::Heartbeat || Sandbox != NULL, TEXT("The first client message MUST be GetFileList, not %d"), (int32)Msg);
 
 	// process the message!
 	bool bSendUnsolicitedFiles = false;
@@ -291,42 +233,19 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 	}
 
 	// send back a reply if the command wrote anything back out
-	if (Out.Num())
+	if (Out.TotalSize() && bSendUnsolicitedFiles)
 	{
 		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
-		if (bSendUnsolicitedFiles)
+		Out << NumUnsolictedFiles;
+
+		for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 		{
-			Out << NumUnsolictedFiles;
+			PackageFile(UnsolictedFiles[Index], Out);
 		}
-
-		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
-
-		// send back a reply
-#if USE_MCSOCKET_FOR_NFS
-		FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-#else
-		FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket));
-#endif
-
-		if (bSendUnsolicitedFiles)
-		{
-			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
-			{
-				FBufferArchive OutUnsolicitedFile;
-				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
-
-				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
-
-#if USE_MCSOCKET_FOR_NFS
-				FNFSMessageHeader::WrapAndSendPayload(OutUnsolicitedFile, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-#else
-				FNFSMessageHeader::WrapAndSendPayload(OutUnsolicitedFile, FSimpleAbstractSocket_FSocket(Socket));
-#endif
-			}
-
-			UnsolictedFiles.Empty();
-		}
+		UnsolictedFiles.Empty();		
 	}
+
+	UE_LOG(LogFileServer, Verbose, TEXT("Done Processing payload with Cmd %d Total Size sending %d "), Cmd,Out.TotalSize());
 }
 
 
@@ -750,7 +669,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FString ProjectDir = FPaths::GetPath(FPaths::GetProjectFilePath());
-		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Sandboxes"), *(FString("Cooked-") + ConnectedPlatformName));
+		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		if( bIsStreamingRequest )
 		{
 			RootDirectories.Add(ProjectDir);
@@ -760,15 +679,16 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	{
 		if (FPaths::GetExtension(GameName) == IProjectManager::GetProjectFileExtension())
 		{
-			SandboxDirectory = FString::Printf(TEXT("%s/Saved/Sandboxes/Cooked-%s"), *FPaths::GetPath(GameName), *ConnectedPlatformName);
+			SandboxDirectory = FPaths::Combine(*FPaths::GetPath(GameName), TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		}
 		else
 		{
 			//@todo: This assumes the game is located in the UE4 Root directory
-			FString SandboxFolder = FString::Printf(TEXT("Cooked-%s"), *ConnectedPlatformName);
-			SandboxDirectory = FPaths::Combine(*FPaths::GetRelativePathToRoot(), *GameName, TEXT("Saved/Sandboxes"), *SandboxFolder);
+			SandboxDirectory = FPaths::Combine(*FPaths::GetRelativePathToRoot(), *GameName, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		}
 	}
+	// Convert to full path so that the sandbox wrapper doesn't re-base to Saved/Sandboxes
+	SandboxDirectory = FPaths::ConvertRelativePathToFull(SandboxDirectory);
 
 	// delete any existing one first, in case game name somehow changed and client is re-asking for files (highly unlikely)
 	delete Sandbox;
@@ -804,6 +724,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Config")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Logs")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Sandboxes")));
+		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Cooked")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/ShaderDebugInfo")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Intermediate")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Documentation")));
@@ -830,7 +751,8 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	Out << LocalGameDir;
 
 	// return the files and their timestamps
-	Out << Visitor.FileTimes;
+	TMap<FString, FDateTime> FixedTimes = FixupSandboxPathsForClient(Sandbox, Visitor.FileTimes, LocalEngineDir, LocalGameDir);
+	Out << FixedTimes;
 
 	// Do it again, preventing access to non-cooked files
 	if( bIsStreamingRequest == false )
@@ -856,7 +778,8 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		}
 	
 		// return the cached files and their timestamps
-		Out << VisitorForCacheDates.FileTimes;
+		FixedTimes = FixupSandboxPathsForClient(Sandbox, VisitorForCacheDates.FileTimes, LocalEngineDir, LocalGameDir);
+		Out << FixedTimes;
 	}
 }
 
@@ -935,6 +858,7 @@ void FNetworkFileServerClientConnection::ProcessRecompileShaders( FArchive& In, 
 	In << RecompileData.MaterialsToLoad;
 	In << RecompileData.ShaderPlatform;
 	In << RecompileData.SerializedShaderResources;
+	In << RecompileData.bCompileChangedShaders;
 
 	RecompileShadersDelegate.ExecuteIfBound(RecompileData);
 
@@ -969,3 +893,9 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 
 	PackageFile(Filename, Out);
 }
+FString FNetworkFileServerClientConnection::GetDescription() const 
+{
+	return FString("Client For " ) + ConnectedPlatformName;
+}
+
+

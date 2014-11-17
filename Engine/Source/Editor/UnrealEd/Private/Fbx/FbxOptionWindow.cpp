@@ -536,12 +536,24 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMiscOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bOverrideFullName? true: false)
+		.IsChecked(ImportUI->bOverrideFullName ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_OverrideFullName)
 		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_NameOverride", "Override FullName"))
+		]
+	];
+
+	NewBox->AddSlot().AutoHeight() .Padding(2)
+	[
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bConvertScene ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_ConvertScene)
+		.IsEnabled( !bIsObjFormat )
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("FbxOptionWindow_ConvertScene", "Convert Scene"))
 		]
 	];
 
@@ -651,7 +663,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight().Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bCombineMeshes ? true : false)
+		.IsChecked(ImportUI->bCombineMeshes ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_CombineMeshes)
 		.Content()
 		[
@@ -664,7 +676,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->StaticMeshImportData->bImportMeshLODs? true: false)
+		.IsChecked(ImportUI->StaticMeshImportData->bImportMeshLODs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ImportMeshLODs)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -676,7 +688,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->StaticMeshImportData->bReplaceVertexColors? true: false)
+		.IsChecked(ImportUI->StaticMeshImportData->bReplaceVertexColors ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ReplaceVertexColor)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -688,7 +700,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->StaticMeshImportData->bRemoveDegenerates? true: false)
+		.IsChecked(ImportUI->StaticMeshImportData->bRemoveDegenerates ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_RemoveDegenerates)
 		[
 			SNew(STextBlock)
@@ -699,7 +711,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX? true: false)
+		.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -726,7 +738,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMorphTargets? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMorphTargets ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMorphTargets)
 		[
 			SNew(STextBlock)
@@ -742,7 +754,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 		.AutoWidth()
 		[
 			SNew(SCheckBox)
-			.IsChecked(ImportUI->bImportAnimations? true: false)
+			.IsChecked(ImportUI->bImportAnimations ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportAnimation)
 			[
 				SNew(STextBlock)
@@ -766,7 +778,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UpdateSkeletonRefPose)
 		[
 			SNew(STextBlock)
@@ -792,7 +804,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshLODs? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshLODs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshLODs)
 		[
 			SNew(STextBlock)
@@ -803,7 +815,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bImportRigidMesh? true: false)
+		.IsChecked(ImportUI->bImportRigidMesh ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportRigidMesh)
 		[
 			SNew(STextBlock)
@@ -814,7 +826,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bUseT0AsRefPose? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bUseT0AsRefPose ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseT0AsRefPose)
 		[
 			SNew(STextBlock)
@@ -825,7 +837,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ReserveSmoothingGroups)
 		[
 			SNew(STextBlock)
@@ -837,7 +849,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_KeepOverlappingVertices)
 		[
 			SNew(STextBlock)
@@ -847,7 +859,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy? true: false)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshesInBoneHierarchy)
 		[
 			SNew(STextBlock)
@@ -865,7 +877,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bCreatePhysicsAsset? true: false)
+		.IsChecked(ImportUI->bCreatePhysicsAsset ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_CreatePhysicsAsset)
 		.IsEnabled(!bForceImportType)
 		[
@@ -920,7 +932,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bImportMaterials? true: false)
+		.IsChecked(ImportUI->bImportMaterials ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportMaterials)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -932,7 +944,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bImportTextures? true: false)
+		.IsChecked(ImportUI->bImportTextures ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportTextures)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -944,7 +956,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->TextureImportData->bInvertNormalMaps? true: false)
+		.IsChecked(ImportUI->TextureImportData->bInvertNormalMaps ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_InvertNormalMaps)
 		.IsEnabled( !bIsObjFormat )
 		[
@@ -963,7 +975,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructAnimationOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2, 4)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bUseDefaultSampleRate? true: false)
+		.IsChecked(ImportUI->bUseDefaultSampleRate ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseDefaultSampleRate)
 		[
 			SNew(STextBlock)
@@ -974,7 +986,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructAnimationOption()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
-		.IsChecked(ImportUI->bPreserveLocalTransform? true: false)
+		.IsChecked(ImportUI->bPreserveLocalTransform ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetAnimation_ReserveLocalTransform)
 		[
 			SNew(STextBlock)
@@ -1124,6 +1136,11 @@ void SFbxOptionWindow::SetImportType(EFBXImportType ImportType)
 void SFbxOptionWindow::SetGeneral_OverrideFullName(ESlateCheckBoxState::Type NewType)
 {
 	ImportUI->bOverrideFullName = (NewType == ESlateCheckBoxState::Checked)? 1:0;
+}
+
+void SFbxOptionWindow::SetGeneral_ConvertScene(ESlateCheckBoxState::Type NewType)
+{
+	ImportUI->bConvertScene = (NewType == ESlateCheckBoxState::Checked)? 1:0;
 }
 
 void SFbxOptionWindow::SetSkeletalMesh_ImportMeshLODs(ESlateCheckBoxState::Type NewType)

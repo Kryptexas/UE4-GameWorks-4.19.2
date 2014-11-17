@@ -382,9 +382,6 @@ private:
 	// Holds time step if a fixed delta time is wanted.
 	static double FixedDeltaTime;
 
-	// Holds whether we want to use a fixed time step or not.
-	static bool bUseFixedTimeStep;
-
 	// Holds current time.
 	static double CurrentTime;
 

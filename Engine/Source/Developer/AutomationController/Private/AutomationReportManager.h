@@ -19,6 +19,9 @@ public:
 	/** Clears out all reports */
 	void Empty();
 
+	/** Updates the automation reports when the number of clusters changes */
+	void ClustersUpdated( const int32 NumClusters );
+
 	/** 
 	 * Resets for the next run of tests 
 	 * @param NumTestPasses - The number of test results to store
@@ -71,6 +74,11 @@ public:
 	 * @param NumDeviceClusters - The number of devices in a cluster
 	 */
 	const bool ExportReport( uint32 FileExportTypeMask, const int32 NumDeviceClusters );
+
+	/**
+	 * Notification on whether we should, or should not, track report histories
+	 */
+	void TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack);
 
 protected:
 

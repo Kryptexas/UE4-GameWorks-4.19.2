@@ -3,6 +3,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_RotateRootBone.h"
 #include "AnimGraphNode_RotateRootBone.generated.h"
 
 UCLASS(MinimalAPI)
@@ -14,12 +15,12 @@ class UAnimGraphNode_RotateRootBone : public UAnimGraphNode_Base
 	FAnimNode_RotateRootBone Node;
 
 	// Begin UEdGraphNode interface.
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
+	virtual FString GetNodeCategory() const override;
 	// End of UAnimGraphNode_Base interface
 };

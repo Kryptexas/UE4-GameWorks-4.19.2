@@ -3,6 +3,8 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UAnimBlueprint
@@ -25,6 +27,11 @@ UAnimBlueprintGeneratedClass* UAnimBlueprint::GetAnimBlueprintSkeletonClass() co
 }
 
 #if WITH_EDITOR
+
+UClass* UAnimBlueprint::GetBlueprintClass() const
+{
+	return UAnimBlueprintGeneratedClass::StaticClass();
+}
 
 int32 UAnimBlueprint::FindOrAddGroup(FName GroupName)
 {

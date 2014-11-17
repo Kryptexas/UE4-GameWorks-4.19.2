@@ -123,7 +123,7 @@ private:
 class FTaskThread : public FRunnable, FSingleThreadRunnable
 {
 public:
-
+	/** Array of tasks for this task thread. */
 	TArray<FBaseGraphTask*> NewTasks;
 
 	// Calls meant to be called from a "main" or supervisor thread.
@@ -178,7 +178,7 @@ public:
 	}
 
 	/** Tick single-threaded. */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (Queue(0).QuitWhenIdle.GetValue() == 0)
 		{
@@ -193,21 +193,29 @@ public:
 	 **/
 	void ProcessTasks(int32 QueueIndex, bool bAllowStall)
 	{
+		TStatId StallStatId;
+		bool bCountAsStall = false;
 #if STATS
-		checkAtCompileTime(ENamedThreads::StatsThread == 0, delete_this_testing_a_build_fail);
 		TStatId StatName;
 		FCycleCounter ProcessingTasks;
 		if (ThreadId == ENamedThreads::GameThread)
 		{
 			StatName = GET_STATID(STAT_TaskGraph_GameTasks);
+			StallStatId = GET_STATID(STAT_TaskGraph_GameStalls);
+			bCountAsStall = true;
 		}
 		else if (ThreadId == ENamedThreads::RenderThread)
 		{
 			//StatName = none, we need to let the scope empty so that the render thread submits tasks in a timely manner
+			// The render thread has a custom method to calculate the idle time, so leave it as it is for now.
+			//StallStatId = GET_STATID(STAT_TaskGraph_RenderStalls);
+			//bCountAsStall = true;
 		}
 		else if (ThreadId != ENamedThreads::StatsThread)
 		{
 			StatName = GET_STATID(STAT_TaskGraph_OtherTasks);
+			StallStatId = GET_STATID(STAT_TaskGraph_OtherStalls);
+			bCountAsStall = true;
 		}
 		bool bTasksOpen = false;
 #endif
@@ -245,7 +253,7 @@ public:
 								bTasksOpen = false;
 							}
 #endif
-							if (Stall(QueueIndex))
+							if (Stall(QueueIndex, StallStatId, bCountAsStall))
 							{
 								Queue(QueueIndex).IncomingQueue.PopAll(NewTasks);
 							}
@@ -295,7 +303,7 @@ public:
 								bTasksOpen = false;
 							}
 #endif
-							if (Stall(QueueIndex))
+							if (Stall(QueueIndex, StallStatId, bCountAsStall))
 							{
 								Task = Queue(QueueIndex).IncomingQueue.PopIfNotClosed();
 							}
@@ -309,7 +317,7 @@ public:
 				if (!bTasksOpen && FThreadStats::IsCollectingData(StatName))
 				{
 					bTasksOpen = true;
-					ProcessingTasks.Start(*StatName);
+					ProcessingTasks.Start(StatName);
 				}
 #endif
 				Task->Execute(NewTasks, ENamedThreads::Type(ThreadId | (QueueIndex << ENamedThreads::QueueIndexShift)));
@@ -466,7 +474,7 @@ public:
 	/**
 	 * Return single threaded interface when multithreading is disabled.
 	 */
-	virtual FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
 	{
 		return this;
 	}
@@ -513,10 +521,12 @@ private:
 
 	/**
 	 *	Internal function to block on the stall wait event.
-	 *  @param QueueIndex, Queue to stall
+	 *  @param QueueIndex		- Queue to stall
+	 *  @param StallStatId		- Stall stat id
+	 *  @param bCountAsStall	- true if StallStatId is a valid stat id
 	 *	@return true if the thread actually stalled; false in the case of a stop request or a task arrived while we were trying to stall.
 	 */
-	bool Stall(int32 QueueIndex)
+	bool Stall(int32 QueueIndex, TStatId StallStatId, bool bCountAsStall)
 	{
 		checkThreadGraph(Queue(QueueIndex).StallRestartEvent); // make sure we are started up
 		if (Queue(QueueIndex).QuitWhenIdle.GetValue() == 0)
@@ -528,10 +538,12 @@ private:
 				FPlatformMisc::MemoryBarrier();
 				if (Queue(QueueIndex).IncomingQueue.CloseIfEmpty())
 				{
+					FScopeCycleCounter Scope( StallStatId );
+
 					int32 NewValue = IsStalled.Increment();
 					NotifyStalling();
 					checkThreadGraph(NewValue == 1); // there should be no concurrent calls to Stall!
-					Queue(QueueIndex).StallRestartEvent->Wait();
+					Queue(QueueIndex).StallRestartEvent->Wait(MAX_uint32, bCountAsStall);
 					NewValue = IsStalled.Decrement();
 					checkThreadGraph(NewValue == 0); // there should be no concurrent calls to Stall!
 					return true;
@@ -675,7 +687,7 @@ public:
 		{
 			FString Name = FString::Printf(TEXT("TaskGraphThread %d"), ThreadIndex - (LastExternalThread + 1));
 			uint32 StackSize = 256 * 1024;
-			WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create( &Thread(ThreadIndex), *Name, false, false, StackSize, TPri_Normal ); // these are below normal threads? so that they sleep when the named threads are active
+			WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create(&Thread(ThreadIndex), *Name, StackSize, TPri_Normal, FPlatformAffinity::GetTaskGraphThreadMask()); // these are below normal threads? so that they sleep when the named threads are active
 			WorkerThreads[ThreadIndex].bAttached = true;
 		}
 	}
@@ -715,7 +727,7 @@ public:
 	 *	@param	ThreadToExecuteOn; Either a named thread for a threadlocked task or ENamedThreads::AnyThread for a task that is to run on a worker thread
 	 *	@param	CurrentThreadIfKnown; This should be the current thread if it is known, or otherwise use ENamedThreads::AnyThread and the current thread will be determined.
 	**/
-	virtual void QueueTask(FBaseGraphTask* Task, ENamedThreads::Type ThreadToExecuteOn, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) OVERRIDE
+	virtual void QueueTask(FBaseGraphTask* Task, ENamedThreads::Type ThreadToExecuteOn, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		checkThreadGraph(NextUnnamedThreadMod);
 		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)
@@ -749,7 +761,7 @@ public:
 		}
 		int32 QueueToExecuteOn = ENamedThreads::GetQueueIndex(ThreadToExecuteOn);
 		ThreadToExecuteOn = ENamedThreads::GetThreadIndex(ThreadToExecuteOn);
-		FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
+		FTaskThread* Target = &Thread(ThreadToExecuteOn);
 		if (ThreadToExecuteOn == CurrentThreadIfKnown)
 		{
 			Target->EnqueueFromThisThread(QueueToExecuteOn, Task);
@@ -761,17 +773,17 @@ public:
 	}
 
 
-	virtual	int32 GetNumWorkerThreads() OVERRIDE
+	virtual	int32 GetNumWorkerThreads() override
 	{
 		return NumThreads - NumNamedThreads;
 	}
 
-	virtual ENamedThreads::Type GetCurrentThreadIfKnown() OVERRIDE
+	virtual ENamedThreads::Type GetCurrentThreadIfKnown() override
 	{
 		return GetCurrentThread();
 	}
 
-	virtual bool IsThreadProcessingTasks(ENamedThreads::Type ThreadToCheck) OVERRIDE
+	virtual bool IsThreadProcessingTasks(ENamedThreads::Type ThreadToCheck) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(ThreadToCheck);
 		ThreadToCheck = ENamedThreads::GetThreadIndex(ThreadToCheck);
@@ -781,7 +793,7 @@ public:
 
 	// External Thread API
 
-	virtual void AttachToThread(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void AttachToThread(ENamedThreads::Type CurrentThread) override
 	{
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
 		check(NextUnnamedThreadMod);
@@ -790,7 +802,7 @@ public:
 		Thread(CurrentThread).InitializeForCurrentThread();
 	}
 
-	virtual void ProcessThreadUntilIdle(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void ProcessThreadUntilIdle(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -799,7 +811,7 @@ public:
 		Thread(CurrentThread).ProcessTasks(QueueIndex, false);
 	}
 
-	virtual void ProcessThreadUntilRequestReturn(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void ProcessThreadUntilRequestReturn(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -808,7 +820,7 @@ public:
 		Thread(CurrentThread).ProcessTasksUntilQuit(QueueIndex);
 	}
 
-	virtual void RequestReturn(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void RequestReturn(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -816,7 +828,7 @@ public:
 		Thread(CurrentThread).RequestQuit(QueueIndex);
 	}
 
-	virtual void WaitUntilTasksComplete(const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) OVERRIDE
+	virtual void WaitUntilTasksComplete(const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		ENamedThreads::Type CurrentThread = CurrentThreadIfKnown;
 		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)
@@ -950,7 +962,7 @@ private:
 	**/
 	ENamedThreads::Type GetCurrentThread()
 	{
-		checkAtCompileTime(offsetof(FWorkerThread,TaskGraphWorker)==0,taskgraph_worker_must_be_first_member);
+		static_assert(offsetof(FWorkerThread,TaskGraphWorker)==0, "Task graph worker must be the first member.");
 		ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread;
 		FWorkerThread* TLSPointer = (FWorkerThread*)FPlatformTLS::GetTlsValue(PerThreadIDTLSSlot);
 		if (TLSPointer)
@@ -1057,25 +1069,9 @@ FGraphEventRef FGraphEvent::CreateGraphEvent()
 
 void FGraphEvent::DispatchSubsequents(ENamedThreads::Type CurrentThreadIfKnown)
 {
-	if (EventsToWaitFor.Num())
-	{
-		// need to save this first and empty the actual tail of the task might be recycled faster than it is cleared.
-		FGraphEventArray TempEventsToWaitFor;
-		Exchange(EventsToWaitFor, TempEventsToWaitFor);
-		// create the Gather...this uses a special version of private CreateTask that "assumes" the subsequent list (which other threads might still be adding too).
-		TGraphTask<FNullGraphTask>::CreateTask(TRefCountPtr<FGraphEvent>(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(TEXT("DontCompleteUntil"));
-		return;
-	}
-	//@todo need to get rid of these arrays, or at least use inline allocators
 	TArray<FBaseGraphTask*> NewTasks;
-	NewTasks.Reset(128);
-	SubsequentList.PopAllAndClose(NewTasks);
-	for (int32 Index = NewTasks.Num() - 1; Index >= 0 ; Index--) // reverse the order since PopAll is implicitly backwards
-	{
-		FBaseGraphTask* NewTask = NewTasks[Index];
-		checkThreadGraph(NewTask);
-		NewTask->ConditionalQueueTask(CurrentThreadIfKnown);
-	}
+	NewTasks.Reset( 128 );
+	DispatchSubsequents( NewTasks, CurrentThreadIfKnown );
 }
 
 void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedThreads::Type CurrentThreadIfKnown)
@@ -1086,7 +1082,7 @@ void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedT
 		FGraphEventArray TempEventsToWaitFor;
 		Exchange(EventsToWaitFor, TempEventsToWaitFor);
 		// create the Gather...this uses a special version of private CreateTask that "assumes" the subsequent list (which other threads might still be adding too).
-		TGraphTask<FNullGraphTask>::CreateTask(TRefCountPtr<FGraphEvent>(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(TEXT("DontCompleteUntil"));
+		TGraphTask<FNullGraphTask>::CreateTask( FGraphEventRef( this ), &TempEventsToWaitFor, CurrentThreadIfKnown ).ConstructAndDispatchWhenReady( TEXT( "DontCompleteUntil" ) );
 		return;
 	}
 

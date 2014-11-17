@@ -6,6 +6,12 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 
+// Forward declarations
+class ULandscapeLayerInfoObject;
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeGizmoActiveActor.h"
+
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolMousePosition
 {
@@ -34,8 +40,8 @@ public:
 	
 	virtual void MouseMove( float LandscapeX, float LandscapeY ) = 0;
 	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& OutX1, int32& OutY1, int32& OutX2, int32& OutY2 ) =0;
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) { return false; }
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) {};
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) { return false; }
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) {};
 	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool);
 	virtual void EndStroke();
 	virtual void EnterBrush() {}
@@ -47,7 +53,7 @@ public:
 	virtual EBrushType GetBrushType() { return BT_Normal; }
 	
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE {}
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override {}
 };
 
 struct FLandscapeBrushSet
@@ -153,13 +159,13 @@ public:
 	virtual void EnterTool() {}
 	virtual void ExitTool() {}
 	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) = 0;
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation ) = 0;
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) = 0;
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) {};
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) = 0;
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation ) = 0;
+	virtual void EndTool(FEditorViewportClient* ViewportClient) = 0;
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) {};
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) = 0;
 	virtual bool HandleClick( HHitProxy* HitProxy, const FViewportClick& Click ) { return false; }
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) { return false; }
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) { return false; }
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) { return false; }
+	virtual bool InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) { return false; }
 	virtual ~FLandscapeTool() {}
 	virtual const TCHAR* GetToolName() = 0;
 	virtual FText GetDisplayName() = 0;
@@ -516,18 +522,18 @@ public:
 	virtual ~FEdModeLandscape();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
-	virtual bool UsesToolkits() const OVERRIDE;
+	virtual bool UsesToolkits() const override;
 
 	/** FEdMode: Called when the mode is entered */
-	virtual void Enter() OVERRIDE;
+	virtual void Enter() override;
 
 	/** FEdMode: Called when the mode is exited */
-	virtual void Exit() OVERRIDE;
+	virtual void Exit() override;
 
 	/** FEdMode: Called when the mouse is moved over the viewport */
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE;
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override;
 
 	/**
 	 * FEdMode: Called when the mouse is moved while a window input capture is in effect
@@ -539,86 +545,86 @@ public:
 	 *
 	 * @return	true if input was handled
 	 */
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
+	virtual bool CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
 
 	/** FEdMode: Called when a mouse button is pressed */
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
 	/** FEdMode: Called when a mouse button is released */
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
 	/** FEdMode: Allow us to disable mouse delta tracking during painting */
-	virtual bool DisallowMouseDeltaTracking() const OVERRIDE;
+	virtual bool DisallowMouseDeltaTracking() const override;
 
 	/** FEdMode: Called once per frame */
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE;
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override;
 
 	/** FEdMode: Called when clicking on a hit proxy */
-	virtual bool HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click) OVERRIDE;
+	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click) override;
 
 	/** FEdMode: Called when a key is pressed */
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE;
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override;
 
 	/** FEdMode: Called when mouse drag input is applied */
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) OVERRIDE;
+	virtual bool InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override;
 
 	/** FEdMode: Render elements for the landscape tool */
-	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) OVERRIDE;
+	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;
 
 	/** FEdMode: Render HUD elements for this tool */
-	virtual void DrawHUD( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas ) OVERRIDE;
+	virtual void DrawHUD( FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas ) override;
 
 	/** FEdMode: Handling SelectActor */
-	virtual bool Select( AActor* InActor, bool bInSelected ) OVERRIDE;
+	virtual bool Select( AActor* InActor, bool bInSelected ) override;
 
 	/** FEdMode: Check to see if an actor can be selected in this mode - no side effects */
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE;
+	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override;
 
 	/** FEdMode: Called when the currently selected actor has changed */
-	virtual void ActorSelectionChangeNotify() OVERRIDE;
+	virtual void ActorSelectionChangeNotify() override;
 
-	virtual void ActorMoveNotify() OVERRIDE;
+	virtual void ActorMoveNotify() override;
 
-	virtual EEditAction::Type GetActionEditDuplicate() OVERRIDE;
-	virtual EEditAction::Type GetActionEditDelete() OVERRIDE;
-	virtual EEditAction::Type GetActionEditCut() OVERRIDE;
-	virtual EEditAction::Type GetActionEditCopy() OVERRIDE;
-	virtual EEditAction::Type GetActionEditPaste() OVERRIDE;
-	virtual bool ProcessEditDuplicate() OVERRIDE;
-	virtual bool ProcessEditDelete() OVERRIDE;
-	virtual bool ProcessEditCut() OVERRIDE;
-	virtual bool ProcessEditCopy() OVERRIDE;
-	virtual bool ProcessEditPaste() OVERRIDE;
+	virtual EEditAction::Type GetActionEditDuplicate() override;
+	virtual EEditAction::Type GetActionEditDelete() override;
+	virtual EEditAction::Type GetActionEditCut() override;
+	virtual EEditAction::Type GetActionEditCopy() override;
+	virtual EEditAction::Type GetActionEditPaste() override;
+	virtual bool ProcessEditDuplicate() override;
+	virtual bool ProcessEditDelete() override;
+	virtual bool ProcessEditCut() override;
+	virtual bool ProcessEditCopy() override;
+	virtual bool ProcessEditPaste() override;
 
 	/** FEdMode: If the EdMode is handling InputDelta (ie returning true from it), this allows a mode to indicated whether or not the Widget should also move. */
-	virtual bool AllowWidgetMove() OVERRIDE { return true; }
+	virtual bool AllowWidgetMove() override { return true; }
 
 	/** FEdMode: Draw the transform widget while in this mode? */
-	virtual bool ShouldDrawWidget() const OVERRIDE;
+	virtual bool ShouldDrawWidget() const override;
 
 	/** FEdMode: Returns true if this mode uses the transform widget */
-	virtual bool UsesTransformWidget() const OVERRIDE;
+	virtual bool UsesTransformWidget() const override;
 
-	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const OVERRIDE;
+	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const override;
 
-	virtual FVector GetWidgetLocation() const OVERRIDE;
-	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData ) OVERRIDE;
-	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData ) OVERRIDE;
+	virtual FVector GetWidgetLocation() const override;
+	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData ) override;
+	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData ) override;
 
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
 
 	/** Trace under the mouse cursor and return the landscape hit and the hit location (in landscape quad space) */
-	bool LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, float& OutHitX, float& OutHitY );
-	bool LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, FVector& OutHitLocation );
+	bool LandscapeMouseTrace( FEditorViewportClient* ViewportClient, float& OutHitX, float& OutHitY );
+	bool LandscapeMouseTrace( FEditorViewportClient* ViewportClient, FVector& OutHitLocation );
 
 	/** Trace under the specified coordinates and return the landscape hit and the hit location (in landscape quad space) */
-	bool LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, float& OutHitX, float& OutHitY );
-	bool LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, FVector& OutHitLocation );
+	bool LandscapeMouseTrace( FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, float& OutHitX, float& OutHitY );
+	bool LandscapeMouseTrace( FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, FVector& OutHitLocation );
 
 	/** Trace under the mouse cursor / specified screen coordinates against a world-space plane and return the hit location (in world space) */
-	bool LandscapePlaneTrace(FLevelEditorViewportClient* ViewportClient, const FPlane& Plane, FVector& OutHitLocation);
-	bool LandscapePlaneTrace(FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation);
+	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, const FPlane& Plane, FVector& OutHitLocation);
+	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation);
 
 	void SetCurrentToolMode( FName ToolModeName, bool bRestoreCurrentTool = true);
 
@@ -744,4 +750,8 @@ namespace LandscapeEditorUtils
 
 		return Result;
 	}
+
+	bool LANDSCAPEEDITOR_API SetHeightmapData(ALandscapeProxy* Landscape, const TArray<uint16>& Data);
+
+	bool LANDSCAPEEDITOR_API SetWeightmapData(ALandscapeProxy* Landscape, ULandscapeLayerInfoObject* LayerObject, const TArray<uint8>& Data);
 }

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpSocketSender.h: Declares the FUdpSocketSender class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -56,7 +52,7 @@ public:
 
 		WorkEvent = FPlatformProcess::CreateSynchEvent();
 
-		Thread = FRunnableThread::Create(this, ThreadDescription, false, false, 128 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, ThreadDescription, 128 * 1024, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
 	}
 
 	/**
@@ -137,12 +133,12 @@ public:
 
 public:
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		while (!Stopping)
 		{
@@ -171,14 +167,14 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Stopping = true;
 
 		WorkEvent->Trigger();
 	}
 
-	virtual void Exit( ) OVERRIDE { }
+	virtual void Exit( ) override { }
 
 private:
 

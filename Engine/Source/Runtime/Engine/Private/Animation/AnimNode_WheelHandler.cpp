@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
+#include "Animation/BoneControllers/AnimNode_WheelHandler.h"
+#include "GameFramework/WheeledVehicle.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_WheelHandler

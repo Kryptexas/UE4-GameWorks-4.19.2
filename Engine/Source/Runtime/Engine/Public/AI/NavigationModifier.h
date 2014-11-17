@@ -61,7 +61,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	float Cost;
 	float FixedCost;
 
-	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), ShapeType(ENavigationShapeType::Unknown), AreaClass(NULL) {}
+	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), AreaClass(NULL), ShapeType(ENavigationShapeType::Unknown) {}
 	FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
 	FAreaNavModifier(const FVector& Extent, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
 	FAreaNavModifier(const FBox& Box, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
@@ -71,6 +71,8 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 
 	FORCEINLINE const FBox& GetBounds() const { return Bounds; }
 	FORCEINLINE ENavigationShapeType::Type GetShapeType() const { return ShapeType; }
+	FORCEINLINE bool ShouldIncludeAgentHeight() const { return bIncludeAgentHeight; }
+	FORCEINLINE void SetIncludeAgentHeight(bool bInclude) { bIncludeAgentHeight = bInclude; }
 	FORCEINLINE const TSubclassOf<class UNavArea> GetAreaClass() const { return AreaClass; }
 	void SetAreaClass(const TSubclassOf<class UNavArea> AreaClass);
 
@@ -79,12 +81,15 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	void GetConvex(FConvexNavAreaData& Data) const;
 
 protected:
-	TArray<FVector> Points;
-	TEnumAsByte<ENavigationShapeType::Type> ShapeType;
-
 	/** this should take a value of a game specific navigation modifier	*/
 	TSubclassOf<class UNavArea> AreaClass;
 	FBox Bounds;
+
+	TArray<FVector> Points;
+	TEnumAsByte<ENavigationShapeType::Type> ShapeType;
+
+	/** if set, area shape will be extended by agent's height to cover area underneath like regular colliding geometry */
+	uint8 bIncludeAgentHeight : 1;
 
 	void Init(const TSubclassOf<class UNavArea> AreaClass);
 	void SetConvex(const TArray<FVector>& Points, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld);
@@ -195,10 +200,33 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 		return (Areas.Num() == 0) && (SimpleLinks.Num() == 0) && (CustomLinks.Num() == 0);
 	}
 
-	void Add(const FAreaNavModifier& Area) { Areas.Add(Area); bHasMetaAreas |= Area.HasMetaAreas(); }
-	void Add(const FSimpleLinkNavModifier& Link) { SimpleLinks.Add(Link); bHasMetaAreas |= Link.HasMetaAreas(); }
-	void Add(const FCustomLinkNavModifier& Link) { CustomLinks.Add(Link); bHasMetaAreas |= Link.HasMetaAreas(); }
-	void Add(const FCompositeNavModifier& Modifiers) { Areas.Append(Modifiers.Areas); SimpleLinks.Append(Modifiers.SimpleLinks); CustomLinks.Append(Modifiers.CustomLinks); bHasMetaAreas |= Modifiers.bHasMetaAreas; }
+	void Add(const FAreaNavModifier& Area)
+	{
+		Areas.Add(Area);
+		bHasMetaAreas |= Area.HasMetaAreas(); 
+		bAdjustHeight |= Area.ShouldIncludeAgentHeight();
+	}
+
+	void Add(const FSimpleLinkNavModifier& Link)
+	{
+		SimpleLinks.Add(Link);
+		bHasMetaAreas |= Link.HasMetaAreas(); 
+	}
+
+	void Add(const FCustomLinkNavModifier& Link)
+	{
+		CustomLinks.Add(Link); 
+		bHasMetaAreas |= Link.HasMetaAreas(); 
+	}
+
+	void Add(const FCompositeNavModifier& Modifiers)
+	{
+		Areas.Append(Modifiers.Areas); 
+		SimpleLinks.Append(Modifiers.SimpleLinks); 
+		CustomLinks.Append(Modifiers.CustomLinks); 
+		bHasMetaAreas |= Modifiers.bHasMetaAreas; 
+		bAdjustHeight |= Modifiers.HasAgentHeightAdjust();
+	}
 
 	FORCEINLINE const TArray<FAreaNavModifier>& GetAreas() const { return Areas; }
 	FORCEINLINE const TArray<FSimpleLinkNavModifier>& GetSimpleLinks() const { return SimpleLinks; }
@@ -206,6 +234,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 	
 	FORCEINLINE bool HasLinks() const { return (SimpleLinks.Num() > 0) || (CustomLinks.Num() > 0); }
 	FORCEINLINE bool HasPotentialLinks() const { return bHasPotentialLinks; }
+	FORCEINLINE bool HasAgentHeightAdjust() const { return bAdjustHeight; }
 	FORCEINLINE bool HasAreas() const { return Areas.Num() > 0; }
 
 	void MarkPotentialLinks() { bHasPotentialLinks = true; }
@@ -218,5 +247,6 @@ private:
 	TArray<FAreaNavModifier> Areas;
 	TArray<FSimpleLinkNavModifier> SimpleLinks;
 	TArray<FCustomLinkNavModifier> CustomLinks;
-	bool bHasPotentialLinks;
+	uint32 bHasPotentialLinks : 1;
+	uint32 bAdjustHeight : 1;
 };

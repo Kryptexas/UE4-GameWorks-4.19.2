@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphPin.h"
+#include "EdGraph/EdGraphNode.h"
 #include "BlueprintCore.h"
+
 #include "Blueprint.generated.h"
 
 /** States a blueprint can be in */
@@ -163,7 +166,7 @@ struct FBPVariableDescription
 	/** Set a metadata value on the variable */
 	ENGINE_API void SetMetaData(const FName& Key, const FString& Value);
 	/** Gets a metadata value on the variable; asserts if the value isn't present.  Check for validiy using FindMetaDataEntryIndexForKey. */
-	ENGINE_API FString GetMetaData(const FName& Key);
+	ENGINE_API FString GetMetaData(const FName& Key) const;
 	/** Clear metadata value on the variable */
 	ENGINE_API void RemoveMetaData(const FName& Key);
 	/** Find the index in the array of a metadata entry */
@@ -248,7 +251,7 @@ struct FEditedDocumentInfo
  * and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from
  * within Unreal Editor without ever needing to write a line of code.
  */
-UCLASS(config=Engine, dependson=(UEdGraphPin,UEdGraph,UEdGraphNode), BlueprintType)
+UCLASS(config=Engine, BlueprintType)
 class ENGINE_API UBlueprint : public UBlueprintCore
 {
 	GENERATED_UCLASS_BODY()
@@ -292,9 +295,17 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintDescription;
 
+	/** The category of the Blueprint, used to organize this Blueprint class when displayed in palette windows */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	FString BlueprintCategory;
+
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
 	bool bDisplayCompilePIEWarning;
+
+	/** Guid key for finding searchable data for Blueprint in the DDC */
+	UPROPERTY()
+	FGuid  SearchGuid;
 
 #endif //WITH_EDITORONLY_DATA
 
@@ -389,7 +400,7 @@ protected:
 	TWeakObjectPtr< class UWorld > CurrentWorldBeingDebugged;
 public:
 	/** Information for thumbnail rendering */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The blueprint is currently compiled */
@@ -443,6 +454,9 @@ public:
 		SkeletonClassName = FName(*SkeletonClassNameString);
 	}
 
+	/** Gets the class generated when this blueprint is compiled. */
+	virtual UClass* GetBlueprintClass() const;
+
 	// Should the generic blueprint factory work for this blueprint?
 	virtual bool SupportedByDefaultBlueprintFactory() const
 	{
@@ -456,7 +470,7 @@ public:
 
 protected:
 	/** Gets asset registry tags */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 private:
 	/** Sets the current object being debugged */
@@ -471,11 +485,11 @@ public:
 
 
 	// Begin UObject interface (WITH_EDITOR)
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
-	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	// End of UObject interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
@@ -489,11 +503,12 @@ public:
 #endif	//#if WITH_EDITOR
 
 	// Begin UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual FString GetDesc(void) OVERRIDE;
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual FString GetDesc(void) override;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
 	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */

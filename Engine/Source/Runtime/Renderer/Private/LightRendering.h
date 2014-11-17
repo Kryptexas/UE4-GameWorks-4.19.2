@@ -22,12 +22,14 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,MinRoughness)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DistanceFadeMAD)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ShadowMapChannelMask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,bShadowed)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
 extern float GMinScreenRadiusForLights;
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
+	FRHICommandList& RHICmdList, 
 	const ShaderRHIParamRef ShaderRHI, 
 	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
 	const FLightSceneInfo* LightSceneInfo,
@@ -55,7 +57,7 @@ void SetDeferredLightParameters(
 
 	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters();
 
-	// use MAD for efficieny in the shader
+	// use MAD for efficiency in the shader
 	DeferredLightUniformsValue.DistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
 
 	int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
@@ -74,6 +76,15 @@ void SetDeferredLightParameters(
 		ShadowMapChannel == 2 ? 1 : 0,
 		ShadowMapChannel == 3 ? 1 : 0);
 
+	const bool bHasLightFunction = LightSceneInfo->Proxy->GetLightFunctionMaterial() != NULL;
+	DeferredLightUniformsValue.bShadowed = LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow() || bHasLightFunction;
+
+	if( LightSceneInfo->Proxy->IsInverseSquared() )
+	{
+		// Correction for lumen units
+		DeferredLightUniformsValue.LightColor *= 16.0f;
+	}
+
 	// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
 	if (View.bIsReflectionCapture)
 	{
@@ -90,11 +101,12 @@ void SetDeferredLightParameters(
 		DeferredLightUniformsValue.LightColor *= Fade;
 	}
 
-	SetUniformBufferParameterImmediate(ShaderRHI,DeferredLightUniformBufferParameter,DeferredLightUniformsValue);
+	SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI,DeferredLightUniformBufferParameter,DeferredLightUniformsValue);
 }
 
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(
+	FRHICommandList& RHICmdList, 
 	const ShaderRHIParamRef ShaderRHI, 
 	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
 	const FSimpleLightEntry& SimpleLight,
@@ -114,7 +126,7 @@ void SetSimpleDeferredLightParameters(
 	DeferredLightUniformsValue.SourceRadius = 0;
 	DeferredLightUniformsValue.SourceLength = 0;
 
-	SetUniformBufferParameterImmediate(ShaderRHI, DeferredLightUniformBufferParameter, DeferredLightUniformsValue);
+	SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, DeferredLightUniformBufferParameter, DeferredLightUniformsValue);
 }
 
 /** Shader parameters needed to render a light function. */
@@ -128,13 +140,14 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI, const FLightSceneInfo* LightSceneInfo, float ShadowFadeFraction) const
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FLightSceneInfo* LightSceneInfo, float ShadowFadeFraction) const
 	{
 		const bool bIsSpotLight = LightSceneInfo->Proxy->GetLightType() == LightType_Spot;
 		const bool bIsPointLight = LightSceneInfo->Proxy->GetLightType() == LightType_Point;
 		const float TanOuterAngle = bIsSpotLight ? FMath::Tan(LightSceneInfo->Proxy->GetOuterConeAngle()) : 1.0f;
 
 		SetShaderValue( 
+			RHICmdList, 
 			ShaderRHI, 
 			LightFunctionParameters, 
 			FVector4(TanOuterAngle, ShadowFadeFraction, bIsSpotLight ? 1.0f : 0.0f, bIsPointLight ? 1.0f : 0.0f));
@@ -171,19 +184,19 @@ public:
 		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
-		StencilingGeometryParameters.Set(this, View, LightSceneInfo);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
+		StencilingGeometryParameters.Set(RHICmdList, this, View, LightSceneInfo);
 	}
 
-	void SetSimpleLightParameters(const FViewInfo& View, const FSphere& LightBounds)
+	void SetSimpleLightParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 
 		FVector4 StencilingSpherePosAndScale;
-		StencilingGeometry::CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.PreViewTranslation);
-		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
+		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.PreViewTranslation);
+		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
 	// Begin FShader Interface
@@ -198,6 +211,6 @@ private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 
-extern void SetBoundingGeometryRasterizerAndDepthState(const FViewInfo& View, const FSphere& LightBounds);
+extern void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds);
 
 #endif

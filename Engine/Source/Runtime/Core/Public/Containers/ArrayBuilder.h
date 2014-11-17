@@ -10,8 +10,8 @@
 /**
  * Template for fluent array builders.
  *
- * @param ElementType - The type of elements stored in the array.
- * @param Allocator - The allocator to use for elements.
+ * @param ElementType The type of elements stored in the array.
+ * @param Allocator The allocator to use for elements.
  */
 template<typename ElementType, typename Allocator = FDefaultAllocator> class TArrayBuilder
 {
@@ -20,28 +20,27 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	TArrayBuilder () { }
+	TArrayBuilder( ) { }
 
 	/**
 	 * Creates and initializes an array builder from an array of items.
 	 *
-	 * @param InArray - The array of items to copy.
+	 * @param InArray The array of items to copy.
 	 */
-	template<typename OtherAllocator> TArrayBuilder (const TArray<ElementType, OtherAllocator>& InArray)
+	template<typename OtherAllocator> TArrayBuilder( const TArray<ElementType, OtherAllocator>& InArray )
 		: Array(InArray)
 	{ }
-
 
 public:
 
 	/**
 	 * Adds an item.
 	 *
-	 * @param Item - The item to add.
-	 *
+	 * @param Item The item to add.
 	 * @return This instance (for method chaining).
+	 * @see AddUnique
 	 */
-	TArrayBuilder& Add (const ElementType& Item)
+	TArrayBuilder& Add( const ElementType& Item )
 	{
 		Array.Add(Item);
 
@@ -51,11 +50,11 @@ public:
 	/**
 	 * Adds an unique item.
 	 *
-	 * @param Item - The unique item to add.
-	 *
+	 * @param Item The unique item to add.
 	 * @return This instance (for method chaining).
+	 * @see Add
 	 */
-	TArrayBuilder& AddUnique (const ElementType& Item)
+	TArrayBuilder& AddUnique( const ElementType& Item )
 	{
 		Array.AddUnique(Item);
 
@@ -65,17 +64,15 @@ public:
 	/**
 	 * Appends an array of items.
 	 *
-	 * @param OtherArray - The array to append.
-	 *
+	 * @param OtherArray The array to append.
 	 * @return This instance (for method chaining).
 	 */
-	template<typename OtherAllocator> TArrayBuilder& Append (const TArray<ElementType, OtherAllocator>& OtherArray)
+	template<typename OtherAllocator> TArrayBuilder& Append( const TArray<ElementType, OtherAllocator>& OtherArray )
 	{
 		Array.Append(OtherArray);
 
 		return *this;
 	}
-
 
 public:
 
@@ -84,7 +81,7 @@ public:
 	 *
 	 * @return A new array.
 	 */
-	TArray<ElementType, Allocator> Build ()
+	TArray<ElementType, Allocator> Build( )
 	{
 		return Array;
 	}
@@ -94,11 +91,10 @@ public:
 	 *
 	 * @return A new array.
 	 */
-	operator TArray<ElementType, Allocator> ()
+	operator TArray<ElementType, Allocator>( )
 	{
 		return Build();
 	}
-
 
 private:
 

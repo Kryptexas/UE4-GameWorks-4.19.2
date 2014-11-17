@@ -4,18 +4,6 @@
 	MacTargetPlatformModule.cpp: Implements the FMacTargetPlatformModule class.
 =============================================================================*/
 
-#if PLATFORM_MAC
-	#define FVector FVectorWorkaround
-
-	#ifdef __OBJC__
-		#import <Cocoa/Cocoa.h>
-	#endif
-
-	#undef check
-	#undef verify
-	#undef FVector
-#endif
-
 #include "MacTargetPlatformPrivatePCH.h"
 
 
@@ -49,7 +37,7 @@ public:
 
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (Singleton == NULL)
 		{
@@ -66,7 +54,7 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		TargetSettings = ConstructObject<UMacTargetSettings>(UMacTargetSettings::StaticClass(), GetTransientPackage(), "MacTargetSettings", RF_Standalone);
 		TargetSettings->AddToRoot();
@@ -83,7 +71,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 

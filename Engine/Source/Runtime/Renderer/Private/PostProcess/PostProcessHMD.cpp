@@ -13,16 +13,130 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
+#include "RHICommandList.h"
+
+
+/** The filter vertex declaration resource type. */
+class FDistortionVertexDeclaration : public FRenderResource
+{
+public:
+	FVertexDeclarationRHIRef VertexDeclarationRHI;
+
+	/** Destructor. */
+	virtual ~FDistortionVertexDeclaration() {}
+
+	virtual void InitRHI() override
+	{
+		uint16 Stride = sizeof(FDistortionVertex);
+		FVertexDeclarationElementList Elements;
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, Position),VET_Float2,0, Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexR), VET_Float2, 1, Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexG), VET_Float2, 2, Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexB), VET_Float2, 3, Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, VignetteFactor), VET_Float1, 4, Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TimewarpFactor), VET_Float1, 5, Stride));
+		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
+	}
+
+	virtual void ReleaseRHI() override
+	{
+		VertexDeclarationRHI.SafeRelease();
+	}
+};
+
+/** The Distortion vertex declaration. */
+TGlobalResource<FDistortionVertexDeclaration> GDistortionVertexDeclaration;
+
+/** Encapsulates the post processing vertex shader. */
+template <bool bTimeWarp>
+class FPostProcessHMDVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessHMDVS, Global);
+
+	// Distortion parameter values
+	FShaderParameter EyeToSrcUVScale;
+	FShaderParameter EyeToSrcUVOffset;
+
+	// Timewarp-related params
+	FShaderParameter EyeRotationStart;
+	FShaderParameter EyeRotationEnd;
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), uint32(bTimeWarp ? 1 : 0));
+	}
+
+	/** Default constructor. */
+	FPostProcessHMDVS() {}
+
+public:
+
+	/** Initialization constructor. */
+	FPostProcessHMDVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		EyeToSrcUVScale.Bind(Initializer.ParameterMap, TEXT("EyeToSrcUVScale"));
+		EyeToSrcUVOffset.Bind(Initializer.ParameterMap, TEXT("EyeToSrcUVOffset"));
+
+		if (bTimeWarp)
+		{
+			EyeRotationStart.Bind(Initializer.ParameterMap, TEXT("EyeRotationStart"));
+			EyeRotationEnd.Bind(Initializer.ParameterMap, TEXT("EyeRotationEnd"));
+		}
+	}
+
+	void SetVS(const FRenderingCompositePassContext& Context, EStereoscopicPass StereoPass)
+	{
+		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
+
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+
+		check(GEngine->HMDDevice.IsValid());
+		FVector2D EyeToSrcUVScaleValue;
+		FVector2D EyeToSrcUVOffsetValue;
+		GEngine->HMDDevice->GetEyeRenderParams_RenderThread(StereoPass, EyeToSrcUVScaleValue, EyeToSrcUVOffsetValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeToSrcUVScale, EyeToSrcUVScaleValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeToSrcUVOffset, EyeToSrcUVOffsetValue);
+
+		if (bTimeWarp)
+		{
+			FMatrix startM, endM;
+			GEngine->HMDDevice->GetTimewarpMatrices_RenderThread(StereoPass, startM, endM);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EyeRotationStart, startM);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EyeRotationEnd, endM);
+		}
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << EyeToSrcUVScale << EyeToSrcUVOffset;
+		if (bTimeWarp)
+		{
+			Ar << EyeRotationStart << EyeRotationEnd;
+		}
+		return bShaderHasOutdatedParameters;
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDVS<false>, TEXT("PostProcessHMD"), TEXT("MainVS"), SF_Vertex);
 
 /** Encapsulates the post processing HMD distortion and correction pixel shader. */
-template <bool bChromaAbCorrectionEnabled>
+template <bool bTimeWarp>
 class FPostProcessHMDPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessHMDPS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM3;
+		return true;
 	}
 
 	/** Default constructor. */
@@ -31,13 +145,6 @@ class FPostProcessHMDPS : public FGlobalShader
 public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
-	
-	// Distortion parameter values
-	FShaderParameter LensCenter;
-	FShaderParameter ScreenCenter;
-	FShaderParameter Scale;
-	FShaderParameter HMDWarpParam;
-	FShaderParameter ChromaAbParam;
 
 	/** Initialization constructor. */
 	FPostProcessHMDPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -46,187 +153,34 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 
-		LensCenter.Bind(Initializer.ParameterMap, TEXT("LensCenter"));
-		ScreenCenter.Bind(Initializer.ParameterMap, TEXT("ScreenCenter"));
-		Scale.Bind(Initializer.ParameterMap, TEXT("Scale"));
-		HMDWarpParam.Bind(Initializer.ParameterMap, TEXT("HMDWarpParam"));
-		if (bChromaAbCorrectionEnabled)
-		{
-			ChromaAbParam.Bind(Initializer.ParameterMap, TEXT("ChromaAbParam"));
-		}
 	}
 
 	void SetPS(const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		{
-			check(GEngine->HMDDevice.IsValid());
-
-            const FIntPoint SrcSize = SrcRect.Size();
-            const float BufferRatioX = float(SrcSize.X)/float(SrcBufferSize.X);
-            const float BufferRatioY = float(SrcSize.Y)/float(SrcBufferSize.Y);
-            const float w = float(SrcSize.X)/float(SrcBufferSize.X);
-            const float h = float(SrcSize.Y)/float(SrcBufferSize.Y);
-            const float x = float(SrcRect.Min.X)/float(SrcBufferSize.X);
-            const float y = float(SrcRect.Min.Y)/float(SrcBufferSize.Y);
-
-            const float AbsoluteLensSeparationDistance = GEngine->HMDDevice->GetLensCenterOffset();
-			const float XCenterOffset = (StereoPass == eSSP_RIGHT_EYE) ? -AbsoluteLensSeparationDistance : AbsoluteLensSeparationDistance;
-
-			const float AspectRatio = (float)SrcSize.X / (float)SrcSize.Y;
-			const float ScaleFactor = GEngine->HMDDevice->GetDistortionScalingFactor();
-	
-			// Shifts texture coordinates to the center of the distortion function around the center of the lens
-			FVector2D ViewLensCenter;
-			ViewLensCenter.X = x + (0.5f + XCenterOffset * 0.5f) * w;
-			ViewLensCenter.Y = y + h * 0.5f;
-			SetShaderValue(ShaderRHI, LensCenter, ViewLensCenter);
-
-			// Texture coordinate for the center of the half scene texture, used to clamp sampling
-			FVector2D ViewScreenCenter;
-			ViewScreenCenter.X = x + w * 0.5f;
-			ViewScreenCenter.Y = y + h * 0.5f;
-			SetShaderValue(ShaderRHI, ScreenCenter, ViewScreenCenter);
-			
-			// Rescale output (sample) coordinates back to texture range and increase scale to support rendering outside the the screen
-			FVector2D ViewScale;
-			ViewScale.X = (w/2) * ScaleFactor;
-			ViewScale.Y = (h/2) * ScaleFactor * AspectRatio;
-            SetShaderValue(ShaderRHI, Scale, ViewScale);
-
-            // Distortion coefficients
-            FVector4 DistortionValues;
-            GEngine->HMDDevice->GetDistortionWarpValues(DistortionValues);
-            SetShaderValue(ShaderRHI, HMDWarpParam, DistortionValues);
-			if (bChromaAbCorrectionEnabled)
-			{
-				FVector4 ChromaAbValues;
-				if (GEngine->HMDDevice->GetChromaAbCorrectionValues(ChromaAbValues))
-				{
-					SetShaderValue(ShaderRHI, ChromaAbParam, ChromaAbValues);
-				}
-			}
-
-			// Rescale the texture coordinates to [-1,1] unit range and corrects aspect ratio
-			FVector2D ViewScaleIn;
-            ViewScaleIn.X = (2/w);
-            ViewScaleIn.Y = (2/h) / AspectRatio;
-            
-            QuadTexTransform = FMatrix::Identity;
-            QuadTexTransform *= FTranslationMatrix(FVector(-ViewLensCenter.X * SrcBufferSize.X, -ViewLensCenter.Y * SrcBufferSize.Y, 0));
-            QuadTexTransform *= FMatrix(FPlane(ViewScaleIn.X,0,0,0), FPlane(0,ViewScaleIn.Y,0,0), FPlane(0,0,0,0), FPlane(0,0,0,1));
-		}
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 	}
-	
+
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << LensCenter << ScreenCenter << Scale << HMDWarpParam;
-		if (bChromaAbCorrectionEnabled)
-		{
-			Ar << ChromaAbParam;
-		}
+		Ar << PostprocessParameter << DeferredParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("USE_CHA_CORRECTION"), uint32(bChromaAbCorrectionEnabled ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), uint32(bTimeWarp ? 1 : 0));
 	}
 };
 
-
-/** Encapsulates the post processing vertex shader. */
-class FPostProcessHMDVS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FPostProcessHMDVS,Global);
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return true;
-	}
-
-	/** Default constructor. */
-	FPostProcessHMDVS() {}
-
-	/** to have a similar interface as all other shaders */
-	void SetParameters(const FRenderingCompositePassContext& Context)
-	{
-		FGlobalShader::SetParameters(GetVertexShader(), Context.View);
-	}
-
-	void SetParameters(const FSceneView& View)
-	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
-	}
-
-public:
-
-	/** Initialization constructor. */
-	FPostProcessHMDVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-	}
-};
-
-IMPLEMENT_SHADER_TYPE(, FPostProcessHMDVS, TEXT("PostProcessHMD"), TEXT("MainVS"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDPS<true>, TEXT("PostProcessHMD"), TEXT("MainPS"), SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDPS<false>, TEXT("PostProcessHMD"), TEXT("MainPS"), SF_Pixel);
-
-#if !UE_BUILD_SHIPPING
-class FSolidColorPixelShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FSolidColorPixelShader, Global);
-public:
-	FSolidColorPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FGlobalShader(Initializer) {}
-	FSolidColorPixelShader() {}
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return true;
-	}
-};
-IMPLEMENT_SHADER_TYPE(, FSolidColorPixelShader, TEXT("SolidColorPixelShader"), TEXT("Main"), SF_Pixel);
-
-static void DrawLatencyTest_RenderThread(FColor DrawColor)
-{
-	FFilterVertex Vertices[4];
-	
-	Vertices[0].Position = FVector4(-0.7f, -0.7f, 0, 1);
-	Vertices[1].Position = FVector4( 0.7f, -0.7f, 0, 1);
-	Vertices[2].Position = FVector4(-0.7f, 0.7f, 0, 1);
-	Vertices[3].Position = FVector4( 0.7f, 0.7f, 0, 1);
-
-	for (int i = 0; i < 4; i++)
-	{
-		Vertices[i].UV.X = DrawColor.R / 255.f;
-		Vertices[i].UV.Y = DrawColor.G / 255.f;
-	}
-
-	static const uint16 Indices[] =
-	{
-		0, 1, 3,
-		0, 3, 2
-	};
-
-	static FGlobalBoundShaderState BoundShaderState;
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FSolidColorPixelShader> SolidPixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI,
-		*ScreenVertexShader, *SolidPixelShader);
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-	RHIDrawIndexedPrimitiveUP(PT_TriangleList, 0, 4, 2, Indices, sizeof(Indices[0]), Vertices, sizeof(Vertices[0]));
-}
-#endif // #if !UE_BUILD_SHIPPING
 
 void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 {
@@ -242,63 +196,40 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.UnscaledViewRect;
-	FIntPoint SrcSize = InputDesc->Extent;
+	const FIntRect SrcRect = View.ViewRect;
+	const FIntRect DestRect = View.UnscaledViewRect;
+	const FIntPoint SrcSize = InputDesc->Extent;
 
     const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(DestRect);
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessHMDVS> VertexShader(GetGlobalShaderMap());
-
-	FMatrix QuadTexTransform;
+	FMatrix QuadTexTransform = FMatrix::Identity;
 	FMatrix QuadPosTransform = FMatrix::Identity;
 
 	check(GEngine->HMDDevice.IsValid());
-	if (GEngine->HMDDevice->IsChromaAbCorrectionEnabled())
+
 	{
-		TShaderMapRef<FPostProcessHMDPS<true> > PixelShader(GetGlobalShaderMap());
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
-	}
-	else
-	{
+		TShaderMapRef<FPostProcessHMDVS<false> > VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FPostProcessHMDPS<false> > PixelShader(GetGlobalShaderMap());
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		
+		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		VertexShader->SetVS(Context, View.StereoPass);
 		PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 	}
-	// Draw a quad mapping scene color to the view's render target
-	DrawTransformedRectangle(
-		0, 0,
-		DestRect.Width(), DestRect.Height(),
-		QuadPosTransform,
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		QuadTexTransform,
-		DestRect.Size(),
-		SrcSize
-		);
+	GEngine->HMDDevice->DrawDistortionMesh_RenderThread(Context, View, SrcSize);
 
-#if !UE_BUILD_SHIPPING
-	FColor latencyColor;
-	if (GEngine->HMDDevice->GetLatencyTesterColor_RenderThread(latencyColor, Context.View))
-	{
-		DrawLatencyTest_RenderThread(latencyColor);
-	}
-#endif
-
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessHMD::ComputeOutputDesc(EPassOutputId InPassOutputId) const

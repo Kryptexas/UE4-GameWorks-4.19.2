@@ -5,11 +5,17 @@ LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeEdit.h"
 #include "LevelUtils.h"
 #include "MaterialCompiler.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+#include "RawIndexBuffer.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,TEXT("LandscapeParameters"));
 
@@ -547,7 +553,8 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 ,	LODBias(InComponent->LODBias)
 ,	LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		HeightmapTexture = NULL;
 		HeightmapSubsectionOffsetU = 0;
@@ -1010,12 +1017,12 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 
 namespace
 {
-	inline bool RequiresAdjacencyInformation(FMaterialRenderProxy* MaterialRenderProxy) // Assumes VertexFactory supports tessellation, and rendering thread with this function
+	inline bool RequiresAdjacencyInformation(FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) // Assumes VertexFactory supports tessellation, and rendering thread with this function
 	{
 		if (RHISupportsTessellation(GRHIShaderPlatform) && MaterialRenderProxy )
 		{
 			check ( IsInRenderingThread() );
-			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(InFeatureLevel);
 			check( MaterialResource );
 			EMaterialTessellationMode TessellationMode = MaterialResource->GetTessellationMode();
 			bool bEnableCrackFreeDisplacement = MaterialResource->IsCrackFreeDisplacementEnabled();
@@ -1049,7 +1056,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy );
+	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, GetScene()->GetFeatureLevel() );
 
 	MeshBatch.VertexFactory = VertexFactory;
 	MeshBatch.MaterialRenderProxy = RenderProxy;
@@ -1063,7 +1070,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	{
 		int32 LodSubsectionSizeVerts = SubsectionSizeVerts >> LOD;
 
-		if (ForcedLOD < 0 && NumSubsections > 1)
+		if( ForcedLOD < 0 && NumSubsections > 1 )
 		{
 			// Per-subsection batch elements
 			for( int32 SubY=0;SubY<NumSubsections;SubY++ )
@@ -1352,7 +1359,7 @@ void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy );
+	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, View->GetFeatureLevel() );
 	DynamicMesh.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 
 	// Setup the LOD parameters in DynamicMesh.
@@ -1573,7 +1580,8 @@ void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 void FLandscapeVertexBuffer::InitRHI()
 {
 	// create a static vertex buffer
-	VertexBufferRHI = RHICreateVertexBuffer(FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) * sizeof(FLandscapeVertex), NULL, BUF_Static);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) * sizeof(FLandscapeVertex), BUF_Static, CreateInfo);
 	FLandscapeVertex* Vertex = (FLandscapeVertex*)RHILockVertexBuffer(VertexBufferRHI, 0, FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) * sizeof(FLandscapeVertex),RLM_WriteOnly);
 
 	for( int32 SubY=0;SubY<NumSubsections;SubY++ )
@@ -1605,7 +1613,7 @@ template <typename INDEX_TYPE>
 void FLandscapeSharedBuffers::CreateIndexBuffers()
 {
 	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
-	{
+{
 		if (!bVertexScoresComputed)
 		{
 			bVertexScoresComputed = ComputeVertexScores();
@@ -1636,11 +1644,11 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 			// ES2 version
 			float MipRatio = (float)SubsectionSizeQuads / (float)LodSubsectionSizeQuads; // Morph current MIP to base MIP
 
-			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
+		for( int32 SubY=0;SubY<NumSubsections;SubY++ )
+		{
+			for( int32 SubX=0;SubX<NumSubsections;SubX++ )
 			{
-				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
-				{
-					TArray<INDEX_TYPE> SubIndices;
+				TArray<INDEX_TYPE> SubIndices;
 					SubIndices.Empty(FMath::Square(LodSubsectionSizeQuads) * 6);
 
 					int32& MaxIndex = IndexRanges[Mip].MaxIndex[SubX][SubY];
@@ -1649,9 +1657,9 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 					MinIndex = MAX_int32;
 
 					for (int32 y = 0; y < LodSubsectionSizeQuads; y++)
-					{
+				{
 						for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
-						{
+					{
 							int32 x0 = FMath::RoundToInt((float)x * MipRatio);
 							int32 y0 = FMath::RoundToInt((float)y * MipRatio);
 							int32 x1 = FMath::RoundToInt((float)(x + 1) * MipRatio);
@@ -1666,7 +1674,7 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 							uint64 Key10 = V10.MakeKey();
 							uint64 Key11 = V11.MakeKey();
 							uint64 Key01 = V01.MakeKey();
-							
+
 							INDEX_TYPE i00;
 							INDEX_TYPE i10;
 							INDEX_TYPE i11;
@@ -1677,9 +1685,9 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 							{
 								i00 = VertexCount++;
 								VertexMap.Add(Key00, i00);
-							}
-							else
-							{
+						}
+						else
+						{
 								i00 = *KeyPtr;
 							}
 
@@ -1692,27 +1700,27 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 							else
 							{
 								i10 = *KeyPtr;
-							}
-							
+						}
+
 							KeyPtr = VertexMap.Find(Key11);
 							if (KeyPtr == NULL)
 							{
 								i11 = VertexCount++;
 								VertexMap.Add(Key11, i11);
-							}
+					}
 							else
 							{
 								i11 = *KeyPtr;
-							}
+				}
 
 							KeyPtr = VertexMap.Find(Key01);
 							if (KeyPtr == NULL)
-							{
+				{
 								i01 = VertexCount++;
 								VertexMap.Add(Key01, i01);
 							}
 							else
-							{
+					{
 								i01 = *KeyPtr;
 							}
 
@@ -1793,11 +1801,11 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 					MaxIndexFull = FMath::Max<int32>(MaxIndexFull, MaxIndex);
 					MinIndexFull = FMath::Min<int32>(MinIndexFull, MinIndex);
 				}
-			}
+	}
 
 			check(MinIndexFull <= (uint32)((INDEX_TYPE)(~(INDEX_TYPE)0)));
 			check(NewIndices.Num() == ExpectedNumIndices);
-		}
+	}
 
 		// Create and init new index buffer with index data
 		auto IndexBuffer = new FRawStaticIndexBuffer16or32<INDEX_TYPE>(false);
@@ -1953,7 +1961,7 @@ public:
 	* Bind shader constants by name
 	* @param	ParameterMap - mapping of named shader constants to indices
 	*/
-	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
 		HeightmapTextureParameter.Bind(ParameterMap,TEXT("HeightmapTexture"));
 		HeightmapTextureParameterSampler.Bind(ParameterMap,TEXT("HeightmapTextureSampler"));
@@ -1969,7 +1977,7 @@ public:
 	* Serialize shader params to an archive
 	* @param	Ar - archive to serialize to
 	*/
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << HeightmapTextureParameter;
 		Ar << HeightmapTextureParameterSampler;
@@ -1984,7 +1992,7 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
 
@@ -1992,11 +2000,12 @@ public:
 		check(BatchElementParams);
 
 		const FLandscapeComponentSceneProxy* SceneProxy = BatchElementParams->SceneProxy;
-		SetUniformBufferParameter(VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
+		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
 
 		if( HeightmapTextureParameter.IsBound() )
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				VertexShader->GetVertexShader(),
 				HeightmapTextureParameter,
 				HeightmapTextureParameterSampler,
@@ -2013,7 +2022,7 @@ public:
 				SceneProxy->HeightmapTexture->GetNumMips() - FMath::Min(SceneProxy->HeightmapTexture->ResidentMips, SceneProxy->HeightmapTexture->RequestedMips),
 				0.f // Reserved
 				);
-			SetShaderValue(VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
 		}
 
 		// Calculate LOD params
@@ -2043,12 +2052,12 @@ public:
 
 		if( SectionLodsParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
 		}
 
 		if( NeighborSectionLodParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
 		}
 
 		if( LodValuesParameter.IsBound() )
@@ -2060,11 +2069,11 @@ public:
 				(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1),
 				1.f/(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1) );
 
-			SetShaderValue(VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
 		}
 	}
 
-	virtual uint32 GetSize() const OVERRIDE
+	virtual uint32 GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -2088,7 +2097,7 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
 
@@ -2096,11 +2105,12 @@ public:
 		check(BatchElementParams);
 
 		const FLandscapeComponentSceneProxy* SceneProxy = BatchElementParams->SceneProxy;
-		SetUniformBufferParameter(VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
+		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
 
 		if( HeightmapTextureParameter.IsBound() )
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				VertexShader->GetVertexShader(),
 				HeightmapTextureParameter,
 				HeightmapTextureParameterSampler,
@@ -2117,7 +2127,7 @@ public:
 				SceneProxy->HeightmapTexture->GetNumMips() - FMath::Min(SceneProxy->HeightmapTexture->ResidentMips, SceneProxy->HeightmapTexture->RequestedMips),
 				SceneProxy->XYOffsetmapTexture->GetNumMips() - FMath::Min(SceneProxy->XYOffsetmapTexture->ResidentMips, SceneProxy->XYOffsetmapTexture->RequestedMips)
 				);
-			SetShaderValue(VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
 		}
 
 		// Calculate LOD params
@@ -2147,12 +2157,12 @@ public:
 
 		if( SectionLodsParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
 		}
 
 		if( NeighborSectionLodParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
 		}
 
 		if( LodValuesParameter.IsBound() )
@@ -2164,12 +2174,13 @@ public:
 				(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1),
 				1.f/(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1) );
 
-			SetShaderValue(VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
 		}
 
 		if( XYOffsetTextureParameter.IsBound() && SceneProxy->XYOffsetmapTexture )
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				VertexShader->GetVertexShader(),
 				XYOffsetTextureParameter,
 				XYOffsetTextureParameterSampler,
@@ -2208,7 +2219,7 @@ void FLandscapeVertexFactoryPixelShaderParameters::Serialize(FArchive& Ar)
 /**
 * Set any shader data specific to this vertex factory
 */
-void FLandscapeVertexFactoryPixelShaderParameters::SetMesh(FShader* PixelShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const
+void FLandscapeVertexFactoryPixelShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
 
@@ -2216,12 +2227,13 @@ void FLandscapeVertexFactoryPixelShaderParameters::SetMesh(FShader* PixelShader,
 
 	if( LocalToWorldNoScalingParameter.IsBound() )
 	{
-		SetShaderValue(PixelShader->GetPixelShader(), LocalToWorldNoScalingParameter, *BatchElementParams->LocalToWorldNoScalingPtr);
+		SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), LocalToWorldNoScalingParameter, *BatchElementParams->LocalToWorldNoScalingPtr);
 	}
 
 	if( NormalmapTextureParameter.IsBound() )
 	{
 		SetTextureParameter(
+			RHICmdList, 
 			PixelShader->GetPixelShader(),
 			NormalmapTextureParameter,
 			NormalmapTextureParameterSampler,
@@ -2440,7 +2452,7 @@ void ALandscapeProxy::ChangeLODDistanceFactor(float InLODDistanceFactor)
 			LODFactor = LODDistanceFactor;
 			break;
 	}
-
+	
 	if (LandscapeComponents.Num())
 	{
 		int32 CompNum = LandscapeComponents.Num();

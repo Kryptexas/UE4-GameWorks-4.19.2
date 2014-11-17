@@ -5,6 +5,9 @@
 //=============================================================================
 
 #pragma once
+
+#include "Engine/Engine.h"
+
 #include "GameEngine.generated.h"
 
 UCLASS(config=Engine, transient)
@@ -22,18 +25,7 @@ class ENGINE_API UGameEngine : public UEngine
 	UPROPERTY(config)
 	float MaxDeltaTime;
 
-	/** String name for any secondary viewport clients created for secondary screens */
-	UPROPERTY(config)
-	FString SecondaryViewportClientClassName;
-
-	/** Secondary viewport clients inside of secondary windows (not for split screen) */
-	UPROPERTY()
-	TArray<class UScriptViewportClient*> SecondaryViewportClients;
-
 public:
-	/** Array parallel to SecondaryViewportClients - these are the frames that render the SecondaryViewport clients */
-	TArray<FViewportFrame*> SecondaryViewportFrames;
-
 	/** The game viewport window */
 	TWeakPtr<class SWindow> GameViewportWindow;
 	/** The primary scene viewport */
@@ -90,20 +82,20 @@ public:
 	virtual void RedrawViewports( bool bShouldPresent = true );
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 	// End UObject interface.
 
 	// Begin UEngine interface.
-	virtual void Init(class IEngineLoop* InEngineLoop) OVERRIDE;
-	virtual void PreExit() OVERRIDE;
-	virtual void Tick( float DeltaSeconds, bool bIdleMode ) OVERRIDE;
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) OVERRIDE;
-	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) OVERRIDE;
-	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void Init(class IEngineLoop* InEngineLoop) override;
+	virtual void PreExit() override;
+	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
+	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
+	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 	// End UEngine interface.
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	/** 
@@ -125,21 +117,6 @@ public:
 	 * Turns off the loading movie if it was started by LoadMap().
 	 */
 	virtual void PostLoadMap();
-
-	/**
-	 * @return true, if the GEngine is a game engine and has any secondary screens active
-	 */
-	static bool HasSecondaryScreenActive();
-
-	/**
-	 * Creates a new FViewportFrame with a viewport client of class SecondaryViewportClientClassName
-	 */
-	void CreateSecondaryViewport(uint32 SizeX, uint32 SizeY);
-
-	/**
-	 * Closes all secondary viewports opened with CreateSecondaryViewport
-	 */
-	void CloseSecondaryViewports();
 
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const

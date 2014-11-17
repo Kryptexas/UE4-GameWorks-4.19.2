@@ -9,7 +9,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 	/** Delegate to handle creating rows for the animations slate list */
 	TSharedRef< ITableRow > MakeAnimationRow( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );

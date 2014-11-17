@@ -22,6 +22,7 @@ public class Launch : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"InputCore",
                 "MoviePlayer",
 				"Networking",
 				"PakFile",
@@ -38,7 +39,7 @@ public class Launch : ModuleRules
         
         if( !UEBuildConfiguration.bBuildDedicatedServer)
         {
-            PrivateDependencyModuleNames.AddRange(
+            PrivateIncludePathModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
 		        }
@@ -119,6 +120,7 @@ public class Launch : ModuleRules
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				PrivateDependencyModuleNames.Add("MainFrame");
+				PrivateDependencyModuleNames.Add("Settings");
 			}
 			else
 			{
@@ -144,7 +146,8 @@ public class Launch : ModuleRules
 			DynamicallyLoadedModuleNames.Add("IOSAudio");
 			DynamicallyLoadedModuleNames.Add("IOSRuntimeSettings");
 			PublicFrameworks.Add("OpenGLES");
-			PublicFrameworks.Add("QuartzCore");
+			// this is weak for IOS8 support for CAMetalLayer that is in QuartzCore
+			PublicWeakFrameworks.Add("QuartzCore");
 
 			PrivateDependencyModuleNames.Add("LaunchDaemonMessages");
 		}
@@ -161,6 +164,7 @@ public class Launch : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.Linux && !UEBuildConfiguration.bBuildDedicatedServer))
 		{
+            // TODO: re-enable after implementing resource tables for OpenGL.
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 		}
 

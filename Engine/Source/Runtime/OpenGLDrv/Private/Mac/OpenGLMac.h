@@ -102,7 +102,7 @@ struct FMacOpenGL : public FOpenGL3
 		if( glTexStorage3D )
 		{
 			glTexStorage3D( Target, Levels, InternalFormat, Width, Height, Depth);
-			glFlush(); // Workaround for radr://15553950, TTP# 315197
+			glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
 		}
 		else
 		{
@@ -131,7 +131,7 @@ struct FMacOpenGL : public FOpenGL3
 		if( glTexStorage2D )
 		{
 			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
-			glFlush(); // Workaround for radr://15553950, TTP# 315197
+			glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
 			return true;
 		}
 		else

@@ -1,25 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISettingsEditorModel.h: Declares the ISettingsEditorModel interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISettingsEditorModel.
- */
+/** Type definition for shared pointers to instances of ISettingsEditorModel. */
 typedef TSharedPtr<class ISettingsEditorModel> ISettingsEditorModelPtr;
 
-/**
- * Type definition for shared references to instances of ISettingsEditorModel.
- */
+/** Type definition for shared references to instances of ISettingsEditorModel. */
 typedef TSharedRef<class ISettingsEditorModel> ISettingsEditorModelRef;
 
 
 /**
  * Interface for settings editor view models.
+ *
+ * The settings editor view model stores the view state for the Settings Editor UI.
+ * Instances of this interface can be passed to Settings Editors in order to provide
+ * access to the settings container being added and to perform various user actions,
+ * such as setting the currently selected settings section.
  */
 class ISettingsEditorModel
 {
@@ -42,12 +39,11 @@ public:
 	/**
 	 * Selects the specified settings section to be displayed in the editor.
 	 *
-	 * @param Section - The section to select.
+	 * @param Section The section to select.
 	 *
 	 * @see SelectPreviousSection
 	 */
 	virtual void SelectSection( const ISettingsSectionPtr& Section ) = 0;
-
 
 public:
 
@@ -57,7 +53,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) = 0;
-
 
 public:
 

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
-
+#include "Commandlets/GatherTextCommandletBase.h"
 #include "GatherTextCommandlet.generated.h"
 
 class FJsonValue;
@@ -21,7 +21,7 @@ class UGatherTextCommandlet : public UGatherTextCommandletBase
     GENERATED_UCLASS_BODY()
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 	// Helpler function to generate a changelist description

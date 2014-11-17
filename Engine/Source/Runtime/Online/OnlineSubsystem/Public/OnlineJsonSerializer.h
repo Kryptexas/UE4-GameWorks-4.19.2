@@ -7,13 +7,20 @@
 /**
  * Macros used to generate a serialization function for a class derived from FJsonSerializable
  */
- #define BEGIN_ONLINE_JSON_SERIALIZER \
-	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) OVERRIDE \
+#define BEGIN_ONLINE_JSON_SERIALIZER \
+	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) override \
 	{ \
 		Serializer.StartObject();
 
 #define END_ONLINE_JSON_SERIALIZER \
 		Serializer.EndObject(); \
+	}
+
+#define BEGIN_ONLINE_JSON_SERIALIZER_FLAT \
+	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) override \
+	{
+
+#define END_ONLINE_JSON_SERIALIZER_FLAT \
 	}
 
 #define ONLINE_JSON_SERIALIZE(JsonName, JsonValue) \
@@ -27,6 +34,28 @@
 
 #define ONLINE_JSON_SERIALIZE_SERIALIZABLE(JsonName, JsonValue) \
 		JsonValue.Serialize(Serializer)
+
+#define ONLINE_JSON_SERIALIZE_ARRAY_SERIALIZABLE(JsonName, JsonArray, ElementType) \
+		if (Serializer.IsLoading()) \
+		{ \
+			if (Serializer.GetObject()->HasTypedField<EJson::Array>(JsonName)) \
+			{ \
+				for (TArray< TSharedPtr<FJsonValue> >::TConstIterator It(Serializer.GetObject()->GetArrayField(JsonName)); It; ++It) \
+				{ \
+					ElementType* Obj = new(JsonArray) ElementType(); \
+					Obj->FromJson((*It)->AsObject()); \
+				} \
+			} \
+		} \
+		else \
+		{ \
+			Serializer.StartArray(JsonName); \
+			for (auto It = JsonArray.CreateIterator(); It; ++It) \
+			{ \
+				It->Serialize(Serializer); \
+			} \
+			Serializer.EndArray(); \
+		}
 
 /** Array of string data */
 typedef TArray<FString> FJsonSerializableArray;
@@ -45,15 +74,21 @@ struct FOnlineJsonSerializerBase
 	virtual void StartObject() = 0;
 	virtual void StartObject(const FString& Name) = 0;
 	virtual void EndObject() = 0;
+	virtual void StartArray() = 0;
+	virtual void StartArray(const FString& Name) = 0;
+	virtual void EndArray() = 0;
 	virtual void Serialize(const TCHAR* Name, int32& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, uint32& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, bool& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, FString& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, float& Value) = 0;
+	virtual void Serialize(const TCHAR* Name, double& Value) = 0;
+	virtual void Serialize(const TCHAR* Name, FDateTime& Value) = 0;
 	virtual void SerializeArray(FJsonSerializableArray& Array) = 0;
 	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Value) = 0;
 	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) = 0;
 	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMapInt& Map) = 0;
+	virtual TSharedPtr<FJsonObject> GetObject() = 0;
 };
 
 /**
@@ -78,14 +113,16 @@ public:
 	}
 
     /** Is the JSON being read from */
-	virtual bool IsLoading() const OVERRIDE { return false; }
+	virtual bool IsLoading() const override { return false; }
     /** Is the JSON being written to */
-	virtual bool IsSaving() const OVERRIDE { return true; }
+	virtual bool IsSaving() const override { return true; }
+	/** Access to the root object */
+	virtual TSharedPtr<FJsonObject> GetObject() { return TSharedPtr<FJsonObject>(); }
 
 	/**
 	 * Starts a new object "{"
 	 */
-	virtual void StartObject() OVERRIDE
+	virtual void StartObject() override
 	{
 		JsonWriter->WriteObjectStart();
 	}
@@ -93,24 +130,39 @@ public:
 	/**
 	 * Starts a new object "{"
 	 */
-	virtual void StartObject(const FString& Name) OVERRIDE
+	virtual void StartObject(const FString& Name) override
 	{
 		JsonWriter->WriteObjectStart(Name);
 	}
 	/**
 	 * Completes the definition of an object "}"
 	 */
-	virtual void EndObject() OVERRIDE
+	virtual void EndObject() override
 	{
 		JsonWriter->WriteObjectEnd();
 	}
+
+	virtual void StartArray() override
+	{
+		JsonWriter->WriteArrayStart();
+	}
+
+	virtual void StartArray(const FString& Name) override
+	{
+		JsonWriter->WriteArrayStart(Name);
+	}
+
+	virtual void EndArray() override
+	{
+		JsonWriter->WriteArrayEnd();
+	}
 	/**
 	 * Writes the field name and the corresponding value to the JSON data
 	 *
 	 * @param Name the field name to write out
 	 * @param Value the value to write out
 	 */
-	virtual void Serialize(const TCHAR* Name, int32& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, int32& Value) override
 	{
 		JsonWriter->WriteValue(Name, (const float)Value);
 	}
@@ -120,7 +172,7 @@ public:
 	 * @param Name the field name to write out
 	 * @param Value the value to write out
 	 */
-	virtual void Serialize(const TCHAR* Name, uint32& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, uint32& Value) override
 	{
 		JsonWriter->WriteValue(Name, (const float)Value);
 	}
@@ -130,7 +182,7 @@ public:
 	 * @param Name the field name to write out
 	 * @param Value the value to write out
 	 */
-	virtual void Serialize(const TCHAR* Name, bool& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, bool& Value) override
 	{
 		JsonWriter->WriteValue(Name, (const bool)Value);
 	}
@@ -140,7 +192,7 @@ public:
 	 * @param Name the field name to write out
 	 * @param Value the value to write out
 	 */
-	virtual void Serialize(const TCHAR* Name, FString& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, FString& Value) override
 	{
 		JsonWriter->WriteValue(Name, Value);
 	}
@@ -150,9 +202,32 @@ public:
 	 * @param Name the field name to write out
 	 * @param Value the value to write out
 	 */
-	virtual void Serialize(const TCHAR* Name, float& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, float& Value) override
 	{
 		JsonWriter->WriteValue(Name, (const float)Value);
+	}
+	/**
+	* Writes the field name and the corresponding value to the JSON data
+	*
+	* @param Name the field name to write out
+	* @param Value the value to write out
+	*/
+	virtual void Serialize(const TCHAR* Name, double& Value) override
+	{
+		JsonWriter->WriteValue(Name, (const double)Value);
+	}
+	/**
+	* Writes the field name and the corresponding value to the JSON data
+	*
+	* @param Name the field name to write out
+	* @param Value the value to write out
+	*/
+	virtual void Serialize(const TCHAR* Name, FDateTime& Value) override
+	{
+		if (Value.GetTicks() > 0)
+		{
+			JsonWriter->WriteValue(Name, Value.ToIso8601());
+		}
 	}
 	/**
 	 * Serializes an array of values
@@ -160,7 +235,7 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Array the array to serialize
 	 */
-	virtual void SerializeArray(FJsonSerializableArray& Array) OVERRIDE
+	virtual void SerializeArray(FJsonSerializableArray& Array) override
 	{
 		JsonWriter->WriteArrayStart();
 		// Iterate all of values
@@ -176,7 +251,7 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Array the array to serialize
 	 */
-	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Array) OVERRIDE
+	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Array) override
 	{
 		JsonWriter->WriteArrayStart(Name);
 		// Iterate all of values
@@ -192,7 +267,7 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Map the map to serialize
 	 */
-	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) OVERRIDE
+	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) override
 	{
 		JsonWriter->WriteObjectStart(Name);
 		// Iterate all of the keys and their values
@@ -208,7 +283,7 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Map the map to serialize
 	 */
-	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMapInt& Map) OVERRIDE
+	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMapInt& Map) override
 	{
 		JsonWriter->WriteObjectStart(Name);
 		// Iterate all of the keys and their values
@@ -241,22 +316,39 @@ public:
 	}
 
     /** Is the JSON being read from */
-	virtual bool IsLoading() const OVERRIDE { return true; }
+	virtual bool IsLoading() const override { return true; }
     /** Is the JSON being written to */
-	virtual bool IsSaving() const OVERRIDE { return false; }
+	virtual bool IsSaving() const override { return false; }
+	/** Access to the root Json object being read */
+	virtual TSharedPtr<FJsonObject> GetObject() { return JsonObject; }
 
 	/** Ignored */
-	virtual void StartObject() OVERRIDE
+	virtual void StartObject() override
 	{
 		// Empty on purpose
 	}
 	/** Ignored */
-	virtual void StartObject(const FString& Name) OVERRIDE
+	virtual void StartObject(const FString& Name) override
 	{
 		// Empty on purpose
 	}
 	/** Ignored */
-	virtual void EndObject() OVERRIDE
+	virtual void EndObject() override
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void StartArray() override
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void StartArray(const FString& Name) override
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void EndArray() override
 	{
 		// Empty on purpose
 	}
@@ -266,9 +358,9 @@ public:
 	 * @param Name the name of the field to read
 	 * @param Value the out value to read the data into
 	 */
-	virtual void Serialize(const TCHAR* Name, int32& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, int32& Value) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Number>(Name))
 		{
 			Value = FMath::TruncToInt(JsonObject->GetNumberField(Name));
 		}
@@ -279,9 +371,9 @@ public:
 	 * @param Name the name of the field to read
 	 * @param Value the out value to read the data into
 	 */
-	virtual void Serialize(const TCHAR* Name, uint32& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, uint32& Value) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Number>(Name))
 		{
 			Value = FMath::TruncToInt(JsonObject->GetNumberField(Name));
 		}
@@ -292,9 +384,9 @@ public:
 	 * @param Name the name of the field to read
 	 * @param Value the out value to read the data into
 	 */
-	virtual void Serialize(const TCHAR* Name, bool& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, bool& Value) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Boolean>(Name))
 		{
 			Value = JsonObject->GetBoolField(Name);
 		}
@@ -305,9 +397,9 @@ public:
 	 * @param Name the name of the field to read
 	 * @param Value the out value to read the data into
 	 */
-	virtual void Serialize(const TCHAR* Name, FString& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, FString& Value) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::String>(Name))
 		{
 			Value = JsonObject->GetStringField(Name);
 		}
@@ -318,11 +410,37 @@ public:
 	 * @param Name the name of the field to read
 	 * @param Value the out value to read the data into
 	 */
-	virtual void Serialize(const TCHAR* Name, float& Value) OVERRIDE
+	virtual void Serialize(const TCHAR* Name, float& Value) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Number>(Name))
 		{
 			Value = JsonObject->GetNumberField(Name);
+		}
+	}
+	/**
+	* If the underlying json object has the field, it is read into the value
+	*
+	* @param Name the name of the field to read
+	* @param Value the out value to read the data into
+	*/
+	virtual void Serialize(const TCHAR* Name, double& Value) override
+	{
+		if (JsonObject->HasTypedField<EJson::Number>(Name))
+		{
+			Value = JsonObject->GetNumberField(Name);
+		}
+	}
+	/**
+	* Writes the field name and the corresponding value to the JSON data
+	*
+	* @param Name the field name to write out
+	* @param Value the value to write out
+	*/
+	virtual void Serialize(const TCHAR* Name, FDateTime& Value) override
+	{
+		if (JsonObject->HasTypedField<EJson::String>(Name))
+		{
+			FDateTime::ParseIso8601(*JsonObject->GetStringField(Name), Value);
 		}
 	}
 	/**
@@ -331,7 +449,7 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Array the array to serialize
 	 */
-	virtual void SerializeArray(FJsonSerializableArray& Array) OVERRIDE
+	virtual void SerializeArray(FJsonSerializableArray& Array) override
 	{
 		// @todo - higher level serialization is expecting a Json Object
 		check(0 && TEXT("Not implemented"));
@@ -342,9 +460,9 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Array the array to serialize
 	 */
-	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Array) OVERRIDE
+	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Array) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Array>(Name))
 		{
 			TArray< TSharedPtr<FJsonValue> > JsonArray = JsonObject->GetArrayField(Name);
 			// Iterate all of the keys and their values
@@ -360,9 +478,9 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Map the map to serialize
 	 */
-	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) OVERRIDE
+	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Object>(Name))
 		{
 			TSharedPtr<FJsonObject> JsonMap = JsonObject->GetObjectField(Name);
 			// Iterate all of the keys and their values
@@ -380,9 +498,9 @@ public:
 	 * @param Name the name of the property to serialize
 	 * @param Map the map to serialize
 	 */
-	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMapInt& Map) OVERRIDE
+	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMapInt& Map) override
 	{
-		if (JsonObject->HasField(Name))
+		if (JsonObject->HasTypedField<EJson::Object>(Name))
 		{
 			TSharedPtr<FJsonObject> JsonMap = JsonObject->GetObjectField(Name);
 			// Iterate all of the keys and their values

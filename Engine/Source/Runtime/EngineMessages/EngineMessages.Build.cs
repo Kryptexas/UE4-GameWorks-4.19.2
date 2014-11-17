@@ -23,7 +23,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[]
 				{
-					"Editor/EngineMessages/Private",
+					"Runtime/EngineMessages/Private",
 				}
 			);
 		}

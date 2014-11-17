@@ -116,6 +116,22 @@ bool UKismetArrayLibrary::GenericArray_RemoveItem( void* TargetArray, const UArr
 	return bRemoved;
 }
 
+void UKismetArrayLibrary::GenericArray_Shuffle(void* TargetArray, const UArrayProperty* ArrayProp)
+{
+	if (TargetArray)
+	{
+		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
+		int32 LastIndex = ArrayHelper.Num() - 1;
+		for (int32 i = 0; i < LastIndex; ++i)
+		{
+			int32 Index = FMath::RandRange(0, LastIndex);
+			if (i != Index)
+			{
+				ArrayHelper.SwapValues(i, Index);
+			}
+		}
+	}
+}
 
 void UKismetArrayLibrary::GenericArray_Clear(void* TargetArray, const UArrayProperty* ArrayProp)
 {
@@ -242,6 +258,12 @@ int32 UKismetArrayLibrary::Array_Add(const TArray<int32>& TargetArray, const UAr
 	// We should never hit these!  They're stubs to avoid NoExport on the class.  Call the Generic* equivalent instead
 	check(0);
 	return 0;
+}
+
+void UKismetArrayLibrary::Array_Shuffle(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProp)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.  Call the Generic* equivalent instead
+	check(0);
 }
 
 void UKismetArrayLibrary::Array_Insert(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProp, const int32& NewItem, int32 Index)

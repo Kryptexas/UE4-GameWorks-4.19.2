@@ -23,7 +23,7 @@ static FAutoConsoleCommandWithOutputDevice GDumpRenderTargetPoolMemoryCmd(
 	FConsoleCommandWithOutputDeviceDelegate::CreateStatic(DumpRenderTargetPoolMemory)
 	);
 
-static void RenderTargetPoolEvents(const TArray<FString>& Args)
+void RenderTargetPoolEvents(const TArray<FString>& Args)
 {
 	uint32 SizeInKBThreshold = -1;
 	if(Args.Num() && Args[0].IsNumeric())
@@ -35,7 +35,8 @@ static void RenderTargetPoolEvents(const TArray<FString>& Args)
 	{
 		UE_LOG(LogRenderTargetPool, Display, TEXT("r.DumpRenderTargetPoolEvents is now enabled, use r.DumpRenderTargetPoolEvents ? for help"));
 
-		GRenderTargetPool.EnableEventRecording(SizeInKBThreshold);
+		GRenderTargetPool.EventRecordingSizeThreshold = SizeInKBThreshold;
+		GRenderTargetPool.bStartEventRecordingNextTick = true;
 	}
 	else
 	{
@@ -44,6 +45,8 @@ static void RenderTargetPoolEvents(const TArray<FString>& Args)
 		UE_LOG(LogRenderTargetPool, Display, TEXT("r.DumpRenderTargetPoolEvents is now disabled, use r.DumpRenderTargetPoolEvents <SizeInKB> to enable or r.DumpRenderTargetPoolEvents ? for help"));
 	}
 }
+
+// CVars and commands
 static FAutoConsoleCommand GRenderTargetPoolEventsCmd(
 	TEXT("r.RenderTargetPool.Events"),
 	TEXT("Visualize the render target pool events over time in one frame. Optional parameter defines threshold in KB.\n")
@@ -51,10 +54,20 @@ static FAutoConsoleCommand GRenderTargetPoolEventsCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(RenderTargetPoolEvents)
 	);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarRenderTargetPoolTest(
+	TEXT("r.RenderTargetPoolTest"),
+	0,
+	TEXT("Clears the texture returned by the rendertarget pool with a special color\n")
+	TEXT("so we can see better which passes would need to clear. Doesn't work on volume textures and non rendertargets yet.\n")
+	TEXT(" 0:off (default), 1:on"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
+
 bool FRenderTargetPool::IsEventRecordingEnabled() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	return bEventRecording; 
+	return bEventRecordingStarted && bEventRecordingActive; 
 #else
 	return false;
 #endif
@@ -99,9 +112,10 @@ static uint32 ComputeSizeInKB(FPooledRenderTarget& Element)
 FRenderTargetPool::FRenderTargetPool()
 	: AllocationLevelInKB(0)
 	, bCurrentlyOverBudget(false)
-	, bEventRecordingTrigger(false)
+	, bStartEventRecordingNextTick(false)
 	, EventRecordingSizeThreshold(0)
-	, bEventRecording(false)
+	, bEventRecordingActive(false)
+	, bEventRecordingStarted(false)
 	, CurrentEventRecordingTime(0)
 {
 }
@@ -150,7 +164,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 	uint32 FoundIndex = -1;
 
 	// try to find a suitable element in the pool
-	for(uint32 i = 0; i < (uint32)PooledRenderTargets.Num(); ++i)
+	for(uint32 i = 0, Num = (uint32)PooledRenderTargets.Num(); i < Num; ++i)
 	{
 		FPooledRenderTarget* Element = PooledRenderTargets[i];
 
@@ -174,6 +188,8 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 		// TexCreate_UAV should be used on Desc.TargetableFlags
 		check(!(Desc.Flags & TexCreate_UAV));
 
+		FRHIResourceCreateInfo CreateInfo;
+
 		if(Desc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV))
 		{
 			if(Desc.Is2DTexture())
@@ -186,6 +202,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Flags,
 					Desc.TargetableFlags,
 					Desc.bForceSeparateTargetAndShaderResource,
+					CreateInfo,
 					(FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture,
 					(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
 					Desc.NumSamples
@@ -200,7 +217,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Format,
 					Desc.NumMips,
 					Desc.TargetableFlags,
-					NULL);
+					CreateInfo);
 
 				// similar to RHICreateTargetableShaderResource2D
 				Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture;
@@ -218,6 +235,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 						Desc.Flags,
 						Desc.TargetableFlags,
 						false,
+						CreateInfo,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
@@ -231,6 +249,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 						Desc.Flags,
 						Desc.TargetableFlags,
 						false,
+						CreateInfo,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
@@ -252,7 +271,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.NumMips,
 					Desc.NumSamples,
 					Desc.Flags,
-					NULL);
+					CreateInfo);
 			}
 			else if(Desc.Is3DTexture())
 			{
@@ -263,19 +282,19 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Format,
 					Desc.NumMips,
 					Desc.Flags,
-					NULL);
+					CreateInfo);
 			}
 			else 
 			{
 				check(Desc.IsCubemap());
 				if(Desc.IsArray())
 				{
-					FTextureCubeRHIRef CubeTexture = RHICreateTextureCubeArray(Desc.Extent.X,Desc.ArraySize,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,NULL);
+					FTextureCubeRHIRef CubeTexture = RHICreateTextureCubeArray(Desc.Extent.X,Desc.ArraySize,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,CreateInfo);
 					Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture = CubeTexture;
 				}
 				else
 				{
-					FTextureCubeRHIRef CubeTexture = RHICreateTextureCube(Desc.Extent.X,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,NULL);
+					FTextureCubeRHIRef CubeTexture = RHICreateTextureCube(Desc.Extent.X,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,CreateInfo);
 					Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture = CubeTexture;
 				}
 			}
@@ -298,25 +317,26 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderTargetPoolTest"));
 		
-		if(ICVar->GetValueOnRenderThread())
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
+		if(CVarRenderTargetPoolTest.GetValueOnRenderThread())
 		{
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{
-				RHISetRenderTarget(Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());	
-				RHIClear(true, FLinearColor(1000, 1000, 1000, 1000), false, 1.0f, false, 0, FIntRect());
+				SetRenderTarget(RHICmdList, Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());
+				RHICmdList.Clear(true, FLinearColor(1000, 1000, 1000, 1000), false, 1.0f, false, 0, FIntRect());
 			}
 			else if(Found->GetDesc().TargetableFlags & TexCreate_UAV)
 			{
 				const uint32 ZeroClearValue[4] = { 1000, 1000, 1000, 1000 };
-				RHIClearUAV(Found->RenderTargetItem.UAV, ZeroClearValue);
+				RHICmdList.ClearUAV(Found->RenderTargetItem.UAV, ZeroClearValue);
 			}
 
 			if(Desc.TargetableFlags & TexCreate_DepthStencilTargetable)
 			{
-				RHISetRenderTarget(FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
-				RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
+				SetRenderTarget(RHICmdList, FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
+				RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 			}
 		}
 	}
@@ -667,9 +687,9 @@ inline void DrawBorder(FCanvas& Canvas, const FIntRect Rect, FLinearColor Color)
 	Canvas.DrawTile(Rect.Max.X - 1, Rect.Min.Y + 1, 1, Rect.Max.Y - Rect.Min.Y - 2, 0, 0, 1, 1, Color);
 }
 
-void FRenderTargetPool::PresentContent(const FSceneView& View)
+void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
-	if(RenderTargetPoolEvents.Num())
+	if (RenderTargetPoolEvents.Num())
 	{
 		AddPhaseEvent(TEXT("FrameEnd"));
 
@@ -682,12 +702,12 @@ void FRenderTargetPool::PresentContent(const FSceneView& View)
 		{
 			SMemoryStats MemoryStats = ComputeView();
 
-			RHISetRenderTarget(View.Family->RenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-			RHISetViewport(0, 0, 0.0f, GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y, 1.0f );
+			SetRenderTarget(RHICmdList, View.Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			RHICmdList.SetViewport(0, 0, 0.0f, GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y, 1.0f);
 
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			// this is a helper class for FCanvas to be able to get screen size
 			class FRenderTargetTemp : public FRenderTarget
@@ -841,7 +861,7 @@ void FRenderTargetPool::PresentContent(const FSceneView& View)
 		}
 	}
 
-	VisualizeTexture.PresentContent(View);
+	VisualizeTexture.PresentContent(RHICmdList, View);
 }
 
 void FRenderTargetPool::AddDeallocEvents()
@@ -923,12 +943,10 @@ void FRenderTargetPool::TickPoolElements()
 {
 	check(IsInRenderingThread());
 
-//	bEventRecording = false;
-
-	if(bEventRecordingTrigger)
+	if(bStartEventRecordingNextTick)
 	{
-		bEventRecordingTrigger = false;
-		bEventRecording = true;
+		bStartEventRecordingNextTick = false;
+		bEventRecordingStarted = true;
 	}
 
 	uint32 MinimumPoolSizeInKB;

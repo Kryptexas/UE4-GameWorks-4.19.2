@@ -10,7 +10,7 @@ public class FreeType2 : ModuleRules
 
         Definitions.Add("WITH_FREETYPE=1");
       
-        string FreeType2Path = UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/";
+        string FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
 
         PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
@@ -34,12 +34,12 @@ public class FreeType2 : ModuleRules
 			if (Target.Architecture == "-simulator")
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Simulator");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
             }
             else
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Device");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
             }
 
 			PublicAdditionalLibraries.Add("freetype2412");
@@ -66,14 +66,14 @@ public class FreeType2 : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            if (UEBuildConfiguration.bBuildDedicatedServer)
+            if (Target.Type == TargetRules.TargetType.Server)
             {
                 string Err = string.Format("{0} dedicated server is made to depend on {1}. We want to avoid this, please correct module dependencies.", Target.Platform.ToString(), this.ToString());
                 System.Console.WriteLine(Err);
                 throw new BuildException(Err);
             }
 
-            PublicLibraryPaths.Add(FreeType2LibPath + "Linux");
+            PublicLibraryPaths.Add(FreeType2LibPath + "Linux/" + Target.Architecture);
             PublicAdditionalLibraries.Add("freetype2412");
         }
        else if (Target.Platform == UnrealTargetPlatform.HTML5)

@@ -416,6 +416,10 @@ namespace SceneOutliner
 			{
 				ValidationInfo = ValidateDropOnItem(SceneOutlinerPtr.ToSharedRef(), Folder.ToSharedRef(), &Actors, &Folders);
 			}
+			else
+			{
+				ValidationInfo.ValidationText = FText::Format(LOCTEXT("UnableToFindFolderFailure", "Unable to find folder: {0}"), FText::FromName(NewParent));
+			}
 		}
 
 		if (OutValidationText)

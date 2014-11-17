@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionSceneTexture.generated.h"
 
 /** like EPassInputId but can expose more e.g. GBuffer */
@@ -52,8 +53,8 @@ enum ESceneTextureId
 	PPI_PostProcessInput6 UMETA(DisplayName="PostProcessInput6"),
 	/** Decal Mask, single bit */
 	PPI_DecalMask UMETA(DisplayName="Decal Mask"),
-	/** Lighting model, two bits */
-	PPI_LightingModel UMETA(DisplayName="Lighting Model"),
+	/** Shading model */
+	PPI_ShadingModel UMETA(DisplayName="Shading Model"),
 	/** Ambient Occlusion, single channel */
 	PPI_AmbientOcclusion UMETA(DisplayName="Ambient Occlusion"),
 };
@@ -76,8 +77,8 @@ class UMaterialExpressionSceneTexture : public UMaterialExpression
 	bool bClampUVs;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	// End UMaterialExpression Interface
 };
 

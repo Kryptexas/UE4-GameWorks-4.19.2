@@ -300,7 +300,7 @@ public:
 	 */
 	void ForceLastSelectionIndex( int32 InLastSelectionIndex ) { LastSelectionIndex = InLastSelectionIndex; }
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	
 	/**
 	 * Set the pivot position based on the 'highest' selected object (vertex/edge/poly) in the given selection array

@@ -2,62 +2,29 @@
 
 #include "ProjectsPrivatePCH.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
 #define LOCTEXT_NAMESPACE "ProjectManager"
 
-
-FProject::FProject()
-{
-}
-
-FProject::FProject( const FProjectInfo& InitProjectInfo )
-	: ProjectInfo(InitProjectInfo)
-{
-}
-
-bool FProject::IsSignedSampleProject(const FString& FilePath) const
-{
-	return ProjectInfo.EpicSampleNameHash == GetTypeHash(FPaths::GetCleanFilename(FilePath));
-}
-
-void FProject::SignSampleProject(const FString& FilePath, const FString& Category)
-{
-	ProjectInfo.EpicSampleNameHash = GetTypeHash(FPaths::GetCleanFilename(FilePath));
-	ProjectInfo.Category = Category;
-}
-
-bool FProject::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject)
-{
-	ReadNumberFromJSON(FileObject, TEXT("EpicSampleNameHash"), ProjectInfo.EpicSampleNameHash);
-
-	return true;
-}
-
-void FProject::PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const
-{
-	Writer->WriteValue(TEXT("EpicSampleNameHash"), FString::Printf(TEXT("%u"), ProjectInfo.EpicSampleNameHash));
-}
-
-
-
-
-
 FProjectManager::FProjectManager()
 {
+	bRestartRequired = false;
+}
 
+const FProjectDescriptor* FProjectManager::GetCurrentProject() const
+{
+	return CurrentProject.Get();
 }
 
 bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 {
+	// Try to load the descriptor
 	FText FailureReason;
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	if ( NewProject->LoadFromFile(InProjectFile, FailureReason) )
+	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
+	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
-		// Load successful. Set the loaded project file pointer.
-		CurrentlyLoadedProject = NewProject;
-
+		// Create the project
+		CurrentProject = Descriptor;
 		return true;
 	}
 	
@@ -78,35 +45,35 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 	bool bSuccess = true;
 
-	if ( CurrentlyLoadedProject.IsValid() )
+	if ( CurrentProject.IsValid() )
 	{
-		TMap<FName, ELoadModuleFailureReason::Type> ModuleLoadFailures;
-		CurrentlyLoadedProject->LoadModules(LoadingPhase, ModuleLoadFailures);
+		TMap<FName, EModuleLoadResult> ModuleLoadFailures;
+		FModuleDescriptor::LoadModulesForPhase(LoadingPhase, CurrentProject->Modules, ModuleLoadFailures);
 
 		if ( ModuleLoadFailures.Num() > 0 )
 		{
 			FText FailureMessage;
 			for ( auto FailureIt = ModuleLoadFailures.CreateConstIterator(); FailureIt; ++FailureIt )
 			{
-				const ELoadModuleFailureReason::Type FailureReason = FailureIt.Value();
+				const EModuleLoadResult FailureReason = FailureIt.Value();
 
-				if( FailureReason != ELoadModuleFailureReason::Success )
+				if( FailureReason != EModuleLoadResult::Success )
 				{
 					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-					if ( FailureReason == ELoadModuleFailureReason::FileNotFound )
+					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleNotFound", "The game module '{0}' could not be found. Please ensure that this module exists and that it is compiled."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FileIncompatible )
+					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleIncompatible", "The game module '{0}' does not appear to be up to date. This may happen after updating the engine. Please recompile this module and try again."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FailedToInitialize )
+					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleFailedToInitialize", "The game module '{0}' could not be successfully initialized after it was loaded."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::CouldNotBeLoadedByOS )
+					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleCouldntBeLoaded", "The game module '{0}' could not be loaded. There may be an operating system error or the module may not be properly set up."), TextModuleName );
 					}
@@ -131,7 +98,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 bool FProjectManager::AreProjectModulesUpToDate()
 {
-	return !CurrentlyLoadedProject.IsValid() || CurrentlyLoadedProject->AreModulesUpToDate();
+	return !CurrentProject.IsValid() || FModuleDescriptor::AreModulesUpToDate(CurrentProject->Modules);
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
@@ -148,130 +115,304 @@ const FString& FProjectManager::NonStaticGetProjectFileExtension()
 
 bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	NewProject->UpdateVersionToCurrent(EngineIdentifier);
-	NewProject->ReplaceModulesInProject(&StartupModuleNames);
+	FProjectDescriptor Descriptor;
+	Descriptor.EngineAssociation = EngineIdentifier;
 
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *NewProjectFilename) )
+	for(int32 Idx = 0; Idx < StartupModuleNames.Num(); Idx++)
 	{
-		return true;
+		Descriptor.Modules.Add(FModuleDescriptor(*StartupModuleNames[Idx]));
 	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(NewProjectFilename) );
-		return false;
-	}
+
+	return Descriptor.Save(NewProjectFilename, OutFailReason);
 }
 
 bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	// Load the source project
-	TSharedRef<FProject> SourceProject = MakeShareable( new FProject() );
-	if ( !SourceProject->LoadFromFile(SourceProjectFilename, OutFailReason) )
+	FProjectDescriptor Project;
+	if(!Project.Load(SourceProjectFilename, OutFailReason))
 	{
 		return false;
 	}
 
-	// Duplicate the project info
-	FProjectInfo ProjectInfo = SourceProject->GetProjectInfo();
-
-	// Clear the sample hash
-	ProjectInfo.EpicSampleNameHash = 0;
+	// Update it to current
+	Project.EngineAssociation = EngineIdentifier;
+	Project.EpicSampleNameHash = 0;
 
 	// Fix up module names
 	const FString BaseSourceName = FPaths::GetBaseFilename(SourceProjectFilename);
 	const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFilename);
-	for ( auto ModuleIt = ProjectInfo.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+	for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
 	{
-		FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleIt;
+		FModuleDescriptor& ModuleInfo = *ModuleIt;
 		ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
 	}
 
-	// Create new project, update version numbers (no need to replace modules here)
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject(ProjectInfo) );
-	NewProject->UpdateVersionToCurrent(EngineIdentifier);
-
-	// Serialize and write to disk
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *NewProjectFilename) )
-	{
-		return true;
-	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(NewProjectFilename) );
-		return false;
-	}
+	// Save it to disk
+	return Project.Save(NewProjectFilename, OutFailReason);
 }
 
 bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	if ( !CurrentlyLoadedProject.IsValid() )
+	if ( !CurrentProject.IsValid() )
 	{
 		return false;
 	}
 
 	// Freshen version information
-	CurrentlyLoadedProject->UpdateVersionToCurrent(EngineIdentifier);
+	CurrentProject->EngineAssociation = EngineIdentifier;
 
 	// Replace the modules names, if specified
-	CurrentlyLoadedProject->ReplaceModulesInProject(StartupModuleNames);
+	if(StartupModuleNames != NULL)
+	{
+		CurrentProject->Modules.Empty();
+		for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
+		{
+			CurrentProject->Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+		}
+	}
 
 	// Update file on disk
-	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath()) )
-	{
-		return true;
-	}
-	else
-	{
-		// We failed to generate the file. Could be read only.
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(FPaths::GetProjectFilePath()) );
-		return false;
-	}
+	return CurrentProject->Save(FPaths::GetProjectFilePath(), OutFailReason);
 }
 
 bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	if ( !NewProject->LoadFromFile(FilePath, OutFailReason) )
+	FProjectDescriptor Descriptor;
+	if(!Descriptor.Load(FilePath, OutFailReason))
 	{
 		return false;
 	}
 
-	NewProject->SignSampleProject(FilePath, Category);
-
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if (FFileHelper::SaveStringToFile(FileContents, *FilePath))
-	{
-		return true;
-	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToSaveSignedProject", "Failed to save signed project file {0}"), FText::FromString(FilePath) );
-		return false;
-	}
+	Descriptor.Sign(FilePath);
+	Descriptor.Category = Category;
+	return Descriptor.Save(FilePath, OutFailReason);
 }
 
 bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
 	FText FailReason;
-	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	FProjectDescriptor Descriptor;
+	if(!Descriptor.Load(FilePath, FailReason))
 	{
 		return false;
 	}
 
-	const FProjectInfo& ProjectInfo = NewProject->GetProjectInfo();
-	OutProjectStatus.Name = ProjectInfo.Name;
+	QueryStatusForProjectImpl(Descriptor, FilePath, OutProjectStatus);
+	return true;
+}
+
+bool FProjectManager::QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const
+{
+	if ( !CurrentProject.IsValid() )
+	{
+		return false;
+	}
+
+	QueryStatusForProjectImpl(*CurrentProject, FPaths::GetProjectFilePath(), OutProjectStatus);
+	return true;
+}
+
+void FProjectManager::QueryStatusForProjectImpl(const FProjectDescriptor& ProjectInfo, const FString& FilePath, FProjectStatus& OutProjectStatus)
+{
+	OutProjectStatus.Name = FPaths::GetBaseFilename(FilePath);
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
 	OutProjectStatus.bCodeBasedProject = ProjectInfo.Modules.Num() > 0;
-	OutProjectStatus.bSignedSampleProject = NewProject->IsSignedSampleProject(FilePath);
-	OutProjectStatus.bRequiresUpdate = NewProject->RequiresUpdate();
+	OutProjectStatus.bSignedSampleProject = ProjectInfo.IsSigned(FilePath);
+	OutProjectStatus.bRequiresUpdate = ProjectInfo.FileVersion < EProjectDescriptorVersion::Latest;
+	OutProjectStatus.TargetPlatforms = ProjectInfo.TargetPlatforms;
+}
 
+void FProjectManager::UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported)
+{
+	FProjectDescriptor NewProject;
+
+	FText FailReason;
+	if ( !NewProject.Load(FilePath, FailReason) )
+	{
+		return;
+	}
+
+	if ( bIsSupported )
+	{
+		NewProject.TargetPlatforms.AddUnique(InPlatformName);
+	}
+	else
+	{
+		NewProject.TargetPlatforms.Remove(InPlatformName);
+	}
+
+	NewProject.Save(FilePath, FailReason);
+
+	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
+	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString InProjectPath = FPaths::ConvertRelativePathToFull(FilePath);
+	if ( CurrentProjectPath == InProjectPath )
+	{
+		OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+	}
+}
+
+void FProjectManager::UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported)
+{
+	if ( !CurrentProject.IsValid() )
+	{
+		return;
+	}
+
+	CurrentProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+
+	FText FailReason;
+	CurrentProject->Save(FPaths::GetProjectFilePath(), FailReason);
+
+	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+}
+
+void FProjectManager::ClearSupportedTargetPlatformsForProject(const FString& FilePath)
+{
+	FProjectDescriptor Descriptor;
+
+	FText FailReason;
+	if ( !Descriptor.Load(FilePath, FailReason) )
+	{
+		return;
+	}
+
+	Descriptor.TargetPlatforms.Empty();
+	Descriptor.Save(FilePath, FailReason);
+
+	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
+	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString InProjectPath = FPaths::ConvertRelativePathToFull(FilePath);
+	if ( CurrentProjectPath == InProjectPath )
+	{
+		OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+	}
+}
+
+void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
+{
+	if ( !CurrentProject.IsValid() )
+	{
+		return;
+	}
+
+	CurrentProject->TargetPlatforms.Empty();
+
+	FText FailReason;
+	CurrentProject->Save(FPaths::GetProjectFilePath(), FailReason);
+
+	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+}
+
+void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
+{
+	// Get the default list of plugin names
+	GetDefaultEnabledPlugins(OutPluginNames);
+
+	// Modify that with the list of plugins in the project file
+	const FProjectDescriptor *Project = GetCurrentProject();
+	if(Project != NULL)
+	{
+		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+		{
+			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()))
+			{
+				OutPluginNames.AddUnique(Plugin.Name);
+			}
+			else
+			{
+				OutPluginNames.Remove(Plugin.Name);
+			}
+		}
+	}
+}
+
+bool FProjectManager::IsNonDefaultPluginEnabled() const
+{
+	TArray<FString> EnabledPlugins;
+	GetEnabledPlugins(EnabledPlugins);
+
+	for(const FPluginStatus& Plugin: IPluginManager::Get().QueryStatusForAllPlugins())
+	{
+		if((!Plugin.bIsBuiltIn || !Plugin.bIsEnabledByDefault) && EnabledPlugins.Contains(Plugin.Name))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason)
+{
+	// Don't go any further if there's no project loaded
+	if(!CurrentProject.IsValid())
+	{
+		OutFailReason = LOCTEXT("NoProjectLoaded", "No project is currently loaded");
+		return false;
+	}
+
+	// Find or create the index of any existing reference in the project descriptor
+	int PluginRefIdx = 0;
+	for(;;PluginRefIdx++)
+	{
+		if(PluginRefIdx == CurrentProject->Plugins.Num())
+		{
+			PluginRefIdx = CurrentProject->Plugins.Add(FPluginReferenceDescriptor(PluginName, bEnabled));
+			break;
+		}
+		else if(CurrentProject->Plugins[PluginRefIdx].Name == PluginName)
+		{
+			CurrentProject->Plugins[PluginRefIdx].bEnabled = bEnabled;
+			break;
+		}
+	}
+
+	// If the current plugin reference is the default, just remove it from the list
+	const FPluginReferenceDescriptor* PluginRef = &CurrentProject->Plugins[PluginRefIdx];
+	if(PluginRef->WhitelistPlatforms.Num() == 0 && PluginRef->BlacklistPlatforms.Num() == 0)
+	{
+		// Get the default list of enabled plugins
+		TArray<FString> DefaultEnabledPlugins;
+		GetDefaultEnabledPlugins(DefaultEnabledPlugins);
+
+		// Check the enabled state is the same in that
+		if(DefaultEnabledPlugins.Contains(PluginName) == bEnabled)
+		{
+			CurrentProject->Plugins.RemoveAt(PluginRefIdx);
+			PluginRefIdx = INDEX_NONE;
+		}
+	}
+
+	// Try to save the project file
+	if(!CurrentProject->Save(*FPaths::GetProjectFilePath(), OutFailReason))
+	{
+		return false;
+	}
+
+	// Flag that a restart is required and return
+	bRestartRequired = true;
 	return true;
+}
+
+bool FProjectManager::IsRestartRequired() const
+{
+	return bRestartRequired;
+}
+
+void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames)
+{
+	// Add all the game plugins and everything marked as enabled by default
+	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
+	for(const FPluginStatus& PluginStatus: PluginStatuses)
+	{
+		if(PluginStatus.bIsEnabledByDefault || !PluginStatus.bIsBuiltIn)
+		{
+			OutPluginNames.AddUnique(PluginStatus.Name);
+		}
+	}
 }
 
 IProjectManager& IProjectManager::Get()

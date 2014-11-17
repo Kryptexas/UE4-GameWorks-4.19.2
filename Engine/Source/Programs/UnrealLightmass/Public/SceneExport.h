@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SceneExport.h: Scene export data definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "MeshExport.h"
@@ -395,14 +391,14 @@ public:
 	int32 MinDistanceFieldUpsampleFactor;
 
 	/** Distance in world space units between dominant light shadow map cells. */
-	float DominantShadowTransitionSampleDistanceX;
-	float DominantShadowTransitionSampleDistanceY;
+	float StaticShadowDepthMapTransitionSampleDistanceX;
+	float StaticShadowDepthMapTransitionSampleDistanceY;
 
 	/** Amount to super sample dominant shadow map generation, in each dimension.  Larger factors increase build time but produce a more conservative shadow map. */
-	int32 DominantShadowSuperSampleFactor;
+	int32 StaticShadowDepthMapSuperSampleFactor;
 
 	/** Maximum number of dominant shadow samples to generate for one dominant light, used to limit memory used. */
-	int32 DominantShadowMaxSamples;
+	int32 StaticShadowDepthMapMaxSamples;
 
 	/** Fraction of valid lighting samples (mapped texels or vertex samples) that must be unoccluded in a precomputed shadowmap for the shadowmap to be kept. */
 	float MinUnoccludedFraction;

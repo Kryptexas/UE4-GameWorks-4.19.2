@@ -6,6 +6,7 @@
 #include "SimplygonSDK.h"
 #include "MeshBoneReduction.h"
 #include "MaterialExportUtils.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SimplygonMeshReduction"
 
@@ -13,19 +14,14 @@ class FSimplygonMeshReductionModule : public IMeshReductionModule
 {
 public:
 	// IModuleInterface interface.
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	// IMeshReductionModule interface.
-	virtual class IMeshReduction* GetMeshReductionInterface() OVERRIDE;
-	virtual class IMeshMerging* GetMeshMergingInterface() OVERRIDE;
+	virtual class IMeshReduction* GetMeshReductionInterface() override;
+	virtual class IMeshMerging* GetMeshMergingInterface() override;
 };
 
-
-#if !WITH_SIMPLYGON_DLL
-	int InitializeSimplygonSDK( const char* LicenseData , SimplygonSDK::ISimplygonSDK** OutInterfacePtr );
-	void GetInterfaceVersionSimplygonSDK( char* DestString );
-#endif // #if !WITH_SIMPLYGON_DLL
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimplygon, Log, All);
 IMPLEMENT_MODULE(FSimplygonMeshReductionModule, SimplygonMeshReduction);
@@ -91,7 +87,7 @@ class FSimplygonMeshReduction
 	, public IMeshMerging
 {
 public:
-	virtual const FString& GetVersionString() const OVERRIDE
+	virtual const FString& GetVersionString() const override
 	{
 		return VersionString;
 	}
@@ -229,6 +225,19 @@ public:
 			FSkeletalMeshLODInfo* NewLODInfo = new( SkeletalMesh->LODInfo ) FSkeletalMeshLODInfo;
 			FSkeletalMeshLODInfo& OldLODInfo = SkeletalMesh->LODInfo[0];
 			*NewLODInfo = OldLODInfo;
+
+			// creates LOD Material map for a newly generated LOD model
+			int32 NumSections = LODModels[0]->NumNonClothingSections();
+			if (NewLODInfo->LODMaterialMap.Num() != NumSections)
+			{
+				NewLODInfo->LODMaterialMap.Empty(NumSections);
+				NewLODInfo->LODMaterialMap.AddUninitialized(NumSections);
+			}
+
+			for (int32 Index = 0; Index < NumSections; Index++)
+			{
+				NewLODInfo->LODMaterialMap[Index] = Index;
+			}
 		}
 
 		// now try bone reduction process if it's setup
@@ -322,65 +331,51 @@ public:
 	
 	bool IsSupported() const 
 	{
-#if WITH_SIMPLYGON_DLL
 		return true;
-#else
-		return false;
-#endif
 	}
 	static FSimplygonMeshReduction* Create()
 	{
-		SimplygonSDK::ISimplygonSDK* SDK = NULL;
-		ANSICHAR VersionHash[200];
-
-#if WITH_SIMPLYGON_DLL
-		if (FRocketSupport::IsRocket())
+		FString DllPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/NotForLicensees/Simplygon")));
+		FString DllFilename(FPaths::Combine(*DllPath, TEXT("SimplygonSDKEpicUE4Releasex64.dll")));
+		if( !FPaths::FileExists(DllFilename) )
 		{
-			// this was killing DDC build, for now we won't even try in rocket mode.
+			DllFilename = FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll"));
+		}
+
+		// If the DLL just doesn't exist, fail gracefully. Licensees and Rocket users will not necessarily have Simplygon.
+		if( !FPaths::FileExists(DllFilename) )
+		{
+			UE_LOG(LogSimplygon,Warning,TEXT("Simplygon DLL not present - disabling."));
 			return NULL;
 		}
 
-		typedef void (*GetInterfaceVersionSimplygonSDKPtr)(ANSICHAR*);
-		typedef int (*InitializeSimplygonSDKPtr)(const char* LicenseData , SimplygonSDK::ISimplygonSDK** OutInterfacePtr);
- 
-		GetInterfaceVersionSimplygonSDKPtr GetInterfaceVersionSimplygonSDK;
-		InitializeSimplygonSDKPtr InitializeSimplygonSDK;
-		FString DllPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/NotForLicensees/Simplygon")));
-		FString DllFilename(FPaths::Combine(*DllPath, TEXT("SimplygonSDKEpicUE4Releasex64.dll")));
- 
+		// Otherwise fail
 		void* DLLHandle = FPlatformProcess::GetDllHandle(*DllFilename);
 		if (DLLHandle == NULL)
-		{
-			DllFilename = FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll"));
-			DLLHandle = FPlatformProcess::GetDllHandle(*DllFilename);
-		}
- 
-		if( DLLHandle != NULL )
-		{
-			// Get API function pointers of interest
-			GetInterfaceVersionSimplygonSDK = (GetInterfaceVersionSimplygonSDKPtr)FPlatformProcess::GetDllExport( DLLHandle, TEXT( "GetInterfaceVersionSimplygonSDK" ) );
-			InitializeSimplygonSDK = (InitializeSimplygonSDKPtr)FPlatformProcess::GetDllExport( DLLHandle, TEXT( "InitializeSimplygonSDK" ) );
- 
-			if ((GetInterfaceVersionSimplygonSDK == NULL) || (InitializeSimplygonSDK == NULL))
-			{
-				// Couldn't find the functions we need.  
-				UE_LOG(LogSimplygon,Warning,TEXT("Failed to acquire Simplygon DLL exports."));
-				FPlatformProcess::FreeDllHandle( DLLHandle );
-				SDK = NULL;
-				return NULL;
-			}
-		}
-		else
 		{
 			int32 ErrorNum = FPlatformMisc::GetLastError();
 			TCHAR ErrorMsg[1024];
 			FPlatformMisc::GetSystemErrorMessage( ErrorMsg, 1024, ErrorNum );
-			UE_LOG(LogSimplygon,Warning,TEXT("Failed to get Simplygon DLL handle.\n\nError: %s (%d)"),ErrorMsg,ErrorNum);
-			SDK = NULL;
+			UE_LOG(LogSimplygon,Error,TEXT("Failed to get Simplygon DLL handle: %s (%d)"),ErrorMsg,ErrorNum);
 			return NULL;
 		}
-#endif
 
+		// Get API function pointers of interest
+		typedef void (*GetInterfaceVersionSimplygonSDKPtr)(ANSICHAR*);
+		GetInterfaceVersionSimplygonSDKPtr GetInterfaceVersionSimplygonSDK = (GetInterfaceVersionSimplygonSDKPtr)FPlatformProcess::GetDllExport( DLLHandle, TEXT( "GetInterfaceVersionSimplygonSDK" ) );
+
+		typedef int (*InitializeSimplygonSDKPtr)(const char* LicenseData , SimplygonSDK::ISimplygonSDK** OutInterfacePtr);
+		InitializeSimplygonSDKPtr InitializeSimplygonSDK = (InitializeSimplygonSDKPtr)FPlatformProcess::GetDllExport( DLLHandle, TEXT( "InitializeSimplygonSDK" ) );
+ 
+		if ((GetInterfaceVersionSimplygonSDK == NULL) || (InitializeSimplygonSDK == NULL))
+		{
+			// Couldn't find the functions we need.  
+			UE_LOG(LogSimplygon,Warning,TEXT("Failed to acquire Simplygon DLL exports."));
+			FPlatformProcess::FreeDllHandle( DLLHandle );
+			return NULL;
+		}
+
+		ANSICHAR VersionHash[200];
 		GetInterfaceVersionSimplygonSDK(VersionHash);
 		if (FCStringAnsi::Strcmp(VersionHash, SimplygonSDK::GetInterfaceVersionHash()) != 0)
 		{
@@ -389,14 +384,13 @@ public:
 		}
 
 		const char* LicenseData = NULL;
-#if WITH_SIMPLYGON_DLL
 		TArray<uint8> LicenseFileContents;
 		if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(*DllPath, TEXT("license.dat")), FILEREAD_Silent) && LicenseFileContents.Num() > 0)
 		{
 			LicenseData = (const char*)LicenseFileContents.GetTypedData();
 		}
-#endif // #if WITH_SIMPLYGON_DLL
 
+		SimplygonSDK::ISimplygonSDK* SDK = NULL;
 		int32 Result = InitializeSimplygonSDK(LicenseData, &SDK);
 		if (Result != SimplygonSDK::SG_ERROR_NOERROR && Result != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
 		{
@@ -426,7 +420,7 @@ public:
 		const TArray<MaterialExportUtils::FFlattenMaterial>& InputMaterials,
 		const struct FMeshProxySettings& InProxySettings,
 		FRawMesh& OutProxyMesh,
-		MaterialExportUtils::FFlattenMaterial& OutMaterial) OVERRIDE
+		MaterialExportUtils::FFlattenMaterial& OutMaterial) override
 	{
 		if (InputMeshes.Num() == 0)
 		{
@@ -863,7 +857,7 @@ private:
 			8.0f,	// Highest
 		};
 
-		checkAtCompileTime( ARRAY_COUNT( ImportanceTable ) == (EMeshFeatureImportance::Highest+1), ImportanceTableSizeMismatch ); // -1 because of TEMP_BROKEN(?)
+		static_assert(ARRAY_COUNT(ImportanceTable) == (EMeshFeatureImportance::Highest + 1), "Importance table size mismatch."); // -1 because of TEMP_BROKEN(?)
 		check(Settings.SilhouetteImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.TextureImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.ShadingImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
@@ -1382,7 +1376,7 @@ private:
 			8.0f,	// Highest
 		};
 
-		checkAtCompileTime( ARRAY_COUNT( ImportanceTable ) == SMOI_MAX, BadImportanceTableSize );
+		static_assert(ARRAY_COUNT(ImportanceTable) == SMOI_MAX, "Bad importance table size.");
 		check( Settings.SilhouetteImportance < SMOI_MAX );
 		check( Settings.TextureImportance < SMOI_MAX );
 		check( Settings.ShadingImportance < SMOI_MAX );

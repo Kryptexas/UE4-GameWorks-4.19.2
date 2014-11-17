@@ -16,6 +16,24 @@ namespace UnrealBuildTool.Linux
         /** Platform name (embeds architecture for now) */
         static private string TargetPlatformName = "Linux_x64";
 
+        /** Linux architecture (compiler target triplet) */
+        static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
+
+        /** The current architecture */
+        public override string GetActiveArchitecture()
+        {
+            return DefaultArchitecture;
+        }
+
+        /**
+         * Allow the platform to apply architecture-specific name according to its rules
+         */
+        public override string ApplyArchitectureName(string BinaryName)
+        {
+            // Linux ignores architecture-specific names, although it might be worth it to prepend architecture
+            return BinaryName;
+        }
+
         /** 
          * Whether platform supports switching SDKs during runtime
          * 
@@ -89,7 +107,7 @@ namespace UnrealBuildTool.Linux
 				return;
 			}
 
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
             {
                 bool bRegisterBuildPlatform = true;
 
@@ -150,6 +168,10 @@ namespace UnrealBuildTool.Linux
                     return "";
                 case UEBuildBinaryType.StaticLibrary:
                     return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
             }
             return base.GetBinaryExtension(InBinaryType);
         }
@@ -201,15 +223,7 @@ namespace UnrealBuildTool.Linux
         public override void ValidateUEBuildConfiguration()
         {
             BuildConfiguration.bUseUnityBuild = true;
-
-            UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-            UEBuildConfiguration.bCompilePhysX = true;
-            UEBuildConfiguration.bCompileAPEX = false;
-
-            UEBuildConfiguration.bBuildEditor = false;
-            UEBuildConfiguration.bBuildDeveloperTools = false;
-            UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileNetworkProfiler = false;
+            BuildConfiguration.bAllowXGE = false;   // disable XGE until Xoreax figures out the reason of and fixes Incredibuild crashes (e.g. TTP #341174).
 
             // Don't stop compilation at first error...
             BuildConfiguration.bStopXGECompilationAfterErrors = true;
@@ -227,30 +241,6 @@ namespace UnrealBuildTool.Linux
          *	@return	bool	true if PDB files should be used, false if not
          */
         public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
-        {
-            return true;
-        }
-
-        /**
-         *	Whether the editor should be built for this platform or not
-         *	
-         *	@param	InPlatform		The UnrealTargetPlatform being built
-         *	@param	InConfiguration	The UnrealTargetConfiguration being built
-         *	@return	bool			true if the editor should be built, false if not
-         */
-        public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-        {
-            return true;
-        }
-
-        /**
-         *	Whether the platform requires cooked data
-         *	
-         *	@param	InPlatform		The UnrealTargetPlatform being built
-         *	@param	InConfiguration	The UnrealTargetConfiguration being built
-         *	@return	bool			true if the platform requires cooked data, false if not
-         */
-        public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
         {
             return true;
         }
@@ -309,20 +299,19 @@ namespace UnrealBuildTool.Linux
          */
         public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
         {
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_UNICODE");
-
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
 
             // link with Linux libraries.
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("pthread");
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
 
-            UEBuildConfiguration.bCompileSimplygon = false;
+            // Disable Simplygon support if compiling against the NULL RHI.
+            if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
+            {
+                UEBuildConfiguration.bCompileSimplygon = false;
+            }
         }
 
         /**

@@ -24,6 +24,7 @@ public class UnrealLaunchDaemon : ModuleRules
 				"StandaloneRenderer",
 				"LaunchDaemonMessages",
 				"Projects",
+				"Messaging",
 				"UdpMessaging"
 			}
 		);

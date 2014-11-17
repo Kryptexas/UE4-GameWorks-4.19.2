@@ -8,5 +8,9 @@
 
 UPaperRuntimeSettings::UPaperRuntimeSettings(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, DefaultPixelsPerUnrealUnit(2.56f)
+	, bEnableSpriteAtlasGroups(false)
+	, bEnableTileMapEditing(false)
+	, bEnableTerrainSplineEditing(false)
 {
 }

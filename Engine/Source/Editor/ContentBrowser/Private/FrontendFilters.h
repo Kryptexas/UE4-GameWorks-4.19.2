@@ -6,6 +6,36 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+/** A filter for text search */
+class FFrontendFilter_Text : public FFrontendFilter
+{
+public:
+	FFrontendFilter_Text();
+	~FFrontendFilter_Text();
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override { return TEXT("TextFilter"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_Text", "Text"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_TextTooltip", "Show only assets that match the input text"); }
+
+	// IFilter implementation
+	virtual bool PassesFilter(AssetFilterType InItem) const override;
+
+public:
+	/** Returns the unsanitized and unsplit filter terms */
+	FText GetRawFilterText() const;
+
+	/** Set the Text to be used as the Filter's restrictions */
+	void SetRawFilterText(const FText& InFilterText);
+
+private:
+
+	/** Handler for the internal text filter */
+	void HandleOnChangedEvent();
+
+	TTextFilter<AssetFilterType> TextFilter;
+};
+
 /** A filter that displays only checked out assets */
 class FFrontendFilter_CheckedOut : public FFrontendFilter, public TSharedFromThis<FFrontendFilter_CheckedOut>
 {
@@ -13,13 +43,13 @@ public:
 	FFrontendFilter_CheckedOut(TSharedPtr<FFrontendFilterCategory> InCategory);
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("CheckedOut"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_CheckedOut", "Checked Out"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FrontendFilter_CheckedOutTooltip", "Show only assets that you have checked out or pending for add."); }
-	virtual void ActiveStateChanged(bool bActive) OVERRIDE;
+	virtual FString GetName() const override { return TEXT("CheckedOut"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_CheckedOut", "Checked Out"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_CheckedOutTooltip", "Show only assets that you have checked out or pending for add."); }
+	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
 
 private:
 	
@@ -34,15 +64,24 @@ private:
 class FFrontendFilter_Modified : public FFrontendFilter
 {
 public:
-	FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
+	FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory);
+	~FFrontendFilter_Modified();
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("Modified"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_Modified", "Modified"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FrontendFilter_ModifiedTooltip", "Show only assets that have been modified and not yet saved."); }
+	virtual FString GetName() const override { return TEXT("Modified"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_Modified", "Modified"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_ModifiedTooltip", "Show only assets that have been modified and not yet saved."); }
+	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+
+private:
+
+	/** Handler for when a package's dirty state has changed */
+	void OnPackageDirtyStateUpdated(UPackage* Package);
+
+	bool bIsCurrentlyActive;
 };
 
 /** A filter that displays blueprints that have replicated properties */
@@ -52,12 +91,12 @@ public:
 	FFrontendFilter_ReplicatedBlueprint(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("ReplicatedBlueprint"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FFrontendFilter_ReplicatedBlueprint", "Replicated Blueprints"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FFrontendFilter_ReplicatedBlueprintToolTip", "Show only blueprints with replicated properties."); }
+	virtual FString GetName() const override { return TEXT("ReplicatedBlueprint"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FFrontendFilter_ReplicatedBlueprint", "Replicated Blueprints"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_ReplicatedBlueprintToolTip", "Show only blueprints with replicated properties."); }
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
 };
 
 /** An inverse filter that allows display of content in developer folders that are not the current user's */
@@ -68,19 +107,27 @@ public:
 	FFrontendFilter_ShowOtherDevelopers(TSharedPtr<FFrontendFilterCategory> InCategory);
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("ShowOtherDevelopers"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_ShowOtherDevelopers", "Other Developers"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FrontendFilter_ShowOtherDevelopersTooltip", "Allow display of assets in developer folders that aren't yours."); }
-	virtual bool IsInverseFilter() const OVERRIDE { return true; }
-	virtual void SetCurrentFilter(const FARFilter& InFilter) OVERRIDE;
+	virtual FString GetName() const override { return TEXT("ShowOtherDevelopers"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_ShowOtherDevelopers", "Other Developers"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_ShowOtherDevelopersTooltip", "Allow display of assets in developer folders that aren't yours."); }
+	virtual bool IsInverseFilter() const override { return true; }
+	virtual void SetCurrentFilter(const FARFilter& InFilter) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+
+public:
+	/** Sets if we should filter out assets from other developers */
+	void SetShowOtherDeveloperAssets(bool bValue);
+
+	/** Gets if we should filter out assets from other developers */
+	bool GetShowOtherDeveloperAssets() const;
 
 private:
 	FString BaseDeveloperPath;
 	FString UserDeveloperPath;
 	bool bIsOnlyOneDeveloperPathSelected;
+	bool bShowOtherDeveloperAssets;
 };
 
 /** An inverse filter that allows display of object redirectors */
@@ -91,14 +138,14 @@ public:
 	FFrontendFilter_ShowRedirectors(TSharedPtr<FFrontendFilterCategory> InCategory);
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("ShowRedirectors"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_ShowRedirectors", "Show Redirectors"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FrontendFilter_ShowRedirectorsToolTip", "Allow display of Redirectors."); }
-	virtual bool IsInverseFilter() const OVERRIDE { return true; }
-	virtual void SetCurrentFilter(const FARFilter& InFilter) OVERRIDE;
+	virtual FString GetName() const override { return TEXT("ShowRedirectors"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_ShowRedirectors", "Show Redirectors"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_ShowRedirectorsToolTip", "Allow display of Redirectors."); }
+	virtual bool IsInverseFilter() const override { return true; }
+	virtual void SetCurrentFilter(const FARFilter& InFilter) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
 
 private:
 	bool bAreRedirectorsInBaseFilter;
@@ -114,13 +161,13 @@ public:
 	~FFrontendFilter_InUseByLoadedLevels();
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("InUseByLoadedLevels"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_InUseByLoadedLevels", "In Use By Level"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FrontendFilter_InUseByLoadedLevelsToolTip", "Show only assets that are currently in use by any loaded level."); }
-	virtual void ActiveStateChanged(bool bActive) OVERRIDE;
+	virtual FString GetName() const override { return TEXT("InUseByLoadedLevels"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_InUseByLoadedLevels", "In Use By Level"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_InUseByLoadedLevelsToolTip", "Show only assets that are currently in use by any loaded level."); }
+	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE;
+	virtual bool PassesFilter( AssetFilterType InItem ) const override;
 
 	/** Handler for when maps change in the editor */
 	void OnEditorMapChange( uint32 MapChangeFlags );

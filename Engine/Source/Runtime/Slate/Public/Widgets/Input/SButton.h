@@ -19,6 +19,7 @@ public:
 		, _ContentPadding(FMargin(4.0, 2.0))
 		, _Text()
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
+		, _TouchMethod( EButtonTouchMethod::DownAndUp )
 		, _DesiredSizeScale( FVector2D(1,1) )
 		, _ContentScale( FVector2D(1,1) )
 		, _ButtonColorAndOpacity(FLinearColor::White)
@@ -53,6 +54,9 @@ public:
 		/** Sets the rules to use for determining whether the button was clicked.  This is an advanced setting and generally should be left as the default. */
 		SLATE_ARGUMENT( EButtonClickMethod::Type, ClickMethod )
 
+		/** How should the button be clicked with touch events? */
+		SLATE_ARGUMENT( EButtonTouchMethod::Type, TouchMethod )
+
 		SLATE_ATTRIBUTE( FVector2D, DesiredSizeScale )
 
 		SLATE_ATTRIBUTE( FVector2D, ContentScale )
@@ -81,21 +85,21 @@ public:
 	 *
 	 * @return  True if this widget can take keyboard focus
 	 */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override;
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
 	/**
 	 * Returns true if this button is currently pressed
@@ -114,17 +118,20 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	/** Gets the content padding of the button */
-	FMargin GetContentPadding() const
-	{
-		return ContentPadding.Get();
-	}
+	/** See ContentPadding attribute */
+	void SetContentPadding(const TAttribute<FMargin>& InContentPadding);
 
-	/** Sets the content padding of the button */
-	void SetContentPadding(const TAttribute<FMargin>& InContentPadding)
-	{
-		ContentPadding = InContentPadding;
-	}
+	/** See HoveredSound attribute */
+	void SetHoveredSound(TOptional<FSlateSound> InHoveredSound);
+
+	/** See PressedSound attribute */
+	void SetPressedSound(TOptional<FSlateSound> InPressedSound);
+
+	/** See OnClicked event */
+	void SetOnClicked(FOnClicked InOnClicked);
+
+	/** See ButtonStyle attribute */
+	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 
 protected:
 	/** @return combines the user-specified margin and the button's internal margin. */
@@ -145,6 +152,9 @@ protected:
 	/** The delegate to execute when the button is clicked */
 	FOnClicked OnClicked;
 
+	/** Style resource for the button */
+	const FButtonStyle* Style;
+
 	/** Brush resource that represents a button */
 	const FSlateBrush* NormalImage;
 	/** Brush resource that represents a button when it is hovered */
@@ -154,6 +164,9 @@ protected:
 
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;
+
+	/** How should the button be clicked with touch events? */
+	EButtonTouchMethod::Type TouchMethod;
 
 	/** Can this button be focused? */
 	bool bIsFocusable;
@@ -171,5 +184,5 @@ protected:
 	FSlateSound PressedSound;
 
 private:
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize() const override;
 };

@@ -5,27 +5,27 @@
 
 class FMeshPaintModule : public IMeshPaintModule
 {
-private:
-	TSharedPtr<FEdModeMeshPaint> EdModeMeshPaint;
 public:
 	
 	/**
 	 * Called right after the module's DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
-		TSharedRef<FEdModeMeshPaint> NewEditorMode = MakeShareable(new FEdModeMeshPaint);
-		GEditorModeTools().RegisterMode(NewEditorMode);
-		EdModeMeshPaint = NewEditorMode;
+		FEditorModeRegistry::Get().RegisterMode<FEdModeMeshPaint>(
+			FBuiltinEditorModes::EM_MeshPaint,
+			NSLOCTEXT("MeshPaint_Mode", "MeshPaint_ModeName", "Paint"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode", "LevelEditor.MeshPaintMode.Small"),
+			true, 200
+			);
 	}
 
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
-		GEditorModeTools().UnregisterMode(EdModeMeshPaint.ToSharedRef());
-		EdModeMeshPaint = NULL;
+		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_MeshPaint);
 	}
 };
 

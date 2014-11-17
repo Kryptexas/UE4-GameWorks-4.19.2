@@ -22,7 +22,8 @@ public:
 	 */
 	static inline IGameplayTagsModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IGameplayTagsModule >( "GameplayTags" );
+		static const FName GameplayTagModuleName(TEXT("GameplayTags"));
+		return FModuleManager::LoadModuleChecked< IGameplayTagsModule >(GameplayTagModuleName);
 	}
 
 	/**
@@ -32,10 +33,23 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "GameplayTags" );
+		static const FName GameplayTagModuleName(TEXT("GameplayTags"));
+		return FModuleManager::Get().IsModuleLoaded(GameplayTagModuleName);
 	}
 
 	virtual UGameplayTagsManager& GetGameplayTagsManager() = 0;
 
+	/**
+	 * Helper function to request a gameplay tag by name
+	 * 
+	 * @param InTagName	Tag name to request
+	 * 
+	 * @return Gameplay tag associated with the specified name. Will be marked invalid if tag not found
+	 */
+	static FGameplayTag RequestGameplayTag(FName InTagName)
+	{
+		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+		return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(InTagName);
+	}
 };
 

@@ -7,8 +7,9 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSequencerTools, Log, All);
 
-FSequencerObjectChangeListener::FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer )
+FSequencerObjectChangeListener::FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer, bool bInListenForActorsOnly )
 	: Sequencer( InSequencer )
+	, bListenForActorsOnly( bInListenForActorsOnly )
 {
 	FCoreDelegates::OnPreObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPreEditChange);
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPostEditChange);
@@ -23,14 +24,37 @@ FSequencerObjectChangeListener::~FSequencerObjectChangeListener()
 	GEditor->OnActorMoved().RemoveAll( this );
 }
 
-void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey )
+void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects,  TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey )
 {
-	ClassToPropertyChangedMap.FindRef( PropertyValue->GetProperty()->GetClass() ).Broadcast( ChangedObjects, *PropertyValue, bRequireAutoKey );
+	TSharedPtr< const IPropertyHandle> HandleToUse = PropertyValue;
+
+	TSharedPtr<const IPropertyHandle> ParentHandle = PropertyValue->GetParentHandle();
+
+	if( ParentHandle.IsValid() && ParentHandle->GetProperty() && ParentHandle->GetProperty()->IsA<UStructProperty>() )
+	{
+		// Handle the case where internal values of a struct are being set.  We want to key the whole struct in this case
+		// @todo Sequencer: Is this always the case?
+		HandleToUse = ParentHandle;
+	}
+
+	UProperty* Property = HandleToUse->GetProperty();
+	UStructProperty* StructProperty = Cast<UStructProperty>( Property );
+
+	FName PropertyName = StructProperty ? StructProperty->Struct->GetFName() : Property->GetFName();
+
+	ClassToPropertyChangedMap.FindRef( PropertyName ).Broadcast( ChangedObjects, *HandleToUse, bRequireAutoKey );
 }
 
-FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass )
+bool FSequencerObjectChangeListener::IsObjectValidForListening( UObject* Object ) const
 {
-	return ClassToPropertyChangedMap.FindOrAdd( PropertyClass );
+	// @todo Sequencer - Pre/PostEditChange is sometimes called for inner objects of other objects (like actors with components)
+	// We only want the outer object so assume it's an actor for now
+	return bListenForActorsOnly ? Object->IsA<AActor>() : true;
+}
+
+FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePropertyChanged( FName PropertyTypeName )
+{
+	return ClassToPropertyChangedMap.FindOrAdd( PropertyTypeName );
 }
 
 FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectChanges()
@@ -47,9 +71,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 		// Register with the property editor module that we'd like to know about animated float properties that change
 		FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
-		// @todo Sequencer PreEditChange is sometimes called for inner objects of other objects (like actors with components)
-		// We only want the outer object so assume it's an actor for now
-		if( Object->IsA( AActor::StaticClass() ) )
+		if( IsObjectValidForListening(Object) )
 		{
 			TSharedPtr<IPropertyChangeListener> PropertyChangeListener = ActivePropertyChangeListeners.FindRef( Object );
 
@@ -66,7 +88,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 				Settings.bIgnoreArrayProperties = true;
 				Settings.bIgnoreObjectProperties = true;
 				// Property flags which must be on the property
-				Settings.RequiredPropertyFlags = CPF_Interp;
+				Settings.RequiredPropertyFlags = 0;
 				// Property flags which cannot be on the property
 				Settings.DisallowedPropertyFlags = CPF_EditConst;
 
@@ -78,18 +100,14 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 
 void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )
 {
-	if( Object )
+	if( Object && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
-		// @todo Sequencer - Pre/PostEditChange is sometimes called for inner objects of other objects (like actors with components)
-		// We only want the outer object so assume it's an actor for now
-		bool bObjectIsActor = Object->IsA( AActor::StaticClass() );
+		bool bIsObjectValid = IsObjectValidForListening( Object );
 
-		// Default to propagating changes to objects only if they are actors
-		// if this change is handled by auto-key we will not propagate changes
-		bool bShouldPropagateChanges = bObjectIsActor;
+		bool bShouldPropagateChanges = bIsObjectValid;
 
 		// We only care if we are in auto-key mode and not attempting to change properties of a CDO (which cannot be animated)
-		if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && bObjectIsActor && !Object->HasAnyFlags(RF_ClassDefaultObject) )
+		if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && bIsObjectValid && !Object->HasAnyFlags(RF_ClassDefaultObject) )
 		{
 			TSharedPtr< IPropertyChangeListener > Listener;
 			ActivePropertyChangeListeners.RemoveAndCopyValue( Object, Listener );

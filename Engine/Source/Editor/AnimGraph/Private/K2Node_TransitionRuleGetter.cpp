@@ -106,39 +106,6 @@ FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return Super::GetNodeTitle(TitleType);
 }
 
-FString UK2Node_TransitionRuleGetter::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (AssociatedAnimAssetPlayerNode != NULL)
-	{
-		UAnimationAsset* BoundAsset = AssociatedAnimAssetPlayerNode->GetAnimationAsset();
-		if (BoundAsset)
-		{
-			return  FString::Printf(TEXT("%s Asset"), *BoundAsset->GetName());
-		}
-	}
-	else if (AssociatedStateNode != NULL)
-	{
-		if (UAnimStateNode* State = Cast<UAnimStateNode>(AssociatedStateNode))
-		{
-			const FString OwnerName = State->GetOuter()->GetName();
-
-			return FString::Printf(TEXT("%s.%s State"), *OwnerName, *(State->GetStateName()));
-		}
-	}
-	else if (GetterType == ETransitionGetter::CurrentTransitionDuration)
-	{
-		return TEXT("Transition");
-	}
-	else if (GetterType == ETransitionGetter::CurrentState_ElapsedTime ||
-		GetterType == ETransitionGetter::CurrentState_GetBlendWeight)
-	{
-		return TEXT("Current State");
-	}
-
-	return Super::GetNodeNativeTitle(TitleType);
-}
-
 FString UK2Node_TransitionRuleGetter::GetTooltip() const
 {
 	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();

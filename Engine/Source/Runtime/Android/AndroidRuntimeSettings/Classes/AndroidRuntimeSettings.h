@@ -35,6 +35,19 @@ namespace EAndroidScreenOrientation
 	};
 }
 
+// Depth buffer precision preferences
+UENUM()
+namespace EAndroidDepthBufferPreference
+{
+	enum Type
+	{
+		Default = 0 UMETA(DisplayName = "Default", ManifestValue = "0"),
+		Bits16 = 16 UMETA(DisplayName = "16-bit", ManifestValue = "16"),
+		Bits24 = 24 UMETA(DisplayName = "24-bit", ManifestValue = "24"),
+		Bits32 = 32 UMETA(DisplayName = "32-bit", ManifestValue = "32"),
+	};
+}
+
 /**
  * Holds the game-specific achievement name and corresponding ID from Google Play services.
  */
@@ -81,6 +94,10 @@ public:
 	// The permitted orientation or orientations of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
+
+	// The preferred depth buffer bitcount for Android
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
+	TEnumAsByte<EAndroidDepthBufferPreference::Type> DepthBufferPreference;
 
 	// Should Google Play support be enabled?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)

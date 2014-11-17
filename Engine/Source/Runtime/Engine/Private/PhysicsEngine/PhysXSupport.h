@@ -73,9 +73,11 @@ private:
 	PxScene* PScene;
 };
 
+#define SCOPED_SCENE_TOKENPASTE_INNER(x,y) x##y
+#define SCOPED_SCENE_TOKENPASTE(x,y) SCOPED_SCENE_TOKENPASTE_INNER(x,y)
+#define SCOPED_SCENE_READ_LOCK( _scene ) FPhysXSceneReadLock SCOPED_SCENE_TOKENPASTE(_rlock,__LINE__)(_scene)
+#define SCOPED_SCENE_WRITE_LOCK( _scene ) FPhysXSceneWriteLock SCOPED_SCENE_TOKENPASTE(_wlock,__LINE__)(_scene)
 
-#define SCOPED_SCENE_READ_LOCK( _scene ) FPhysXSceneReadLock _rlock##__LINE__(_scene)
-#define SCOPED_SCENE_WRITE_LOCK( _scene ) FPhysXSceneWriteLock _wlock##__LINE__(_scene)
 #define SCENE_LOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->lockRead(); }
 #define SCENE_UNLOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->unlockRead(); }
 #define SCENE_LOCK_WRITE( _scene ) if((_scene) != NULL) { (_scene)->lockWrite(); }
@@ -144,22 +146,6 @@ const uint32 AggregateBodyShapesThreshold	   = 999999999;
 const bool bGlobalCCD = true;
 
 /////// UTILS
-
-/** 
- * Set of flags stored in the PhysX FilterData
- *
- * When this flag is saved in CreateShapeFilterData or CreateQueryFilterData, we only use 24 bits
- * If you plan to use more than 24 bits, you'll also need to change the format of ShapeFilterData,QueryFilterData
- * Make sure you also change preFilter/SimFilterShader where it's used
- */
-enum EPhysXFilterDataFlags
-{
-	EPDF_SimpleCollision	=	0x0001,
-	EPDF_ComplexCollision	=	0x0002,
-	EPDF_CCD				=	0x0004,
-	EPDF_ContactNotify		=	0x0008,
-	EPDF_StaticShape		=	0x0010
-};
 
 /** Get a pointer to the PxScene from an SceneIndex (will be NULL if scene already shut down) */
 PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
@@ -272,7 +258,7 @@ public:
 		, ReadPos(0)
 	{}
 
-	virtual PxU32 read(void* Dest, PxU32 Count) OVERRIDE
+	virtual PxU32 read(void* Dest, PxU32 Count) override
 	{
 		check(Data);
 		check(Dest);
@@ -334,10 +320,10 @@ public:
 	virtual ~FPhysXAllocator() 
 	{}
 
-	virtual void* allocate(size_t size, const char* typeName, const char* filename, int line) OVERRIDE
+	virtual void* allocate(size_t size, const char* typeName, const char* filename, int line) override
 	{
 #if PHYSX_MEMORY_STATS
-		checkAtCompileTime(sizeof(FPhysXAllocationHeader) <= 16,FPhysXAllocationHeaderMustBeLessThan16Bytes);
+		static_assert(sizeof(FPhysXAllocationHeader) <= 16, "FPhysXAllocationHeader size must be less than 16 bytes.");
 
 		INC_DWORD_STAT_BY(STAT_MemoryPhysXTotalAllocationSize, size);
 
@@ -366,7 +352,7 @@ public:
 #endif
 	}
 	 
-	virtual void deallocate(void* ptr) OVERRIDE
+	virtual void deallocate(void* ptr) override
 	{
 #if PHYSX_MEMORY_STATS
 		if( ptr )
@@ -412,7 +398,7 @@ class FPhysXBroadcastingAllocator : public PxBroadcastingAllocator
 class FPhysXErrorCallback : public PxErrorCallback
 {
 public:
-	virtual void reportError(PxErrorCode::Enum e, const char* message, const char* file, int line) OVERRIDE
+	virtual void reportError(PxErrorCode::Enum e, const char* message, const char* file, int line) override
 	{
 		// if not in game, ignore Perf warnings - i.e. Moving Static actor in editor will produce this warning
 		if (GIsEditor && e == PxErrorCode::ePERF_WARNING)
@@ -461,25 +447,25 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 /** Event callback used to notify engine about various collision events */
 class FPhysXSimEventCallback : public PxSimulationEventCallback
 {
-	virtual void onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) OVERRIDE;
-	virtual void onWake(PxActor** actors, PxU32 count) OVERRIDE {}
-	virtual void onSleep(PxActor** actors, PxU32 count) OVERRIDE {}
-	virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) OVERRIDE {}
-	virtual void onContact(const PxContactPairHeader& PairHeader, const PxContactPair* Pairs, PxU32 NumPairs) OVERRIDE;
+	virtual void onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) override;
+	virtual void onWake(PxActor** actors, PxU32 count) override {}
+	virtual void onSleep(PxActor** actors, PxU32 count) override {}
+	virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override {}
+	virtual void onContact(const PxContactPairHeader& PairHeader, const PxContactPair* Pairs, PxU32 NumPairs) override;
 };
 
 /** Used to dispatch physx tasks to task graph */
 class FPhysXCPUDispatcher : public PxCpuDispatcher
 {
-	virtual void submitTask(PxBaseTask& task ) OVERRIDE;
-	virtual PxU32 getWorkerCount() const OVERRIDE;
+	virtual void submitTask(PxBaseTask& task ) override;
+	virtual PxU32 getWorkerCount() const override;
 };
 
 /** Used to dispatch physx tasks to the game thread */
 class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 {
-	virtual void submitTask( PxBaseTask& task ) OVERRIDE;
-	virtual PxU32 getWorkerCount() const OVERRIDE;
+	virtual void submitTask( PxBaseTask& task ) override;
+	virtual PxU32 getWorkerCount() const override;
 };
 
 #if WITH_APEX
@@ -492,53 +478,53 @@ class FApexNullRenderResourceManager : public NxUserRenderResourceManager
 public:
 	// NxUserRenderResourceManager interface.
 
-	virtual NxUserRenderVertexBuffer*	createVertexBuffer(const NxUserRenderVertexBufferDesc&) OVERRIDE
+	virtual NxUserRenderVertexBuffer*	createVertexBuffer(const NxUserRenderVertexBufferDesc&) override
 	{
 		return NULL;
 	}
-	virtual NxUserRenderIndexBuffer*	createIndexBuffer(const NxUserRenderIndexBufferDesc&) OVERRIDE
+	virtual NxUserRenderIndexBuffer*	createIndexBuffer(const NxUserRenderIndexBufferDesc&) override
 	{
 		return NULL;
 	}
-	virtual NxUserRenderBoneBuffer*		createBoneBuffer(const NxUserRenderBoneBufferDesc&) OVERRIDE
+	virtual NxUserRenderBoneBuffer*		createBoneBuffer(const NxUserRenderBoneBufferDesc&) override
 	{
 		return NULL;
 	}
-	virtual NxUserRenderInstanceBuffer*	createInstanceBuffer(const NxUserRenderInstanceBufferDesc&) OVERRIDE
+	virtual NxUserRenderInstanceBuffer*	createInstanceBuffer(const NxUserRenderInstanceBufferDesc&) override
 	{
 		return NULL;
 	}
-	virtual NxUserRenderSpriteBuffer*   createSpriteBuffer(const NxUserRenderSpriteBufferDesc&) OVERRIDE
-	{
-		return NULL;
-	}
-	
-	virtual NxUserRenderSurfaceBuffer*  createSurfaceBuffer(const NxUserRenderSurfaceBufferDesc& desc)   OVERRIDE
+	virtual NxUserRenderSpriteBuffer*   createSpriteBuffer(const NxUserRenderSpriteBufferDesc&) override
 	{
 		return NULL;
 	}
 	
-	virtual NxUserRenderResource*		createResource(const NxUserRenderResourceDesc&) OVERRIDE
+	virtual NxUserRenderSurfaceBuffer*  createSurfaceBuffer(const NxUserRenderSurfaceBufferDesc& desc)   override
 	{
 		return NULL;
 	}
-	virtual void						releaseVertexBuffer(NxUserRenderVertexBuffer&) OVERRIDE {}
-	virtual void						releaseIndexBuffer(NxUserRenderIndexBuffer&) OVERRIDE {}
-	virtual void						releaseBoneBuffer(NxUserRenderBoneBuffer&) OVERRIDE {}
-	virtual void						releaseInstanceBuffer(NxUserRenderInstanceBuffer&) OVERRIDE {}
-	virtual void						releaseSpriteBuffer(NxUserRenderSpriteBuffer&) OVERRIDE {}
-	virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) OVERRIDE{}
-	virtual void						releaseResource(NxUserRenderResource&) OVERRIDE {}
+	
+	virtual NxUserRenderResource*		createResource(const NxUserRenderResourceDesc&) override
+	{
+		return NULL;
+	}
+	virtual void						releaseVertexBuffer(NxUserRenderVertexBuffer&) override {}
+	virtual void						releaseIndexBuffer(NxUserRenderIndexBuffer&) override {}
+	virtual void						releaseBoneBuffer(NxUserRenderBoneBuffer&) override {}
+	virtual void						releaseInstanceBuffer(NxUserRenderInstanceBuffer&) override {}
+	virtual void						releaseSpriteBuffer(NxUserRenderSpriteBuffer&) override {}
+	virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) override{}
+	virtual void						releaseResource(NxUserRenderResource&) override {}
 
-	virtual physx::PxU32				getMaxBonesForMaterial(void*) OVERRIDE
+	virtual physx::PxU32				getMaxBonesForMaterial(void*) override
 	{
 		return 0;
 	}
-	virtual bool						getSpriteLayoutData(physx::PxU32 , physx::PxU32 , NxUserRenderSpriteBufferDesc* ) OVERRIDE
+	virtual bool						getSpriteLayoutData(physx::PxU32 , physx::PxU32 , NxUserRenderSpriteBufferDesc* ) override
 	{
 		return false;
 	}
-	virtual bool						getInstanceLayoutData(physx::PxU32 , physx::PxU32 , NxUserRenderInstanceBufferDesc* ) OVERRIDE
+	virtual bool						getInstanceLayoutData(physx::PxU32 , physx::PxU32 , NxUserRenderInstanceBufferDesc* ) override
 	{
 		return false;
 	}
@@ -555,7 +541,7 @@ class FApexResourceCallback : public NxResourceCallback
 public:
 	// NxResourceCallback interface.
 
-	virtual void* requestResource(const char* NameSpace, const char* Name) OVERRIDE
+	virtual void* requestResource(const char* NameSpace, const char* Name) override
 	{
 		// Here a pointer is looked up by name and returned
 		(void)NameSpace;
@@ -564,7 +550,7 @@ public:
 		return NULL;
 	}
 
-	virtual void  releaseResource(const char* NameSpace, const char* Name, void* Resource) OVERRIDE
+	virtual void  releaseResource(const char* NameSpace, const char* Name, void* Resource) override
 	{
 		// Here we release a named resource
 		(void)NameSpace;
@@ -583,9 +569,9 @@ class FApexPhysX3Interface : public NxApexPhysX3Interface
 public:
 	// NxApexPhysX3Interface interface.
 
-	virtual void				setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex) OVERRIDE;
+	virtual void				setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex) override;
 
-	virtual physx::PxPairFlags	getContactReportFlags(const physx::PxShape* PShape) const OVERRIDE;
+	virtual physx::PxPairFlags	getContactReportFlags(const physx::PxShape* PShape) const override;
 };
 extern FApexPhysX3Interface GApexPhysX3Interface;
 
@@ -599,7 +585,8 @@ class FApexChunkReport : public NxUserChunkReport
 public:
 	// NxUserChunkReport interface.
 
-	virtual void	onDamageNotify(const NxApexDamageEventReportData& damageEvent) OVERRIDE;
+	virtual void	onDamageNotify(const NxApexDamageEventReportData& damageEvent) override;
+	virtual void	onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent) override;
 };
 extern FApexChunkReport GApexChunkReport;
 #endif // #if WITH_APEX
@@ -618,7 +605,7 @@ public:
 		: UsedMemory(0)
 	{}
 
-	virtual PxU32 write(const void* Src, PxU32 Count) OVERRIDE
+	virtual PxU32 write(const void* Src, PxU32 Count) override
 	{
 		UsedMemory += Count;
 		return Count;
@@ -634,3 +621,6 @@ public:
  **/
 ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection);
 #endif // WITH_PHYSX
+
+
+#include "../Collision/PhysicsFiltering.h"

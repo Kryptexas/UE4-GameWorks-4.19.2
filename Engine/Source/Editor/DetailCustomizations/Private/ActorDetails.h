@@ -11,7 +11,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 private:
 	/** Delegate that returns an icon */
 	DECLARE_DELEGATE_RetVal(const FSlateBrush*, FGetBrushImage);
@@ -72,6 +72,8 @@ private:
 	void AddLayersCategory( IDetailLayoutBuilder& DetailBuilder );
 
 	void AddTransformCategory( IDetailLayoutBuilder& DetailBuilder );
+
+	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder );
 
 	/**
 	 * Creates a category for displaying materials used by the selected actors

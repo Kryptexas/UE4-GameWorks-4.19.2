@@ -103,10 +103,11 @@ FAutoConsoleCommand CmdCompositionGraphDebug(
 	);
 #endif
 
-FRenderingCompositePassContext::FRenderingCompositePassContext(const FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
+FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, const FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
 	: View(InView)
 	//		, CompositingOutputRTItem(InRenderTargetItem)
 	, Pass(0)
+	, RHICmdList(InRHICmdList)
 	, ViewPortRect(0, 0, 0 ,0)
 {
 	check(!IsViewportValid());
@@ -250,7 +251,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	TArray<FColor> Bitmap;
 
 	FIntPoint Extent = Context.View.ViewRect.Size();
-	RHIReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
+	Context.RHICmdList.ReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
 
 	static TCHAR File[MAX_SPRINTF];
 	FCString::Sprintf( File, TEXT("%s.bmp"), *Filename);
@@ -526,7 +527,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 			// use intermediate texture unless it's the last one where we render to the final output
 			if(PassOutput->PooledRenderTarget)
 			{
-				GRenderTargetPool.VisualizeTexture.SetCheckPoint(PassOutput->PooledRenderTarget);
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, PassOutput->PooledRenderTarget);
 
 				// If this buffer was given a dump filename, write it out
 				const FString& Filename = Pass->GetOutputDumpFilename((EPassOutputId)OutputId);
@@ -539,7 +540,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 				TArray<FColor>* OutputColorArray = Pass->GetOutputColorArray((EPassOutputId)OutputId);
 				if (OutputColorArray)
 				{
-					RHIReadSurfaceData(
+					Context.RHICmdList.ReadSurfaceData(
 						PassOutput->PooledRenderTarget->GetRenderTargetItem().TargetableTexture,
 						Context.View.ViewRect,
 						*OutputColorArray,
@@ -678,6 +679,163 @@ void FPostProcessPassParameters::SetVS(const FVertexShaderRHIParamRef& ShaderRHI
 {
 	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
 }
+
+template< typename ShaderRHIParamRef >
+void FPostProcessPassParameters::Set(
+	const ShaderRHIParamRef& ShaderRHI,
+	const FRenderingCompositePassContext& Context,
+	FSamplerStateRHIParamRef Filter,
+	bool bWhiteIfNoTexture,
+	FSamplerStateRHIParamRef* FilterOverrideArray)
+{
+	// assuming all outputs have the same size
+	FRenderingCompositeOutput* Output = Context.Pass->GetOutput(ePId_Output0);
+
+	// Output0 should always exist
+	check(Output);
+
+	// one should be on
+	check(FilterOverrideArray || Filter);
+	// but not both
+	check(!FilterOverrideArray || !Filter);
+
+	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
+
+	if(BilinearTextureSampler0.IsBound())
+	{
+		RHICmdList.SetShaderSampler(
+			ShaderRHI, 
+			BilinearTextureSampler0.GetBaseIndex(), 
+			TStaticSamplerState<SF_Bilinear>::GetRHI()
+			);
+	}
+
+	if(BilinearTextureSampler1.IsBound())
+	{
+		RHICmdList.SetShaderSampler(
+			ShaderRHI, 
+			BilinearTextureSampler1.GetBaseIndex(), 
+			TStaticSamplerState<SF_Bilinear>::GetRHI()
+			);
+	}
+
+	if(ViewportSize.IsBound() || ScreenPosToPixel.IsBound() || ViewportRect.IsBound())
+	{
+		FIntRect LocalViewport = Context.GetViewport();
+
+		FIntPoint ViewportOffset = LocalViewport.Min;
+		FIntPoint ViewportExtent = LocalViewport.Size();
+
+		{
+			FVector4 Value(ViewportExtent.X, ViewportExtent.Y, 1.0f / ViewportExtent.X, 1.0f / ViewportExtent.Y);
+
+			SetShaderValue(RHICmdList, ShaderRHI, ViewportSize, Value);
+		}
+
+		{
+			FVector4 Value(LocalViewport.Min.X, LocalViewport.Min.Y, LocalViewport.Max.X, LocalViewport.Max.Y);
+
+			SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Value);
+		}
+
+		{
+			FVector4 ScreenPosToPixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f, 
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenPosToPixel, ScreenPosToPixelValue);
+		}
+	}
+
+	//Calculate a base scene texture min max which will be pulled in by a pixel for each PP input.
+	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.GetViewport() : FIntRect(0,0,0,0);
+	const FIntPoint SceneRTSize = GSceneRenderTargets.GetBufferSizeXY();
+	FVector4 BaseSceneTexMinMax(	((float)ContextViewportRect.Min.X/SceneRTSize.X), 
+									((float)ContextViewportRect.Min.Y/SceneRTSize.Y), 
+									((float)ContextViewportRect.Max.X/SceneRTSize.X), 
+									((float)ContextViewportRect.Max.Y/SceneRTSize.Y) );
+
+	// ePId_Input0, ePId_Input1, ...
+	for(uint32 Id = 0; Id < (uint32)ePId_Input_MAX; ++Id)
+	{
+		FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput((EPassInputId)Id);
+
+		if(!OutputRef)
+		{
+			// Pass doesn't have more inputs
+			break;
+		}
+
+		const auto FeatureLevel = Context.GetFeatureLevel();
+
+		FRenderingCompositeOutput* Input = OutputRef->GetOutput();
+
+		TRefCountPtr<IPooledRenderTarget> InputPooledElement;
+
+		if(Input)
+		{
+			InputPooledElement = Input->RequestInput();
+		}
+
+		FSamplerStateRHIParamRef LocalFilter = FilterOverrideArray ? FilterOverrideArray[Id] : Filter;
+
+		if(InputPooledElement)
+		{
+			check(!InputPooledElement->IsFree());
+
+			const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
+
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, SrcTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], InputPooledElement->GetRenderTargetItem().TargetableTexture);
+
+			{
+				float Width = InputPooledElement->GetDesc().Extent.X;
+				float Height = InputPooledElement->GetDesc().Extent.Y;
+				FVector4 TextureSize(Width, Height, 1.0f / Width, 1.0f / Height);
+				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
+					
+				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
+				FVector2D OnePPInputPixelUVSize = FVector2D(1.0f / Width, 1.0f / Height);
+				FVector4 PPInputMinMax = BaseSceneTexMinMax;
+				PPInputMinMax.Z -= OnePPInputPixelUVSize.X;
+				PPInputMinMax.W -= OnePPInputPixelUVSize.Y;
+				SetShaderValue(RHICmdList, ShaderRHI, PostProcessInputMinMaxParameter[Id], PPInputMinMax);
+			}
+		}
+		else
+		{
+			IPooledRenderTarget* Texture = bWhiteIfNoTexture ? GSystemTextures.WhiteDummy : GSystemTextures.BlackDummy;
+
+			// if the input is not there but the shader request it we give it at least some data to avoid d3ddebug errors and shader permutations
+			// to make features optional we use default black for additive passes without shader permutations
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, Texture->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], Texture->GetRenderTargetItem().TargetableTexture);
+
+			FVector4 Dummy(1, 1, 1, 1);
+			SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], Dummy);
+			SetShaderValue(RHICmdList, ShaderRHI, PostProcessInputMinMaxParameter[Id], Dummy);
+		}
+	}
+
+	// todo warning if Input[] or InputSize[] is bound but not available, maybe set a specific input texture (blinking?)
+}
+
+#define IMPLEMENT_POST_PROCESS_PARAM_SET( ShaderRHIParamRef ) \
+	template void FPostProcessPassParameters::Set< ShaderRHIParamRef >( \
+		const ShaderRHIParamRef& ShaderRHI,				\
+		const FRenderingCompositePassContext& Context,	\
+		FSamplerStateRHIParamRef Filter,				\
+		bool bWhiteIfNoTexture,							\
+		FSamplerStateRHIParamRef* FilterOverrideArray	\
+	);
+
+IMPLEMENT_POST_PROCESS_PARAM_SET( FVertexShaderRHIParamRef );
+IMPLEMENT_POST_PROCESS_PARAM_SET( FHullShaderRHIParamRef );
+IMPLEMENT_POST_PROCESS_PARAM_SET( FDomainShaderRHIParamRef );
+IMPLEMENT_POST_PROCESS_PARAM_SET( FGeometryShaderRHIParamRef );
+IMPLEMENT_POST_PROCESS_PARAM_SET( FPixelShaderRHIParamRef );
+IMPLEMENT_POST_PROCESS_PARAM_SET( FComputeShaderRHIParamRef );
 
 FArchive& operator<<(FArchive& Ar, FPostProcessPassParameters& P)
 {

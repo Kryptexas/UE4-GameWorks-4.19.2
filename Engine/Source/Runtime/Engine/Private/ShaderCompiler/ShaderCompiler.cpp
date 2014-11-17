@@ -1,20 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ShaderCompiler.cpp: Platform independent shader compilation.
+	ShaderCompiler.cpp: Platform independent shader compilations.
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "ExceptionHandling.h"
 #include "GlobalShader.h"
 #include "TargetPlatform.h"
 #include "DerivedDataCacheInterface.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
-
 // Default value comes from bPromptToRetryFailedShaderCompiles in BaseEngine.ini
 // This is set as a global variable to allow changing in the debugger even in release
 // For example if there are a lot of content shader compile errors you want to skip over without relaunching
@@ -29,10 +30,22 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
+	TEXT(""),	// default
+	TEXT("Allows to specify a HLSL compiler version that is different from the one the code was compiled.\n")
+	TEXT("No path (\"\") means the default one is used.\n")
+	TEXT("If the compiler cannot be found an error is reported and it will compile further with the default one.\n")
+	TEXT("This console variable works with ShaderCompileWorker (with multi threading) and without multi threading.\n")
+	TEXT("This variable can be set in ConsoleVariables.ini to be defined at startup.\n")
+	TEXT("e.g. c:/temp/d3dcompiler_44.dll or \"\""),
+	ECVF_Cheat);
+#endif
+
 // Serialize Queued Job information
 static void DoWriteTasks(TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 1;
+	int32 ShaderCompileWorkerInputVersion = 2;
 	TransferFile << ShaderCompileWorkerInputVersion;
 	int32 NumBatches = QueuedJobs.Num();
 	TransferFile << NumBatches;
@@ -440,7 +453,7 @@ FShaderCompileThreadRunnable::FShaderCompileThreadRunnable(FShaderCompilingManag
 
 	if (Manager->bAllowAsynchronousShaderCompiling && !FPlatformProperties::RequiresCookedData())
 	{
-		Thread = FRunnableThread::Create(this, TEXT("ShaderCompilingThread"), 0, 0, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("ShaderCompilingThread"), 0, TPri_Normal, FPlatformAffinity::GetPoolThreadMask());
 	}
 }
 
@@ -1731,6 +1744,51 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 	return bRetryCompile;
 }
 
+void FShaderCompilingManager::CancelCompilation(const TCHAR* MaterialName, const TArray<int32>& ShaderMapIdsToCancel)
+{
+	check(!FPlatformProperties::RequiresCookedData());
+	UE_LOG(LogShaders, Log, TEXT("CancelCompilation %s "), MaterialName ? MaterialName : TEXT(""));
+
+	// Lock CompileQueueSection so we can access the input and output queues
+	FScopeLock Lock(&CompileQueueSection);
+
+	int32 TotalNumJobsRemoved = 0;
+	for (int32 IdIndex = 0; IdIndex < ShaderMapIdsToCancel.Num(); ++IdIndex)
+	{
+		int32 MapIdx = ShaderMapIdsToCancel[IdIndex];
+		if (FShaderMapCompileResults* ShaderMapJob = ShaderMapJobs.Find(MapIdx))
+		{
+			int32 NumJobsRemoved = 0;
+
+			int32 JobIndex = CompileQueue.Num();
+			while ( --JobIndex >= 0 )
+			{
+				if (FShaderCompileJob* Job = CompileQueue[JobIndex])
+				{
+					if (Job->Id == MapIdx)
+					{
+						++TotalNumJobsRemoved;
+						++NumJobsRemoved;
+						CompileQueue.RemoveAt(JobIndex, 1, false);
+					}
+				}
+			}
+
+			ShaderMapJob->NumJobsQueued -= NumJobsRemoved;
+
+			if (ShaderMapJob->NumJobsQueued == 0)
+			{
+				//We've removed all the jobs for this shader map so remove it.
+				ShaderMapJobs.Remove(MapIdx);
+			}
+		}
+	}
+	CompileQueue.Shrink();
+
+	// Using atomics to update NumOutstandingJobs since it is read outside of the critical section
+	FPlatformAtomics::InterlockedAdd(&NumOutstandingJobs, -TotalNumJobsRemoved);
+}
+
 void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const TArray<int32>& ShaderMapIdsToFinishCompiling)
 {
 	check(!FPlatformProperties::RequiresCookedData());
@@ -1930,10 +1988,12 @@ void GlobalBeginCompileShader(
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
 	Input.SourceFilename = SourceFilename;
 	Input.EntryPointName = FunctionName;
+	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory();
 
 	if (GDumpShaderDebugInfo != 0)
 	{
-		Input.DumpDebugInfoPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString() / DebugGroupName;
+		Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
+		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / DebugGroupName;
 
 		if (VFType)
 		{
@@ -1976,9 +2036,7 @@ void GlobalBeginCompileShader(
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3DCompilerPath"));
-
-		FString Path = CVar->GetString();
+		FString Path = CVarD3DCompilerPath.GetValueOnAnyThread();
 		if(!Path.IsEmpty())
 		{
 			Input.Environment.SetDefine(TEXT("D3DCOMPILER_PATH"), *Path);
@@ -2071,30 +2129,64 @@ protected:
 
 class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageHandler
 {
-	/** Subclass fills out an archive to send to the server */
-	virtual void FillPayload(FArchive& Payload) OVERRIDE
+public:
+	FRecompileShaderMessageHandler( const TCHAR* InCmd ) :
+		Cmd( InCmd )
 	{
-		// tell other side all the materials to load, by pathname
-		for (TObjectIterator<UMaterialInterface> It; It; ++It)
+	}
+
+	/** Subclass fills out an archive to send to the server */
+	virtual void FillPayload(FArchive& Payload) override
+	{
+		bool bCompileChangedShaders = true;
+
+		const TCHAR* CmdString = *Cmd;
+		FString CmdName = FParse::Token(CmdString, 0);
+
+		if( !CmdName.IsEmpty() && FCString::Stricmp(*CmdName,TEXT("Material"))==0 )
 		{
-			MaterialsToLoad.Add(It->GetPathName());
+			bCompileChangedShaders = false;
+
+			// tell other side the material to load, by pathname
+			FString RequestedMaterialName( FParse::Token( CmdString, 0 ) );
+
+			for( TObjectIterator<UMaterialInterface> It; It; ++It )
+			{
+				UMaterial* Material = It->GetMaterial();
+
+				if( Material && Material->GetName() == RequestedMaterialName)
+				{
+					MaterialsToLoad.Add( It->GetPathName() );
+					break;
+				}
+			}
 		}
+		else
+		{
+			// tell other side all the materials to load, by pathname
+			for( TObjectIterator<UMaterialInterface> It; It; ++It )
+			{
+				MaterialsToLoad.Add( It->GetPathName() );
+			}
+		}
+
 		Payload << MaterialsToLoad;
-		uint32 ShaderPlatform = (uint32)GRHIShaderPlatform;
+		uint32 ShaderPlatform = ( uint32 )GRHIShaderPlatform;
 		Payload << ShaderPlatform;
 		// tell the other side the Ids we have so it doesn't send back duplicates
 		// (need to serialize this into a TArray since FShaderResourceId isn't known in the file server)
 		TArray<FShaderResourceId> AllIds;
-		FShaderResource::GetAllShaderResourceId(AllIds);
+		FShaderResource::GetAllShaderResourceId( AllIds );
 
 		TArray<uint8> SerializedBytes;
-		FMemoryWriter Ar(SerializedBytes);
+		FMemoryWriter Ar( SerializedBytes );
 		Ar << AllIds;
 		Payload << SerializedBytes;
+		Payload << bCompileChangedShaders;
 	}
 
 	/** Subclass pulls data response from the server */
-	virtual void ProcessResponse(FArchive& Response) OVERRIDE
+	virtual void ProcessResponse(FArchive& Response) override
 	{
 		// pull back the compiled mesh material data (if any)
 		TArray<uint8> MeshMaterialMaps;
@@ -2134,8 +2226,12 @@ class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageH
 		}
 	}
 
+private:
 	/** The materials we send over the network and expect maps for on the return */
 	TArray<FString> MaterialsToLoad;
+
+	/** The recompileshader console command to parse */
+	FString Cmd;
 };
 
 bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
@@ -2143,7 +2239,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 	// if this platform can't compile shaders, then we try to send a message to a file/cooker server
 	if (FPlatformProperties::RequiresCookedData())
 	{
-		FRecompileShaderMessageHandler Handler;
+		FRecompileShaderMessageHandler Handler( Cmd );
 
 		// send the info, the handler will process the response (and update shaders, etc)
 		IFileManager::Get().SendMessageToServer(TEXT("RecompileShaders"), &Handler);

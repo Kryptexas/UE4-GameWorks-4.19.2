@@ -10,7 +10,7 @@ public class IntelTBB : ModuleRules
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			string IntelTBBPath = UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/";
+			string IntelTBBPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelTBB/IntelTBB-4.0/";
 			PublicSystemIncludePaths.Add(IntelTBBPath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -52,14 +52,14 @@ public class IntelTBB : ModuleRules
 		{
 			PublicSystemIncludePaths.AddRange(
 				new string[] {
-					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/include",
+					UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelTBB/IntelTBB-4.0/include",
 				}
 			);
 
 			PublicAdditionalLibraries.AddRange(
 				new string[] {
-					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/lib/Mac/libtbb.dylib",
-					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/lib/Mac/libtbbmalloc.dylib",
+					UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelTBB/IntelTBB-4.0/lib/Mac/libtbb.dylib",
+					UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelTBB/IntelTBB-4.0/lib/Mac/libtbbmalloc.dylib",
 				}
 			);
 		}

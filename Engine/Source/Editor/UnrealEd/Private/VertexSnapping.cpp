@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "VertexSnapping.h"
+#include "StaticMeshResources.h"
 
 namespace VertexSnappingConstants
 {
@@ -70,23 +71,23 @@ public:
 	}
 
 	/** FVertexIterator interface */
-	virtual FVector Position() OVERRIDE
+	virtual FVector Position() override
 	{
 		return StaticMeshComponent->ComponentToWorld.TransformPosition( PositionBuffer.VertexPosition( CurrentVertexIndex ) );	
 	}
 
-	virtual FVector Normal() OVERRIDE
+	virtual FVector Normal() override
 	{
 		return ComponentToWorldIT.TransformVector( VertexBuffer.VertexTangentZ( CurrentVertexIndex ) );
 	}
 
 protected:
-	virtual void Advance() OVERRIDE
+	virtual void Advance() override
 	{
 		++CurrentVertexIndex;
 	}
 
-	virtual bool HasMoreVertices() OVERRIDE
+	virtual bool HasMoreVertices() override
 	{
 		return CurrentVertexIndex < PositionBuffer.GetNumVertices();
 	}
@@ -126,24 +127,24 @@ public:
 	}
 
 	/** FVertexIterator interface */
-	virtual FVector Position() OVERRIDE
+	virtual FVector Position() override
 	{
 		return BrushComponent->ComponentToWorld.TransformPosition( Vertices[CurrentVertexIndex] );
 	}
 
 	/** FVertexIterator interface */
-	virtual FVector Normal() OVERRIDE
+	virtual FVector Normal() override
 	{
 		return FVector::ZeroVector;
 	}
 
 protected:
-	virtual void Advance() OVERRIDE
+	virtual void Advance() override
 	{
 		++CurrentVertexIndex;
 	}
 
-	virtual bool HasMoreVertices() OVERRIDE
+	virtual bool HasMoreVertices() override
 	{
 		return Vertices.IsValidIndex( CurrentVertexIndex );
 	}
@@ -176,7 +177,7 @@ public:
 	}
 	
 	/** FVertexIterator interface */
-	virtual FVector Position() OVERRIDE
+	virtual FVector Position() override
 	{
 		const FSkelMeshChunk& Chunk = LODModel.Chunks[CurrentChunkIndex];
 
@@ -190,7 +191,7 @@ public:
 		}
 	}
 
-	virtual FVector Normal() OVERRIDE
+	virtual FVector Normal() override
 	{
 		const FSkelMeshChunk& Chunk = LODModel.Chunks[CurrentChunkIndex];
 
@@ -205,7 +206,7 @@ public:
 	}
 
 protected:
-	virtual void Advance() OVERRIDE
+	virtual void Advance() override
 	{
 		// First advance the rigid vertex in the current chunk
 		const FSkelMeshChunk& Chunk = LODModel.Chunks[CurrentChunkIndex];
@@ -227,7 +228,7 @@ protected:
 		}
 	}
 
-	virtual bool HasMoreVertices() OVERRIDE
+	virtual bool HasMoreVertices() override
 	{
 		bool bHasMoreVerts = false;
 		if( LODModel.Chunks.IsValidIndex(CurrentChunkIndex) )
@@ -585,7 +586,7 @@ void FVertexSnappingImpl::GetActorsInsideBox( const FBox& Box, UWorld* World, TA
 	{
 		AActor* Actor = *It;
 		// Ignore the builder brush, hidden actors and forcefully ignored actors (actors being moved)
-		if( Actor != World->GetBrush() && It->IsHiddenEd() == false && !ActorsToIgnore.Contains( Actor ) )
+		if( Actor != World->GetDefaultBrush() && It->IsHiddenEd() == false && !ActorsToIgnore.Contains( Actor ) )
 		{
 			const bool bNonColliding = true;
 			FBox ActorBoundingBox = Actor->GetComponentsBoundingBox(true);
@@ -702,7 +703,7 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 
 		FSceneView* View = ViewportClient->CalcSceneView( &ViewFamily );
 
-		FVector StartLocation = GEditorModeTools().PivotLocation;
+		FVector StartLocation = GLevelEditorModeTools().PivotLocation;
 
 		FVector DesiredUnsnappedLocation = StartLocation+DragDelta;
 					

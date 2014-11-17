@@ -19,7 +19,7 @@ class FIOSAudioDeviceModule : public IAudioDeviceModule
 public:
 
 	/** Creates a new instance of the audio device implemented by the module. */
-	virtual FAudioDevice* CreateAudioDevice() OVERRIDE
+	virtual FAudioDevice* CreateAudioDevice() override
 	{
 		return new FIOSAudioDevice;
 	}
@@ -90,7 +90,7 @@ bool FIOSAudioDevice::InitializeHardware()
 
 	// Linear PCM stream format
 	MixerFormat.mFormatID         = kAudioFormatLinearPCM;
-	MixerFormat.mFormatFlags      = kAudioFormatFlagsCanonical;
+	MixerFormat.mFormatFlags	  = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked;
 	MixerFormat.mBytesPerPacket   = SampleSize;
 	MixerFormat.mFramesPerPacket  = 1;
 	MixerFormat.mBytesPerFrame    = SampleSize;

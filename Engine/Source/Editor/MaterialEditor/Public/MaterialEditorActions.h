@@ -158,7 +158,7 @@ public:
 	/**
 	 * Initialize commands
 	 */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
 };
@@ -205,7 +205,7 @@ public:
 	}	
 
 	/** TCommands interface */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	/**
 	 * Returns a graph action assigned to the passed in gesture

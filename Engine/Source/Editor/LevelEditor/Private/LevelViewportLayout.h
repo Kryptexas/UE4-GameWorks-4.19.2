@@ -104,6 +104,9 @@ public:
 	/** Returns the parent tab content object */
 	TWeakPtr< class FLevelViewportTabContent > GetParentTabContent() const { return ParentTabContent; }
 
+	/** Returns whether a viewport animation is currently taking place */
+	bool IsTransitioning() const { return bIsTransitioning; }
+
 protected:
 
 	/**

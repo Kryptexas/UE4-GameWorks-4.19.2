@@ -5,8 +5,11 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "LevelUtils.h"
 #include "TessellationRendering.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -166,6 +169,20 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, uint8 InDepthPr
 	OutMeshElement.CastShadow = true;
 	OutMeshElement.LODIndex = LODIndex;
 	OutMeshElement.LCI = &ProxyLODInfo;
+	if (ForcedLodModel > 0) 
+	{
+		OutBatchElement.MaxScreenSize = 0.0f;
+		OutBatchElement.MinScreenSize = -1.0f;
+	}
+	else
+	{
+		OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
+		OutBatchElement.MinScreenSize = 0.0f;
+		if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+		{
+			OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+		}
+	}
 
 	return true;
 }
@@ -214,6 +231,21 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uin
 		OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
 		OutMeshElement.CastShadow = bCastShadow && Section.bCastShadow;
 		OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+		if (ForcedLodModel > 0) 
+		{
+			OutBatchElement.MaxScreenSize = 0.0f;
+			OutBatchElement.MinScreenSize = -1.0f;
+		}
+		else
+		{
+			OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
+			OutBatchElement.MinScreenSize = 0.0f;
+			if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+			{
+				OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+			}
+		}
+			
 		return true;
 	}
 	else
@@ -237,6 +269,20 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, const FMater
 	OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
 	OutMeshElement.CastShadow = bCastShadow;
 	OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+	if (ForcedLodModel > 0) 
+	{
+		OutBatchElement.MaxScreenSize = 0.0f;
+		OutBatchElement.MinScreenSize = -1.0f;
+	}
+	else
+	{
+		OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
+		OutBatchElement.MinScreenSize = 0.0f;
+		if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+		{
+			OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+		}
+	}
 
 	const bool bWireframe = true;
 	const bool bRequiresAdjacencyInformation = false;
@@ -879,6 +925,20 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const
+{
+	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
+	LocalVolumeBounds = DistanceField.LocalBoundingBox;
+	OutBlockMin = DistanceField.VolumeTexture.GetAllocationMin();
+	OutBlockSize = DistanceField.VolumeTexture.GetAllocationSize();
+}
+
+bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
+{
+	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
+	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceField.VolumeTexture.IsValidDistanceFieldVolume();
+}
+
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex):
 	OverrideColorVertexBuffer(0),
@@ -1019,6 +1079,16 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 
 	// Use dynamic lighting if the light doesn't have static lighting.
 	return FLightInteraction::Dynamic();
+}
+
+FLightMapInteraction FStaticMeshSceneProxy::FLODInfo::GetLightMapInteraction() const
+{
+	return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+}
+
+FShadowMapInteraction FStaticMeshSceneProxy::FLODInfo::GetShadowMapInteraction() const
+{
+	return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
 }
 
 float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const

@@ -384,6 +384,22 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 				Search = Search->GetOuter();
 			} while (Search && !Obj->HasAllMarks(ObjectMarks));
 
+			{
+				bool bNeedsLoadForEditorGame = false;
+				for (UObject* OuterIt = Obj; OuterIt; OuterIt = OuterIt->GetOuter())
+				{
+					if (OuterIt->NeedsLoadForEditorGame())
+					{
+						bNeedsLoadForEditorGame = true;
+						break;
+					}
+				}
+				if (!bNeedsLoadForEditorGame)
+				{
+					Obj->Mark(OBJECTMARK_NotForEditorGame);
+				}
+			}
+
 			// skip these checks if the Template object is the CDO for an intrinsic class, as they will never have any load flags set.
 			if ( Template != NULL 
 			&& (!Template->GetClass()->HasAnyClassFlags(CLASS_Intrinsic) || !Template->HasAnyFlags(RF_ClassDefaultObject)) )
@@ -1450,8 +1466,7 @@ class FExportReferenceSorter : public FArchiveUObject
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
 			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass(),
-			UAttributeProperty::StaticClass()
+			UAssetClassProperty::StaticClass()
 		};
 
 		for ( int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++ )
@@ -2551,6 +2566,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				// structure to track what ever export needs to import
 				TMap<UObject*, TArray<UObject*> > ObjectDependencies;
+
+				// and a structure to track non-redirector references
+				TSet<UObject*> DependenciesReferencedByNonRedirectors;
 		
 				/** If true, we are going to compress the package to memory to save a little time */
 				bool bCompressFromMemory = !!(InOuter->PackageFlags & PKG_StoreCompressed);
@@ -2614,7 +2632,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					{
 						if (!(SaveFlags & SAVE_NoError))
 						{
-							UE_LOG(LogSavePackage, Warning, TEXT("No exportable objects found in package. Package not saved."));
+							UE_LOG(LogSavePackage, Display, TEXT("No exports found (or all exports are editor-only) for %s. Package will not be saved."), *BaseFilename);
 						}
 
 						return false;
@@ -2660,6 +2678,18 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 						// add the list of dependencies to the dependency map
 						ObjectDependencies.Add(Obj, ImportTagger.Dependencies);
+
+						if (Obj->GetClass() != UObjectRedirector::StaticClass())
+						{
+							for ( auto DepIt = ImportTagger.Dependencies.CreateConstIterator(); DepIt; ++DepIt )
+							{
+								UObject* DependencyObject = *DepIt;
+								if ( DependencyObject )
+								{
+									DependenciesReferencedByNonRedirectors.Add(DependencyObject);
+								}
+							}
+						}
 					}
 				}
 
@@ -2720,11 +2750,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 								{
 									ObjectsInOtherMaps.Add(Obj);
 
-									UE_LOG(LogSavePackage, Warning, TEXT( "Obj in another map: %s"), *Obj->GetFullName() );
-
-									if (!(SaveFlags & SAVE_NoError))
+									if ( DependenciesReferencedByNonRedirectors.Contains(Obj) )
 									{
-										Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "Core", "SavePackageObjInAnotherMap", "Object '{0}' is in another map" ), FText::FromString( *Obj->GetFullName() ) ).ToString() );
+										UE_LOG(LogSavePackage, Warning, TEXT( "Obj in another map: %s"), *Obj->GetFullName() );
+
+										if (!(SaveFlags & SAVE_NoError))
+										{
+											Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "Core", "SavePackageObjInAnotherMap", "Object '{0}' is in another map" ), FText::FromString( *Obj->GetFullName() ) ).ToString() );
+										}
 									}
 								}
 								else
@@ -2747,8 +2780,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					ObjectsInOtherMaps = LevelObjects;
 				}
 
+				// It is allowed for redirectors to reference objects in other maps.
+				// Form the list of objects that erroneously reference another map.
+				TArray<UObject*> IllegalObjectsInOtherMaps;
+				for ( auto ObjIt = ObjectsInOtherMaps.CreateConstIterator(); ObjIt; ++ObjIt )
+				{
+					if ( DependenciesReferencedByNonRedirectors.Contains(*ObjIt) )
+					{
+						IllegalObjectsInOtherMaps.Add(*ObjIt);
+					}
+				}
+
 				// The graph is linked to objects in a different map package!
-				if( ObjectsInOtherMaps.Num() )
+				if( IllegalObjectsInOtherMaps.Num() )
 				{
 					UObject* MostLikelyCulprit = NULL;
 					const UProperty* PropertyRef = NULL;
@@ -2758,15 +2802,15 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					int32 MaxNamesToDisplay = 5;
 					bool DisplayIsLimited = true;
 
-					if (ObjectsInOtherMaps.Num() < MaxNamesToDisplay)
+					if (IllegalObjectsInOtherMaps.Num() < MaxNamesToDisplay)
 					{
-						MaxNamesToDisplay = ObjectsInOtherMaps.Num();
+						MaxNamesToDisplay = IllegalObjectsInOtherMaps.Num();
 						DisplayIsLimited = false;
 					}
 
 					for (int32 Idx = 0; Idx < MaxNamesToDisplay; Idx++)
 					{
-						ObjectNames += ObjectsInOtherMaps[Idx]->GetName() + TEXT("\n");
+						ObjectNames += IllegalObjectsInOtherMaps[Idx]->GetName() + TEXT("\n");
 					}
 					
 					// if there are more than 5 items we indicated this by adding "..." at the end of the list
@@ -2781,18 +2825,16 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToObjectsInOtherMap_FindCulpritQ", "Can't save {FileName}: Graph is linked to object(s) in external map.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					const bool bProceed = FMessageDialog::Open(EAppMsgType::YesNo, Message ) == EAppReturnType::Yes;
-					if ( bProceed )
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+
+					FindMostLikelyCulprit( IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
+					if( MostLikelyCulprit != NULL && PropertyRef != NULL )
 					{
-						FindMostLikelyCulprit( ObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
-						if( MostLikelyCulprit != NULL && PropertyRef != NULL )
-						{
-							CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
-						}
-						else if (MostLikelyCulprit != NULL)
-						{
-							CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
-						}
+						CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
+					}
+					else if (MostLikelyCulprit != NULL)
+					{
+						CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
 					}
 
 					// Free the file handle and delete the temporary file
@@ -2840,14 +2882,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToObjectsInOtherMap_FindCulpritQ", "Can't save {FileName}: Graph is linked to object(s) in external map.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					const bool bProceed = FMessageDialog::Open(EAppMsgType::YesNo, Message ) == EAppReturnType::Yes;
-					if ( bProceed )
-					{
-						FindMostLikelyCulprit( PrivateObjects, MostLikelyCulprit, PropertyRef );
-						CulpritString = FString::Printf(TEXT("%s (%s)"),
-							(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
-							(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
-					}
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+
+					FindMostLikelyCulprit( PrivateObjects, MostLikelyCulprit, PropertyRef );
+					CulpritString = FString::Printf(TEXT("%s (%s)"),
+						(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
+						(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
 
 					// free the file handle and delete the temporary file
 					Linker->Detach();

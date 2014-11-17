@@ -42,6 +42,8 @@ class Localise : BuildCommand
 				{
                     String.Format("-config={0}", @"../../../Engine/Config/Localization/Engine.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
                     String.Format("-config={0}", @"../../../Engine/Config/Localization/Editor.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
+                    String.Format("-config={0}", @"../../../Engine/Config/Localization/PropertyNames.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
+                    String.Format("-config={0}", @"../../../Engine/Config/Localization/ToolTips.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
                     String.Format("-config={0}", @"../../../Engine/Config/Localization/WordCount.ini"),
 				};
 

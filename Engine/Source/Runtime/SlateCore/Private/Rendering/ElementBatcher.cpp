@@ -7,7 +7,11 @@
 #include "SlateCorePrivatePCH.h"
 
 
-static const FSlateImageBrush SplineFilterTable( FPaths::EngineContentDir() / TEXT("Slate/SplineFilterTable.png"), FVector2D(32,1) );
+static const FSlateImageBrush& GetSplineFilterTable()
+{
+	static const FSlateImageBrush SplineFilterTable( FPaths::EngineContentDir() / TEXT("Slate/SplineFilterTable.png"), FVector2D(32,1) );
+	return SplineFilterTable;
+}
 
 
 /**
@@ -51,7 +55,9 @@ static FVector2D RotatePoint( FVector2D InPoint, const FVector2D& AboutPoint, fl
 
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
-	: RenderingPolicy( InRenderingPolicy )
+	: ResourceManager( *InRenderingPolicy->GetResourceManager() )
+	, FontCache( *InRenderingPolicy->GetFontCache() )
+	, PixelCenterOffset( InRenderingPolicy->GetPixelCenterOffset() )
 {
 
 }
@@ -180,10 +186,10 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 		FVector2D StartUV = FVector2D(0.0f,0.0f);
 		FVector2D EndUV = FVector2D(1.0f,1.0f);
 		FVector2D SizeUV;
-		const float PixelCenterOffset = RenderingPolicy->GetPixelCenterOffset();
+
 		FVector2D HalfTexel;
 
-		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *InPayload.BrushResource );
+		FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource( *InPayload.BrushResource );
 		FSlateShaderResource* Resource = nullptr;
 		if( ResourceProxy )
 		{
@@ -202,7 +208,7 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 		}
 		else
 		{
-			// nullptr texture
+			// no texture
 			SizeUV = FVector2D(1.0f,1.0f);
 			HalfTexel = FVector2D( PixelCenterOffset, PixelCenterOffset );
 		}
@@ -424,8 +430,6 @@ void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVec
 	{
 		return;
 	}
-
-	FSlateFontCache& FontCache = *RenderingPolicy->GetFontCache().Get();
 
 	const float FontScale = InScale;
 
@@ -703,7 +707,7 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 	const float HalfThickness = LineThickness * .5f + Radius;
 
 	// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
-	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineFilterTable );
+	FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource( GetSplineFilterTable() );
 	check(ResourceProxy && ResourceProxy->Resource);
 
 	// Find a batch for the element
@@ -822,7 +826,7 @@ void FSlateElementBatcher::AddLineElement( const FVector2D& Position, const FVec
 	if( InPayload.bAntialias )
 	{
 		// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
-		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineFilterTable );
+		FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource( GetSplineFilterTable() );
 		check(ResourceProxy && ResourceProxy->Resource);
 
 		// The radius to use when checking the distance of pixels to the actual line.  Arbitrary value based on what looks the best
@@ -995,7 +999,9 @@ void FSlateElementBatcher::AddViewportElement( const FVector2D& InPosition, cons
 
 	TSharedPtr<const ISlateViewport> ViewportPin = InPayload.Viewport.Pin();
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), RenderingPolicy->GetViewportResource( ViewportPin.Get() ), ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags );
+	FSlateShaderResource* ViewportResource = ViewportPin.IsValid() ? ViewportPin->GetViewportRenderTargetTexture() : nullptr;
+
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags );
 	TArray<FSlateVertex>& BatchVertices = BatchVertexArrays[ElementBatch.VertexArrayIndex];
 	TArray<SlateIndex>& BatchIndices = BatchIndexArrays[ElementBatch.IndexArrayIndex];
 
@@ -1057,7 +1063,7 @@ void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const 
 	uint32 TextureHeight = 1;
 
 	// Currently borders are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
-	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *InPayload.BrushResource );
+	FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource( *InPayload.BrushResource );
 	FSlateShaderResource* Resource = ResourceProxy ? ResourceProxy->Resource : nullptr;
 	if( Resource )
 	{
@@ -1066,7 +1072,6 @@ void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const 
 	}
  
 	// Texel offset
-	const float PixelCenterOffset = RenderingPolicy->GetPixelCenterOffset();
 	const FVector2D HalfTexel( PixelCenterOffset/TextureWidth, PixelCenterOffset/TextureHeight );
 
 	const FVector2D StartUV = HalfTexel;
@@ -1339,7 +1344,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	return *ElementBatch;
 }
 
-void FSlateElementBatcher::AddBasicVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch )
+void FSlateElementBatcher::AddVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch )
 {
 	uint32 FirstIndex = OutVertices.Num();
 	OutVertices.AddUninitialized( VertexBatch.Num() );
@@ -1426,8 +1431,7 @@ void FSlateElementBatcher::FillBatchBuffers( FSlateWindowElementList& WindowElem
 
 				if( BatchVertices.Num() > 0 && BatchIndices.Num() > 0  )
 				{
-					
-					AddBasicVertices( OutBatchedVertices, ElementBatch, BatchVertices );
+					AddVertices( OutBatchedVertices, ElementBatch, BatchVertices );
 					AddIndices( OutBatchedIndices, ElementBatch, BatchIndices );
 
 					OutRenderBatches.Add( FSlateRenderBatch( ElementBatch ) );

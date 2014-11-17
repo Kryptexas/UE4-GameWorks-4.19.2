@@ -189,7 +189,7 @@ class STreeView : public SListView< ItemType >
 
 public:
 	// Inherited from SWidget
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		// Check for selection/expansion toggling keys (Left, Right)
 		// SelectorItem represents the keyboard selection. If it isn't valid then we don't know what to expand.
@@ -267,13 +267,13 @@ private:
 	// Tree View adds the ability to expand/collapse items.
 	// All the selection functionality is inherited from ListView.
 
-	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const override
 	{
 		const FSparseItemInfo* ItemInfo = SparseItemInfos.Find(TheItem);
 		return ItemInfo != NULL && ItemInfo->bIsExpanded;
 	}
 
-	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		const FSparseItemInfo* const SparseItemInfo = SparseItemInfos.Find(TheItem);
 		bool bWasExpanded = false;
@@ -298,7 +298,7 @@ private:
 		}
 	}
 
-	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		if(OnSetExpansionRecursive.IsBound())
 		{
@@ -310,7 +310,7 @@ private:
 		}
 	}
 
-	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const OVERRIDE
+	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const override
 	{
 		bool bHasChildren = false;
 		if (ItemIndexInList < DenseItemInfos.Num())
@@ -320,7 +320,7 @@ private:
 		return bHasChildren;
 	}
 
-	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const OVERRIDE
+	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const override
 	{
 		int32 NextingLevel = 0;
 		if (ItemIndexInList < DenseItemInfos.Num())

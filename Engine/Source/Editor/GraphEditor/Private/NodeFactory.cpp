@@ -9,6 +9,7 @@
 
 #include "SGraphNodeDefault.h"
 #include "SGraphNodeComment.h"
+#include "SGraphNodeKnot.h"
 
 #include "KismetNodes/SGraphNodeK2Base.h"
 #include "KismetNodes/SGraphNodeK2Default.h"
@@ -156,6 +157,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeK2Sequence, OperatorNode);
 		}
+		else if (UK2Node_DoOnceMultiInput* DoOnceMultiInputNode = Cast<UK2Node_DoOnceMultiInput>(InNode))
+		{
+			return SNew(SGraphNodeK2Sequence, DoOnceMultiInputNode);
+		}
 		else if (UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>(InNode))
 		{
 			return SNew(SGraphNodeK2Timeline, TimelineNode);
@@ -187,6 +192,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UK2Node_CallArrayFunction* CallFunction = Cast<UK2Node_CallArrayFunction>(InNode))
 		{
 			return SNew(SGraphNodeK2ArrayFunction, CallFunction);
+		}
+		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
+		{
+			return SNew(SGraphNodeKnot, Knot);
 		}
 		else
 		{

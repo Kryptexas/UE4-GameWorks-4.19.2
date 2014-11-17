@@ -87,6 +87,7 @@ public:
 	enum { NumColumns = 4 };
 	enum { NumElements = 0 };
 	enum { Alignment = 16 };
+	enum { IsResource = 0 };
 	static const FUniformBufferStruct* GetStruct() { return NULL; }
 };
 
@@ -206,7 +207,7 @@ public:
 	virtual ~FBoneBufferPool();
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 };
 
 /** The type for the buffer pool */
@@ -247,7 +248,7 @@ public:
 	virtual ~FBoneTexturePool();
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 };
 
 /** The type for bone buffers */
@@ -283,14 +284,14 @@ public:
 
 	// interface FRenderResource ------------------------------------------
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		DEC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
 		BoneBuffer.SafeRelease();
 		FRenderResource::ReleaseRHI();
 	}
 
-	virtual void InitDynamicRHI() OVERRIDE
+	virtual void InitDynamicRHI() override
 	{
 		if(SizeX)
 		{
@@ -298,7 +299,8 @@ public:
 #if GPUSKIN_USE_DATA_BUFFERS
 			{
 				const int32 TileBufferSize = ComputeMemorySize();
-				BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, NULL, BUF_Volatile | BUF_ShaderResource );
+				FRHIResourceCreateInfo CreateInfo;
+				BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Volatile | BUF_ShaderResource, CreateInfo );
 				BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 			}
 #else
@@ -307,7 +309,8 @@ public:
 				uint32 Y = (SizeX / GPUSKIN_TEXTURE_STRIDE)+1;
 				check((uint32)GMaxTextureDimensions >= X);
 				check((uint32)GMaxTextureDimensions >= Y);
-				BoneBuffer = RHICreateTexture2D(X, Y, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), NULL);
+				FRHIResourceCreateInfo CreateInfo;
+				BoneBuffer = RHICreateTexture2D(X, Y, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), CreateInfo);
 			}
 #endif
 		}
@@ -572,9 +575,9 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE;
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
@@ -662,7 +665,7 @@ public:
 	* Creates declarations for each of the vertex stream components and
 	* initializes the device resource
 	*/
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
@@ -690,6 +693,12 @@ class FGPUBaseSkinAPEXClothVertexFactory
 public:
 	struct ClothShaderType
 	{
+		/**
+		 * weight to blend between simulated positions and key-framed poses
+		 * if ClothBlendWeight is 1.0, it shows only simulated positions and if it is 0.0, it shows only key-framed animation
+		 */
+		float ClothBlendWeight;
+
 		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
 
 		void ReleaseClothUniformBuffer()
@@ -804,12 +813,12 @@ public:
 		FGPUBaseSkinVertexFactory::UpdateRHI();
 	}
 
-	virtual FGPUBaseSkinVertexFactory* GetVertexFactory() OVERRIDE
+	virtual FGPUBaseSkinVertexFactory* GetVertexFactory() override
 	{
 		return this;
 	}
 
-	virtual const FGPUBaseSkinVertexFactory* GetVertexFactory() const OVERRIDE
+	virtual const FGPUBaseSkinVertexFactory* GetVertexFactory() const override
 	{
 		return this;
 	}
@@ -820,8 +829,8 @@ public:
 	* Creates declarations for each of the vertex stream components and
 	* initializes the device resource
 	*/
-	virtual void InitRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 

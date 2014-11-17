@@ -57,6 +57,13 @@ namespace SourceControlHelpers
 	 * @return an array of filenames
 	 */
 	SOURCECONTROL_API extern TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames );
+	
+	/**
+	 * Helper function to convert a filename array to absolute paths.
+	 * @param	InFileNames	The filename array
+	 * @return an array of filenames, transformed into absolute paths
+	 */
+	SOURCECONTROL_API extern TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames );
 
 	/**
 	 * Helper function to get a list of files that are unchanged & revert them. This runs synchronous commands.
@@ -101,6 +108,28 @@ namespace SourceControlHelpers
 	 * @return	Success or failure of the operation
 	 */
 	SOURCECONTROL_API extern bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason );
+
+	/** Helper struct for CopyFilesUnderSourceControl */
+	struct FBranchData
+	{
+		FBranchData(const FString& InDestFilename, const FString& InSourceFilename)
+			: DestFilename(InDestFilename)
+			, SourceFilename(InSourceFilename)
+		{
+		}
+
+		/** The filenames for the copy operation */
+		FString DestFilename;
+		FString SourceFilename;
+	};
+
+	/**
+	 * Helper function to branch/integrate files from one location to another
+	 * @param	DestFilename			The destination path
+	 * @param	SourceFilename			The source path
+	 * @return	Success or failure of the operation
+	 */
+	SOURCECONTROL_API extern bool BranchFile( const FString& DestFilename, const FString& SourceFilename );
 }
 
 /** 

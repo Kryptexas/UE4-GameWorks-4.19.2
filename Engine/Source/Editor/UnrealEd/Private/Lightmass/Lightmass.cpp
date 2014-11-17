@@ -6,8 +6,18 @@
 
 #include "UnrealEd.h"
 #include "PrecomputedLightVolume.h"
+#include "Runtime/Engine/Public/StaticMeshResources.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
+#include "Runtime/Engine/Classes/Matinee/MatineeActor.h"
+#include "Runtime/Engine/Classes/Matinee/InterpGroup.h"
+#include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
+#include "Runtime/Engine/Classes/Matinee/InterpTrackMove.h"
+#include "Runtime/Engine/Classes/Matinee/InterpTrackInstMove.h"
+#include "Runtime/Engine/Classes/Components/SplineMeshComponent.h"
+#include "Lightmass/PrecomputedVisibilityVolume.h"
+#include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
+#include "ComponentReregisterContext.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -124,6 +134,7 @@ void Copy( const ULightComponentBase* In, Lightmass::FLightData& Out )
 	// Set brightness here for light types that only derive from ULightComponentBase and not from ULightComponent
 	Out.Brightness = In->Intensity;
 	Out.Guid = In->LightGuid;
+	Out.IndirectLightingScale = In->IndirectLightingIntensity;
 }
 
 void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
@@ -882,7 +893,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FDirectionalLightData DirectionalData;
 		Copy( Light, LightData );
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = 0;
@@ -899,7 +909,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FPointLightData PointData;
 		Copy( Light, LightData );
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
@@ -918,7 +927,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FPointLightData PointData;
 		Lightmass::FSpotLightData SpotData;
 		Copy( Light, LightData ); 
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
@@ -1460,7 +1468,7 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 			const USplineMeshComponent* SplineComponent = CastChecked<USplineMeshComponent>(SMLightingMesh->Component);
 			SMInstanceMeshData.bIsSplineMesh = true;
 			Copy(*SplineParams, SMInstanceMeshData.SplineParameters);
-			SMInstanceMeshData.SplineParameters.SplineUpDir = SplineComponent->SplineXDir;
+			SMInstanceMeshData.SplineParameters.SplineUpDir = SplineComponent->SplineUpDir;
 			SMInstanceMeshData.SplineParameters.bSmoothInterpRollScale = SplineComponent->bSmoothInterpRollScale;
 			SMInstanceMeshData.SplineParameters.MeshMinZ = MeshBounds.Origin[SplineComponent->ForwardAxis] - MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
 			SMInstanceMeshData.SplineParameters.MeshRangeZ = 2.f * MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
@@ -1897,10 +1905,10 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MaxTransitionDistanceWorldSpace"), Scene.ShadowSettings.MaxTransitionDistanceWorldSpace, GLightmassIni));
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("ApproximateHighResTexelsPerMaxTransitionDistance"), Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance, GLightmassIni));
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
-		Scene.ShadowSettings.DominantShadowTransitionSampleDistanceX = 1;
-		Scene.ShadowSettings.DominantShadowTransitionSampleDistanceY = 1;
-		Scene.ShadowSettings.DominantShadowSuperSampleFactor = 1;
-		Scene.ShadowSettings.DominantShadowMaxSamples = 1;
+		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceX"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, GLightmassIni));
+		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceY"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, GLightmassIni));
+		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapSuperSampleFactor"), Scene.ShadowSettings.StaticShadowDepthMapSuperSampleFactor, GLightmassIni));
+		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapMaxSamples"), Scene.ShadowSettings.StaticShadowDepthMapMaxSamples, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MinUnoccludedFraction"), Scene.ShadowSettings.MinUnoccludedFraction, GLightmassIni));
 	}
 	{
@@ -2208,8 +2216,8 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 ,	bQuitReceived(false)
 ,	NumCompletedTasks(0)
 ,	bRunningLightmass(false)
-,	bDumpBinaryResults( bInDumpBinaryResults )
 ,	bOnlyBuildVisibility( bInOnlyBuildVisibility )
+,	bDumpBinaryResults( bInDumpBinaryResults )
 ,	bImportCompletedMappingsImmediately(false)
 ,	MappingToProcessIndex(0)
 {
@@ -2359,6 +2367,24 @@ bool FLightmassProcessor::ExecuteAmortizedMaterialExport()
 	return Exporter->WriteToMaterialChannel(Statistics);
 }
 
+void FLightmassProcessor::IssueStaticShadowDepthMapTask(const ULightComponent* Light, int32 EstimatedCost)
+{
+	if (Light->HasStaticShadowing() && !Light->HasStaticLighting())
+	{
+		NSwarm::FTaskSpecification NewTaskSpecification(Light->LightGuid, TEXT("StaticShadowDepthMaps"), NSwarm::JOB_TASK_FLAG_USE_DEFAULTS );
+		NewTaskSpecification.Cost = EstimatedCost;
+		int32 ErrorCode = Swarm.AddTask( NewTaskSpecification );
+		if( ErrorCode >= 0 )
+		{
+			NumTotalSwarmTasks++;
+		}
+		else
+		{
+			UE_LOG(LogLightmassSolver, Log,  TEXT("Error, AddTask for StaticShadowDepthMaps failed with error code %d"), ErrorCode );
+		}
+	}
+}
+
 bool FLightmassProcessor::BeginRun()
 {
 	{
@@ -2434,6 +2460,17 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../Mac/libtbbmalloc.dylib")
 	};
 #endif
+#elif PLATFORM_LINUX
+	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass-Linux-Debug");
+	const TCHAR* RequiredDependencyPaths64[] =
+	{
+		TEXT("../DotNET/Linux/AgentInterface.dll"),
+		TEXT("../Linux/UnrealLightmass-Core-Linux-Debug.so"),
+		TEXT("../Linux/UnrealLightmass-Projects-Linux-Debug.so"),
+		TEXT("../Linux/UnrealLightmass-SwarmInterface-Linux-Debug.so")
+	};
+#else
+#error "Unknown Lightmass platform"
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);
 
@@ -2632,6 +2669,26 @@ bool FLightmassProcessor::BeginRun()
 			}
 		}
 
+		{
+			for (int32 LightIndex = 0; LightIndex < Exporter->DirectionalLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->DirectionalLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, INT_MAX);
+			}
+			
+			for (int32 LightIndex = 0; LightIndex < Exporter->SpotLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->SpotLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, 10000);
+			}
+
+			for (int32 LightIndex = 0; LightIndex < Exporter->PointLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->PointLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, 10000);
+			}
+		}
+
 		// Add BSP mapping tasks.
 		for( int32 MappingIdx=0; (ErrorCode >= 0) && MappingIdx < Exporter->BSPSurfaceMappings.Num() && !GEditor->GetMapBuildCancelled(); MappingIdx++ )
 		{
@@ -2768,7 +2825,7 @@ bool FLightmassProcessor::Update()
 	if (!bIsLightmassRunning)
 	{
 		bIsFinished = true;
-		bProcessingFailed == Status != 0;
+		bProcessingFailed = Status != 0;
 		bProcessingSuccessful = !bProcessingFailed;
 		bQuitReceived = true;
 	}
@@ -2866,7 +2923,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 	if (VolumeSampleTaskCompleted > 0)
 	{
 		{
-			checkAtCompileTime(sizeof(FDebugVolumeLightingSample) == sizeof(Lightmass::FDebugVolumeLightingSample), DebugTypeSizesMustMatch);
+			static_assert(sizeof(FDebugVolumeLightingSample) == sizeof(Lightmass::FDebugVolumeLightingSample), "Debug type sizes must match.");
 			const FString ChannelName = Lightmass::CreateChannelName(Lightmass::VolumeLightingDebugOutputGuid, Lightmass::LM_VOLUMEDEBUGOUTPUT_VERSION, Lightmass::LM_VOLUMEDEBUGOUTPUT_EXTENSION);
 			const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_VOLUMEDEBUGOUTPUT_CHANNEL_FLAGS );
 			if (Channel >= 0)
@@ -3494,6 +3551,32 @@ FStaticLightingTextureMapping* FLightmassProcessor::GetStaticLightingTextureMapp
 	return NULL;
 }
 
+void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
+{
+	const FString ChannelName = Lightmass::CreateChannelName(Light->LightGuid, Lightmass::LM_DOMINANTSHADOW_VERSION, Lightmass::LM_DOMINANTSHADOW_EXTENSION);
+	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS );
+	if (Channel >= 0)
+	{
+		FStaticShadowDepthMap& DepthMap = Light->StaticShadowDepthMap;
+		Lightmass::FStaticShadowDepthMapData ShadowMapData;
+		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
+
+		DepthMap.WorldToLight = ShadowMapData.WorldToLight;
+		DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
+		DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
+
+		ReadArray(Channel, DepthMap.DepthSamples);
+		Swarm.CloseChannel(Channel);
+
+		BeginReleaseResource(&DepthMap);
+		BeginInitResource(&DepthMap);
+	}
+	else
+	{
+		UE_LOG(LogLightmassSolver, Log,  TEXT("Error, OpenChannel failed to open %s with error code %d"), *ChannelName, Channel );
+	}
+}
+
 /**
  * Import the mapping specified by a Guid.
  *	@param MappingGuid				Guid that identifies a mapping
@@ -3511,10 +3594,19 @@ void FLightmassProcessor::ImportMapping( const FGuid& MappingGuid, bool bProcess
 	}
 	else
 	{
-		FMappingImportHelper** pImportData = ImportedMappings.Find(MappingGuid);
-		if ((pImportData == NULL) || (*pImportData == NULL))
+		ULightComponent* Light = FindLight(MappingGuid);
+
+		if (Light)
 		{
-			UE_LOG(LogLightmassSolver, Warning, TEXT("Mapping not found for %s"), *(MappingGuid.ToString()));
+			ImportStaticShadowDepthMap(Light);
+		}
+		else
+		{
+			FMappingImportHelper** pImportData = ImportedMappings.Find(MappingGuid);
+			if ((pImportData == NULL) || (*pImportData == NULL))
+			{
+				UE_LOG(LogLightmassSolver, Warning, TEXT("Mapping not found for %s"), *(MappingGuid.ToString()));
+			}
 		}
 	}
 
@@ -3628,13 +3720,13 @@ void FLightmassProcessor::ReadArray(int32 Channel, TArray<T>& Array)
 /** Fills out GDebugStaticLightingInfo with the output from Lightmass */
 void FLightmassProcessor::ImportDebugOutput()
 {
-	checkAtCompileTime(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), DebugTypeSizesMustMatch_FDebugStaticLightingRay);
-	checkAtCompileTime(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), DebugTypeSizesMustMatch_FDebugStaticLightingVertex);
-	checkAtCompileTime(sizeof(FDebugLightingCacheRecord) == sizeof(Lightmass::FDebugLightingCacheRecord), DebugTypeSizesMustMatch_FDebugLightingCacheRecord);
-	checkAtCompileTime(STRUCT_OFFSET(FDebugLightingCacheRecord,RecordId) == STRUCT_OFFSET(Lightmass::FDebugLightingCacheRecord,RecordId), DebugStructOffsetMustMatch_FDebugLightingCacheRecord_RecordId);
-	checkAtCompileTime(sizeof(FDebugPhoton) == sizeof(Lightmass::FDebugPhoton), DebugTypeSizesMustMatch_FDebugPhoton);
-	checkAtCompileTime(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), DebugTypeSizesMustMatch_FDebugOctreeNode);
-	checkAtCompileTime(NumTexelCorners == Lightmass::NumTexelCorners, DebugTypeSizesMustMatch_NumTexelCorners);
+	static_assert(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), "Debug type sizes must match for FDebugStaticLightingRay.");
+	static_assert(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), "Debug type sizes must match for FDebugStaticLightingVertex.");
+	static_assert(sizeof(FDebugLightingCacheRecord) == sizeof(Lightmass::FDebugLightingCacheRecord), "Debug type sizes must match for FDebugLightingCacheRecord.");
+	static_assert(STRUCT_OFFSET(FDebugLightingCacheRecord, RecordId) == STRUCT_OFFSET(Lightmass::FDebugLightingCacheRecord, RecordId), "Debug struct offset must match for FDebugLightingCacheRecord::RecordId.");
+	static_assert(sizeof(FDebugPhoton) == sizeof(Lightmass::FDebugPhoton), "Debug type sizes must match for FDebugPhoton.");
+	static_assert(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), "Debug type sizes must match for FDebugOctreeNode.");
+	static_assert(NumTexelCorners == Lightmass::NumTexelCorners, "Debug type sizes must match for NumTexelCorners.");
 
 	const FString ChannelName = Lightmass::CreateChannelName(Lightmass::DebugOutputGuid, Lightmass::LM_DEBUGOUTPUT_VERSION, Lightmass::LM_DEBUGOUTPUT_EXTENSION);
 	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DEBUGOUTPUT_CHANNEL_FLAGS );
@@ -3675,7 +3767,7 @@ void FLightmassProcessor::ImportDebugOutput()
  *	@return	ULightComponent*	The corresponding light component.
  *								NULL if not found.
  */
-ULightComponent* FLightmassProcessor::FindLight(FGuid& LightGuid)
+ULightComponent* FLightmassProcessor::FindLight(const FGuid& LightGuid)
 {
 	if (Exporter)
 	{
@@ -3810,7 +3902,7 @@ bool FLightmassProcessor::ImportSignedDistanceFieldShadowMapData2D(int32 Channel
 		Lightmass::FShadowMapData2DData SMData(0,0);
 		Swarm.ReadChannel(Channel, &SMData, sizeof(Lightmass::FShadowMapData2DData));
 
-		checkAtCompileTime(sizeof(FQuantizedSignedDistanceFieldShadowSample) == sizeof(Lightmass::FQuantizedSignedDistanceFieldShadowSampleData), SampleDataSizesMustMatch);
+		static_assert(sizeof(FQuantizedSignedDistanceFieldShadowSample) == sizeof(Lightmass::FQuantizedSignedDistanceFieldShadowSampleData), "Sample data sizes must match.");
 
 		FQuantizedShadowSignedDistanceFieldData2D* ShadowMapData = new FQuantizedShadowSignedDistanceFieldData2D(SMData.SizeX, SMData.SizeY);
 		check(ShadowMapData);

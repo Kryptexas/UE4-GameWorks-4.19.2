@@ -12,18 +12,18 @@ public:
 
 	virtual ~FWidgetLayoutBlock() {}
 
-	virtual TSharedRef< IRun > GetRun() const OVERRIDE { return Run; }
+	virtual TSharedRef< IRun > GetRun() const override { return Run; }
 
-	virtual FTextRange GetTextRange() const OVERRIDE { return Range; }
+	virtual FTextRange GetTextRange() const override { return Range; }
 
-	virtual FVector2D GetSize() const OVERRIDE { return Size; }
+	virtual FVector2D GetSize() const override { return Size; }
 
-	virtual TSharedPtr< IRunHighlighter > GetHighlighter() const OVERRIDE { return Highlighter; }
+	virtual TSharedPtr< IRunHighlighter > GetHighlighter() const override { return Highlighter; }
 
 	TSharedRef< SWidget > GetWidget() const { return Widget; }
 
-	virtual void SetLocationOffset( const FVector2D& InLocationOffset ) OVERRIDE { LocationOffset = InLocationOffset; }
-	virtual FVector2D GetLocationOffset() const OVERRIDE { return LocationOffset; }
+	virtual void SetLocationOffset( const FVector2D& InLocationOffset ) override { LocationOffset = InLocationOffset; }
+	virtual FVector2D GetLocationOffset() const override { return LocationOffset; }
 
 private:
 

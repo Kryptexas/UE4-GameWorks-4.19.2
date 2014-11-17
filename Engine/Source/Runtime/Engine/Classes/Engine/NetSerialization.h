@@ -355,6 +355,7 @@ struct FFastArraySerializer
 	/** This must be called if you just remove something from the array */
 	void MarkArrayDirty()
 	{
+		ItemMap.Reset();		// This allows to clients to add predictive elements to arrays without affecting replication.
 		ArrayReplicationKey++;
 		if (ArrayReplicationKey == INDEX_NONE)
 			ArrayReplicationKey++;

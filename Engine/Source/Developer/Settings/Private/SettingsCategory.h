@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsCategory.h: Declares the FSettingsCategory class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -19,7 +15,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InName - The category's name.
+	 * @param InName The category's name.
 	 */
 	FSettingsCategory( const FName& InName )
 		: Name(InName)
@@ -32,12 +28,11 @@ public:
 	 *
 	 * If a section with the specified settings objects already exists, the existing section will be returned.
 	 *
-	 * @param SectionName - The name of the settings section to add.
-	 * @param DisplayName - The section's localized display name.
-	 * @param Description - The section's localized description text.
-	 * @param SettingsObject - The object that holds the section's settings.
-	 * @param Delegates - The section's optional callback delegates.
-	 *
+	 * @param SectionName The name of the settings section to add.
+	 * @param DisplayName The section's localized display name.
+	 * @param Description The section's localized description text.
+	 * @param SettingsObject The object that holds the section's settings.
+	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section.
 	 */
 	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates )
@@ -57,12 +52,11 @@ public:
 	 *
 	 * If a section with the specified settings objects already exists, the existing section will be returned.
 	 *
-	 * @param SectionName - The name of the settings section to add.
-	 * @param DisplayName - The section's localized display name.
-	 * @param Description - The section's localized description text.
-	 * @param CustomWidget - A custom settings widget.
-	 * @param Delegates - The section's optional callback delegates.
-	 *
+	 * @param SectionName The name of the settings section to add.
+	 * @param DisplayName The section's localized display name.
+	 * @param Description The section's localized description text.
+	 * @param CustomWidget A custom settings widget.
+	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section.
 	 */
 	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates )
@@ -80,10 +74,9 @@ public:
 	/**
 	 * Updates the details of this settings category.
 	 *
-	 * @param InDisplayName - The category's localized display name.
-	 * @param InDescription - The category's localized description text.
-	 * @param InIconName - The name of the category's icon.
-	 *
+	 * @param InDisplayName The category's localized display name.
+	 * @param InDescription The category's localized description text.
+	 * @param InIconName The name of the category's icon.
 	 * @return The category.
 	 */
 	void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName )
@@ -96,7 +89,7 @@ public:
 	/**
 	 * Removes a settings section.
 	 *
-	 * @param SectionName - The name of the section to remove.
+	 * @param SectionName The name of the section to remove.
 	 */
 	void RemoveSection( const FName& SectionName )
 	{
@@ -105,34 +98,34 @@ public:
 
 public:
 
-	// Begin ISettingsCategory interface
+	// ISettingsCategory interface
 
-	virtual const FText& GetDescription( ) const OVERRIDE
+	virtual const FText& GetDescription( ) const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const OVERRIDE
+	virtual const FText& GetDisplayName( ) const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetIconName( ) const OVERRIDE
+	virtual const FName& GetIconName( ) const override
 	{
 		return IconName;
 	}
 
-	virtual const FName& GetName( ) const OVERRIDE
+	virtual const FName& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const OVERRIDE
+	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override
 	{
 		return Sections.FindRef(SectionName);
 	}
 
-	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const OVERRIDE
+	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override
 	{
 		OutSections.Empty(Sections.Num());
 
@@ -143,8 +136,6 @@ public:
 
 		return OutSections.Num();
 	}
-
-	// End ISettingsCategory interface
 
 private:
 

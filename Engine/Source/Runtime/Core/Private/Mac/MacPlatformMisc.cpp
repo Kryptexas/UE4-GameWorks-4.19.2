@@ -17,8 +17,11 @@
 #include <IOKit/network/IOEthernetInterface.h>
 #include <IOKit/network/IONetworkInterface.h>
 #include <IOKit/network/IOEthernetController.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
 #include <mach-o/dyld.h>
 #include <libproc.h>
+#include <notify.h>
 
 
 /**
@@ -140,8 +143,38 @@ struct MacApplicationInfo
 		AppPath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		
 		LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
+		
+		// Notification handler to check we are running from a battery - this only applies to MacBook's.
+		notify_handler_t PowerSourceNotifyHandler = ^(int32 Token){
+			RunningOnBattery = false;
+			CFTypeRef PowerSourcesInfo = IOPSCopyPowerSourcesInfo();
+			if (PowerSourcesInfo)
+			{
+				CFArrayRef PowerSourcesArray = IOPSCopyPowerSourcesList(PowerSourcesInfo);
+				for (CFIndex Index = 0; Index < CFArrayGetCount(PowerSourcesArray); Index++)
+				{
+					CFTypeRef PowerSource = CFArrayGetValueAtIndex(PowerSourcesArray, Index);
+					NSDictionary* Description = (NSDictionary*)IOPSGetPowerSourceDescription(PowerSourcesInfo, PowerSource);
+					if ([(NSString*)[Description objectForKey: @kIOPSPowerSourceStateKey] isEqualToString: @kIOPSBatteryPowerValue])
+					{
+						RunningOnBattery = true;
+						break;
+					}
+				}
+				CFRelease(PowerSourcesArray);
+				CFRelease(PowerSourcesInfo);
+			}
+		};
+		
+		// Call now to fetch the status
+		PowerSourceNotifyHandler(0);
+		
+		uint32 Status = notify_register_dispatch(kIOPSNotifyPowerSource, &PowerSourceNotification, dispatch_get_main_queue(), PowerSourceNotifyHandler);
+		check(Status == NOTIFY_STATUS_OK);
 	}
 	
+	bool RunningOnBattery;
+	int32 PowerSourceNotification;
 	char AppNameUTF8[PATH_MAX+1];
 	char AppLogPath[PATH_MAX+1];
 	char CrashReportPath[PATH_MAX+1];
@@ -166,7 +199,7 @@ struct MacApplicationInfo
 };
 static MacApplicationInfo GMacAppInfo;
 
-void FMacPlatformMisc::PlatformInit()
+void FMacPlatformMisc::PlatformPreInit()
 {
 	// Increase the maximum number of simultaneously open files
 	uint32 MaxFilesPerProc = OPEN_MAX;
@@ -195,7 +228,10 @@ void FMacPlatformMisc::PlatformInit()
 	{
 		UE_LOG(LogInit, Warning, TEXT("Failed to change open file limit, UE4 may be unstable."));
 	}
+}
 
+void FMacPlatformMisc::PlatformInit()
+{
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName() );
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName() );
@@ -207,6 +243,84 @@ void FMacPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
 	
 	GMacAppInfo.Init();
+	
+	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
+}
+
+void FMacPlatformMisc::PlatformPostInit(bool IsMoviePlaying)
+{
+	// Setup the app menu in menu bar
+	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
+	if (bIsBundledApp)
+	{
+		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(GGameName).GetNSString();
+
+		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
+		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
+
+		NSMenuItem* PreferencesItem = GIsEditor ? [[[NSMenuItem alloc] initWithTitle:@"Preferences..." action:@selector(showPreferencesWindow:) keyEquivalent:@","] autorelease] : nil;
+
+		NSMenuItem* HideItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", AppName] action:@selector(hide:) keyEquivalent:@"h"] autorelease];
+		NSMenuItem* HideOthersItem = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"] autorelease];
+		[HideOthersItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
+		NSMenuItem* ShowAllItem = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
+
+		SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
+		NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
+
+		NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
+		NSMenu* ServicesMenu = [[NSMenu new] autorelease];
+		[ServicesItem setTitle:@"Services"];
+		[ServicesItem setSubmenu:ServicesMenu];
+		[NSApp setServicesMenu:ServicesMenu];
+
+		NSMenu* AppMenu = [[NSMenu new] autorelease];
+		[AppMenu addItem:AboutItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		if (PreferencesItem)
+		{
+			[AppMenu addItem:PreferencesItem];
+			[AppMenu addItem:[NSMenuItem separatorItem]];
+		}
+		[AppMenu addItem:ServicesItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		[AppMenu addItem:HideItem];
+		[AppMenu addItem:HideOthersItem];
+		[AppMenu addItem:ShowAllItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		[AppMenu addItem:QuitItem];
+
+		NSMenu* MenuBar = [[NSMenu new] autorelease];
+		NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
+		[MenuBar addItem:AppMenuItem];
+		[NSApp setMainMenu:MenuBar];
+		[AppMenuItem setSubmenu:AppMenu];
+
+		UpdateWindowMenu();
+	}
+}
+
+void FMacPlatformMisc::UpdateWindowMenu()
+{
+	NSMenu* WindowMenu = [NSApp windowsMenu];
+	if (!WindowMenu)
+	{
+		WindowMenu = [[NSMenu new] autorelease];
+		[WindowMenu setTitle:@"Window"];
+		NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
+		[WindowMenuItem setSubmenu:WindowMenu];
+		[[NSApp mainMenu] addItem:WindowMenuItem];
+		[NSApp setWindowsMenu:WindowMenu];
+	}
+
+	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
+	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
+	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+
+	[WindowMenu addItem:MinimizeItem];
+	[WindowMenu addItem:ZoomItem];
+	[WindowMenu addItem:[NSMenuItem separatorItem]];
+	[WindowMenu addItem:BringAllToFrontItem];
 }
 
 void FMacPlatformMisc::PreventScreenSaver()
@@ -492,7 +606,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 			{
 				if( !bIsMouseClickEvent || [Event window] == NULL )
 				{
-					MacApplication->AddPendingEvent( Event );
+					MacApplication->ProcessEvent( Event );
 				}
 
 				if( [Event type] == NSLeftMouseUp )
@@ -621,6 +735,10 @@ uint32 FMacPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 
 void FMacPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogMac, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
+	
+	notify_cancel(GMacAppInfo.PowerSourceNotification);
+	GMacAppInfo.PowerSourceNotification = 0;
+	
 	if( Force )
 	{
 		// Abort allows signal handler to know we aborted.
@@ -919,6 +1037,19 @@ int32 FMacPlatformMisc::NumberOfCoresIncludingHyperthreads()
 	return NumberOfCores;
 }
 
+void FMacPlatformMisc::NormalizePath(FString& InPath)
+{
+	if (InPath.Len() > 1)
+	{
+		const bool bAppendSlash = InPath[InPath.Len() - 1] == '/'; // NSString will remove the trailing slash, if present, so we need to restore it after conversion
+		InPath = [[InPath.GetNSString() stringByStandardizingPath] stringByResolvingSymlinksInPath];
+		if (bAppendSlash)
+		{
+			InPath += TEXT("/");
+		}
+	}
+}
+
 #include "ModuleManager.h"
 
 void FMacPlatformMisc::LoadPreInitModules()
@@ -1025,6 +1156,11 @@ FString FMacPlatformMisc::GetDefaultLocale()
 FText FMacPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("MacPlatform", "FileManagerName", "Finder");
+}
+
+bool FMacPlatformMisc::IsRunningOnBattery()
+{
+	return GMacAppInfo.RunningOnBattery;
 }
 
 /** Global pointer to crash handler */
@@ -1353,7 +1489,12 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, GMacAppInfo.AppNameUTF8);
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "-pid-");
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(getpid(), 10));
-	if(!mkdir(CrashInfoFolder, 0766))
+
+	// Prevent CrashReportClient from spawning another CrashReportClient.
+	const TCHAR* ExecutableName = FPlatformProcess::ExecutableName();
+	const bool bCanRunCrashReportClient = FCString::Stristr( ExecutableName, TEXT( "CrashReportClient" ) ) == nullptr;
+
+	if(!mkdir(CrashInfoFolder, 0766) && bCanRunCrashReportClient)
 	{
 		char FilePath[PATH_MAX] = {};
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);

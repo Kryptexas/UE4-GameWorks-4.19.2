@@ -16,6 +16,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+
 
 /**-----------------------------------------------------------------------------
  *	UResavePackages commandlet.

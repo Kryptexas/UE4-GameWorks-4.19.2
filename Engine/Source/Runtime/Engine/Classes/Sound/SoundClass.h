@@ -138,13 +138,18 @@ struct FPassiveSoundMixModifier
 	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
 	class USoundMix* SoundMix;
 
-	/** Minimum volume level to activate SoundMix at. */
+	/** Minimum volume level required to activate SoundMix. Below this value the SoundMix will not be active. */
 	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
-	float VolumeThreshold;
+	float MinVolumeThreshold;
+
+	/** Maximum volume level required to activate SoundMix. Above this value the SoundMix will not be active. */
+	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
+	float MaxVolumeThreshold;
 
 	FPassiveSoundMixModifier()
-	: SoundMix(NULL)
-	, VolumeThreshold(0.0f)
+		: SoundMix(NULL)
+		, MinVolumeThreshold(0.f)
+		, MaxVolumeThreshold(10.f)
 	{
 	}
 	
@@ -181,13 +186,13 @@ public:
 protected:
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual FString GetDesc( void ) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual FString GetDesc( void ) override;
+	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End UObject interface.
 

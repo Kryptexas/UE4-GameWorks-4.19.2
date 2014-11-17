@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_Variable.h"
 #include "K2Node_VariableGet.generated.h"
 
 UCLASS(MinimalAPI)
@@ -10,17 +11,16 @@ class UK2Node_VariableGet : public UK2Node_Variable
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool IsNodePure() const override { return true; }
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End K2Node interface
 };
 

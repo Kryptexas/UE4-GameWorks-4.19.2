@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BlackboardData.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 UBehaviorTreeGraphNode_Root::UBehaviorTreeGraphNode_Root(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -36,6 +38,11 @@ FText UBehaviorTreeGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) 
 FName UBehaviorTreeGraphNode_Root::GetNameIcon() const
 {
 	return FName("BTEditor.Graph.BTNode.Root.Icon");
+}
+
+FString UBehaviorTreeGraphNode_Root::GetTooltip() const
+{
+	return NSLOCTEXT("BehaviorTreeGraphNode", "RootTooltip", "Root node of this behavior tree, holds Blackboard data").ToString();
 }
 
 void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)

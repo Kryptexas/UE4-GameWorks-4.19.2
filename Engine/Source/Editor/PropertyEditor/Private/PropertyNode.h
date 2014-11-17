@@ -70,12 +70,14 @@ class FPropertyNode;
 
 struct FAddressPair
 {
-	FAddressPair( const UObject* InObject, uint8* Address )
+	FAddressPair(const UObject* InObject, uint8* Address, bool bInIsStruct)
 		: Object( InObject)
 		, ReadAddress( Address )
+		, bIsStruct(bInIsStruct)
 	{}
 	TWeakObjectPtr<const UObject> Object;
 	uint8* ReadAddress;
+	bool bIsStruct;
 };
 
 template<> struct TIsPODType<FAddressPair> { enum { Value = true }; };
@@ -88,9 +90,9 @@ public:
 		, bRequiresCache( true )
 	{
 	}
-	void Add( const UObject* Object, uint8* Address )
+	void Add(const UObject* Object, uint8* Address, bool bIsStruct = false)
 	{
-		ReadAddresses.Add( FAddressPair( Object, Address ) );
+		ReadAddresses.Add(FAddressPair(Object, Address, bIsStruct));
 	}
 
 	int32 Num() const
@@ -101,7 +103,7 @@ public:
 	uint8* GetAddress( int32 Index )
 	{
 		const FAddressPair& Pair = ReadAddresses[Index];
-		return Pair.Object.IsValid() ? Pair.ReadAddress : NULL;
+		return (Pair.Object.IsValid() || Pair.bIsStruct) ? Pair.ReadAddress : NULL;
 	}
 
 	void Reset()
@@ -111,9 +113,10 @@ public:
 		bRequiresCache = true;
 	}
 	
-	TArray<FAddressPair> ReadAddresses;
 	bool bAllValuesTheSame;
 	bool bRequiresCache;
+private:
+	TArray<FAddressPair> ReadAddresses;
 };
 
 /**
@@ -129,7 +132,7 @@ public:
 
 	int32 Num() const
 	{
-		return (ReadAddressListData != NULL) ? ReadAddressListData->ReadAddresses.Num() : 0;
+		return (ReadAddressListData != NULL) ? ReadAddressListData->Num() : 0;
 	}
 
 	uint8* GetAddress( int32 Index )
@@ -200,6 +203,8 @@ struct EPropertyArrayChangeType
 	};
 };
 
+class FComplexPropertyNode;
+
 /**
  * The base class for all property nodes                                                              
  */
@@ -256,6 +261,9 @@ public:
 	virtual class FObjectPropertyNode* AsObjectNode() { return NULL; }
 	virtual const FObjectPropertyNode* AsObjectNode() const { return NULL; }
 
+	virtual FComplexPropertyNode* AsComplexNode() { return NULL; }
+	virtual const FComplexPropertyNode* AsComplexNode() const { return NULL; }
+
 	/**
 	 * Interface function to get at the dervied FCategoryPropertyNodeWx class
 	 */
@@ -269,6 +277,9 @@ public:
 	/**
 	 * Follows the chain of items upwards until it finds the object window that houses this item.
 	 */
+	class FComplexPropertyNode* FindComplexParent();
+	const class FComplexPropertyNode* FindComplexParent() const;
+
 	class FObjectPropertyNode* FindObjectItemParent();
 	const class FObjectPropertyNode* FindObjectItemParent() const;
 
@@ -634,6 +645,8 @@ public:
 		return Restrictions;
 	}
 
+	FPropertyChangedEvent& FixPropertiesInEvent(FPropertyChangedEvent& Event);
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -752,4 +765,29 @@ protected:
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
 };
 
+class FComplexPropertyNode : public FPropertyNode
+{
+public:
 
+	enum EPropertyType
+	{
+		EPT_Object,
+		EPT_StandaloneStructure,
+	};
+
+	FComplexPropertyNode() : FPropertyNode() {}
+	virtual ~FComplexPropertyNode() {}
+
+	virtual FComplexPropertyNode* AsComplexNode() override{ return this; }
+	virtual const FComplexPropertyNode* AsComplexNode() const override{ return this; }
+
+	virtual UStruct* GetBaseStructure() = 0;
+	virtual const UStruct* GetBaseStructure() const = 0;
+
+	virtual int32 GetInstancesNum() const = 0;
+	virtual uint8* GetMemoryOfInstance(int32 Index) = 0;
+	virtual TWeakObjectPtr<UObject> GetInstanceAsUObject(int32 Index) = 0;
+	virtual EPropertyType GetPropertyType() const = 0;
+
+	virtual void Disconnect() = 0;
+};

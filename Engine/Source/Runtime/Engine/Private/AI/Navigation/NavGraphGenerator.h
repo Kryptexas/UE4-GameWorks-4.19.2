@@ -23,11 +23,11 @@ public:
 	// FNavDataGenerator overrides
 	//----------------------------------------------------------------------//
 	// Triggers navmesh building process
-	virtual bool Generate() OVERRIDE;
+	virtual bool Generate() override;
 
-	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const OVERRIDE;
+	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const override;
 
-	virtual void OnWorldInitDone(bool bAllowedToRebuild) OVERRIDE;
+	virtual void OnWorldInitDone(bool bAllowedToRebuild) override;
 		
 	//--- accessors --- //
 
@@ -44,11 +44,11 @@ private:
 	void TriggerGeneration();
 
 public:
-	virtual void OnNavigationBuildingLocked() OVERRIDE;
-	virtual void OnNavigationBuildingUnlocked(bool bForce) OVERRIDE;
-	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) OVERRIDE;
+	virtual void OnNavigationBuildingLocked() override;
+	virtual void OnNavigationBuildingUnlocked(bool bForce) override;
+	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) override;
 
-	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) OVERRIDE;
+	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) override;
 
 private:
 	/** Bounding geometry definition. */

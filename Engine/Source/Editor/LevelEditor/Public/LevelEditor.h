@@ -24,29 +24,29 @@ public:
 	/**
 	 * Called right after the module DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
 	/**
 	 * Called before the module has been unloaded
 	 */
-	virtual void PreUnloadCallback() OVERRIDE;
+	virtual void PreUnloadCallback() override;
 
 	/**
 	 * Called after the module has been reloaded
 	 */
-	virtual void PostLoadCallback() OVERRIDE;
+	virtual void PostLoadCallback() override;
 
 	/**
 	 * Override this to set whether your module is allowed to be unloaded on the fly
 	 *
 	 * @return Whether the module supports shutdown separate from the rest of the engine.
 	 */
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		// @todo: Eventually, this should probably not be allowed.
 		return true;
@@ -70,12 +70,16 @@ public:
 	 */
 	virtual void SummonLevelBrowser();
 
+	virtual void SummonWorldBrowserHierarchy();
+	virtual void SummonWorldBrowserDetails();
+	virtual void SummonWorldBrowserComposition();
+
 	// @todo remove when world-centric mode is added
 	/**
 	 * Spawns a new sequencer tab if one doesn't exist already
 	 * @todo This only works with the first level editor. Fix it.
 	 */
-	virtual void AttachSequencer(TSharedPtr<SWidget> Sequencer);
+	virtual void AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TSharedPtr<class IAssetEditorInstance> SequencerAssetEditor );
 
 	/**
 	 * Starts a play in editor session using the active viewport
@@ -147,6 +151,10 @@ public:
 
 	/* Create a tab manager for the level editor based on the given tab (or clears the tab manager if OwnerTab is null) */
 	virtual void SetLevelEditorTabManager( const TSharedPtr<SDockTab>& OwnerTab );
+
+	/** Called when the tab manager is changed */
+	DECLARE_EVENT(FLevelEditorModule, FTabManagerChangedEvent);
+	virtual FTabManagerChangedEvent& OnTabManagerChanged() { return TabManagerChangedEvent; }
 
 	/**
 	 * Called when actor selection changes
@@ -224,6 +232,15 @@ private:
 	 */
 	void BindGlobalLevelEditorCommands();
 
+	// Callback for persisting the Level Editor's layout.
+	void HandleTabManagerPersistLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave )
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	}
+
+	/** Spawn the main level editor tab */
+	TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs );
+
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
@@ -239,6 +256,9 @@ private:
 	TSharedPtr<FUICommandList> GlobalLevelEditorActions;
 
 	FAutoConsoleCommand ToggleImmersiveConsoleCommand;
+
+	/** Multicast delegate executed when the tab manager is changed */
+	FTabManagerChangedEvent TabManagerChangedEvent;
 
 	/** Multicast delegate executed when actor selection changes */
 	FActorSelectionChangedEvent ActorSelectionChangedEvent;

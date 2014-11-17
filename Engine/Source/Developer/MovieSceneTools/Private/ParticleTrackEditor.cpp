@@ -18,7 +18,7 @@
 #include "MovieSceneParticleSection.h"
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
-
+#include "Particles/Emitter.h"
 
 
 namespace AnimatableParticleEditorConstants
@@ -43,16 +43,16 @@ UMovieSceneSection* FParticleSection::GetSectionObject()
 	return &Section;
 }
 
-FString FParticleSection::GetDisplayName() const
+FText FParticleSection::GetDisplayName() const
 {
-	return TEXT("Emitter");
+	return NSLOCTEXT("FParticleSection", "Emitter", "Emitter");
 }
 
-FString FParticleSection::GetSectionTitle() const
+FText FParticleSection::GetSectionTitle() const
 {
 	EParticleKey::Type KeyType = Cast<UMovieSceneParticleSection>(&Section)->GetKeyType();
-	return KeyType == EParticleKey::Toggle ? TEXT("Toggle") :
-		KeyType == EParticleKey::Trigger ? TEXT("Trigger") : TEXT("None");
+	return KeyType == EParticleKey::Toggle ? NSLOCTEXT("FParticleSection", "Toggle", "Toggle") :
+		KeyType == EParticleKey::Trigger ? NSLOCTEXT("FParticleSection", "Trigger", "Trigger") : NSLOCTEXT("FParticleSection", "None", "None");
 }
 
 float FParticleSection::GetSectionHeight() const
@@ -169,9 +169,10 @@ void FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
 
 			if (ensure(Track))
 			{

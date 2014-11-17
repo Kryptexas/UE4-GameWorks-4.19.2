@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightingSystem.h: Private static lighting system definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "CPUSolver.h"
@@ -613,21 +609,21 @@ public:
 	TArray<uint8> VisibilityData;
 };
 
-/** Stores depth for a single cell of a shadow map for a dominant light. */
-class FDominantLightShadowSample : public FDominantLightShadowSampleData
+/** Stores depth for a single cell of a shadow map for a stationary light. */
+class FStaticShadowDepthMapSample : public FStaticShadowDepthMapSampleData
 {
 public:
-	FDominantLightShadowSample(uint16 InDistance)
+	FStaticShadowDepthMapSample(FFloat16 InDistance)
 	{
 		Distance = InDistance;
 	}
 };
 
 /** Stores information about how ShadowMap was generated. */
-class FDominantLightShadowInfo : public FDominantLightShadowInfoData
+class FStaticShadowDepthMap : public FStaticShadowDepthMapData
 {
 public:
-	TArray<FDominantLightShadowSample> ShadowMap;
+	TArray<FStaticShadowDepthMapSample> ShadowMap;
 };
 
 /** Number of light bounces that we are keeping track of stats for */
@@ -727,8 +723,11 @@ public:
 	/** Number of mesh queries that were trivially occluded because their group was already determined to be occluded. */
 	uint64 NumPrecomputedVisibilityMeshQueriesSkipped;
 
-	/** Thread seconds calculating the dominant shadow map. */
-	float DominantShadowThreadTime;
+	/** Thread seconds calculating static shadow depth maps. */
+	float StaticShadowDepthMapThreadTime;
+
+	/** Longest time spent on a single static shadow depth map. */
+	float MaxStaticShadowDepthMapThreadTime;
 
 	/** Thread seconds calculating the volume distance field. */
 	float VolumeDistanceFieldThreadTime;
@@ -838,7 +837,8 @@ public:
 		PrecomputedVisibilityImportanceSampleThreadTime(0),
 		NumPrecomputedVisibilityGroupQueries(0),
 		NumPrecomputedVisibilityMeshQueriesSkipped(0),
-		DominantShadowThreadTime(0),
+		StaticShadowDepthMapThreadTime(0),
+		MaxStaticShadowDepthMapThreadTime(0),
 		VolumeDistanceFieldThreadTime(0),
 		BlockOnIndirectLightingCacheTasksTime(0),
 		BlockOnIndirectLightingInterpolateTasksTime(0),
@@ -902,7 +902,8 @@ public:
 		PrecomputedVisibilityImportanceSampleThreadTime += B.PrecomputedVisibilityImportanceSampleThreadTime;
 		NumPrecomputedVisibilityGroupQueries += B.NumPrecomputedVisibilityGroupQueries;
 		NumPrecomputedVisibilityMeshQueriesSkipped += B.NumPrecomputedVisibilityMeshQueriesSkipped;
-		DominantShadowThreadTime += B.DominantShadowThreadTime;
+		StaticShadowDepthMapThreadTime += B.StaticShadowDepthMapThreadTime;
+		MaxStaticShadowDepthMapThreadTime = FMath::Max(MaxStaticShadowDepthMapThreadTime, B.MaxStaticShadowDepthMapThreadTime);
 		VolumeDistanceFieldThreadTime += B.VolumeDistanceFieldThreadTime;
 		BlockOnIndirectLightingCacheTasksTime += B.BlockOnIndirectLightingCacheTasksTime;
 		BlockOnIndirectLightingInterpolateTasksTime += B.BlockOnIndirectLightingInterpolateTasksTime;
@@ -2175,6 +2176,12 @@ private:
 		FGatheredLightSample& OutToggleableDirectLighting,
 		float& OutToggleableDirectionalLightShadowing) const;
 
+	FGatheredLightSample CalculateApproximateSkyLighting(
+		const FFullStaticLightingVertex& Vertex,
+		float SampleRadius,
+		const TArray<FVector4>& UniformHemisphereSamples,
+		FStaticLightingMappingContext& MappingContext) const;
+
 	/** Calculates incident radiance for a given world space position. */
 	void CalculateVolumeSampleIncidentRadiance(
 		const TArray<FVector4>& UniformHemisphereSamples,
@@ -2193,11 +2200,8 @@ private:
 	/** Calculates visibility for a given group of cells, called from all threads. */
 	void CalculatePrecomputedVisibility(int32 BucketIndex);
 
-	/** Initializes DominantLightShadowInfo and prepares for multithreaded generation of DominantLightShadowInfo.ShadowMap. */
-	void BeginCalculateDominantShadowInfo(FGuid LightGuid);
-
-	/** Generates a single row of the dominant light shadow map. */
-	void CalculateDominantShadowInfoWorkRange(int32 ShadowMapY);
+	/** Computes a shadow depth map for a stationary light. */
+	void CalculateStaticShadowDepthMap(FGuid LightGuid);
 
 	/** Prepares for multithreaded generation of VolumeDistanceField. */
 	void BeginCalculateVolumeDistanceField();
@@ -2251,7 +2255,7 @@ private:
 	FLinearColor EvaluateEnvironmentLighting(const FVector4& IncomingDirection) const;
 
 	/** Evaluates the incoming sky lighting from the scene. */
-	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
+	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
 
 	/** Returns a light sample that represents the material attribute specified by MaterialSettings.ViewMaterialAttribute at the intersection. */
 	FGatheredLightSample GetVisualizedMaterialAttribute(const FStaticLightingMapping* Mapping, const FLightRayIntersection& Intersection) const;
@@ -2560,23 +2564,11 @@ private:
 	/** All precomputed visibility cells in the scene.  Some of these may be processed on other agents. */
 	TArray<FPrecomputedVisibilityCell> AllPrecomputedVisibilityCells;
 
-	/** Positive if the lighting threads are done writing to DominantLightShadowInfo, and the samples can be exported. */
-	volatile int32 bDominantShadowTaskComplete;
-	/** */
-	volatile int32 NumOutstandingDominantShadowColumns;
-	/** Index of the last row of the dominant shadow map that was processed. */
-	volatile int32 OutstandingDominantShadowYIndex;
-	/** Information about the dominant light's shadow that is needed by Unreal. */
-	FDominantLightShadowInfo DominantLightShadowInfo;
+	/** Threads must acquire this critical section before reading or writing to CompletedStaticShadowDepthMaps. */
+	FCriticalSection CompletedStaticShadowDepthMapsSync;
 
-	/** Guid of the dominant directional light that DominantLightShadowInfo corresponds to. */
-	FGuid DominantDirectionalLightId;
-
-	/** Map from dominant spotlight to the shadowmap generated for that light. */
-	TMap<const FSpotLight*, FDominantLightShadowInfo> DominantSpotLightShadowInfos;
-
-	/** Threads must acquire this critical section before reading or writing to DominantSpotLightShadowInfos. */
-	FCriticalSection DominantLightShadowSync;
+	/** Static shadow depth maps ready to be exported by the main thread. */
+	TMap<const FLight*, FStaticShadowDepthMap*> CompletedStaticShadowDepthMaps;
 
 	/** Non-zero if the mesh area light data task should be exported. */
 	volatile int32 bShouldExportMeshAreaLightData;
@@ -2632,6 +2624,8 @@ private:
 	float CachedSamplesMaxUnoccludedLength;
 
 	TArray<FVector2D> CachedHemisphereSampleUniforms;
+
+	TArray<FVector4> CachedHemisphereSamplesForApproximateSkyLighting;
 
 	/** The aggregate mesh used for raytracing. */
 	FStaticLightingAggregateMesh AggregateMesh;

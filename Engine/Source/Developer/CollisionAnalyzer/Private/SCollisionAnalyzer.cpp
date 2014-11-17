@@ -688,7 +688,7 @@ void SCollisionAnalyzer::FilterTextCommitted(const FText& CommentText, ETextComm
 	RebuildFilteredList();
 }
 
-void SCollisionAnalyzer::OnSortByChanged(const FName& ColumnName, EColumnSortMode::Type NewSortMode)
+void SCollisionAnalyzer::OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode)
 {
 	SortBy = EQuerySortMode::ByID;
 

@@ -5,7 +5,14 @@
 //=============================================================================
 
 #pragma once
+#include "World.h"
 #include "Engine.generated.h"
+
+class FScreenSaverInhibitor;
+class UDeviceProfileManager;
+class FViewport;
+class FCommonViewportClient;
+class FCanvas;
 
 UENUM()
 enum EFullyLoadPackageType
@@ -635,27 +642,11 @@ public:
 	/** The class for NavigationSystem **/
 	UPROPERTY()
 	TSubclassOf<class UNavigationSystem>  NavigationSystemClass;
-
-	/** Name of behavior tree manager class */
-	UPROPERTY(globalconfig, noclear, meta=(MetaClass="BehaviorTreeManager", DisplayName="Behavior Tree Manager Class"))
-	FStringClassReference BehaviorTreeManagerClassName;
-
-	/** The class for behavior tree manager **/
-	UPROPERTY()
-	TSubclassOf<class UBehaviorTreeManager>  BehaviorTreeManagerClass;
-
-	/** Name of environment query manager class */
-	UPROPERTY(globalconfig, noclear, meta=(MetaClass="EnvQueryManager", DisplayName="Environment Query Manager Class"))
-	FStringClassReference EnvironmentQueryManagerClassName;
-
-	/** The class for environment query manager **/
-	UPROPERTY()
-	TSubclassOf<class UEnvQueryManager>  EnvironmentQueryManagerClass;
-
+	
 	/** Name of behavior tree manager class */
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="AvoidanceManager", DisplayName="Avoidance Manager Class"))
 	FStringClassReference AvoidanceManagerClassName;
-
+	
 	/** The class for behavior tree manager **/
 	UPROPERTY()
 	TSubclassOf<class UAvoidanceManager>  AvoidanceManagerClass;
@@ -1588,8 +1579,8 @@ public:
 	}
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -1604,7 +1595,7 @@ public:
 	void ParseCommandline();
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out=*GLog ) override;
 	// End FExec Interface
 
 	/** 
@@ -1732,6 +1723,10 @@ public:
 	 */
 	void SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float GameThreadTime, float GPUFrameTime);
 
+	/**
+	 * @return true to throttle CPU usage based on current state (usually editor minimized or not in foreground)
+	 */
+	virtual bool ShouldThrottleCPUUsage() const;
 protected:
 	/** 
 	 * Determines whether a hardware survey should be run now.
@@ -2152,6 +2147,11 @@ protected:
 	virtual bool InitializeHMDDevice();
 
 	/**
+	 *	Record EngineAnalytics information for attached HMD devices
+	 */
+	virtual void RecordHMDAnalytics();
+
+	/**
 	 * Loads all Engine object references from their corresponding config entries.
 	 */
 	virtual void InitializeObjectReferences();
@@ -2189,6 +2189,7 @@ private:
 
 	/** Thread preventing screen saver from kicking. Suspend most of the time. */
 	FRunnableThread*		ScreenSaverInhibitor;
+	FScreenSaverInhibitor*  ScreenSaverInhibitorRunnable;
 
 	/** If true, the engine tick function will poll FPlatformSurvey for results */
 	bool					bPendingHardwareSurveyResults;
@@ -2352,8 +2353,6 @@ public:
 	}
 
 	void ClearDebugDisplayProperties();
-
-	bool LoadAdditionalMaps(UWorld* PersistentWorld, const TArray<FString>& MapsToLoad, FString& Error);
 
 	/**
 	 * Loads the PerMapPackages for the given map, and adds them to the RootSet
@@ -2646,6 +2645,7 @@ private:
 #if !UE_BUILD_SHIPPING
 	bool ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
 	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
 	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
 #endif
 	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);

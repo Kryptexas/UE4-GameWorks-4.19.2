@@ -13,6 +13,8 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "Matinee/MatineeActor.h"
+#include "EngineModule.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -48,6 +50,9 @@ namespace {
 	static const float LightRotSpeed = 0.22f;
 }
 
+#define MIN_ORTHOZOOM				250.0					/* Limit of 2D viewport zoom in */
+#define MAX_ORTHOZOOM				MAX_FLT					/* Limit of 2D viewport zoom out */
+
 namespace OrbitConstants
 {
 	const float OrbitPanSpeed = 1.0f;
@@ -75,10 +80,10 @@ public:
 FViewportCameraTransform::FViewportCameraTransform()
 	: TransitionCurve( new FCurveSequence( 0.0f, FocusConstants::TransitionTime, ECurveEaseFunction::CubicOut ) )
 	, ViewLocation( FVector::ZeroVector )
-	, DesiredLocation( FVector::ZeroVector )
 	, ViewRotation( FRotator::ZeroRotator )
-	, StartLocation( FVector::ZeroVector )
+	, DesiredLocation( FVector::ZeroVector )
 	, LookAt( FVector::ZeroVector )
+	, StartLocation( FVector::ZeroVector )
 	, OrthoZoom( DEFAULT_ORTHOZOOM )
 {}
 
@@ -175,8 +180,9 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
-FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
-	: ImmersiveDelegate()
+FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene)
+	: CameraSpeedSetting(4)
+	, ImmersiveDelegate()
 	, VisibilityDelegate()
 	, Viewport(NULL)
 	, ViewTransform()
@@ -191,28 +197,14 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, ViewFOV(EditorViewportDefs::DefaultPerspectiveFOVAngle)
 	, FOVAngle(EditorViewportDefs::DefaultPerspectiveFOVAngle)
 	, AspectRatio(1.777777f)
-	, NearPlane(-1.0f)
-	, FarPlane(0.0f)
 	, bForcingUnlitForNewMap(false)
-	, bInGameViewMode(false)
 	, bWidgetAxisControlledByDrag(false)
 	, bNeedsRedraw(true)
 	, bNeedsLinkedRedraw(false)
 	, bNeedsInvalidateHitProxy(false)
 	, bUsingOrbitCamera(false)
-	, bIsSimulateInEditorViewport( false )
-	, bHasAudioFocus(false)
-	, bShouldCheckHitProxy(false)
-	, bUsesDrawHelper(true)
-	, PerspViewModeIndex(VMI_Lit)
-	, OrthoViewModeIndex(VMI_BrushWireframe)
-	, bIsTracking( false )
-	, bDraggingByHandle( false )
-	, CurrentGestureDragDelta(FVector::ZeroVector)
-	, CurrentGestureRotDelta(FRotator::ZeroRotator)
 	, bDisableInput( false )
 	, bDrawAxes(true)
-	, bForceAudioRealtime(false)
 	, bSetListenerPosition(false)
 	, LandscapeLODOverride(-1)
 	, Widget(new FWidget)
@@ -229,13 +221,28 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, CachedMouseX(0)
 	, CachedMouseY(0)
 	, CurrentMousePos(-1, -1)
+	, bIsTracking(false)
+	, bDraggingByHandle(false)
+	, CurrentGestureDragDelta(FVector::ZeroVector)
+	, CurrentGestureRotDelta(FRotator::ZeroRotator)
+	, GestureMoveForwardBackwardImpulse(0.0f)
+	, bForceAudioRealtime(false)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
 	, bStoredShowStats(false)
 	, bShowStats(false)
-	, PreviewScene(InPreviewScene)
+	, bHasAudioFocus(false)
+	, bShouldCheckHitProxy(false)
+	, bUsesDrawHelper(true)
+	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
-	, CameraSpeedSetting(4)
+	, PreviewScene(InPreviewScene)
+	, ModeTools(&InModeTools)
+	, PerspViewModeIndex(VMI_Lit)
+	, OrthoViewModeIndex(VMI_BrushWireframe)
+	, NearPlane(-1.0f)
+	, FarPlane(0.0f)
+	, bInGameViewMode(false)
 {
 
 	ViewState.Allocate();
@@ -268,12 +275,12 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 
 	SetViewMode(VMI_Lit);
 
-	GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
+	ModeTools->OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
 {
-	GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	ModeTools->OnEditorModeChanged().RemoveAll(this);
 
 	delete Widget;
 	delete MouseDeltaTracker;
@@ -594,11 +601,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 			OrthoHeight = (ControllingActorViewInfo.OrthoWidth / 2.0f) * YScale;
 
 			const float NearViewPlane = ViewInitOptions.ViewMatrix.GetOrigin().Z;
-			const float FarPlane = NearViewPlane - 2.0f*WORLD_MAX;
+			const float FarViewPlane = NearViewPlane - 2.0f*WORLD_MAX;
 
-			const float InverseRange = 1.0f / (FarPlane - NearViewPlane);
+			const float InverseRange = 1.0f / (FarViewPlane - NearViewPlane);
 			ZScale = -2.0f * InverseRange;
-			ZOffset = -(FarPlane + NearViewPlane) * InverseRange;
+			ZOffset = -(FarViewPlane + NearViewPlane) * InverseRange;
 		}
 		else
 		{
@@ -963,7 +970,7 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 	{
 		// allow editor modes to override cursor
 		EMouseCursor::Type EditorModeCursor = EMouseCursor::Default;
-		if(GEditorModeTools().GetCursor(EditorModeCursor))
+		if(ModeTools->GetCursor(EditorModeCursor))
 		{
 			MouseCursor = EditorModeCursor;
 		}
@@ -1077,8 +1084,8 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			( GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_RMBOnly && (Viewport->KeyState(EKeys::RightMouseButton ) ||Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::LeftMouseButton) || bIsUsingTrackpad ) ) ) ) &&
 			!MouseDeltaTracker->UsingDragTool();
 
-		//reset impulses if we're using WASD keys
-		CameraUserImpulseData->MoveForwardBackwardImpulse = 0.0f;
+		// Apply impulse from magnify gesture and reset impulses if we're using WASD keys
+		CameraUserImpulseData->MoveForwardBackwardImpulse = GestureMoveForwardBackwardImpulse;
 		CameraUserImpulseData->MoveRightLeftImpulse = 0.0f;
 		CameraUserImpulseData->MoveUpDownImpulse = 0.0f;
 		CameraUserImpulseData->ZoomOutInImpulse = 0.0f;
@@ -1086,6 +1093,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		CameraUserImpulseData->RotatePitchImpulse = 0.0f;
 		CameraUserImpulseData->RotateRollImpulse = 0.0f;
 
+		GestureMoveForwardBackwardImpulse = 0.0f;
 
 		// Forward/back
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveGesture()->Key ) ) ||
@@ -1493,10 +1501,6 @@ void FEditorViewportClient::UpdateMouseDelta()
 									Drag *= CameraSpeed;
 								}
 								MoveViewportCamera( Drag, Rot );
-
-								const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) ? true : false;
-								const bool MiddleMouseButtonDown = Viewport->KeyState(EKeys::MiddleMouseButton) ? true : false;
-								const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton) ? true : false;
 
 								if ( IsPerspective() && LeftMouseButtonDown && !MiddleMouseButtonDown && !RightMouseButtonDown )
 								{
@@ -2533,7 +2537,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	}
 
 	// Axes indicators
-	if( bDrawAxes && !ViewFamily.EngineShowFlags.Game )
+	if (bDrawAxes && !ViewFamily.EngineShowFlags.Game && !GLevelEditorModeTools().IsViewportUIHidden())
 	{
 		switch (GetViewportType())
 		{
@@ -2603,6 +2607,11 @@ void FEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInterface*
 
 	// This viewport was just rendered, reset this value.
 	FramesSinceLastDraw = 0;
+}
+
+void FEditorViewportClient::RenderDragTool(const FSceneView* View, FCanvas* Canvas)
+{
+	MouseDeltaTracker->RenderDragTool(View, Canvas);
 }
 
 FLinearColor FEditorViewportClient::GetBackgroundColor() const
@@ -2822,7 +2831,9 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
 		{
-			if (GestureType == EGestureEvent::Scroll)
+			const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
+			const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
+			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
 				const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);
 				
@@ -2874,6 +2885,10 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 				}
 
 				FEditorViewportStats::Used(FEditorViewportStats::CAT_ORTHOGRAPHIC_GESTURE_SCROLL);
+			}
+			else if (GestureType == EGestureEvent::Magnify)
+			{
+				GestureMoveForwardBackwardImpulse = GestureDelta.X * 4.0f;
 			}
 		}
 		break;
@@ -3104,7 +3119,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 		if( CameraController != NULL )
 		{
 			// Also check that we're not currently using a ModeWidget (for Vertex Paint etc)
-			const FEdMode* Mode = GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
+			const FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
 			const bool bIsPaintingMesh = ( Mode ) ? ((FEdModeMeshPaint*)Mode)->IsPainting() : false;
 			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bIsPaintingMesh;
 			const bool bMiddleMouseButtonDown = Viewport->KeyState( EKeys::MiddleMouseButton );
@@ -3674,9 +3689,9 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 }
 
 
-void FEditorViewportClient::MouseEnter(FViewport* Viewport,int32 x, int32 y)
+void FEditorViewportClient::MouseEnter(FViewport* InViewport,int32 x, int32 y)
 {
-	MouseMove(Viewport, x, y);
+	MouseMove(InViewport, x, y);
 }
 
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
@@ -3686,13 +3701,13 @@ void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 	CurrentMousePos = FIntPoint(x, y);
 }
 
-void FEditorViewportClient::MouseLeave( FViewport* Viewport )
+void FEditorViewportClient::MouseLeave(FViewport* InViewport)
 {
 	check(IsInGameThread());
 
 	CurrentMousePos = FIntPoint(-1, -1);
 
-	FCommonViewportClient::MouseLeave(Viewport);
+	FCommonViewportClient::MouseLeave(InViewport);
 }
 
 void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )
@@ -3933,6 +3948,35 @@ void FEditorViewportClient::DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const 
 	}
 }
 
+void FEditorViewportClient::DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText )
+{
+	check( InActor != NULL );
+
+
+	// First check to see if we're dealing with a sprite, otherwise just use the normal bounding box
+	UBillboardComponent* Sprite = InActor->FindComponentByClass<UBillboardComponent>();
+
+	FBox ActorBox;
+	if( Sprite != NULL )
+	{
+		ActorBox = Sprite->Bounds.GetBox();
+	}
+	else
+	{
+		const bool bNonColliding = true;
+		ActorBox = InActor->GetComponentsBoundingBox( bNonColliding );
+	}
+
+
+	// If we didn't get a valid bounding box, just make a little one around the actor location
+	if( !ActorBox.IsValid || ActorBox.GetExtent().GetMin() < KINDA_SMALL_NUMBER )
+	{
+		ActorBox = FBox( InActor->GetActorLocation() - FVector( -20 ), InActor->GetActorLocation() + FVector( 20 ) );
+	}
+
+	DrawBoundingBox(ActorBox, InCanvas, InView, InViewport, InColor, bInDrawBracket, InLabelText);
+}
+
 void FEditorViewportClient::SetGameView(bool bGameViewEnable)
 {
 	// backup this state as we want to preserve it
@@ -4040,7 +4084,7 @@ void FEditorViewportStats::SendUsageData()
 {
 	Initialize();
 
-	checkAtCompileTime(FEditorViewportStats::CAT_MAX == 22, "If the number of categories change you need to add more entries below!");
+	static_assert(FEditorViewportStats::CAT_MAX == 22, "If the number of categories change you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> PerspectiveUsage;
 	PerspectiveUsage.Add(FAnalyticsEventAttribute(FString("Keyboard.WASD"),			DataPoints[FEditorViewportStats::CAT_PERSPECTIVE_KEYBOARD_WASD]));

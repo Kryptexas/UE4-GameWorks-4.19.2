@@ -12,7 +12,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
 	{
 		// This net is an anonymous temporary variable
 		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
@@ -58,15 +58,6 @@ FText UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
 	Result = FText::Format(Result, Args);
-	return Result;
-}
-
-FString UK2Node_TemporaryVariable::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	FString Result = !bIsPersistent ? TEXT("Local ") : TEXT("Persistent Local ");
-	Result += UEdGraphSchema_K2::TypeToString(VariableType);
 	return Result;
 }
 

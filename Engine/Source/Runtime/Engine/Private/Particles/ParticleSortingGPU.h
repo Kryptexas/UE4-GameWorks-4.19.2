@@ -26,12 +26,12 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void ReleaseRHI() override;
 
 	/**
 	 * Retrieve the UAV for writing particle sort keys.
@@ -122,6 +122,7 @@ struct FParticleSimulationSortInfo
  * @returns the buffer index in which sorting results are stored.
  */
 int32 SortParticlesGPU(
+	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
 	FTexture2DRHIParamRef PositionZWTextureRHI,

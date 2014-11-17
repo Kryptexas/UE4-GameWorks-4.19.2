@@ -70,28 +70,28 @@ public:
 
 	// IHttpBase
 
-	virtual FString GetURL() OVERRIDE;
-	virtual FString GetURLParameter(const FString& ParameterName) OVERRIDE;
-	virtual FString GetHeader(const FString& HeaderName) OVERRIDE;
-	virtual TArray<FString> GetAllHeaders() OVERRIDE;	
-	virtual FString GetContentType() OVERRIDE;
-	virtual int32 GetContentLength() OVERRIDE;
-	virtual const TArray<uint8>& GetContent() OVERRIDE;
+	virtual FString GetURL() override;
+	virtual FString GetURLParameter(const FString& ParameterName) override;
+	virtual FString GetHeader(const FString& HeaderName) override;
+	virtual TArray<FString> GetAllHeaders() override;	
+	virtual FString GetContentType() override;
+	virtual int32 GetContentLength() override;
+	virtual const TArray<uint8>& GetContent() override;
 
 	// IHttpRequest
 
-	virtual FString GetVerb() OVERRIDE;
-	virtual void SetVerb(const FString& Verb) OVERRIDE;
-	virtual void SetURL(const FString& URL) OVERRIDE;
-	virtual void SetContent(const TArray<uint8>& ContentPayload) OVERRIDE;
-	virtual void SetContentAsString(const FString& ContentString) OVERRIDE;
-	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) OVERRIDE;
-	virtual bool ProcessRequest() OVERRIDE;
-	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() OVERRIDE;
-	virtual FHttpRequestProgressDelegate& OnRequestProgress() OVERRIDE;
-	virtual void CancelRequest() OVERRIDE;
-	virtual EHttpRequestStatus::Type GetStatus() OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual FString GetVerb() override;
+	virtual void SetVerb(const FString& Verb) override;
+	virtual void SetURL(const FString& URL) override;
+	virtual void SetContent(const TArray<uint8>& ContentPayload) override;
+	virtual void SetContentAsString(const FString& ContentString) override;
+	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) override;
+	virtual bool ProcessRequest() override;
+	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() override;
+	virtual FHttpRequestProgressDelegate& OnRequestProgress() override;
+	virtual void CancelRequest() override;
+	virtual EHttpRequestStatus::Type GetStatus() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	// FHttpRequestWinInet
 
@@ -170,6 +170,8 @@ private:
 	int32 ProgressBytesSent;
 	/** Used to calculate total elapsed time for the request */
 	double StartRequestTime;
+	/** enables verbose logging for any http request that exceeds the total timeout */
+	bool bDebugVerbose;
 };
 
 /**
@@ -182,18 +184,18 @@ public:
 
 	// IHttpBase
 
-	virtual FString GetURL() OVERRIDE;
-	virtual FString GetURLParameter(const FString& ParameterName) OVERRIDE;
-	virtual FString GetHeader(const FString& HeaderName) OVERRIDE;
-	virtual TArray<FString> GetAllHeaders() OVERRIDE;	
-	virtual FString GetContentType() OVERRIDE;
-	virtual int32 GetContentLength() OVERRIDE;
-	virtual const TArray<uint8>& GetContent() OVERRIDE;
+	virtual FString GetURL() override;
+	virtual FString GetURLParameter(const FString& ParameterName) override;
+	virtual FString GetHeader(const FString& HeaderName) override;
+	virtual TArray<FString> GetAllHeaders() override;	
+	virtual FString GetContentType() override;
+	virtual int32 GetContentLength() override;
+	virtual const TArray<uint8>& GetContent() override;
 
 	// IHttpResponse
 
-	virtual int32 GetResponseCode() OVERRIDE;
-	virtual FString GetContentAsString() OVERRIDE;
+	virtual int32 GetResponseCode() override;
+	virtual FString GetContentAsString() override;
 
 	// FHttpResponseWinInet
 
@@ -202,7 +204,7 @@ public:
 	 *
 	 * @param InRequest - original request that created this response
 	 */
-	FHttpResponseWinInet(const FHttpRequestWinInet& InRequest);
+	FHttpResponseWinInet(FHttpRequestWinInet& InRequest);
 
 	/**
 	 * Destructor
@@ -249,7 +251,7 @@ private:
 private:
 
 	/** Request that owns this response */
-	const FHttpRequestWinInet& Request;
+	FHttpRequestWinInet& Request;
 	/** Original URL used for the request */
 	FURLWinInet RequestURL;
 	/** Last bytes read from async call to InternetReadFile */

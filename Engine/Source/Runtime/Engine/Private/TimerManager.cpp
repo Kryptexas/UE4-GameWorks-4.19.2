@@ -6,6 +6,19 @@
 
 #include "EnginePrivate.h"
 
+void FTimerHandle::MakeValid()
+{
+	static int LastAssignedHandle = -1;
+
+	if (!IsValid())
+	{
+		++LastAssignedHandle;
+		Handle = LastAssignedHandle;
+	}
+
+	check(IsValid());
+}
+
 
 // ---------------------------------
 // Private members
@@ -39,7 +52,45 @@ FTimerData const* FTimerManager::FindTimer(FTimerUnifiedDelegate const& InDelega
 	int32 PendingTimerIdx = FindTimerInList(PendingTimerList, InDelegate);
 	if (PendingTimerIdx != INDEX_NONE)
 	{
+		// found it in the pending list
+		if (OutTimerIndex)
+		{
+			*OutTimerIndex = PendingTimerIdx;
+		}
+		return &PendingTimerList[PendingTimerIdx];
+	}
+
+	return NULL;
+}
+
+FTimerData const* FTimerManager::FindTimer(FTimerHandle const& InHandle, int32* OutTimerIndex) const
+{
+	int32 ActiveTimerIdx = FindTimerInList(ActiveTimerHeap, InHandle);
+	if (ActiveTimerIdx != INDEX_NONE)
+	{
+		// found it in the active heap
+		if (OutTimerIndex)
+		{
+			*OutTimerIndex = ActiveTimerIdx;
+		}
+		return &ActiveTimerHeap[ActiveTimerIdx];
+	}
+
+	int32 PausedTimerIdx = FindTimerInList(PausedTimerList, InHandle);
+	if (PausedTimerIdx != INDEX_NONE)
+	{
 		// found it in the paused list
+		if (OutTimerIndex)
+		{
+			*OutTimerIndex = PausedTimerIdx;
+		}
+		return &PausedTimerList[PausedTimerIdx];
+	}
+
+	int32 PendingTimerIdx = FindTimerInList(PendingTimerList, InHandle);
+	if (PendingTimerIdx != INDEX_NONE)
+	{
+		// found it in the pending list
 		if (OutTimerIndex)
 		{
 			*OutTimerIndex = PendingTimerIdx;
@@ -56,7 +107,7 @@ int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTim
 {
 	for (int32 Idx=0; Idx<SearchArray.Num(); ++Idx)
 	{
-		if (SearchArray[Idx].TimerDelegate == InDelegate)
+		if (SearchArray[Idx].TimerDelegate == InDelegate && !SearchArray[Idx].TimerHandle.IsValid())
 		{
 			return Idx;
 		}
@@ -65,7 +116,26 @@ int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTim
 	return INDEX_NONE;
 }
 
-void FTimerManager::InternalSetTimer(FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop)
+/** Will find the given timer in the given TArray and return its index. */
+int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTimerHandle const& InHandle) const
+{
+	if (!(InHandle.IsValid()))
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 Idx = 0; Idx < SearchArray.Num(); ++Idx)
+	{
+		if (SearchArray[Idx].TimerHandle == InHandle)
+		{
+			return Idx;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+void FTimerManager::InternalSetTimer(FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay)
 {
 	// not currently threadsafe
 	check(IsInGameThread());
@@ -78,24 +148,73 @@ void FTimerManager::InternalSetTimer(FTimerUnifiedDelegate const& InDelegate, fl
 	{
 		// set up the new timer
 		FTimerData NewTimerData;
-		NewTimerData.Rate = InRate;
-		NewTimerData.bLoop = InbLoop;
 		NewTimerData.TimerDelegate = InDelegate;
-		
-		if( HasBeenTickedThisFrame() )
-		{
-			NewTimerData.ExpireTime = InternalTime + InRate;
-			NewTimerData.Status = ETimerStatus::Active;
-			ActiveTimerHeap.HeapPush(NewTimerData);
-		}
-		else
-		{
-			// Store time remaining in ExpireTime while pending
-			NewTimerData.ExpireTime = InRate;
-			NewTimerData.Status = ETimerStatus::Pending;
-			PendingTimerList.Add(NewTimerData);
-		}
+
+		InternalSetTimer(NewTimerData, InRate, InbLoop, InFirstDelay);
 	}
+}
+
+void FTimerManager::InternalSetTimer(FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay)
+{
+	// not currently threadsafe
+	check(IsInGameThread());
+
+	if (InOutHandle.IsValid())
+	{
+		// if the timer is already set, just clear it and we'll re-add it, since 
+		// there's no data to maintain.
+		InternalClearTimer(InOutHandle);
+	}
+
+	if (InRate > 0.f)
+	{
+		InOutHandle.MakeValid();
+
+		// set up the new timer
+		FTimerData NewTimerData;
+		NewTimerData.TimerHandle = InOutHandle;
+		NewTimerData.TimerDelegate = InDelegate;
+
+		InternalSetTimer(NewTimerData, InRate, InbLoop, InFirstDelay);
+	}
+}
+
+void FTimerManager::InternalSetTimer(FTimerData& NewTimerData, float InRate, bool InbLoop, float InFirstDelay)
+{
+	check(NewTimerData.TimerDelegate.IsBound() || NewTimerData.TimerHandle.IsValid());
+
+	NewTimerData.Rate = InRate;
+	NewTimerData.bLoop = InbLoop;
+
+	float FirstDelay = (InFirstDelay >= 0.f) ? InFirstDelay : InRate;
+
+	if (HasBeenTickedThisFrame())
+	{
+		NewTimerData.ExpireTime = InternalTime + FirstDelay;
+		NewTimerData.Status = ETimerStatus::Active;
+		ActiveTimerHeap.HeapPush(NewTimerData);
+	}
+	else
+	{
+		// Store time remaining in ExpireTime while pending
+		NewTimerData.ExpireTime = FirstDelay;
+		NewTimerData.Status = ETimerStatus::Pending;
+		PendingTimerList.Add(NewTimerData);
+	}
+}
+
+void FTimerManager::InternalSetTimerForNextTick(FTimerUnifiedDelegate const& InDelegate)
+{
+	// not currently threadsafe
+	check(IsInGameThread());
+
+	FTimerData NewTimerData;
+	NewTimerData.Rate = 0.f;
+	NewTimerData.bLoop = false;
+	NewTimerData.TimerDelegate = InDelegate;
+	NewTimerData.ExpireTime = InternalTime;
+	NewTimerData.Status = ETimerStatus::Active;
+	ActiveTimerHeap.HeapPush(NewTimerData);
 }
 
 void FTimerManager::InternalClearTimer(FTimerUnifiedDelegate const& InDelegate)
@@ -105,14 +224,14 @@ void FTimerManager::InternalClearTimer(FTimerUnifiedDelegate const& InDelegate)
 
 	int32 TimerIdx;
 	FTimerData const* const TimerData = FindTimer(InDelegate, &TimerIdx);
-	if( TimerData )
+	if (TimerData)
 	{
-		switch( TimerData->Status )
+		switch (TimerData->Status)
 		{
-			case ETimerStatus::Pending : PendingTimerList.RemoveAtSwap(TimerIdx); break;
-			case ETimerStatus::Active : ActiveTimerHeap.HeapRemoveAt(TimerIdx); break;
-			case ETimerStatus::Paused : PausedTimerList.RemoveAtSwap(TimerIdx); break;
-			default : check(false);
+		case ETimerStatus::Pending: PendingTimerList.RemoveAtSwap(TimerIdx); break;
+		case ETimerStatus::Active: ActiveTimerHeap.HeapRemoveAt(TimerIdx); break;
+		case ETimerStatus::Paused: PausedTimerList.RemoveAtSwap(TimerIdx); break;
+		default: check(false);
 		}
 	}
 	else
@@ -120,6 +239,34 @@ void FTimerManager::InternalClearTimer(FTimerUnifiedDelegate const& InDelegate)
 		// Edge case. We're currently handling this timer when it got cleared.  Unbind it to prevent it firing again
 		// in case it was scheduled to fire multiple times.
 		if (CurrentlyExecutingTimer.TimerDelegate == InDelegate)
+		{
+			CurrentlyExecutingTimer.TimerDelegate.Unbind();
+		}
+	}
+}
+
+void FTimerManager::InternalClearTimer(FTimerHandle const& InHandle)
+{
+	// not currently threadsafe
+	check(IsInGameThread());
+
+	int32 TimerIdx;
+	FTimerData const* const TimerData = FindTimer(InHandle, &TimerIdx);
+	if (TimerData)
+	{
+		switch (TimerData->Status)
+		{
+		case ETimerStatus::Pending: PendingTimerList.RemoveAtSwap(TimerIdx); break;
+		case ETimerStatus::Active: ActiveTimerHeap.HeapRemoveAt(TimerIdx); break;
+		case ETimerStatus::Paused: PausedTimerList.RemoveAtSwap(TimerIdx); break;
+		default: check(false);
+		}
+	}
+	else
+	{
+		// Edge case. We're currently handling this timer when it got cleared.  Unbind it to prevent it firing again
+		// in case it was scheduled to fire multiple times.
+		if (CurrentlyExecutingTimer.TimerHandle == InHandle)
 		{
 			CurrentlyExecutingTimer.TimerDelegate.Unbind();
 		}
@@ -171,9 +318,8 @@ void FTimerManager::InternalClearAllTimers(void const* Object)
 
 
 
-float FTimerManager::InternalGetTimerRemaining(FTimerUnifiedDelegate const& InDelegate) const
+float FTimerManager::InternalGetTimerRemaining(FTimerData const* const TimerData) const
 {
-	FTimerData const* const TimerData = FindTimer(InDelegate);
 	if (TimerData)
 	{
 		if( TimerData->Status != ETimerStatus::Active )
@@ -190,9 +336,8 @@ float FTimerManager::InternalGetTimerRemaining(FTimerUnifiedDelegate const& InDe
 	return -1.f;
 }
 
-float FTimerManager::InternalGetTimerElapsed(FTimerUnifiedDelegate const& InDelegate) const
+float FTimerManager::InternalGetTimerElapsed(FTimerData const* const TimerData) const
 {
-	FTimerData const* const TimerData = FindTimer(InDelegate);
 	if (TimerData)
 	{
 		if( TimerData->Status != ETimerStatus::Active)
@@ -209,9 +354,8 @@ float FTimerManager::InternalGetTimerElapsed(FTimerUnifiedDelegate const& InDele
 	return -1.f;
 }
 
-float FTimerManager::InternalGetTimerRate(FTimerUnifiedDelegate const& InDelegate) const
+float FTimerManager::InternalGetTimerRate(FTimerData const* const TimerData) const
 {
-	FTimerData const* const TimerData = FindTimer(InDelegate);
 	if (TimerData)
 	{
 		return TimerData->Rate;
@@ -219,13 +363,11 @@ float FTimerManager::InternalGetTimerRate(FTimerUnifiedDelegate const& InDelegat
 	return -1.f;
 }
 
-void FTimerManager::InternalPauseTimer(FTimerUnifiedDelegate const& InDelegate)
+void FTimerManager::InternalPauseTimer( FTimerData const* TimerToPause, int32 TimerIdx )
 {
 	// not currently threadsafe
 	check(IsInGameThread());
 
-	int32 TimerIdx;
-	FTimerData const* TimerToPause = FindTimer(InDelegate, &TimerIdx);
 	if( TimerToPause && (TimerToPause->Status != ETimerStatus::Paused) )
 	{
 		ETimerStatus::Type PreviousStatus = TimerToPause->Status;
@@ -255,12 +397,11 @@ void FTimerManager::InternalPauseTimer(FTimerUnifiedDelegate const& InDelegate)
 	}
 }
 
-void FTimerManager::InternalUnPauseTimer(FTimerUnifiedDelegate const& InDelegate)
+void FTimerManager::InternalUnPauseTimer(int32 PausedTimerIdx)
 {
 	// not currently threadsafe
 	check(IsInGameThread());
 
-	int32 PausedTimerIdx = FindTimerInList(PausedTimerList, InDelegate);
 	if (PausedTimerIdx != INDEX_NONE)
 	{
 		FTimerData& TimerToUnPause = PausedTimerList[PausedTimerIdx];
@@ -313,19 +454,21 @@ void FTimerManager::Tick(float DeltaTime)
 
 			// Now call the function
 			for (int32 CallIdx=0; CallIdx<CallCount; ++CallIdx)
-			{
+			{ 
 				CurrentlyExecutingTimer.TimerDelegate.Execute();
 
 				// If timer was cleared in the delegate execution, don't execute further 
-				if( !CurrentlyExecutingTimer.TimerDelegate.IsBound() )
+				if( !CurrentlyExecutingTimer.TimerDelegate.IsBound() && !CurrentlyExecutingTimer.TimerHandle.IsValid() )
 				{
 					break;
 				}
 			}
 
 			if( CurrentlyExecutingTimer.bLoop && 
-				CurrentlyExecutingTimer.TimerDelegate.IsBound() && 							// did not get cleared during execution
-				(FindTimer(CurrentlyExecutingTimer.TimerDelegate) == NULL)		// did not get manually re-added during execution
+				(CurrentlyExecutingTimer.TimerDelegate.IsBound() ||
+				 CurrentlyExecutingTimer.TimerHandle.IsValid()) && 							// did not get cleared during execution
+				((FindTimer(CurrentlyExecutingTimer.TimerDelegate) == NULL) || 
+				 (CurrentlyExecutingTimer.TimerHandle.IsValid() && FindTimer(CurrentlyExecutingTimer.TimerHandle) == NULL))		// did not get manually re-added during execution
 			  )
 			{
 				// Put this timer back on the heap

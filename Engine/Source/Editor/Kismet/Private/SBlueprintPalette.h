@@ -34,10 +34,10 @@ public:
 
 private:
 	// SGraphPaletteItem Interface
-	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont,  FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly ) OVERRIDE;
-	virtual FText GetDisplayText() const OVERRIDE;
-	virtual bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage) OVERRIDE;
-	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) OVERRIDE;
+	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont,  FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly ) override;
+	virtual FText GetDisplayText() const override;
+	virtual bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage) override;
+	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) override;
 	// End of SGraphPaletteItem Interface
 
 	/**

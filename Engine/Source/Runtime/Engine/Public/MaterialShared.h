@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "RefCounting.h"
 #include "ShaderCore.h"
 #include "Shader.h"
@@ -14,11 +13,19 @@
 #include "RenderResource.h"
 #include "ShaderCompiler.h"
 #include "UniformBuffer.h"
+#include "SceneTypes.h"
+#include "StaticParameterSet.h"
+
 class FMeshMaterialShaderMap;
 class FMaterialShaderMap;
 class FMaterialShaderType;
 class FMaterial;
+class FMaterialRenderProxy;
+class UMaterial;
 class UMaterialInstance;
+class UMaterialExpression;
+class UMaterialInterface;
+struct FExpressionInput;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16
@@ -31,16 +38,7 @@ class UMaterialInstance;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMaterial,Log,Verbose);
 
-/** Quality levels that a material can be compiled for. */
-namespace EMaterialQualityLevel
-{
-	enum Type
-	{
-		Low,
-		High,
-		Num
-	};
-}
+
 
 /** Creates a string that represents the given quality level. */
 extern void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InMaterialQualityLevel, FString& OutName);
@@ -212,7 +210,6 @@ public:
 	bool IsEmpty() const;
 	bool operator==(const FUniformExpressionSet& ReferenceSet) const;
 	FString GetSummaryString() const;
-	void GetResourcesString(EShaderPlatform ShaderPlatform,FString& InputsString) const;
 
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();
@@ -255,10 +252,11 @@ class FMaterialCompilationOutput
 {
 public:
 	FMaterialCompilationOutput() :
-		bUsesSceneColor(false),
+		bRequiresSceneColorCopy(false),
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
-		bModifiesMeshPosition(false)
+		bModifiesMeshPosition(false),
+		bNeedsGBuffer(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -268,7 +266,7 @@ public:
 	/** 
 	 * Indicates whether the material uses scene color. 
 	 */
-	bool bUsesSceneColor;
+	bool bRequiresSceneColorCopy;
 
 	/** true if the material needs the scenetexture lookups. */
 	bool bNeedsSceneTextures;
@@ -278,177 +276,18 @@ public:
 
 	/** true if the material modifies the the mesh position. */
 	bool bModifiesMeshPosition;
+
+	/** true if the material uses any GBuffer textures */
+	bool bNeedsGBuffer;
 };
 
-/**
-* Holds the information for a static switch parameter
-*/
-class FStaticSwitchParameter
-{
-public:
-	FName ParameterName;
-	bool Value;
-	bool bOverride;
-	FGuid ExpressionGUID;
 
-	FStaticSwitchParameter() :
-		ParameterName(TEXT("None")),
-		Value(false),
-		bOverride(false),
-		ExpressionGUID(0,0,0,0)
-	{ }
 
-	FStaticSwitchParameter(FName InName, bool InValue, bool InOverride, FGuid InGuid) :
-		ParameterName(InName),
-		Value(InValue),
-		bOverride(InOverride),
-		ExpressionGUID(InGuid)
-	{ }
 
-	friend FArchive& operator<<(FArchive& Ar,FStaticSwitchParameter& P)
-	{
-		Ar << P.ParameterName << P.Value << P.bOverride;
-		Ar << P.ExpressionGUID;
-		return Ar;
-	}
-};
 
-/**
-* Holds the information for a static component mask parameter
-*/
-class FStaticComponentMaskParameter
-{
-public:
-	FName ParameterName;
-	bool R, G, B, A;
-	bool bOverride;
-	FGuid ExpressionGUID;
 
-	FStaticComponentMaskParameter() :
-		ParameterName(TEXT("None")),
-		R(false),
-		G(false),
-		B(false),
-		A(false),
-		bOverride(false),
-		ExpressionGUID(0,0,0,0)
-	{ }
 
-	FStaticComponentMaskParameter(FName InName, bool InR, bool InG, bool InB, bool InA, bool InOverride, FGuid InGuid) :
-		ParameterName(InName),
-		R(InR),
-		G(InG),
-		B(InB),
-		A(InA),
-		bOverride(InOverride),
-		ExpressionGUID(InGuid)
-	{ }
 
-	friend FArchive& operator<<(FArchive& Ar,FStaticComponentMaskParameter& P)
-	{
-		Ar << P.ParameterName << P.R << P.G << P.B << P.A << P.bOverride;
-		Ar << P.ExpressionGUID;
-		return Ar;
-	}
-};
-
-/**
-* Holds the information for a static switch parameter
-*/
-class FStaticTerrainLayerWeightParameter
-{
-public:
-	FName ParameterName;
-	bool bOverride;
-	FGuid ExpressionGUID;
-
-	int32 WeightmapIndex;
-
-	FStaticTerrainLayerWeightParameter() :
-		ParameterName(TEXT("None")),
-		bOverride(false),
-		ExpressionGUID(0,0,0,0),
-		WeightmapIndex(INDEX_NONE)
-	{ }
-
-	FStaticTerrainLayerWeightParameter(FName InName, int32 InWeightmapIndex, bool InOverride, FGuid InGuid) :
-		ParameterName(InName),
-		bOverride(InOverride),
-		ExpressionGUID(InGuid),
-		WeightmapIndex(InWeightmapIndex)
-	{ }
-
-	friend FArchive& operator<<(FArchive& Ar,FStaticTerrainLayerWeightParameter& P)
-	{
-		Ar << P.ParameterName << P.WeightmapIndex << P.bOverride;
-		Ar << P.ExpressionGUID;
-		return Ar;
-	}
-};
-
-/** Contains all the information needed to identify a single permutation of static parameters. */
-class FStaticParameterSet
-{
-public:
-	/** An array of static switch parameters in this set */
-	TArray<FStaticSwitchParameter> StaticSwitchParameters;
-
-	/** An array of static component mask parameters in this set */
-	TArray<FStaticComponentMaskParameter> StaticComponentMaskParameters;
-
-	/** An array of terrain layer weight parameters in this set */
-	TArray<FStaticTerrainLayerWeightParameter> TerrainLayerWeightParameters;
-
-	FStaticParameterSet() {}
-
-	/** 
-	* Checks if this set contains any parameters
-	* 
-	* @return	true if this set has no parameters
-	*/
-	bool IsEmpty() const
-	{
-		return StaticSwitchParameters.Num() == 0 && StaticComponentMaskParameters.Num() == 0 && TerrainLayerWeightParameters.Num() == 0;
-	}
-
-	void Serialize(FArchive& Ar)
-	{
-		// Note: FStaticParameterSet is saved both in packages (UMaterialInstance) and the DDC (FMaterialShaderMap)
-		// Backwards compatibility only works with FStaticParameterSet's stored in packages.  
-		// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FStaticParameterSet.
-
-		Ar << StaticSwitchParameters << StaticComponentMaskParameters;
-		Ar << TerrainLayerWeightParameters;
-	}
-
-	/** Updates the hash state with the static parameter names and values. */
-	void UpdateHash(FSHA1& HashState) const;
-
-	/** 
-	* Indicates whether this set is equal to another, copying override settings.
-	* 
-	* @param ReferenceSet	The set to compare against
-	* @return				true if the sets are not equal
-	*/
-	bool ShouldMarkDirty(const FStaticParameterSet* ReferenceSet);
-
-	/** 
-	* Tests this set against another for equality, disregarding override settings.
-	* 
-	* @param ReferenceSet	The set to compare against
-	* @return				true if the sets are equal
-	*/
-	bool operator==(const FStaticParameterSet& ReferenceSet) const;
-
-	bool operator!=(const FStaticParameterSet& ReferenceSet) const
-	{
-		return !(*this == ReferenceSet);
-	}
-
-	FString GetSummaryString() const;
-
-	void AppendKeyString(FString& KeyString) const;
-};
 
 /** 
  * Usage options for a shader map.
@@ -797,8 +636,9 @@ public:
 	bool IsCompilationFinalized() const { return bCompilationFinalized; }
 	bool CompiledSuccessfully() const { return bCompiledSuccessfully; }
 	const FString& GetDebugDescription() const { return DebugDescription; }
-	bool UsesSceneColor() const { return MaterialCompilationOutput.bUsesSceneColor; }
+	bool RequiresSceneColorCopy() const { return MaterialCompilationOutput.bRequiresSceneColorCopy; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
+	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
@@ -883,39 +723,7 @@ private:
 	friend class FShaderCompilingManager;
 };
 
-//
-//	EMaterialProperty
-//
 
-enum EMaterialProperty
-{
-	MP_EmissiveColor = 0,
-	MP_Opacity,
-	MP_OpacityMask,
-	MP_DiffuseColor,
-	MP_SpecularColor,
-	MP_BaseColor,
-	MP_Metallic,
-	MP_Specular,
-	MP_Roughness,
-	MP_Normal,
-	MP_WorldPositionOffset,
-	MP_WorldDisplacement,
-	MP_TessellationMultiplier,
-	MP_SubsurfaceColor,
-	MP_AmbientOcclusion,
-	MP_Refraction,
-	MP_CustomizedUVs0,
-	MP_CustomizedUVs1,
-	MP_CustomizedUVs2,
-	MP_CustomizedUVs3,
-	MP_CustomizedUVs4,
-	MP_CustomizedUVs5,
-	MP_CustomizedUVs6,
-	MP_CustomizedUVs7,
-	MP_MaterialAttributes,
-	MP_MAX,
-};
 
 /** 
  * Enum that contains entries for the ways that material properties need to be compiled.
@@ -1092,14 +900,16 @@ public:
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
 	virtual bool IsUsedWithAPEXCloth() const { return false; }
+	virtual bool IsUsedWithUI() const { return false; }
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const;
 	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 	virtual bool IsFullyRough() const { return false; }
+	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
 	virtual enum EBlendMode GetBlendMode() const = 0;
-	virtual enum EMaterialLightingModel GetLightingModel() const = 0;
+	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 	virtual float GetOpacityMaskClipValue() const = 0;
 	virtual bool IsDistorted() const { return false; };
@@ -1133,6 +943,11 @@ public:
 	*/
 	virtual void NotifyCompilationFinished() { }
 
+	/**
+	* Cancels all outstanding compilation jobs for this materail.
+	*/
+	ENGINE_API void CancelCompilation();
+
 	/** 
 	 * Blocks until compilation has completed. Returns immediately if a compilation is not outstanding.
 	 */
@@ -1157,8 +972,9 @@ public:
 		//@todo - remove non-dynamic parameter particle VF and always support dynamic parameter
 		return true; 
 	}
-	ENGINE_API bool UsesSceneColor() const;
+	ENGINE_API bool RequiresSceneColorCopy() const;
 	ENGINE_API bool NeedsSceneTextures() const;
+	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
 
 	/** Does the material modify the mesh position. */
@@ -1243,6 +1059,11 @@ public:
 	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 protected:
+
+	/**
+	* Fills the passed array with IDs of shader maps unfinished compilation jobs.
+	*/
+	void GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds);
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const = 0;
@@ -1447,8 +1268,8 @@ public:
 	bool IsHovered() const { return bHovered; }
 
 	// FRenderResource interface.
-	ENGINE_API virtual void InitDynamicRHI();
-	ENGINE_API virtual void ReleaseDynamicRHI();
+	ENGINE_API virtual void InitDynamicRHI() override;
+	ENGINE_API virtual void ReleaseDynamicRHI() override;
 
 	ENGINE_API static const TSet<FMaterialRenderProxy*>& GetMaterialRenderProxyMap() 
 	{
@@ -1569,121 +1390,11 @@ public:
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const;
 };
 
-//
-//	FExpressionInput
-//
 
-//@warning: FExpressionInput is mirrored in MaterialExpression.h and manually "subclassed" in Material.h (FMaterialInput)
-struct FExpressionInput
-{
-	/** Material expression that this input is connected to, or NULL if not connected. */
-	class UMaterialExpression*	Expression;
 
-	/** Index into Expression's outputs array that this input is connected to. */
-	int32						OutputIndex;
 
-	/** 
-	 * Optional name of the input.  
-	 * Note that this is the only member which is not derived from the output currently connected. 
-	 */
-	FString						InputName;
 
-	int32						Mask,
-								MaskR,
-								MaskG,
-								MaskB,
-								MaskA;
-	uint32						GCC64Padding; // @todo 64: if the C++ didn't mismirror this structure, we might not need this
 
-	FExpressionInput()
-		: Expression(NULL)
-		, OutputIndex(0)
-		, Mask(0)
-		, MaskR(0)
-		, MaskG(0)
-		, MaskB(0)
-		, MaskA(0)
-		, GCC64Padding(0)
-	{
-	}
-
-	int32 Compile(class FMaterialCompiler* Compiler, int32 MultiplexIndex=INDEX_NONE);
-
-	/**
-	 * Tests if the input has a material expression connected to it
-	 *
-	 * @return	true if an expression is connected, otherwise false
-	 */
-	bool IsConnected() const { return (NULL != Expression); }
-
-	/** Connects output of InExpression to this input */
-	ENGINE_API void Connect( int32 InOutputIndex, class UMaterialExpression* InExpression );
-};
-
-//
-//	FMaterialInput
-//
-
-template<class InputType> struct FMaterialInput: FExpressionInput
-{
-	uint32	UseConstant:1;
-	InputType	Constant;
-};
-
-struct FColorMaterialInput: FMaterialInput<FColor>
-{
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler,const FColor& Default);
-};
-struct FScalarMaterialInput: FMaterialInput<float>
-{
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler,float Default);
-};
-
-struct FVectorMaterialInput: FMaterialInput<FVector>
-{
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler,const FVector& Default);
-};
-
-struct FVector2MaterialInput: FMaterialInput<FVector2D>
-{
-	int32 Compile(class FMaterialCompiler* Compiler,const FVector2D& Default);
-};
-
-struct FMaterialAttributesInput: FMaterialInput<int32>
-{
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, const FColor& DefaultColor, const FVector& DefaultVector);
-};
-
-//
-//	FExpressionOutput
-//
-
-struct FExpressionOutput
-{
-	FString	OutputName;
-	int32	Mask,
-			MaskR,
-			MaskG,
-			MaskB,
-			MaskA;
-
-	FExpressionOutput(int32 InMask = 0,int32 InMaskR = 0,int32 InMaskG = 0,int32 InMaskB = 0,int32 InMaskA = 0):
-		Mask(InMask),
-		MaskR(InMaskR),
-		MaskG(InMaskG),
-		MaskB(InMaskB),
-		MaskA(InMaskA)
-	{}
-
-	FExpressionOutput(FString InOutputName, int32 InMask = 0,int32 InMaskR = 0,int32 InMaskG = 0,int32 InMaskB = 0,int32 InMaskA = 0):
-		OutputName(InOutputName),
-		Mask(InMask),
-		MaskR(InMaskR),
-		MaskG(InMaskG),
-		MaskB(InMaskB),
-		MaskA(InMaskA)
-	{}
-};
 
 /**
  * @return True if BlendMode is translucent (should be part of the translucent rendering).
@@ -1714,7 +1425,7 @@ public:
 
 	// FMaterial interface.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
-	ENGINE_API virtual int32 GetMaterialDomain() const OVERRIDE;
+	ENGINE_API virtual int32 GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const;
@@ -1737,16 +1448,18 @@ public:
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const;
 	ENGINE_API virtual bool IsUsedWithAPEXCloth() const;
+	ENGINE_API virtual bool IsUsedWithUI() const;
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const;
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const;
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const;
 	ENGINE_API virtual bool IsFullyRough() const;
+	ENGINE_API virtual bool IsNonmetal() const;
 	ENGINE_API virtual bool UseLmDirectionality() const;
 	ENGINE_API virtual enum EBlendMode GetBlendMode() const;
 	ENGINE_API virtual uint32 GetDecalBlendMode() const;
 	ENGINE_API virtual uint32 GetMaterialDecalResponse() const;
 	ENGINE_API virtual bool HasNormalConnected() const;
-	ENGINE_API virtual enum EMaterialLightingModel GetLightingModel() const;
+	ENGINE_API virtual enum EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const;
 	ENGINE_API virtual float GetOpacityMaskClipValue() const;
 	ENGINE_API virtual bool IsDistorted() const;
@@ -1769,12 +1482,12 @@ public:
 	 * Should shaders compiled for this material be saved to disk?
 	 */
 	ENGINE_API virtual bool IsPersistent() const;
-	ENGINE_API virtual FGuid GetMaterialId() const OVERRIDE;
+	ENGINE_API virtual FGuid GetMaterialId() const override;
 
-	ENGINE_API virtual void NotifyCompilationFinished() OVERRIDE;
+	ENGINE_API virtual void NotifyCompilationFinished() override;
 
 	/**
-	 * Gets instruction counts that best represent the likely usage of this material based on lighting model and other factors.
+	 * Gets instruction counts that best represent the likely usage of this material based on shading model and other factors.
 	 * @param Descriptions - an array of descriptions to be populated
 	 * @param InstructionCounts - an array of instruction counts matching the Descriptions.  
 	 *		The dimensions of these arrays are guaranteed to be identical and all values are valid.
@@ -1787,9 +1500,9 @@ public:
 
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar);
 
-	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE;
+	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
 
-	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const OVERRIDE;
+	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
 protected:
 	UMaterial* Material;
 	UMaterialInstance* MaterialInstance;

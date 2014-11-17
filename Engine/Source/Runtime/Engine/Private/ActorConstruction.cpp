@@ -4,6 +4,7 @@
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
 #include "DeferRegisterComponents.h"
+#include "ComponentInstanceDataCache.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -138,61 +139,109 @@ void AActor::RerunConstructionScripts()
 		GUndo = NULL;
 		
 		// Create cache to store component data across rerunning construction scripts
-		FComponentInstanceDataCache InstanceDataCache(this);
-
-		// If there are attached objects detach them and store the socket names
-		TArray<AActor*> AttachedActors;
-		GetAttachedActors(AttachedActors);
+#if WITH_EDITOR
+		FActorTransactionAnnotation* ActorTransactionAnnotation = CurrentTransactionAnnotation.Get();
+#endif
+		FComponentInstanceDataCache* InstanceDataCache;
+		
+		FTransform OldTransform = FTransform::Identity;
+		FName  SocketName;
+		AActor* Parent = NULL;
+		USceneComponent* ParentComponent = NULL;
 
 		// Struct to store info about attached actors
 		struct FAttachedActorInfo
 		{
 			AActor* AttachedActor;
 			FName AttachedToSocket;
+			bool bSetRelativeTransform;
+			FTransform RelativeTransform;
 		};
 
 		// Save info about attached actors
 		TArray<FAttachedActorInfo> AttachedActorInfos;
-		for( AActor* AttachedActor : AttachedActors)
-		{
-			USceneComponent* EachRoot = AttachedActor->GetRootComponent();
-			// If the component we are attached to is about to go away...
-			if( EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->bCreatedByConstructionScript )
-			{
-				// Save info about actor to reattach
-				FAttachedActorInfo Info;
-				Info.AttachedActor = AttachedActor;
-				Info.AttachedToSocket = EachRoot->AttachSocketName;
-				AttachedActorInfos.Add(Info);
 
-				// Now detach it
-				AttachedActor->Modify();
-				EachRoot->DetachFromParent(true);					
-			}
-		}
-
-		// Save off original pose of the actor
-		FTransform OldTransform = FTransform::Identity;
-		FName  SocketName;
-		AActor* Parent = NULL;
-		if (RootComponent != NULL)
+#if WITH_EDITOR
+		if (ActorTransactionAnnotation)
 		{
-			// Do not need to detach if root component is not going away
-			if(RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
+			InstanceDataCache = &ActorTransactionAnnotation->ComponentInstanceData;
+
+			if (ActorTransactionAnnotation->bRootComponentDataCached)
 			{
-				Parent = RootComponent->AttachParent->GetOwner();
-				// Root component should never be attached to another component in the same actor!
-				if(Parent == this)
+				OldTransform = ActorTransactionAnnotation->RootComponentData.Transform;
+				Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
+				if (Parent)
 				{
-					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
-					Parent = NULL;
+					DetachRootComponentFromParent();
+					SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
 				}
 
-				SocketName = RootComponent->AttachSocketName;
-				//detach it to remove any scaling 
-				RootComponent->DetachFromParent(true);
+				for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
+				{
+					AActor* AttachedActor = CachedAttachInfo.Actor.Get();
+					if (AttachedActor)
+					{
+						FAttachedActorInfo Info;
+						Info.AttachedActor = AttachedActor;
+						Info.AttachedToSocket = CachedAttachInfo.SocketName;
+						Info.bSetRelativeTransform = true;
+						Info.RelativeTransform = CachedAttachInfo.RelativeTransform;
+						AttachedActorInfos.Add(Info);
+
+						AttachedActor->DetachRootComponentFromParent();
+					}
+				}
 			}
-			OldTransform = RootComponent->ComponentToWorld;
+		}
+		else
+#endif
+		{
+			InstanceDataCache = new FComponentInstanceDataCache(this);
+
+			// If there are attached objects detach them and store the socket names
+			TArray<AActor*> AttachedActors;
+			GetAttachedActors(AttachedActors);
+
+			for (AActor* AttachedActor : AttachedActors)
+			{
+				USceneComponent* EachRoot = AttachedActor->GetRootComponent();
+				// If the component we are attached to is about to go away...
+				if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->bCreatedByConstructionScript)
+				{
+					// Save info about actor to reattach
+					FAttachedActorInfo Info;
+					Info.AttachedActor = AttachedActor;
+					Info.AttachedToSocket = EachRoot->AttachSocketName;
+					Info.bSetRelativeTransform = false;
+					AttachedActorInfos.Add(Info);
+
+					// Now detach it
+					AttachedActor->Modify();
+					EachRoot->DetachFromParent(true);
+				}
+			}
+
+			if (RootComponent != NULL)
+			{
+				// Do not need to detach if root component is not going away
+				if (RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
+				{
+					Parent = RootComponent->AttachParent->GetOwner();
+					// Root component should never be attached to another component in the same actor!
+					if (Parent == this)
+					{
+						UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
+						Parent = NULL;
+					}
+					ParentComponent = RootComponent->AttachParent;
+					SocketName = RootComponent->AttachSocketName;
+					//detach it to remove any scaling 
+					RootComponent->DetachFromParent(true);
+				}
+
+				OldTransform = RootComponent->ComponentToWorld;
+				OldTransform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
+			}
 		}
 
 		// Destroy existing components
@@ -209,31 +258,35 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		OnConstruction(OldTransform);
+		ExecuteConstruction(OldTransform, InstanceDataCache);
 
 		if(Parent)
 		{
-			USceneComponent* ChildRoot =	GetRootComponent();
-			USceneComponent* ParentRoot =	Parent->GetRootComponent();
-			if(ChildRoot != NULL && ParentRoot != NULL)
+			USceneComponent* ChildRoot = GetRootComponent();
+			if (ParentComponent == NULL)
 			{
-				ChildRoot->AttachTo( ParentRoot, SocketName, EAttachLocation::KeepWorldPosition );
+				ParentComponent = Parent->GetRootComponent();
+			}
+			if (ChildRoot != NULL && ParentComponent != NULL)
+			{
+				ChildRoot->AttachTo(ParentComponent, SocketName, EAttachLocation::KeepWorldPosition);
 			}
 		}
-
-		// Apply per-instance data.
-		InstanceDataCache.ApplyToActor(this);
 
 		// If we had attached children reattach them now - unless they are already attached
 		for(FAttachedActorInfo& Info : AttachedActorInfos)
 		{
 			// If this actor is no longer attached to anything, reattach
-			if (Info.AttachedActor->GetAttachParentActor() == NULL)
+			if (!Info.AttachedActor->IsPendingKill() && Info.AttachedActor->GetAttachParentActor() == NULL)
 			{
 				USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
 				if (ChildRoot && ChildRoot->AttachParent != RootComponent)
 				{
 					ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
+					if (Info.bSetRelativeTransform)
+					{
+						ChildRoot->SetRelativeTransform(Info.RelativeTransform);
+					}
 					ChildRoot->UpdateComponentToWorld();
 				}
 			}
@@ -241,14 +294,31 @@ void AActor::RerunConstructionScripts()
 
 		// Restore the undo buffer
 		GUndo = CurrentTransaction;
+
+#if WITH_EDITOR
+		if (ActorTransactionAnnotation)
+		{
+			CurrentTransactionAnnotation = NULL;
+		}
+		else
+#endif
+		{
+			delete InstanceDataCache;
+		}
+
 	}
 }
 
-void AActor::OnConstruction(const FTransform& Transform)
+void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
 
+	// ensure that any existing native root component gets this new transform
+	if (GetRootComponent())
+	{
+		GetRootComponent()->SetWorldTransform(Transform);
+	}
 
 	// Generate the parent blueprint hierarchy for this actor, so we can run all the construction scripts sequentially
 	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
@@ -274,6 +344,12 @@ void AActor::OnConstruction(const FTransform& Transform)
 				CurrentBPGClass->CreateComponentsForActor(this);
 			}
 
+			// If we passed in cached data, we apply it now, so that the UserConstructionScript can use the updated values
+			if(InstanceDataCache)
+			{
+				InstanceDataCache->ApplyToActor(this);
+			}
+
 #if WITH_EDITOR
 			bool bDoUserConstructionScript;
 			GConfig->GetBool(TEXT("Kismet"), TEXT("bTurnOffEditorConstructionScript"), bDoUserConstructionScript, GEngineIni);
@@ -286,6 +362,13 @@ void AActor::OnConstruction(const FTransform& Transform)
 
 			// Bind any delegates on components			
 			((UBlueprintGeneratedClass*)GetClass())->BindDynamicDelegates(this); // We have a BP stack, we must have a UBlueprintGeneratedClass...
+
+			// Apply any cached data procedural components
+			// @TODO Don't re-apply to components we already applied to above
+			if (InstanceDataCache)
+			{
+				InstanceDataCache->ApplyToActor(this);
+			}
 		}
 		else
 		{
@@ -306,6 +389,9 @@ void AActor::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
+
+	// Now run virtual notification
+	OnConstruction(Transform);
 }
 
 

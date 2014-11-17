@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/Breakpoint.h"
+#include "EdGraph/EdGraph.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
 
@@ -9,6 +11,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "Editor/UnrealEd/Public/Editor.h"
+#include "Crc.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
@@ -34,7 +38,7 @@ bool FBPVariableDescription::HasMetaData(const FName& Key) const
 }
 
 /** Gets a metadata value on the variable; asserts if the value isn't present.  Check for validiy using FindMetaDataEntryIndexForKey. */
-FString FBPVariableDescription::GetMetaData(const FName& Key)
+FString FBPVariableDescription::GetMetaData(const FName& Key) const
 {
 	int32 EntryIndex = FindMetaDataEntryIndexForKey(Key);
 	check(EntryIndex != INDEX_NONE);
@@ -118,6 +122,10 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 			}
 		}
 	}
+	if( Ar.ArIsLoading && !BlueprintGuid.IsValid() )
+	{
+		GenerateDeterministicGuid();
+	}
 }
 
 void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -137,6 +145,20 @@ void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) co
 	OutTags.Add( FAssetRegistryTag("GeneratedClass", GeneratedClassVal, FAssetRegistryTag::TT_Hidden) );
 }
 
+void UBlueprintCore::GenerateDeterministicGuid()
+{
+	FString HashString = GetPathName();
+	HashString.Shrink();
+	ensure( HashString.Len() );
+
+	uint32 HashBuffer[ 5 ];
+	uint32 BufferLength = HashString.Len() * sizeof( HashString[0] );
+	FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast< uint8 * >( HashBuffer ));
+	BlueprintGuid.A = HashBuffer[ 1 ];
+	BlueprintGuid.B = HashBuffer[ 2 ];
+	BlueprintGuid.C = HashBuffer[ 3 ];
+	BlueprintGuid.D = HashBuffer[ 4 ];
+}
 
 UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -239,9 +261,10 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	FName SkelClassName, GenClassName;
 	GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
 
+	UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
 	if(GeneratedClass != NULL)
 	{
-		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewOuter, Flags);
+		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
 		if(!bMovedOK)
 		{
 			return false;
@@ -251,7 +274,7 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
 	if(SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
 	{
-		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewOuter, Flags);
+		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
 		if(!bMovedOK)
 		{
 			return false;
@@ -299,7 +322,7 @@ void UBlueprint::PostLoad()
 	FBlueprintEditorUtils::PurgeNullGraphs(this);
 
 	// Remove old AutoConstructionScript graph
- 	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
+	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
 	{
 		UEdGraph* FuncGraph = FunctionGraphs[i];
 		if ((FuncGraph != NULL) && (FuncGraph->GetName() == TEXT("AutoConstructionScript")))
@@ -418,6 +441,11 @@ void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld,
 	}
 }
 
+UClass* UBlueprint::GetBlueprintClass() const
+{
+	return UBlueprintGeneratedClass::StaticClass();
+}
+
 void UBlueprint::SetObjectBeingDebugged(UObject* NewObject)
 {
 	// Unregister the old object
@@ -530,12 +558,14 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	OutTags.Add( FAssetRegistryTag("ClassFlags", FString::FromInt(ClassFlagsTagged), FAssetRegistryTag::TT_Hidden) );
 
-	FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(this, OutTags);
-
 	OutTags.Add( FAssetRegistryTag( "IsDataOnly",
 		FBlueprintEditorUtils::IsDataOnlyBlueprint(this) ? TEXT("True") : TEXT("False"),
 		FAssetRegistryTag::TT_Alphabetical ) );
 
+	if(SearchGuid.IsValid())
+	{
+		OutTags.Add( FAssetRegistryTag("SearchGuid", SearchGuid.ToString(), FAssetRegistryTag::TT_Hidden) );
+	}
 }
 
 FString UBlueprint::GetFriendlyName() const
@@ -783,6 +813,10 @@ bool UBlueprint::NeedsLoadForServer() const
 	return !Helper.bDontLoad;
 }
 
+bool UBlueprint::NeedsLoadForEditorGame() const
+{
+	return true;
+}
 
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
@@ -876,6 +910,30 @@ void UBlueprint::Message_Error(const FString& MessageToLog)
 
 bool UBlueprint::ChangeOwnerOfTemplates()
 {
+	struct FUniqueNewNameHelper
+	{
+	private:
+		FString NewName;
+		bool isValid;
+	public:
+		FUniqueNewNameHelper(const FString& Name, UObject* Outer) : isValid(false)
+		{
+			const uint32 Hash = FCrc::StrCrc32<TCHAR>(*Name);
+			NewName = FString::Printf(TEXT("%s__%08X"), *Name, Hash);
+			isValid = IsUniqueObjectName(FName(*NewName), Outer);
+			if (!isValid)
+			{
+				check(Outer);
+				UE_LOG(LogBlueprint, Warning, TEXT("ChangeOwnerOfTemplates: Cannot generate a deterministic new name. Old name: %s New outer: %s"), *Name, *Outer->GetName());
+			}
+		}
+
+		const TCHAR* Get() const
+		{
+			return isValid ? *NewName : NULL;
+		}
+	};
+
 	UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
 	bool bIsStillStale = false;
 	if (BPGClass)
@@ -884,6 +942,7 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 
 		// >>> Backwards Compatibility:  VER_UE4_EDITORONLY_BLUEPRINTS
 		bool bMigratedOwner = false;
+		TSet<class UCurveBase*> Curves;
 		for( auto CompIt = ComponentTemplates.CreateIterator(); CompIt; ++CompIt )
 		{
 			UActorComponent* Component = (*CompIt);
@@ -894,6 +953,10 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				ensure(bRenamed);
 				bIsStillStale |= !bRenamed;
 				bMigratedOwner = true;
+			}
+			if (auto TimelineComponent = Cast<UTimelineComponent>(Component))
+			{
+				TimelineComponent->GetAllCurves(Curves);
 			}
 		}
 
@@ -911,16 +974,39 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				ensure(OldTemplateName == UTimelineTemplate::TimelineTemplateNameToVariableName(Template->GetFName()));
 				bMigratedOwner = true;
 			}
+			Template->GetAllCurves(Curves);
+		}
+		for (auto Curve : Curves)
+		{
+			if (Curve && (Curve->GetOuter() == this))
+			{
+				const bool bRenamed = Curve->Rename(FUniqueNewNameHelper(Curve->GetName(), BPGClass).Get(), BPGClass, REN_ForceNoResetLoaders | REN_DoNotDirty);
+				ensure(bRenamed);
+				bIsStillStale |= !bRenamed;
+			}
 		}
 
 		if(USimpleConstructionScript* SCS = SimpleConstructionScript)
 		{
 			if(SCS->GetOuter() == this)
 			{
-				const bool bRenamed = SCS->Rename(NULL, BPGClass, REN_ForceNoResetLoaders|REN_DoNotDirty);
+				const bool bRenamed = SCS->Rename(FUniqueNewNameHelper(SCS->GetName(), BPGClass).Get(), BPGClass, REN_ForceNoResetLoaders | REN_DoNotDirty);
 				ensure(bRenamed);
 				bIsStillStale |= !bRenamed;
 				bMigratedOwner = true;
+			}
+
+			TArray<USCS_Node*> SCSNodes = SCS->GetAllNodes();
+			for (auto SCSNode : SCSNodes)
+			{
+				UActorComponent* Component = SCSNode ? SCSNode->ComponentTemplate : NULL;
+				if (Component && Component->GetOuter() == this)
+				{
+					const bool bRenamed = Component->Rename(FUniqueNewNameHelper(Component->GetName(), BPGClass).Get(), BPGClass, REN_ForceNoResetLoaders | REN_DoNotDirty);
+					ensure(bRenamed);
+					bIsStillStale |= !bRenamed;
+					bMigratedOwner = true;
+				}
 			}
 		}
 

@@ -57,20 +57,20 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End UObject interface.
 
 	/** Recursively update all function call expressions in this function, or in nested functions. */
 	void UpdateFromFunctionResource();
 
 	/** Get the inputs and outputs that this function exposes, for a function call expression to use. */
-	void GetInputsAndOutputs(TArray<FFunctionExpressionInput>& OutInputs, TArray<FFunctionExpressionOutput>& OutOutputs) const;
+	void GetInputsAndOutputs(TArray<struct FFunctionExpressionInput>& OutInputs, TArray<struct FFunctionExpressionOutput>& OutOutputs) const;
 
-	int32 Compile(class FMaterialCompiler* Compiler, const FFunctionExpressionOutput& Output, int32 MultiplexIndex, const TArray<FFunctionExpressionInput>& Inputs);
+	int32 Compile(class FMaterialCompiler* Compiler, const struct FFunctionExpressionOutput& Output, int32 MultiplexIndex, const TArray<struct FFunctionExpressionInput>& Inputs);
 
 	/** @return true if this function is dependent on the passed in function, directly or indirectly. */
 	ENGINE_API bool IsDependent(UMaterialFunction* OtherFunction);
@@ -98,7 +98,7 @@ public:
 	uint32 CombinedOutputTypes;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif
 };

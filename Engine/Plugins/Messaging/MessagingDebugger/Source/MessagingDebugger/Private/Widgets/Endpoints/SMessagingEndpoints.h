@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingEndpoints.h: Declares the SMessagingEndpoints class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,20 +26,18 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InModel - The view model to use.
-	 * @param InStyle - The visual style to use for this widget.
-	 * @param InTracer - The message tracer.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InModel The view model to use.
+	 * @param InStyle The visual style to use for this widget.
+	 * @param InTracer The message tracer.
 	 */
 	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
 
 public:
 
-	// Begin SCompoundWidget overrides
+	// SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
-	// End SCompoundWidget overrides
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 
@@ -78,7 +72,7 @@ private:
 	TArray<FMessageTracerEndpointInfoPtr> EndpointList;
 
 	// Holds the message list view.
-	TSharedPtr<SListView<FMessageTracerEndpointInfoPtr> > EndpointListView;
+	TSharedPtr<SListView<FMessageTracerEndpointInfoPtr>> EndpointListView;
 
 	// Holds the endpoint filter model.
 	FMessagingDebuggerEndpointFilterPtr Filter;

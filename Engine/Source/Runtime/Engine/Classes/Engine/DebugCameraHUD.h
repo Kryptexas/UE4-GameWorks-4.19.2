@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameFramework/HUD.h"
 #include "DebugCameraHUD.generated.h"
 
 UCLASS(config=Game)
@@ -12,7 +13,7 @@ class ENGINE_API ADebugCameraHUD : public AHUD
 	virtual bool DisplayMaterials( float X, float& Y, float DY, class UMeshComponent* MeshComp );
 	
 	// Begin AActor Interface
-	virtual void PostRender() OVERRIDE;
+	virtual void PostRender() override;
 	// End AActor Interface
 
 };

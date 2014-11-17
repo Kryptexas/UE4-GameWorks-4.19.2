@@ -27,11 +27,11 @@ class UAchievementWriteCallbackProxy : public UOnlineBlueprintCallProxyBase
 	static UAchievementWriteCallbackProxy* WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress = 100.0f, int32 UserTag = 0);
 
 	// UOnlineBlueprintCallProxyBase interface
-	virtual void Activate() OVERRIDE;
+	virtual void Activate() override;
 	// End of UOnlineBlueprintCallProxyBase interface
 
 	// UObject interface
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 private:

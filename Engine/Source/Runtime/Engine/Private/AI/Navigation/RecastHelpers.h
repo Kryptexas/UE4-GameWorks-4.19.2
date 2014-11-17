@@ -10,12 +10,12 @@
 
 #pragma once
 
-FVector Unreal2RecastPoint(const float* UnrealPoint);
-FVector Unreal2RecastPoint(const FVector& UnrealPoint);
-FBox Unreal2RecastBox(const FBox& UnrealBox);
-FMatrix Unreal2RecastMatrix();
+extern ENGINE_API FVector Unreal2RecastPoint(const float* UnrealPoint);
+extern ENGINE_API FVector Unreal2RecastPoint(const FVector& UnrealPoint);
+extern ENGINE_API FBox Unreal2RecastBox(const FBox& UnrealBox);
+extern ENGINE_API FMatrix Unreal2RecastMatrix();
 
-FVector Recast2UnrealPoint(const float* RecastPoint);
-FVector Recast2UnrealPoint(const FVector& RecastPoint);
-FBox Recast2UnrealBox(const float* RecastMin, const float* RecastMax);
-FBox Recast2UnrealBox(const FBox& RecastBox);
+extern ENGINE_API FVector Recast2UnrealPoint(const float* RecastPoint);
+extern ENGINE_API FVector Recast2UnrealPoint(const FVector& RecastPoint);
+extern ENGINE_API FBox Recast2UnrealBox(const float* RecastMin, const float* RecastMax);
+extern ENGINE_API FBox Recast2UnrealBox(const FBox& RecastBox);

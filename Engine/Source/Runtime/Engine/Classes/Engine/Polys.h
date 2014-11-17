@@ -582,9 +582,9 @@ class UPolys : public UObject
 	{}
 
 	// Begin UObject Interface
-	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) OVERRIDE;	
-	ENGINE_API virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) override;	
+	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
+	virtual bool IsAsset() const override { return false; }
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 };

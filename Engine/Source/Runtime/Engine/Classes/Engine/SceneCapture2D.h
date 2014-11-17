@@ -24,7 +24,7 @@ class ASceneCapture2D : public ASceneCapture
 public:
 
 	// Begin AActor interface
-	ENGINE_API virtual void PostActorCreated() OVERRIDE;
+	ENGINE_API virtual void PostActorCreated() override;
 	// End AActor interface.
 
 	/** Used to synchronize the DrawFrustumComponent with the SceneCaptureComponent2D settings. */

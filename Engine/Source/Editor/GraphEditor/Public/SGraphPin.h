@@ -16,10 +16,12 @@ public:
 		: _PinLabelStyle(NAME_DefaultPinLabelStyle)
 		, _HasToolTip(true)
 		, _UsePinColorForText(false)
+		, _SideToSideMargin(5.0f)
 		{}
 		SLATE_ARGUMENT(FName, PinLabelStyle)
 		SLATE_ARGUMENT(bool, HasToolTip)
 		SLATE_ARGUMENT(bool, UsePinColorForText)
+		SLATE_ARGUMENT(float, SideToSideMargin)
 	SLATE_END_ARGS()
 
 	/**
@@ -36,21 +38,21 @@ public:
 	void SetIsEditable(TAttribute<bool> InIsEditable);
 
 	/** Handle clicking on the pin */
-	FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
+	virtual FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
 
 	/** Handle clicking on the pin name */
 	FReply OnPinNameMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
 
 	// SWidget interface
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
-	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) OVERRIDE;
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
-	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
 public:
@@ -140,6 +142,8 @@ protected:
 
 	TOptional<EMouseCursor::Type> GetPinCursor() const;
 
+	/** Spawns a FDragConnection or similar class for the pin drag event */
+	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<class SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation);
 private:
 	
 	/** True if pin can be edited */
@@ -175,6 +179,8 @@ protected:
 
 	/** Cached offset from owning node to approximate position of culled pins */
 	FVector2D CachedNodeOffset;
+
+	TSet< TWeakObjectPtr<UEdGraphPin> > HoverPinSet;
 
 	//@TODO: Want to cache these once for all SGraphPins, but still handle slate style updates
 	mutable const FSlateBrush* CachedImg_ArrayPin_ConnectedHovered;

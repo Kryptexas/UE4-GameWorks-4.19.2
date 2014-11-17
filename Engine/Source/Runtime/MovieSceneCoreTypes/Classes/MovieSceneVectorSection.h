@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+
 #include "MovieSceneVectorSection.generated.h"
 
 /**
  * A vector section
  */
-UCLASS( DependsOn=UMovieSceneSection, MinimalAPI )
+UCLASS(MinimalAPI )
 class UMovieSceneVectorSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
@@ -21,8 +23,8 @@ public:
 	FVector4 Eval( float Position ) const;
 
 	/** MovieSceneSection interface */
-	virtual void MoveSection( float DeltaPosition ) OVERRIDE;
-	virtual void DilateSection( float DilationFactor, float Origin ) OVERRIDE;
+	virtual void MoveSection( float DeltaPosition ) override;
+	virtual void DilateSection( float DilationFactor, float Origin ) override;
 	
 	/** 
 	 * Adds a key to the section

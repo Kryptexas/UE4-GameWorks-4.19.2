@@ -463,7 +463,7 @@ void Main(
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 		BRANCH
-		if (InGBufferData.LightingModelId == LIGHTINGMODELID_SUBSURFACE || InGBufferData.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
+		if (InGBufferData.ShadingModelID == SHADINGMODELID_SUBSURFACE || InGBufferData.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN)
 		{
 			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
 			float Density = -.05f * log(1 - min(InGBufferData.Opacity, .999f));

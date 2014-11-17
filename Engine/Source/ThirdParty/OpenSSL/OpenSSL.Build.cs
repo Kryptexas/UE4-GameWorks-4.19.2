@@ -11,7 +11,7 @@ public class OpenSSL : ModuleRules
 		string LibFolder = "lib/";
 		string LibPrefix = "";
 		string LibPostfixAndExt = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d." : ".";
-		string OpenSSLPath = UEBuildConfiguration.UEThirdPartyDirectory + "OpenSSL/1.0.1g/";
+		string OpenSSLPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSSL/1.0.1g/";
 		
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{

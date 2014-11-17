@@ -7,9 +7,13 @@
  */
 
 #pragma once
+
+#include "Particles/Emitter.h"
+#include "Emitter.h"
+
 #include "EmitterCameraLensEffectBase.generated.h"
 
-UCLASS(abstract, Blueprintable, dependson=AEmitter, MinimalAPI)
+UCLASS(abstract, Blueprintable, MinimalAPI)
 class AEmitterCameraLensEffectBase : public AEmitter
 {
 	GENERATED_UCLASS_BODY()
@@ -55,8 +59,8 @@ public:
 
 
 	// Begin AActor Interface
-	ENGINE_API virtual void Destroyed() OVERRIDE;
-	ENGINE_API virtual void PostInitializeComponents() OVERRIDE;
+	ENGINE_API virtual void Destroyed() override;
+	ENGINE_API virtual void PostInitializeComponents() override;
 	// End AActor Interface
 
 	/** Tell the emitter what camera it is attached to. */

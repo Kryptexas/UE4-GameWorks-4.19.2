@@ -13,11 +13,6 @@
 
 struct FWinRTPlatformProperties : public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "Windows RT";
-	}
-
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "WinRT";

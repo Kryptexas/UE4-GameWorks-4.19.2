@@ -12,6 +12,7 @@
 struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+    static void PlatformPostInit(bool IsMoviePlaying = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
@@ -40,7 +41,9 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			//If you want an immediate break use the trap instruction, continued execuction is halted
 #if WITH_SIMULATOR
             __asm__ ( "int $3" );
-#else   
+#elif PLATFORM_64BITS
+			__asm__ ( "svc 0" );
+#else
             __asm__ ( "trap" );
 #endif
 		}
@@ -60,7 +63,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context));
-
+	static bool HasPlatformFeature(const TCHAR* FeatureName);
 
 	//////// Platform specific
 	static void* CreateAutoreleasePool();
@@ -108,7 +111,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPadAir",
 			L"Unknown",
 		};
-		checkAtCompileTime((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), Mismatched_IOSDeviceNames_And_EIOSDevice);
+		static_assert((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), "Mismatched IOSDeviceNames and EIOSDevice.");
 		
 		// look up into the string array by the enum
 		return IOSDeviceNames[(int32)GetIOSDeviceType()];

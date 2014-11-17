@@ -680,6 +680,7 @@ ULinkerLoad* GetPackageLinker
 			}
 		}
 
+#if 0
 		// Make sure the package is accessible in the sandbox.
 		if( Sandbox && !Sandbox->SupportsPackage(InOuter) )
 		{
@@ -689,6 +690,7 @@ ULinkerLoad* GetPackageLinker
 			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
 			return NULL;
 		}
+#endif
 
 		// Create new linker.
 		if( !Result )
@@ -744,15 +746,12 @@ void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename)
 	}
 }
 
-
-
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(ULinker, UObject,
 	{
 		Class->ClassAddReferencedObjects = &ULinker::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( ULinker, LinkerRoot ) );
-		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin( STRUCT_OFFSET( ULinker, ImportMap ), sizeof(FObjectImport) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FObjectImport, SourceLinker ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(ULinker, LinkerRoot), TEXT("LinkerRoot"));
+		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin(STRUCT_OFFSET(ULinker, ImportMap), TEXT("ImportMap"), sizeof(FObjectImport));
+		Class->EmitObjectReference(STRUCT_OFFSET(FObjectImport, SourceLinker), TEXT("SourceLinker"));
 		Class->EmitStructArrayEnd( SkipIndexIndex );
 	}
 );

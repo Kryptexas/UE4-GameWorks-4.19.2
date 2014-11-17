@@ -11,6 +11,7 @@
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
+#include "Landscape/Landscape.h"
 
 //
 // FLandscapeToolErosionBase
@@ -25,7 +26,7 @@ public:
 	,	bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
 protected:
 	class ULandscapeInfo* LandscapeInfo;
 	FLandscapeHeightCache HeightCache;
@@ -41,7 +42,7 @@ public:
 	:	FLandscapeToolBase<TStrokeClass>(InEdMode)
 	{}
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE 
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override 
 	{
 		// Erosion is applied to all layers
 		return true;
@@ -59,7 +60,7 @@ public:
 	:	FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) OVERRIDE
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
 		if( !LandscapeInfo )
 		{
@@ -259,8 +260,8 @@ public:
 	:	FLandscapeToolErosionBase(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Erosion"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Erosion", "Erosion"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Erosion"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Erosion", "Erosion"); };
 
 };
 
@@ -275,7 +276,7 @@ public:
 	:	FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) OVERRIDE
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
 		if( !LandscapeInfo )
 		{
@@ -459,8 +460,8 @@ public:
 	:	FLandscapeToolErosionBase(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("HydraulicErosion"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_HydraErosion", "Hydraulic Erosion"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("HydraulicErosion"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_HydraErosion", "Hydraulic Erosion"); };
 
 };
 

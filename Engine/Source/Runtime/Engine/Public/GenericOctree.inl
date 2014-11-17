@@ -345,4 +345,41 @@ TOctree<ElementType,OctreeSemantics>::TOctree(const FVector& InOrigin,float InEx
 {
 }
 
+template<typename ElementType,typename OctreeSemantics>
+void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset)
+{
+	// Shift elements
+	RootNode.ApplyOffset(InOffset);
+	
+	// Make a local copy of all nodes
+	FNode OldRootNode = RootNode;
+	
+	// Assign to root node a NULL node, so Destroy procedure will not delete child nodes
+	RootNode = FNode(nullptr);
+	// Call destroy to clean up octree
+	Destroy();
+
+	// Add all elements from a saved nodes to a new empty octree
+	for (TConstIterator<> NodeIt(OldRootNode, RootNodeContext); NodeIt.HasPendingNodes(); NodeIt.Advance())
+	{
+		const auto& CurrentNode = NodeIt.GetCurrentNode();
+
+		FOREACH_OCTREE_CHILD_NODE(ChildRef)
+		{
+			if (CurrentNode.HasChild(ChildRef))
+			{
+				NodeIt.PushChild(ChildRef);
+			}
+		}
+
+		for (auto ElementIt = CurrentNode.GetElementIt(); ElementIt; ++ElementIt)
+		{
+			AddElement(*ElementIt);
+		}
+	}
+
+	// Saved nodes will be deleted on scope exit
+}
+
+
 #endif

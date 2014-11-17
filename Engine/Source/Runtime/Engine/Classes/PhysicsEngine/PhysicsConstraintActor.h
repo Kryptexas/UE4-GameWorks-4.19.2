@@ -24,9 +24,9 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	uint32 bDisableCollision_DEPRECATED:1;
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
+	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif // WITH_EDITOR	
 	// End UObject Interface
 };

@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "LevelStreamingVolume.generated.h"
 
 /** Enum for different usage cases of level streaming volumes. */
@@ -49,7 +50,7 @@ class ALevelStreamingVolume : public AVolume
 
 #if WITH_EDITOR
 	// Begin AActor interface.
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 	// End AActor interface.
 #endif
 };

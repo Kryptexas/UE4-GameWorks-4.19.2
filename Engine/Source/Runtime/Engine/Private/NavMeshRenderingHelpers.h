@@ -1,7 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "DebugRenderSceneProxy.h"
+#include "DynamicMeshBuilder.h"
 #include "AI/Navigation/RecastHelpers.h"
+#include "BatchedElements.h"
+#include "AI/Navigation/NavMeshRenderingComponent.h"
+#include "Materials/Material.h"
+#include "MaterialShared.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);
@@ -189,7 +194,7 @@ public:
 		return FColor(r*63, g*63, b*63, 164);
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
 
@@ -306,7 +311,10 @@ public:
 
 			const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 			const FTexture2DRHIRef DepthTexture;
+			
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 			BatchedElements.Draw(
+				RHICmdList,
 				bNeedToSwitchVerticalAxis,
 				View->ViewProjectionMatrix,
 				View->ViewRect.Width(),
@@ -318,6 +326,7 @@ public:
 				);
 
 			ProxyData->BatchedElements.Draw(
+				RHICmdList,
 				bNeedToSwitchVerticalAxis,
 				View->ViewProjectionMatrix,
 				View->ViewRect.Width(),

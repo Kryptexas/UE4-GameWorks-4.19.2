@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimCompress_RemoveTrivialKeys.h"
 #include "AnimationUtils.h"
 #include "AnimEncoding.h"
 #include "AnimationCompression.h"

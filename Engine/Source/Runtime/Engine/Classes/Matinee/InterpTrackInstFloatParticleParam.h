@@ -15,8 +15,8 @@ class UInterpTrackInstFloatParticleParam : public UInterpTrackInst
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void SaveActorState(UInterpTrack* Track) OVERRIDE;
-	virtual void RestoreActorState(UInterpTrack* Track) OVERRIDE;
+	virtual void SaveActorState(UInterpTrack* Track) override;
+	virtual void RestoreActorState(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

@@ -19,6 +19,7 @@
 #endif
 
 #include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 
 
 /* Private includes

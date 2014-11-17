@@ -5,9 +5,34 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionCustomTexture.h"
+#include "Materials/MaterialExpressionFontSample.h"
+#include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Materials/MaterialExpressionFunctionInput.h"
+#include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionStaticBool.h"
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionTextureObject.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialFunction.h"
+
 #include "MaterialEditorUtilities.h"
 #include "MaterialEditorActions.h"
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -161,49 +186,6 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UMaterialGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	TArray<FString> Captions;
-	MaterialExpression->GetCaption(Captions);
-
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return GetParameterName();
-	}
-	else if (TitleType == ENodeTitleType::ListView)
-	{
-		return MaterialExpression->GetDescription();
-	}
-	else
-	{
-		// More useful to display multi line parameter captions in reverse order
-		// TODO: May have to choose order based on expression type if others need correct order
-		int32 CaptionIndex = Captions.Num() -1;
-
-		FString NodeTitle = Captions[CaptionIndex];
-		for (; CaptionIndex > 0; )
-		{
-			CaptionIndex--;
-			NodeTitle += TEXT("\n");
-			NodeTitle += Captions[CaptionIndex];
-		}
-
-		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
-		{
-			NodeTitle += TEXT("\nInput Data");
-		}
-
-		if (bIsPreviewExpression)
-		{
-			NodeTitle += TEXT("\nPreviewing");
-		}
-
-		return NodeTitle;
-	}
-}
-
 FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 {
 	UMaterial* Material = CastChecked<UMaterialGraph>(GetGraph())->Material;
@@ -214,37 +196,37 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		return FColor( 70, 100, 200 );
 	}
 
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	if (UsesBoolColour(MaterialExpression))
 	{
-		return Options.BooleanPinTypeColor;
+		return Settings->BooleanPinTypeColor;
 	}
 	else if (UsesFloatColour(MaterialExpression))
 	{
-		return Options.FloatPinTypeColor;
+		return Settings->FloatPinTypeColor;
 	}
 	else if (UsesVectorColour(MaterialExpression))
 	{
-		return Options.VectorPinTypeColor;
+		return Settings->VectorPinTypeColor;
 	}
 	else if (UsesObjectColour(MaterialExpression))
 	{
-		return Options.ObjectPinTypeColor;
+		return Settings->ObjectPinTypeColor;
 	}
 	else if (UsesEventColour(MaterialExpression))
 	{
-		return Options.EventNodeTitleColor;
+		return Settings->EventNodeTitleColor;
 	}
 	else if (MaterialExpression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass()))
 	{
 		// Previously FColor(0, 116, 255);
-		return Options.FunctionCallNodeTitleColor;
+		return Settings->FunctionCallNodeTitleColor;
 	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
-		return Options.ResultNodeTitleColor;
+		return Settings->ResultNodeTitleColor;
 	}
 	else if (UMaterial::IsParameter(MaterialExpression))
 	{
@@ -270,7 +252,7 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 	}
 
 	// Assume that most material expressions act like pure functions and don't affect anything else
-	return Options.PureFunctionCallNodeTitleColor;
+	return Settings->PureFunctionCallNodeTitleColor;
 }
 
 FString UMaterialGraphNode::GetTooltip() const
@@ -598,7 +580,7 @@ void UMaterialGraphNode::PostPlacedNewNode()
 		NodeComment = MaterialExpression->Desc;
 		NodePosX = MaterialExpression->MaterialExpressionEditorX;
 		NodePosY = MaterialExpression->MaterialExpressionEditorY;
-		bCanRenameNode = UMaterial::IsParameter(MaterialExpression);
+		bCanRenameNode = MaterialExpression->CanRenameNode();
 	}
 }
 
@@ -657,38 +639,14 @@ void UMaterialGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverT
 
 FString UMaterialGraphNode::GetParameterName() const
 {
-	if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(MaterialExpression))
-	{
-		return Parameter->ParameterName.ToString();
-	}
-	else if (const UMaterialExpressionTextureSampleParameter* TexParameter = Cast<const UMaterialExpressionTextureSampleParameter>(MaterialExpression))
-	{
-		return TexParameter->ParameterName.ToString();
-	}
-	else if (const UMaterialExpressionFontSampleParameter* FontParameter = Cast<const UMaterialExpressionFontSampleParameter>(MaterialExpression))
-	{
-		return FontParameter->ParameterName.ToString();
-	}
-	// Should have been able to get parameter name to edit
-	check(false);
-	return TEXT("");
+	return MaterialExpression->GetEditableName();
 }
 
 void UMaterialGraphNode::SetParameterName(const FString& NewName)
 {
-	if (UMaterialExpressionParameter* Parameter = Cast<UMaterialExpressionParameter>(MaterialExpression))
-	{
-		Parameter->ParameterName = *NewName;
-	}
-	else if (UMaterialExpressionTextureSampleParameter* TexParameter = Cast<UMaterialExpressionTextureSampleParameter>(MaterialExpression))
-	{
-		TexParameter->ParameterName = *NewName;
-	}
-	else if (UMaterialExpressionFontSampleParameter* FontParameter = Cast<UMaterialExpressionFontSampleParameter>(MaterialExpression))
-	{
-		FontParameter->ParameterName = *NewName;
-	}
+	MaterialExpression->SetEditableName(NewName);
 
+	//@TODO: Push into the SetEditableName interface
 	CastChecked<UMaterialGraph>(GetGraph())->Material->UpdateExpressionParameterName(MaterialExpression);
 }
 

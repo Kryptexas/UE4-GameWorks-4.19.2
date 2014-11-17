@@ -179,7 +179,7 @@ public:
 	 **/
 	FORCEINLINE bool ThisThreadAtomicallyClearedRFUnreachable()
 	{
-		checkAtCompileTime(sizeof(int32) == sizeof(EObjectFlags),flags_must_be_32bit_for_atomics);
+		static_assert(sizeof(int32) == sizeof(EObjectFlags), "Flags must be 32-bit for atomics.");
 		bool bIChangedIt = false;
 		while (1)
 		{

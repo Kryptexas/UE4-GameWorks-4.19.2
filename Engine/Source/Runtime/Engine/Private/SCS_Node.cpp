@@ -55,7 +55,6 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
 			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
-				NewSceneComp->SetFlags(RF_Transactional);
 				NewSceneComp->SetWorldTransform(*RootTransform);
 				Actor->SetRootComponent(NewSceneComp);
 			}
@@ -281,22 +280,40 @@ void USCS_Node::SetParent(USCS_Node* InParentNode)
 	check(InParentNode->GetSCS()->GetBlueprint() != NULL);
 	check(InParentNode->GetSCS()->GetBlueprint()->GeneratedClass != NULL);
 
-	Modify();
+	const FName NewParentComponentOrVariableName = InParentNode->VariableName;
+	const FName NewParentComponentOwnerClassName = InParentNode->GetSCS()->GetBlueprint()->GeneratedClass->GetFName();
 
-	bIsParentComponentNative = false;
-	ParentComponentOrVariableName = InParentNode->VariableName;
-	ParentComponentOwnerClassName = InParentNode->GetSCS()->GetBlueprint()->GeneratedClass->GetFName();
+	// Only modify if it differs from current
+	if(bIsParentComponentNative
+		|| ParentComponentOrVariableName != NewParentComponentOrVariableName
+		|| ParentComponentOwnerClassName != NewParentComponentOwnerClassName)
+	{
+		Modify();
+
+		bIsParentComponentNative = false;
+		ParentComponentOrVariableName = NewParentComponentOrVariableName;
+		ParentComponentOwnerClassName = NewParentComponentOwnerClassName;
+	}
 }
 
 void USCS_Node::SetParent(USceneComponent* InParentComponent)
 {
 	check(InParentComponent != NULL);
 
-	Modify();
+	const FName NewParentComponentOrVariableName = InParentComponent->GetFName();
+	const FName NewParentComponentOwnerClassName = NAME_None;
 
-	bIsParentComponentNative = true;
-	ParentComponentOrVariableName = InParentComponent->GetFName();
-	ParentComponentOwnerClassName = NAME_None;
+	// Only modify if it differs from current
+	if(bIsParentComponentNative
+		|| ParentComponentOrVariableName != NewParentComponentOrVariableName
+		|| ParentComponentOwnerClassName != NewParentComponentOwnerClassName)
+	{
+		Modify();
+
+		bIsParentComponentNative = true;
+		ParentComponentOrVariableName = NewParentComponentOrVariableName;
+		ParentComponentOwnerClassName = NewParentComponentOwnerClassName;
+	}
 }
 
 USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) const

@@ -65,6 +65,7 @@ enum ESceneDepthPriorityGroup
 };
 
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
+// Note: Check UMaterialInstance::Serialize if changed!!
 UENUM(BlueprintType)
 enum EBlendMode
 {
@@ -99,14 +100,25 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+/** Controls the way that the width scale property affects anim trails */
 UENUM()
-enum EMaterialLightingModel
+enum ETrailWidthMode
 {
-	MLM_DefaultLit UMETA(DisplayName="Default Lit"),
-	MLM_Unlit UMETA(DisplayName="Unlit"),
-	MLM_Subsurface UMETA(DisplayName="Subsurface"),
-	MLM_PreintegratedSkin UMETA(DisplayName="Preintegrated Skin"),
-	MLM_MAX,
+	ETrailWidthMode_FromCentre UMETA(DisplayName = "From Centre"),
+	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
+	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
+};
+
+// Note: Check UMaterialInstance::Serialize if changed!!
+UENUM()
+enum EMaterialShadingModel
+{
+	MSM_Unlit				UMETA(DisplayName="Unlit"),
+	MSM_DefaultLit			UMETA(DisplayName="Default Lit"),
+	MSM_Subsurface			UMETA(DisplayName="Subsurface"),
+	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
+	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
+	MSM_MAX,
 };
 
 // This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.
@@ -1262,7 +1274,7 @@ struct FPrimitiveMaterialRef
 };
 
 /** Structure containing information about one hit of the trace */
-USTRUCT(BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
@@ -1672,6 +1684,8 @@ struct FMeshBuildSettings
 	/** The local scale applied when building the mesh */
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
 	FVector BuildScale3D;
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	float DistanceFieldResolutionScale;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1682,6 +1696,7 @@ struct FMeshBuildSettings
 		, BuildScale_DEPRECATED(1.0f)
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 	{
+		DistanceFieldResolutionScale = 1;
 	}
 
 	/** Equality operator. */
@@ -1691,7 +1706,8 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
-			&& BuildScale3D == Other.BuildScale3D;
+			&& BuildScale3D == Other.BuildScale3D
+			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale;
 	}
 
 	/** Inequality. */
@@ -1830,7 +1846,7 @@ struct ENGINE_API FPointDamageEvent : public FDamageEvent
 	virtual bool IsOfType(int32 InID) const { return (FPointDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
 
 	/** Simple API for common cases where we are happy to assume a single hit is expected, even though damage event may have multiple hits. */
-	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const OVERRIDE;
+	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const override;
 };
 
 
@@ -1899,7 +1915,7 @@ struct ENGINE_API FRadialDamageEvent : public FDamageEvent
 	virtual bool IsOfType(int32 InID) const { return (FRadialDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
 
 	/** Simple API for common cases where we are happy to assume a single hit is expected, even though damage event may have multiple hits. */
-	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const OVERRIDE;
+	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const override;
 };
 
 
@@ -2095,7 +2111,7 @@ struct FRepAttachment
 
 	UPROPERTY()
 	FName AttachSocket;
-	
+
 	UPROPERTY()
 	class USceneComponent* AttachComponent;
 
@@ -2213,7 +2229,7 @@ struct FReplicationFlags
 	}
 };
 
-checkAtCompileTime( sizeof( FReplicationFlags ) == 4, FReplicationFlags_InvalidSize );
+static_assert(sizeof(FReplicationFlags) == 4, "FReplicationFlags has invalid size.");
 
 /** Struct used to specify the property name of the component to constrain */
 USTRUCT()
@@ -2343,12 +2359,12 @@ namespace EComponentMobility
 		// - Totally Dynamic
 		// - Allows Dynamic Shadows
 		// - Slowest Rendering
-		Movable
+		Movable		
 	};
 }
 
 UCLASS(abstract, config=Engine)
-class UEngineTypes : public UObject
+class ENGINE_API UEngineTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -2435,6 +2451,21 @@ struct FFilePath
 	 */
 	UPROPERTY(EditAnywhere, Category=FilePath)
 	FString FilePath;
+};
+
+/**
+ * Structure for directory paths that are displayed in the UI.
+ */
+USTRUCT()
+struct FDirectoryPath
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * The path to the directory.
+	 */
+	UPROPERTY(EditAnywhere, Category=Path)
+	FString Path;
 };
 
 /**

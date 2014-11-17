@@ -77,11 +77,15 @@ public:
 			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString );
 		}
 
+		FObjectPropertyNode* ObjectPropertyNode = PropertyNode->FindObjectItemParent();
+		const bool bAllowSpin = (!ObjectPropertyNode || (1 == ObjectPropertyNode->GetNumObjects()))
+			&& !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox");
+
 		ChildSlot
 			[
 				SAssignNew( PrimaryWidget, SNumericEntryBox<NumericType> )
 				// Only allow spinning if we have a single value
-				.AllowSpin( PropertyNode->FindObjectItemParent()->GetNumObjects() == 1 && !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox") )
+				.AllowSpin(bAllowSpin)
 				.Value( this, &SPropertyEditorNumeric<NumericType>::OnGetValue )
 				.Font( InArgs._Font )
 				.MinValue(MinValue)
@@ -99,12 +103,12 @@ public:
 		SetEnabled( TAttribute<bool>( this, &SPropertyEditorNumeric<NumericType>::CanEdit ) );
 	}
 
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
 	}
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override
 	{
 		// Forward keyboard focus to our editable text widget
 		return FReply::Handled().SetKeyboardFocus( PrimaryWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
@@ -117,8 +121,8 @@ public:
 
 		if( bIsNonEnumByte )
 		{
-			OutMinDesiredWidth = 60.0f;
-			OutMaxDesiredWidth = 60.0f;
+			OutMinDesiredWidth = 75.0f;
+			OutMaxDesiredWidth = 75.0f;
 		}
 		else
 		{
@@ -218,7 +222,7 @@ private:
 	{
 		bIsUsingSlider = true;
 
-		GEditor->BeginTransaction( TEXT("PropertyEditor"), NSLOCTEXT("UnrealEd", "SetNumberProperty", "Set Number Property"), PropertyEditor->GetPropertyHandle()->GetProperty() );
+		GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "SetNumericPropertyTransaction", "Edit {0}"), FText::FromString( PropertyEditor->GetDisplayName() ) ), PropertyEditor->GetPropertyHandle()->GetProperty() );
 	}
 
 

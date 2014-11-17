@@ -21,7 +21,7 @@ public:
 	}
 	
 	/** Initialize the commands */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND( RefreshBrowser,	"Refresh",	"Refreshes opened world", EUserInterfaceActionType::Button, FInputGesture(EKeys::F5) );
 

@@ -32,15 +32,15 @@ class UCustomMeshComponent : public UMeshComponent
 private:
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent interface.
 
 	// Begin UMeshComponent interface.
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
 	// End UMeshComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 	/** */

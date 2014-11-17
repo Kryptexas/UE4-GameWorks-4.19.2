@@ -2,6 +2,7 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Engine/Breakpoint.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "GraphEditor.h"
 #include "BlueprintUtilities.h"
@@ -123,18 +124,18 @@ public:
 	{
 	}
 protected:
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		FMessageLineItem* Other = (FMessageLineItem*)BaseOther;
 		return Message == Other->Message;
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		return new FMessageLineItem(Message);
 	}
 
-	virtual FString GetDescription() const OVERRIDE
+	virtual FString GetDescription() const override
 	{
 		return Message;
 	}
@@ -157,21 +158,21 @@ public:
 		ParentObjectRef = ParentObject;
 	}
 protected:
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		FLatentActionLineItem* Other = (FLatentActionLineItem*)BaseOther;
 		return (ParentObjectRef.Get() == Other->ParentObjectRef.Get()) &&
 			(UUID == Other->UUID);
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		return new FLatentActionLineItem(UUID, ParentObjectRef.Get());
 	}
 protected:
-	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE;
-	virtual FString GetDescription() const OVERRIDE;
-	virtual FText GetDisplayName() const OVERRIDE;
+	virtual TSharedRef<SWidget> GenerateNameWidget() override;
+	virtual FString GetDescription() const override;
+	virtual FText GetDisplayName() const override;
 	void OnNavigateToLatentNode();
 
 	class UEdGraphNode* FindAssociatedNode() const;
@@ -264,19 +265,19 @@ public:
 		ParentObjectRef = ParentObject;
 	}
 
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		FWatchLineItem* Other = (FWatchLineItem*)BaseOther;
 		return (ParentObjectRef.Get() == Other->ParentObjectRef.Get()) &&
 			(ObjectRef.Get() == Other->ObjectRef.Get());
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		return new FWatchLineItem(Cast<UEdGraphPin>(ObjectRef.Get()), ParentObjectRef.Get());
 	}	
 
-	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) OVERRIDE
+	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) override
 	{
 		if (UEdGraphPin* WatchedPin = Cast<UEdGraphPin>(ObjectRef.Get()))
 		{
@@ -292,9 +293,9 @@ public:
 		}
 	}
 protected:
-	virtual FString GetDescription() const OVERRIDE;
-	virtual FText GetDisplayName() const OVERRIDE;
-	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE;
+	virtual FString GetDescription() const override;
+	virtual FText GetDisplayName() const override;
+	virtual TSharedRef<SWidget> GenerateNameWidget() override;
 
 	void OnNavigateToWatchLocation();
 };
@@ -398,19 +399,19 @@ public:
 		ParentObjectRef = ParentObject;
 	}
 
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		FBreakpointLineItem* Other = (FBreakpointLineItem*)BaseOther;
 		return (ParentObjectRef.Get() == Other->ParentObjectRef.Get()) &&
 			(BreakpointRef.Get() == Other->BreakpointRef.Get());
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		return new FBreakpointLineItem(BreakpointRef.Get(), ParentObjectRef.Get());
 	}	
 
-	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) OVERRIDE
+	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) override
 	{
 		UBreakpoint* Breakpoint = BreakpointRef.Get();
 		UBlueprint* ParentBlueprint = GetBlueprintForObject(ParentObjectRef.Get());
@@ -463,7 +464,7 @@ public:
 		}
 	}
 protected:
-	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE
+	virtual TSharedRef<SWidget> GenerateNameWidget() override
 	{
 		return SNew(SHorizontalBox)
 
@@ -584,12 +585,12 @@ public:
 		ObjectRef = Object;
 	}
 
-	virtual UObject* GetParentObject() OVERRIDE
+	virtual UObject* GetParentObject() override
 	{
 		return ObjectRef.Get();
 	}
 
-	virtual void GatherChildren(TArray<FDebugTreeItemPtr>& OutChildren) OVERRIDE
+	virtual void GatherChildren(TArray<FDebugTreeItemPtr>& OutChildren) override
 	{
 		if (UObject* ParentObject = ObjectRef.Get())
 		{
@@ -667,18 +668,18 @@ public:
 	}
 
 protected:
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		FParentLineItem* Other = (FParentLineItem*)BaseOther;
 		return ObjectRef.Get() == Other->ObjectRef.Get();
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		return new FParentLineItem(ObjectRef.Get());
 	}
 
-	virtual FText GetDisplayName() const OVERRIDE
+	virtual FText GetDisplayName() const override
 	{
 		UObject* Object = ObjectRef.Get();
 		AActor* Actor = Cast<AActor>(Object);
@@ -693,7 +694,7 @@ protected:
 		}
 	}
 
-	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) OVERRIDE
+	virtual void MakeMenu(class FMenuBuilder& MenuBuilder) override
 	{
 		if (UBlueprint* BP = Cast<UBlueprint>(ObjectRef.Get()))
 		{
@@ -740,13 +741,13 @@ public:
 		StackIndex = InStackIndex;
 	}
 protected:
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		check(false);
 		return false;
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		check(false);
 		return NULL;
@@ -774,7 +775,7 @@ protected:
 		return NULL;
 	}
 
-	virtual FText GetDisplayName() const OVERRIDE
+	virtual FText GetDisplayName() const override
 	{
 		UEdGraphNode* Node = GetNode();
 		if (Node != NULL)
@@ -788,7 +789,7 @@ protected:
 	}
 
 	// Index icon and node name
-	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE
+	virtual TSharedRef<SWidget> GenerateNameWidget() override
 	{
 		return SNew(SHorizontalBox)
 
@@ -812,7 +813,7 @@ protected:
 	}
 
 	// Visit time and actor name
-	virtual TSharedRef<SWidget> GenerateValueWidget() OVERRIDE
+	virtual TSharedRef<SWidget> GenerateValueWidget() override
 	{
 		return SNew(SHorizontalBox)
 			
@@ -895,7 +896,7 @@ public:
 	{
 	}
 
-	virtual void GatherChildren(TArray<FDebugTreeItemPtr>& OutChildren) OVERRIDE
+	virtual void GatherChildren(TArray<FDebugTreeItemPtr>& OutChildren) override
 	{
 		const TSimpleRingBuffer<FKismetTraceSample>& TraceStack = FKismetDebugUtilities::GetTraceStack();
 		const int32 NumVisible = TraceStack.Num();
@@ -918,13 +919,13 @@ protected:
 		return LOCTEXT("ExecutionTrace", "Execution Trace");
 	}
 
-	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE
+	virtual bool Compare(const FDebugLineItem* BaseOther) const override
 	{
 		check(false);
 		return false;
 	}
 
-	virtual FDebugLineItem* Duplicate() const OVERRIDE
+	virtual FDebugLineItem* Duplicate() const override
 	{
 		check(false);
 		return NULL;
@@ -942,7 +943,7 @@ public:
 	SLATE_BEGIN_ARGS(SDebugLineItem){}
 	SLATE_END_ARGS()
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == KismetDebugViewConstants::ColumnId_Name)
 		{

@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/Console.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/WorldComposition.h"
+#include "GameFramework/GameNetworkManager.h"
+#include "GameFramework/Character.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
@@ -10,6 +14,12 @@
 #include "Slate.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/MatineeActor.h"
+#include "Engine/ActorChannel.h"
+#include "GameFramework/SpectatorPawn.h"
+#include "GameFramework/HUD.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
@@ -61,6 +71,12 @@ float APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& V
 UPlayer* APlayerController::GetNetOwningPlayer() 
 {
 	return Player;
+}
+
+bool APlayerController::HasNetOwner() const
+{
+    // Player controllers are their own net owners
+	return true;
 }
 
 UNetConnection* APlayerController::GetNetConnection()
@@ -119,6 +135,14 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 		PackageName = FName(*PackageNameStr);
 	}
 
+	// Distance dependent streaming levels should be controlled by client only
+	if (GetWorld() && GetWorld()->WorldComposition)
+	{
+		if (GetWorld()->WorldComposition->IsDistanceDependentLevel(PackageName))
+		{
+			return;
+		}
+	}
 
 	//GEngine->NetworkRemapPath(GetWorld(), RealName, false);
 
@@ -150,7 +174,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 						LevelStreamingObject->bShouldBeLoaded		= bNewShouldBeLoaded;
 						LevelStreamingObject->bShouldBeVisible		= bNewShouldBeVisible;
 						LevelStreamingObject->bShouldBlockOnLoad	= bNewShouldBlockOnLoad;
-						LevelStreamingObject->SetLODIndex(GetWorld(), LODIndex);
+						LevelStreamingObject->LevelLODIndex			= LODIndex;
 					}
 					else
 					{
@@ -402,7 +426,6 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 		if (Connection != NULL)
 		{
 			Connection->ClientWorldPackageName = WorldPackageName;
-			Connection->PackageMap->SetLocked(false);
 		}
 
 		// if both the server and this client have completed the transition, handle it
@@ -466,30 +489,41 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 	}
 }
 
-/** worker function for APlayerController::SmoothTargetViewRotation() */
-int32 BlendRot(float DeltaTime, float BlendC, float NewC)
-{
-	if ( FMath::Abs(BlendC - NewC) > 180.f )
-	{
-		if ( BlendC > NewC )
-			NewC += 360.f;
-		else
-			BlendC += 360.f;
-	}
-	if ( FMath::Abs(BlendC - NewC) > 22.57 )
-		BlendC = NewC;
-	else
-		BlendC = BlendC + (NewC - BlendC) * FMath::Min(1.f,24.f * DeltaTime);
-
-	return FRotator::ClampAxis(BlendC);
-}
-
-
 void APlayerController::SmoothTargetViewRotation(APawn* TargetPawn, float DeltaSeconds)
 {
-	BlendedTargetViewRotation.Pitch = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Pitch, FRotator::ClampAxis(TargetViewRotation.Pitch));
-	BlendedTargetViewRotation.Yaw = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Yaw, FRotator::ClampAxis(TargetViewRotation.Yaw));
-	BlendedTargetViewRotation.Roll = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Roll, FRotator::ClampAxis(TargetViewRotation.Roll));
+	struct FBlendHelper
+	{
+		/** worker function for APlayerController::SmoothTargetViewRotation() */
+		static float BlendRotation(float DeltaTime, float BlendC, float NewC)
+		{
+			if (FMath::Abs(BlendC - NewC) > 180.f)
+			{
+				if (BlendC > NewC)
+				{
+					NewC += 360.f;
+				}
+				else
+				{
+					BlendC += 360.f;
+				}
+			}
+
+			if (FMath::Abs(BlendC - NewC) > 22.57f)
+			{
+				BlendC = NewC;
+			}
+			else
+			{
+				BlendC = BlendC + (NewC - BlendC) * FMath::Min(1.f, 24.f * DeltaTime);
+			}
+
+			return FRotator::ClampAxis(BlendC);
+		}
+	};
+
+	BlendedTargetViewRotation.Pitch = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Pitch, FRotator::ClampAxis(TargetViewRotation.Pitch));
+	BlendedTargetViewRotation.Yaw = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Yaw, FRotator::ClampAxis(TargetViewRotation.Yaw));
+	BlendedTargetViewRotation.Roll = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Roll, FRotator::ClampAxis(TargetViewRotation.Roll));
 }
 
 
@@ -647,18 +681,6 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		}
 		UpdateNavigationComponents();
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && GetNetMode() != NM_DedicatedServer)
-	{
-		if (!DebuggingController)
-		{
-			DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-			DebuggingController->RegisterComponent();
-			DebuggingController->InitBasicFuncionality();
-		}
-	}
-#endif
 }
 
 void APlayerController::AcknowledgePossession(APawn* P)
@@ -764,7 +786,7 @@ void APlayerController::UpdateRotation( float DeltaTime )
 
 	if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
 	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 		{
 			GEngine->HMDDevice->ApplyHmdRotation(this, ViewRotation);
 		}
@@ -803,16 +825,6 @@ void APlayerController::PostInitializeComponents()
 
 	bPlayerIsWaiting = true;
 	StateName = NAME_Spectating; // Don't use ChangeState, because we want to defer spawning the SpectatorPawn until the Player is received
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
-	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
-	}
-#endif
-
 }
 
 bool APlayerController::ServerShortTimeout_Validate()
@@ -1018,14 +1030,6 @@ bool APlayerController::ServerAcknowledgePossession_Validate(APawn* P)
 
 void APlayerController::UnPossess()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebuggingController != NULL)
-	{
-		DebuggingController->UnregisterComponent();
-		DebuggingController = NULL;
-	}
-#endif
-
 	if (GetPawn() != NULL)
 	{
 		if (Role == ROLE_Authority)
@@ -1195,22 +1199,6 @@ void APlayerController::ServerToggleAILogging_Implementation()
 	}
 }
 
-bool APlayerController::ServerReplicateMessageToAIDebugView_Validate(class APawn* InPawn, uint32 InMessage, uint32 DataView)
-{
-	return true;
-}
-
-void APlayerController::ServerReplicateMessageToAIDebugView_Implementation(class APawn* InPawn, uint32 InMessage, uint32 DataView)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	UGameplayDebuggingComponent* DebuggingComponent = InPawn ? InPawn->GetDebugComponent(true) : NULL;
-	if(DebuggingComponent)
-	{
-		DebuggingComponent->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
 void APlayerController::PawnLeavingGame()
 {
 	if (GetPawn() != NULL)
@@ -1267,14 +1255,6 @@ void APlayerController::Destroyed()
 	{
 		Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebuggingController != NULL)
-	{
-		DebuggingController->UnregisterComponent();
-		DebuggingController = NULL;
-	}
-#endif
 
 	Super::Destroyed();
 }
@@ -2148,11 +2128,6 @@ void APlayerController::SetupInputComponent()
 	{
 		InputComponent->bBlockInput = bBlockInput;
 		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
-	}
-
-	if (GetNetMode() != NM_DedicatedServer && InputComponent && DebuggingController)
-	{
-		DebuggingController->BindActivationKeys();
 	}
 }
 
@@ -3872,12 +3847,12 @@ void APlayerController::GetInputTouchState(ETouchIndex::Type FingerIndex, float&
 	}
 }
 
-void APlayerController::GetInputMotionState(float& Tilt, float& RotationRate, float& Gravity, float& Acceleration) const
+void APlayerController::GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const
 {
-	Tilt = GetInputAnalogKeyState(EKeys::Tilt);
-	RotationRate = GetInputAnalogKeyState(EKeys::RotationRate);
-	Gravity = GetInputAnalogKeyState(EKeys::Gravity);
-	Acceleration = GetInputAnalogKeyState(EKeys::Acceleration);
+	Tilt = GetInputVectorKeyState(EKeys::Tilt);
+	RotationRate = GetInputVectorKeyState(EKeys::RotationRate);
+	Gravity = GetInputVectorKeyState(EKeys::Gravity);
+	Acceleration = GetInputVectorKeyState(EKeys::Acceleration);
 }
 
 float APlayerController::GetInputKeyTimeDown(const FKey Key) const

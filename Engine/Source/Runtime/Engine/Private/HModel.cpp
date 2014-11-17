@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Model.h"
 #include "HModel.h"
 #include "Raster.h"
 

@@ -431,7 +431,7 @@ public:
 		);
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		// Clicking ANY mouse button when the dropper isn't active resets the active dropper states ready to activate
 		if (!HasMouseCapture())
@@ -444,7 +444,7 @@ public:
 		return SButton::OnMouseButtonDown(MyGeometry, MouseEvent);
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		// If a mouse click is completing and the dropper is active ALWAYS deactivate
 		bool bDeactivating = false;
@@ -488,7 +488,7 @@ public:
 		return Reply;
 	}
 
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		// If the mouse is captured and bWasClickActivated is set then we are in dropper mode
 		if (HasMouseCapture() && bWasClickActivated)
@@ -541,7 +541,7 @@ public:
 		return FReply::Unhandled();
 	}
 
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override
 	{
 		// Cursor is changed to the dropper when dropper mode is active and the states are correct
 		if (HasMouseCapture() &&

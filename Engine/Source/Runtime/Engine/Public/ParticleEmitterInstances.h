@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "Distributions.h"
 #include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------
@@ -645,6 +645,26 @@ public:
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift);
 		
 	virtual bool IsTrailEmitter()const{ return false; }
+
+	/**
+	* Begins the trail.
+	*/
+	virtual void BeginTrail(){}
+
+	/**
+	* Ends the trail.
+	*/
+	virtual void EndTrail(){}
+
+	/**
+	* Sets the data that defines this trail.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	virtual void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth){}
 protected:
 
 	/**
@@ -718,7 +738,7 @@ struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 protected:
 
@@ -756,7 +776,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual uint32 RequiredBytes();
 	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime);
 	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected);
-	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) OVERRIDE;
+	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
 	/**
 	 *	Updates the dynamic data for the instance
@@ -787,12 +807,12 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	/**
 	 * Returns the offset to the mesh rotation payload, if any.
 	 */
-	virtual int32 GetMeshRotationOffset() const OVERRIDE
+	virtual int32 GetMeshRotationOffset() const override
 	{
 		return MeshRotationOffset;
 	}
@@ -800,7 +820,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	/**
 	 * Returns true if mesh rotation is active.
 	 */
-	virtual bool IsMeshRotationActive() const OVERRIDE
+	virtual bool IsMeshRotationActive() const override
 	{
 		return MeshRotationActive;
 	}
@@ -809,14 +829,14 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	 * Sets the materials with which mesh particles should be rendered.
 	 * @param InMaterials - The materials.
 	 */
-	virtual void SetMeshMaterials( const TArray<UMaterialInterface*>& InMaterials ) OVERRIDE;
+	virtual void SetMeshMaterials( const TArray<UMaterialInterface*>& InMaterials ) override;
 
 	/**
 	 * Gathers material relevance flags for this emitter instance.
 	 * @param OutMaterialRelevance - Pointer to where material relevance flags will be stored.
 	 * @param LODLevel - The LOD level for which to compute material relevance flags.
 	 */
-	virtual void GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel ) const OVERRIDE;
+	virtual void GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel ) const override;
 
 	/**
 	 * Gets the materials applied to each section of a mesh.
@@ -906,14 +926,14 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	virtual ~FParticleBeam2EmitterInstance();
 
 	// Beam interface.
-	virtual void SetBeamEndPoint(FVector NewEndPoint) OVERRIDE;
-	virtual void SetBeamSourcePoint(FVector NewSourcePoint,int32 SourceIndex) OVERRIDE;
-	virtual void SetBeamSourceTangent(FVector NewTangentPoint,int32 SourceIndex) OVERRIDE;
-	virtual void SetBeamSourceStrength(float NewSourceStrength,int32 SourceIndex) OVERRIDE;
-	virtual void SetBeamTargetPoint(FVector NewTargetPoint,int32 TargetIndex) OVERRIDE;
-	virtual void SetBeamTargetTangent(FVector NewTangentPoint,int32 TargetIndex) OVERRIDE;
-	virtual void SetBeamTargetStrength(float NewTargetStrength,int32 TargetIndex) OVERRIDE;
-	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift) OVERRIDE;
+	virtual void SetBeamEndPoint(FVector NewEndPoint) override;
+	virtual void SetBeamSourcePoint(FVector NewSourcePoint,int32 SourceIndex) override;
+	virtual void SetBeamSourceTangent(FVector NewTangentPoint,int32 SourceIndex) override;
+	virtual void SetBeamSourceStrength(float NewSourceStrength,int32 SourceIndex) override;
+	virtual void SetBeamTargetPoint(FVector NewTargetPoint,int32 TargetIndex) override;
+	virtual void SetBeamTargetTangent(FVector NewTangentPoint,int32 TargetIndex) override;
+	virtual void SetBeamTargetStrength(float NewTargetStrength,int32 TargetIndex) override;
+	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift) override;
 	
 	//
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true);
@@ -942,10 +962,10 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	 * @param	InterpolationPercentage		The percentage of the time slice it was spawned at
 	 * @param	SpawnTIme					The time it was spawned at
 	 */
-	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime) OVERRIDE;
+	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime) override;
 
 	virtual void UpdateBoundingBox(float DeltaTime);
-	virtual void ForceUpdateBoundingBox() OVERRIDE;
+	virtual void ForceUpdateBoundingBox() override;
 	virtual uint32 RequiredBytes();
 	float SpawnBeamParticles(float OldLeftover, float Rate, float DeltaTime, int32 Burst = 0, float BurstTime = 0.0f);
 	virtual void KillParticles();
@@ -994,12 +1014,12 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	/**
 	 * When an emitter is killed, this will check other emitters and clean up anything pointing to this one
 	 */
-	virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance) OVERRIDE
+	virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance) override
 	{
 		if (SourceEmitter == Instance)
 		{
@@ -1098,7 +1118,7 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	 */
 	virtual void Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel);
 	virtual void UpdateBoundingBox(float DeltaTime);
-	virtual void ForceUpdateBoundingBox() OVERRIDE;
+	virtual void ForceUpdateBoundingBox() override;
 	virtual void KillParticles();
 
 	/**
@@ -1332,12 +1352,12 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	/**
 	 * When an emitter is killed, this will check other emitters and clean up anything pointing to this one
 	 */
-	virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance) OVERRIDE
+	virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance) override
 	{
 		if (SourceEmitter == Instance)
 		{
@@ -1390,10 +1410,10 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	ETrailWidthMode WidthMode;
 
 	/**
-	 *	The anim notify state that spawned this emitter.
-	 */
-	class UAnimNotifyState* AnimNotifyState;
-
+	*	The owner of this trail. Used only for assosiating trail with it's creator in some cases. E.g. AnimNotifyState_Trail. Do not use.
+	*/
+	const void* Owner;
+	
 	/**
 	*	When set, the current trail will be marked as dead in the next tick.
 	*/
@@ -1465,6 +1485,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/** Determine the number of vertices and triangles in each trail */
 	void DetermineVertexAndTriangleCount();
 
+	virtual bool HasCompleted() override;
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
@@ -1499,23 +1520,19 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	virtual bool IsTrailEmitter()const{ return true; }
 
 	/**
 	 * Begins the trail.
-	 *
-	 * @param	InAnimNotifyState	The AnimNotifyState that created (or is creating) this trail.
 	 */
-	void BeginTrail(UAnimNotifyState* InAnimNotifyState);	
-	
+	virtual void BeginTrail();
+
 	/**
 	 * Ends the trail.
-	 *
-	 * @return  True if this was a trail ended by this notify, false otherwise.
 	 */
-	void EndTrail();
+	virtual void EndTrail();
 
 	/**
 	* Sets the date that defines this trail.
@@ -1525,7 +1542,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	* @param	InWidthMode			How the width value is applied to the trail.
 	* @param	InWidth				The width of the trail.
 	*/
-	void SetTrailSourceData( FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth );
+	virtual void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
 
 	bool IsTrailActive()const;
 

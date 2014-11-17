@@ -108,11 +108,11 @@ public:
 	{
 		//@TODO: Any endian issues?
 #if SCRIPT_LIMIT_BYTECODE_TO_64KB
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 2, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 2, "Update this code as size changed.");
 		ScriptBuffer[WriteOffset] = NewValue & 0xFF;
 		ScriptBuffer[WriteOffset+1] = (NewValue >> 8) & 0xFF;
 #else
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 		ScriptBuffer[WriteOffset] = NewValue & 0xFF;
 		ScriptBuffer[WriteOffset+1] = (NewValue >> 8) & 0xFF;
 		ScriptBuffer[WriteOffset+2] = (NewValue >> 16) & 0xFF;
@@ -161,11 +161,11 @@ struct FSkipOffsetEmitter
 
 		//@TODO: Any endian issues?
 #if SCRIPT_LIMIT_BYTECODE_TO_64KB
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 2, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 2, "Update this code as size changed.");
 		Script[SkipWriteIndex] = BytesToSkip & 0xFF;
 		Script[SkipWriteIndex+1] = (BytesToSkip >> 8) & 0xFF;
 #else
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 		Script[SkipWriteIndex] = BytesToSkip & 0xFF;
 		Script[SkipWriteIndex+1] = (BytesToSkip >> 8) & 0xFF;
 		Script[SkipWriteIndex+2] = (BytesToSkip >> 16) & 0xFF;
@@ -452,6 +452,7 @@ public:
 					int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
 					uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
 					StructProperty->InitializeValue(StructData);
+					ensure(1 == StructProperty->ArrayDim);
 					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
 					{
 						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *StructProperty->GetName(), *Struct->GetName());
@@ -479,6 +480,10 @@ public:
 						if (Prop->IsA(UTextProperty::StaticClass()))
 						{
 							NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
+						}
+						else if(Prop->IsA(UObjectProperty::StaticClass()))
+						{
+							NewTerm.ObjectLiteral = Cast<UObjectProperty>(Prop)->GetObjectPropertyValue(Prop->ContainerPtrToValuePtr<void>(StructData));
 						}
 
 						EmitTermExpr(&NewTerm, Prop);
@@ -1274,6 +1279,6 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 		ScriptArray.Add(EX_EndOfScript);
 	}
 #else
-	checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+	static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 #endif
 }

@@ -30,7 +30,7 @@ public:
 		}
 	}
 
-	virtual TSharedRef< class SWidget > ConstructDisplayWidget() OVERRIDE
+	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override
 	{
 		return OnGenerateWidget.Execute(GetValueAsText(), Object);
 	}

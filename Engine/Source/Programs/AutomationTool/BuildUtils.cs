@@ -81,19 +81,6 @@ namespace AutomationTool
 		}
 
         /// <summary>
-        /// Sets an executable bit for a Unix file.
-        /// <param name="Filename">Filename</param>
-        /// </summary>
-        public static void SetExecutableBit(string Filename)
-        {
-            var Result = CommandUtils.Run("sh", string.Format("-c 'chmod +x \"{0}\"'", Filename));
-            if (Result.ExitCode != 0)
-            {
-                throw new AutomationException(String.Format("Failed to chmod \"{0}\"", Filename));
-            }
-        }
-
-        /// <summary>
         /// returns true if this is a mac executable using some awful conventions
         /// <param name="Filename">Filename</param>
         /// </summary>
@@ -104,9 +91,24 @@ namespace AutomationTool
                 Path.GetExtension(Filename) == ".command" ||
                 ((
                     CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "Mac").ToLower()) ||
-                    CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "IOS").ToLower())
+                    CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "IOS").ToLower()) ||
+					CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "ThirdParty").ToLower())
                 ) && (Path.GetExtension(Filename) == "" || Path.GetExtension(Filename) == "."));
         }
+
+		/// <summary>
+		/// Sets an executable bit for Unix executables and adds read permission for all users plus write permission for owner.
+		/// <param name="Filename">Filename</param>
+		/// </summary>
+		public static void FixUnixFilePermissions(string Filename)
+		{
+			string Permissions = IsProbablyAMacOrIOSExe(Filename) ? "0755" : "0644";
+			var Result = CommandUtils.Run("sh", string.Format("-c 'chmod {0} \"{1}\"'", Permissions, Filename.Replace("'", "'\"'\"'")));
+			if (Result.ExitCode != 0)
+			{
+				throw new AutomationException(String.Format("Failed to chmod \"{0}\"", Filename));
+			}
+		}
 	}
 
 }

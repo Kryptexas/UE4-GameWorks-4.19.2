@@ -20,6 +20,13 @@ namespace AutomationTool
 		CTRL_SHUTDOWN_EVENT
 	}
 
+	public interface IProcess
+	{
+		void StopProcess(bool KillDescendants = true);
+		bool HasExited { get; }
+		string GetProcessName();
+	}
+
 	/// <summary>
 	/// Tracks all active processes.
 	/// </summary>
@@ -34,7 +41,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of active (running) processes.
 		/// </summary>
-		private static List<ProcessResult> ActiveProcesses = new List<ProcessResult>();
+		private static List<IProcess> ActiveProcesses = new List<IProcess>();
 		/// <summary>
 		/// Synchronization object
 		/// </summary>
@@ -63,14 +70,19 @@ namespace AutomationTool
 				}
 			}
 			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity);
-			lock (SyncObject)
-			{
-				ActiveProcesses.Add(Result);
-			}
+			AddProcess(Result);
 			return Result;
 		}
 
-		public static void RemoveProcess(ProcessResult Proc)
+		public static void AddProcess(IProcess Proc)
+		{
+			lock (SyncObject)
+			{
+				ActiveProcesses.Add(Proc);
+			}
+		}
+
+		public static void RemoveProcess(IProcess Proc)
 		{
 			lock (SyncObject)
 			{
@@ -88,7 +100,7 @@ namespace AutomationTool
 		/// </summary>
 		public static void KillAll()
 		{
-			List<ProcessResult> ProcessesToKill = new List<ProcessResult>();
+			List<IProcess> ProcessesToKill = new List<IProcess>();
 			lock (SyncObject)
 			{
 				foreach (var ProcResult in ActiveProcesses)
@@ -195,7 +207,7 @@ namespace AutomationTool
 	/// <summary>
 	/// Class containing the result of process execution.
 	/// </summary>
-	public class ProcessResult
+	public class ProcessResult : IProcess
 	{
 		private string Source = "";
 		private int ProcessExitCode = -1;
@@ -320,6 +332,10 @@ namespace AutomationTool
 					if (Proc != null)
 					{
 						bHasExited = Proc.HasExited;
+						if (bHasExited)
+						{
+							ExitCode = Proc.ExitCode;
+						}
 					}
 				}
 				return bHasExited; 
@@ -382,7 +398,7 @@ namespace AutomationTool
 			if (!bProcTerminated)
 			{
 				// Check messages
-				int MaxWaitUntilMessagesReceived = 5;
+				int MaxWaitUntilMessagesReceived = 120;
 				while (MaxWaitUntilMessagesReceived > 0 && !(bStdOutSignalReceived && bStdErrSignalReceived))
 				{
 					if (!bStdOutSignalReceived)
@@ -404,6 +420,10 @@ namespace AutomationTool
 						MaxWaitUntilMessagesReceived--;
 					}
 				}
+                if (!(bStdOutSignalReceived && bStdErrSignalReceived))
+                {
+                    CommandUtils.Log("Waited for a long time for output of {0}, some output may be missing; we gave up.", AppName);
+                }
 
 				// Double-check if the process terminated
 				lock (ProcSyncObject)
@@ -734,7 +754,7 @@ namespace AutomationTool
         /// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
 		/// <param name="Input">Optional Input for the program (will be provided as stdin)</param>
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
-        public static void RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default)
+        public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default)
         {
             ProcessResult Result = Run(App, CommandLine, Input, Options);
             if (Result.Output.Length > 0 && Logfile != null)
@@ -755,6 +775,11 @@ namespace AutomationTool
                 throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }
+            if (Result.Output.Length > 0)
+            {
+                return Result.Output;
+            }
+            return "";
         }
 
         /// <summary>

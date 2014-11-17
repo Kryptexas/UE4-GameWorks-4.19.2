@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageBridge.h: Declares the FMessageBridge class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -35,59 +31,52 @@ public:
 
 public:
 
-	// Begin IMessageBridge interface
+	// IMessageBridge interface
 
-	virtual void Disable( ) OVERRIDE;
+	virtual void Disable( ) override;
+	virtual void Enable( ) override;
 
-	virtual void Enable( ) OVERRIDE;
-
-	virtual bool IsEnabled( ) const OVERRIDE
+	virtual bool IsEnabled( ) const override
 	{
 		return Enabled;
 	}
 
-	// End IMessageBridge interface
-
 public:
 
-	// Begin IReceiveMessages interface
+	// IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const OVERRIDE
+	virtual FName GetDebugName( ) const override
 	{
 		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
 	}
 
-	virtual const FGuid& GetRecipientId( ) const OVERRIDE
+	virtual const FGuid& GetRecipientId( ) const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE
+	virtual ENamedThreads::Type GetRecipientThread( ) const override
 	{
 		return ENamedThreads::AnyThread;
 	}
 
-	virtual bool IsLocal( ) const OVERRIDE
+	virtual bool IsLocal( ) const override
 	{
 		return false;
 	}
 
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) OVERRIDE;
-
-	// End IReceiveMessages interface
+	virtual void ReceiveMessage( const IMessageContextRef& Context ) override;
 
 public:
 
-	// Begin ISendMessages interface
+	// ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) OVERRIDE
+	virtual FMessageAddress GetSenderAddress( ) override
 	{
 		return Address;
 	}
 
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) OVERRIDE;
-
-	// End ISendMessages interface
+	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override;
 
 protected:
 

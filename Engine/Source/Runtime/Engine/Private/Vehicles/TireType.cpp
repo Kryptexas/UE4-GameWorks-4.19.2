@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Vehicles/TireType.h"
 
 #if WITH_PHYSX
 	#include "PhysXVehicleManager.h"
@@ -66,7 +67,7 @@ void UTireType::BeginDestroy()
 
 void UTireType::NotifyTireFrictionUpdated()
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	FPhysXVehicleManager::UpdateTireFrictionTable();
 #endif // WITH_PHYSX
 }

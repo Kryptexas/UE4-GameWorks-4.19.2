@@ -166,7 +166,7 @@ protected:
 		GenerateColumns( HeaderRowWeakPtr.Pin().ToSharedRef() );
 	}
 
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnId ) OVERRIDE
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnId ) override
 	{
 		TSharedPtr< SPropertyTableHeaderRow > PropertyTableHeaderRow = HeaderRowWeakPtr.Pin();
 		if ( !PropertyTableHeaderRow.IsValid() )

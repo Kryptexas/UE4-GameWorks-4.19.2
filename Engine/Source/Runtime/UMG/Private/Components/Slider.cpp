@@ -17,20 +17,22 @@ USlider::USlider(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> USlider::RebuildWidget()
 {
-	// TODO UMG Bind these
-	//FOnMouseCaptureBeginEvent OnMouseCaptureBegin;
-	//FOnMouseCaptureEndEvent OnMouseCaptureEnd;
-
-	TSharedRef<SSlider> NewWidget = SNew(SSlider)
-		.Orientation(Orientation)
-		.SliderBarColor(SliderBarColor)
-		.SliderHandleColor(SliderHandleColor)
-		.Value(Value)
+	MySlider = SNew(SSlider)
 		.OnMouseCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureBegin))
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
 
-	return NewWidget;
+	return MySlider.ToSharedRef();
+}
+
+void USlider::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+	
+	MySlider->SetOrientation(Orientation);
+	MySlider->SetSliderBarColor(SliderBarColor);
+	MySlider->SetSliderHandleColor(SliderHandleColor);
+	MySlider->SetValue(Value);
 }
 
 void USlider::HandleOnValueChanged(float InValue)
@@ -50,13 +52,23 @@ void USlider::HandleOnMouseCaptureEnd()
 
 float USlider::GetValue()
 {
-	return SliderWidget()->GetValue();
+	return MySlider->GetValue();
 }
 
 void USlider::SetValue(float InValue)
 {
-	return SliderWidget()->SetValue(InValue);
+	Value = InValue;
+	return MySlider->SetValue(InValue);
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* USlider::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Slider");
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealFrontendMain.cpp: Implements the UnrealFrontend application's main loop.
-=============================================================================*/
-
 #include "UnrealFrontendMain.h"
 
 #include "RequiredProgramMainCPPInclude.h"
@@ -20,6 +16,7 @@
 IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
 
 #define IDEAL_FRAMERATE 60;
+
 
 namespace WorkspaceMenu
 {
@@ -77,7 +74,6 @@ bool RunDeployCommand()
 
 	double DeltaTime = 0.0;
 	double LastTime = FPlatformTime::Seconds();
-	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	// We track the message sent time because we have to keep updating the loop until the message is *actually sent*. (ie all packets queued, sent, buffer flushed, etc.)
 	double MessageSentTime = 0.0;
@@ -222,6 +218,7 @@ void WriteString(FArchive* File, const ANSICHAR* Format, ...)
 
 void RunStatsConvertCommand()
 {
+#if	STATS
 	// get the target file
 	FString TargetFile;
 	FParse::Value(FCommandLine::Get(), TEXT("-INFILE="), TargetFile);
@@ -269,7 +266,7 @@ void RunStatsConvertCommand()
 	}
 
 	// This is not supported yet.
-	if( Stream.Header.bRawStatFile )
+	if (Stream.Header.bRawStatsFile)
 	{
 		UE_LOG( LogStats, Error, TEXT( "Could not open input file, not supported type (raw): %s" ), *TargetFile );
 		return;
@@ -337,12 +334,12 @@ void RunStatsConvertCommand()
 			break;
 		}
 	}
+#endif // STATS
 }
-
 
 void RunUI()
 {
-	FString UnrealFrontendUserSettingsIni = FPaths::GetPath(GEngineIni) + "/UnrealFrontend.ini";
+	FString UnrealFrontendLayoutIni = FPaths::GetPath(GEngineIni) + "/Layout.ini";
 
 	FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
 
@@ -402,14 +399,13 @@ void RunUI()
 				)
 		);
 
-	TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(NewLayout, UnrealFrontendUserSettingsIni);
+	TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(UnrealFrontendLayoutIni, NewLayout);
 	FGlobalTabmanager::Get()->RestoreFrom(UserConfiguredNewLayout, TSharedPtr<SWindow>());
 
 	// enter main loop
 	double DeltaTime = 0.0;
 	double LastTime = FPlatformTime::Seconds();
 	const float IdealFrameTime = 1.0f / IDEAL_FRAMERATE;
-	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	while (!GIsRequestingExit)
 	{
@@ -430,18 +426,14 @@ void RunUI()
 		DeltaTime =  CurrentTime - LastTime;
 		LastTime = CurrentTime;
 
-#if STATS
-		FThreadStats::ExplicitFlush();
-		FThreadStats::WaitForStats();
-		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-#endif
+		FStats::AdvanceFrame( false );
 
 		GLog->FlushThreadedLogs();
 	}
 
 	// save application layout
-	FLayoutSaveRestore::SaveToConfig(UserConfiguredNewLayout, UnrealFrontendUserSettingsIni);
-	GConfig->Flush(false, UnrealFrontendUserSettingsIni);
+	FLayoutSaveRestore::SaveToConfig(UnrealFrontendLayoutIni, UserConfiguredNewLayout);
+	GConfig->Flush(false, UnrealFrontendLayoutIni);
 
 	// shut down application
 	FSlateApplication::Shutdown();

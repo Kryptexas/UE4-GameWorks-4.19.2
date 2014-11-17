@@ -16,11 +16,11 @@
 
 //-------------------------------------------------------------------------------------------------
 
-RWStructuredBuffer<VplListEntry>				gGvListBufferRW;		// 0
-RWByteAddressBuffer								gGvListHeadBufferRW;	// 1
+RWStructuredBuffer<VplListEntry>				RWGvListBuffer;		// 0
+RWByteAddressBuffer								RWGvListHeadBuffer;	// 1
 
-RWStructuredBuffer<VplListEntry>				gVplListBufferRW;		// 2
-RWByteAddressBuffer								gVplListHeadBufferRW;	// 3
+RWStructuredBuffer<VplListEntry>				RWVplListBuffer;		// 2
+RWByteAddressBuffer								RWVplListHeadBuffer;	// 3
 
 //-------------------------------------------------------------------------------------------------
 // Functions
@@ -32,9 +32,9 @@ int AddToVplList( float3 worldPos, float3 flux, float3 direction, const bool emi
 	if ( gridIndex >= 0 )
 	{
 		// Allocate a new list entry 
-		uint newHeadIndex = gVplListBufferRW.IncrementCounter();
+		uint newHeadIndex = RWVplListBuffer.IncrementCounter();
 		uint oldHeadIndex;
-		gVplListHeadBufferRW.InterlockedExchange( gridIndex*4, newHeadIndex, oldHeadIndex );
+		RWVplListHeadBuffer.InterlockedExchange( gridIndex*4, newHeadIndex, oldHeadIndex );
 
 		if ( emissiveInjection )
 		{
@@ -51,7 +51,7 @@ int AddToVplList( float3 worldPos, float3 flux, float3 direction, const bool emi
 
 		VplListEntry listNode = PackVpl( vpl );
 		listNode.nextIndex = oldHeadIndex;
-		gVplListBufferRW[ newHeadIndex ] = listNode;
+		RWVplListBuffer[ newHeadIndex ] = listNode;
 	}
 	return gridIndex;
 }
@@ -67,9 +67,9 @@ int AddToGvList( float3 worldPos, float3 flux, float3 direction )
 	if ( gridIndex >= 0 )
 	{
 		// Allocate a new list entry 
-		uint newHeadIndex = gGvListBufferRW.IncrementCounter();
+		uint newHeadIndex = RWGvListBuffer.IncrementCounter();
 		uint oldHeadIndex;
-		gGvListHeadBufferRW.InterlockedExchange( gridIndex*4, newHeadIndex, oldHeadIndex );
+		RWGvListHeadBuffer.InterlockedExchange( gridIndex*4, newHeadIndex, oldHeadIndex );
 
 		// Fill in the new list node 
 		Vpl vpl;
@@ -78,7 +78,7 @@ int AddToGvList( float3 worldPos, float3 flux, float3 direction )
 
 		VplListEntry listNode = PackVpl( vpl );
 		listNode.nextIndex = oldHeadIndex;
-		gGvListBufferRW[ newHeadIndex ] = listNode;
+		RWGvListBuffer[ newHeadIndex ] = listNode;
 	}
 	return gridIndex;
 }

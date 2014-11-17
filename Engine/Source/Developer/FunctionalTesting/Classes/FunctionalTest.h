@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GameFramework/Actor.h"
 #include "FunctionalTest.generated.h"
+
+class UBillboardComponent;
 
 UENUM()
 namespace EFunctionalTestResult
@@ -44,6 +46,9 @@ class AFunctionalTest : public AActor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FunctionalTesting)
 	FText TimesUpMessage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FunctionalTesting)
+	AActor* ObservationPoint;
+
 	/** Called when the test is started */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestStart;
@@ -54,7 +59,7 @@ class AFunctionalTest : public AActor
 
 	UPROPERTY(Transient)
 	TArray<AActor*> AutoDestroyActors;
-
+	
 	FString FailureMessage;
 	
 #if WITH_EDITORONLY_DATA
@@ -67,8 +72,7 @@ class AFunctionalTest : public AActor
 
 public:
 
-	UFUNCTION(BlueprintCallable, Category="Development")
-	virtual bool StartTest();
+	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>());
 
 	UFUNCTION(BlueprintCallable, Category="Development")
 	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message);
@@ -96,17 +100,26 @@ public:
 	 *	WantsToRunAgain calls). CleanUp gets called when all cycles are done. */
 	virtual void CleanUp();
 
+	virtual FString GetReproString() const { return GetFName().ToString(); }
+
 #if WITH_EDITOR
-	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	// AActor interface begin
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	// AActor interface end
 
+	bool IsSuccessful() const { return Result == EFunctionalTestResult::Succeeded; }
+
+protected:
+	void GoToObservationPoint();
+
+public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
 protected:
 	uint32 bIsRunning;
-	float TimeLeft;
+	float TotalTime;
 };

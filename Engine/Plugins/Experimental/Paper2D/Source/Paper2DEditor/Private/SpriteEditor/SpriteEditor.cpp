@@ -12,6 +12,7 @@
 #include "SEditorViewport.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
+#include "SSpriteEditorViewportToolbar.h"
 
 #include "SSpriteList.h"
 
@@ -40,7 +41,7 @@ const FName FSpriteEditorTabs::SpriteListID(TEXT("SpriteList"));
 //////////////////////////////////////////////////////////////////////////
 // SSpriteEditorViewport
 
-class SSpriteEditorViewport : public SEditorViewport
+class SSpriteEditorViewport : public SEditorViewport, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SSpriteEditorViewport) {}
@@ -49,10 +50,17 @@ public:
 	void Construct(const FArguments& InArgs, TSharedPtr<FSpriteEditor> InSpriteEditor);
 
 	// SEditorViewport interface
-	virtual void BindCommands() OVERRIDE;
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual void BindCommands() override;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual EVisibility GetTransformToolbarVisibility() const override;
 	// End of SEditorViewport interface
+
+	// ICommonEditorViewportToolbarInfoProvider interface
+	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
+	virtual TSharedPtr<FExtender> GetExtenders() const override;
+	virtual void OnFloatingButtonClicked() override;
+	// End of ICommonEditorViewportToolbarInfoProvider interface
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged()
@@ -111,6 +119,12 @@ void SSpriteEditorViewport::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FEditorViewportClient::IsSetShowCollisionChecked ) );
 
+	CommandList->MapAction(
+		Commands.SetShowMeshEdges,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowMeshEdges),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowMeshEdgesChecked));
+
  	CommandList->MapAction(
  		Commands.SetShowSockets,
  		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSockets ),
@@ -132,9 +146,14 @@ void SSpriteEditorViewport::BindCommands()
 	// Editing modes
 	CommandList->MapAction(
 		Commands.EnterViewMode,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterViewMode ),
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::EnterViewMode),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsInViewMode ) );
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInViewMode));
+	CommandList->MapAction(
+		Commands.EnterSourceRegionEditMode,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::EnterSourceRegionEditMode),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
 	CommandList->MapAction(
 		Commands.EnterCollisionEditMode,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterCollisionEditMode ),
@@ -186,12 +205,32 @@ TSharedRef<FEditorViewportClient> SSpriteEditorViewport::MakeEditorViewportClien
 
 bool SSpriteEditorViewport::IsVisible() const
 {
-	return true;//@TODO: Determine this better so viewport ticking optimizaitons can take place
+	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 TSharedPtr<SWidget> SSpriteEditorViewport::MakeViewportToolbar()
 {
-	return NULL;
+	return SNew(SSpriteEditorViewportToolbar, SharedThis(this));
+}
+
+EVisibility SSpriteEditorViewport::GetTransformToolbarVisibility() const
+{
+	return EVisibility::Visible;
+}
+
+TSharedRef<class SEditorViewport> SSpriteEditorViewport::GetViewportWidget()
+{
+	return SharedThis(this);
+}
+
+TSharedPtr<FExtender> SSpriteEditorViewport::GetExtenders() const
+{
+	TSharedPtr<FExtender> Result(MakeShareable(new FExtender));
+	return Result;
+}
+
+void SSpriteEditorViewport::OnFloatingButtonClicked()
+{
 }
 
 /////////////////////////////////////////////////////
@@ -215,12 +254,12 @@ public:
 	}
 
 	// SSingleObjectDetailsPanel interface
-	virtual UObject* GetObjectToObserve() const OVERRIDE
+	virtual UObject* GetObjectToObserve() const override
 	{
 		return SpriteEditorPtr.Pin()->GetSpriteBeingEdited();
 	}
 
-	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) OVERRIDE
+	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
 	{
 		return SNew(SVerticalBox)
 			+SVerticalBox::Slot()
@@ -240,7 +279,25 @@ TSharedRef<SDockTab> FSpriteEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 	return SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTab_Title", "Viewport"))
 		[
-			ViewportPtr.ToSharedRef()
+			SNew(SOverlay)
+
+			// The sprite editor viewport
+			+SOverlay::Slot()
+			[
+				ViewportPtr.ToSharedRef()
+			]
+
+			// Bottom-right corner text indicating the preview nature of the sprite editor
+			+SOverlay::Slot()
+			.Padding(10)
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			[
+				SNew(STextBlock)
+				.Visibility( EVisibility::HitTestInvisible )
+				.TextStyle( FEditorStyle::Get(), "Graph.CornerText" )
+				.Text(LOCTEXT("SpriteEditorViewportExperimentalWarning", "Early access preview"))
+			]
 		];
 }
 
@@ -411,6 +468,11 @@ FString FSpriteEditor::GetWorldCentricTabPrefix() const
 	return TEXT("SpriteEditor");
 }
 
+FString FSpriteEditor::GetDocumentationLink() const
+{
+	return TEXT("Engine/Paper2D/SpriteEditor");
+}
+
 FLinearColor FSpriteEditor::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor::White;
@@ -444,15 +506,7 @@ void FSpriteEditor::ExtendToolbar()
 
 			ToolbarBuilder.BeginSection("Command");
 			{
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowGrid);
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowBounds);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowCollision);
-
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSockets);
-
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowPivot);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowNormals);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -463,14 +517,15 @@ void FSpriteEditor::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
-			ToolbarBuilder.BeginSection("Mode");
-			{
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterAddSpriteMode);
-			}
-			ToolbarBuilder.EndSection();
+// 			ToolbarBuilder.BeginSection("Mode");
+// 			{
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
+// 				//@TODO: PAPER2D: Re-enable once it does something: ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterAddSpriteMode);
+// 			}
+// 			ToolbarBuilder.EndSection();
 		}
 	};
 
@@ -483,10 +538,16 @@ void FSpriteEditor::ExtendToolbar()
 		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar )
 		);
 
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		ViewportPtr->GetCommandList(),
+		FToolBarExtensionDelegate::CreateSP(this, &FSpriteEditor::CreateModeToolbarWidgets));
+
 	AddToolbarExtender(ToolbarExtender);
 
  	IPaper2DEditorModule* Paper2DEditorModule = &FModuleManager::LoadModuleChecked<IPaper2DEditorModule>("Paper2DEditor");
- 	AddToolbarExtender(Paper2DEditorModule->GetSpriteEditorToolBarExtensibilityManager()->GetAllExtenders());
+	AddToolbarExtender(Paper2DEditorModule->GetSpriteEditorToolBarExtensibilityManager()->GetAllExtenders());
 }
 
 void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
@@ -503,6 +564,17 @@ void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
 		RemoveEditingObject(OldSprite);
 		AddEditingObject(NewSprite);
 	}
+}
+
+
+void FSpriteEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
+{
+	FToolBarBuilder ToolbarBuilder(ViewportPtr->GetCommandList(), FMultiBoxCustomization::None);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
+	AddToolbarWidget(ToolbarBuilder.MakeWidget());
 }
 
 //////////////////////////////////////////////////////////////////////////

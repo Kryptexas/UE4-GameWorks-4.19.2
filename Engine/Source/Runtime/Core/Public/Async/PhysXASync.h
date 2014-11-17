@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if EXPERIMENTAL_PARALLEL_CODE
+#if 0
 
 /** Implements basic multi-reader and single-writer synchronization primitive. */
 class FMultiReaderSingleWriter

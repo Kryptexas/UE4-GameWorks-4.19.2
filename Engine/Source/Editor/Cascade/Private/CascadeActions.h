@@ -83,5 +83,5 @@ public:
 	TSharedPtr<FUICommandInfo> RemoveDuplicateModules;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };

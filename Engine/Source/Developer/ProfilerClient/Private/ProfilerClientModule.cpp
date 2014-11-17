@@ -17,12 +17,12 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		MessageBusPtr = IMessagingModule::Get().GetDefaultBus();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 	}
 
@@ -32,7 +32,7 @@ public:
 
 	// Begin IProfilerClientModule interface
 
-	virtual IProfilerClientPtr CreateProfilerClient() OVERRIDE
+	virtual IProfilerClientPtr CreateProfilerClient() override
 	{
 		IMessageBusPtr MessageBus = MessageBusPtr.Pin();
 

@@ -4,22 +4,29 @@
 
 #include "LaunchPrivatePCH.h"
 #include "IOSAppDelegate.h"
-#include "EAGLView.h"
+#include "IOSView.h"
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
 #include "AudioDevice.h"
+
 
 FEngineLoop GEngineLoop;
 FGameLaunchDaemonMessageHandler GCommandSystem;
 
 void FAppEntry::Suspend()
 {
-    GEngine->AudioDevice->SuspendContext();
+	if (GEngine && GEngine->AudioDevice)
+	{
+		GEngine->AudioDevice->SuspendContext();
+	}
 }
 
 void FAppEntry::Resume()
 {
-    GEngine->AudioDevice->ResumeContext();
+	if (GEngine && GEngine->AudioDevice)
+	{
+	    GEngine->AudioDevice->ResumeContext();
+	}
 }
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
@@ -54,9 +61,9 @@ static void MainThreadInit()
 	// Size the view appropriately for any potentially dynamically attached displays,
 	// prior to creating any framebuffers
 	CGRect MainFrame = [[UIScreen mainScreen] bounds];
-	if (!AppDelegate.bDeviceInPortraitMode)
+	if ([IOSAppDelegate GetDelegate].OSVersion < 8.0f && !AppDelegate.bDeviceInPortraitMode)
 	{
-		Swap<float>(MainFrame.size.width, MainFrame.size.height);
+		Swap(MainFrame.size.width, MainFrame.size.height);
 	}
 	
 	// @todo: use code similar for presizing for secondary screens
@@ -71,36 +78,18 @@ static void MainThreadInit()
 // 		Max<float>(MainFrame.size.height, GSystemSettings.SecondaryDisplayMaximumHeight) :
 // 		MainFrame.size.height
 // 		);
+
 	CGRect FullResolutionRect = MainFrame;
 
-	// create the fullscreen EAGLView
-	AppDelegate.GLView = [[EAGLView alloc] initWithFrame:FullResolutionRect];
-	AppDelegate.GLView.clearsContextBeforeDrawing = NO;
-	AppDelegate.GLView.multipleTouchEnabled = YES;
+	AppDelegate.IOSView = [[FIOSView alloc] initWithFrame:FullResolutionRect];
+	AppDelegate.IOSView.clearsContextBeforeDrawing = NO;
+	AppDelegate.IOSView.multipleTouchEnabled = YES;
 
 	// add it to the window
-	[AppDelegate.RootView addSubview:AppDelegate.GLView];
+	[AppDelegate.RootView addSubview:AppDelegate.IOSView];
 
 	// initialize the backbuffer of the view (so the RHI can use it)
-	[AppDelegate.GLView CreateFramebuffer:YES];
-
-	// Final adjustment to the viewport (this is deferred and won't run until the first engine tick)
-	[FIOSAsyncTask CreateTaskWithBlock:^ bool (void)
-		{
-			// @todo ios: Figure out how to resize the viewport!!!!
-
-// 			if (GEngine->GameViewport &&
-// 				GEngine->GameViewport->Viewport &&
-// 				GEngine->GameViewport->ViewportFrame)
-// 			{
-// 				CGFloat CSF = self.GLView.contentScaleFactor;
-// 				GEngine->GameViewport->ViewportFrame->Resize(
-// 					(INT)(CSF * self.GLView.superview.bounds.size.width),
-// 					(INT)(CSF * self.GLView.superview.bounds.size.height),
-// 					TRUE);
-// 			}
-			return true;
-		}];
+	[AppDelegate.IOSView CreateFramebuffer:YES];
 }
 
 
@@ -113,14 +102,14 @@ void FAppEntry::PlatformInit()
 
 	// wait until the GLView is fully initialized, so the RHI can be initialized
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	while (!AppDelegate.GLView || !AppDelegate.GLView->bIsInitialized)
+
+	while (!AppDelegate.IOSView || !AppDelegate.IOSView->bIsInitialized)
 	{
 		FPlatformProcess::Sleep(0.001f);
 	}
 
 	// set the GL context to this thread
-	[AppDelegate.GLView MakeCurrent];
-
+	[AppDelegate.IOSView MakeCurrent];
 }
 
 void FAppEntry::Init()
@@ -137,7 +126,6 @@ void FAppEntry::Init()
 	NSLog(@"%s", "Initializing ULD Communications in game mode\n");
 	GCommandSystem.Init();
 
-	// at this point, we can let the Controller/EAGLView 
 	GLog->SetCurrentThreadAsMasterThread();
 
 	// start up the engine

@@ -3,11 +3,9 @@
 #import <Cocoa/Cocoa.h>
 
 @interface FUE4EditorServicesAppDelegate : NSObject <NSApplicationDelegate>
-
-@property (assign) IBOutlet NSWindow* Window;
-@property (assign) IBOutlet NSPopUpButton* EditorMenu;
-@property (assign) IBOutlet NSButton* CancelButton;
-@property (assign) IBOutlet NSButton* OKButton;
+{
+	NSWindow* Window;
+}
 
 - (IBAction)onCancelButtonPressed:(id)Sender;
 - (IBAction)onOKButtonPressed:(id)Sender;

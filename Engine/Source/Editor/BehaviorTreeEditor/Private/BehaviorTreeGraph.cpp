@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTreeEditorModule.h"
+#include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BTService.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
@@ -53,7 +57,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 	}
 }
 
-void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags)
+void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags, bool bBumpVersion)
 {
 	if (bLockUpdates)
 	{
@@ -121,6 +125,11 @@ void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags)
 		if (Node)
 		{
 			CreateBTFromGraph(Node);
+
+			if (bBumpVersion)
+			{
+				GraphVersion++;
+			}
 		}
 	}
 }
@@ -161,8 +170,8 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 
 				if (LinkedNode == OldNode)
 				{
-					int32 PinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
-					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[PinIndex];
+					const int32 LinkedPinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
+					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[LinkedPinIndex];
 				}
 			}
 		}
@@ -403,7 +412,7 @@ namespace BTGraphHelpers
 
 	void CreateChildren(UBehaviorTree* BTAsset, UBTCompositeNode* RootNode, const UBehaviorTreeGraphNode* RootEdNode, uint16* ExecutionIndex, uint8 TreeDepth)
 	{
-		if (RootEdNode == NULL || RootEdNode == NULL)
+		if (RootEdNode == NULL)
 		{
 			return;
 		}
@@ -656,8 +665,6 @@ void UBehaviorTreeGraph::CreateBTFromGraph(UBehaviorTreeGraphNode* RootEdNode)
 
 	// Now remove any orphaned nodes left behind after regeneration
 	RemoveOrphanedNodes();
-
-	GraphVersion++;
 }
 
 void UBehaviorTreeGraph::RemoveOrphanedNodes()
@@ -744,6 +751,37 @@ void UBehaviorTreeGraph::UpdateAbortHighlight(struct FAbortDrawHelper& Mode0, st
 			Node->bHighlightInSearchTree = false;
 		}
 	}
+}
+
+bool UBehaviorTreeGraph::UpdateUnknownNodeClasses()
+{
+	bool bUpdated = false;
+	for (int32 NodeIdx = 0; NodeIdx < Nodes.Num(); NodeIdx++)
+	{
+		UBehaviorTreeGraphNode* MyNode = Cast<UBehaviorTreeGraphNode>(Nodes[NodeIdx]);
+		const bool bUpdatedNode = MyNode->RefreshNodeClass();
+		bUpdated = bUpdated || bUpdatedNode;
+
+		for (int32 SubNodeIdx = 0; SubNodeIdx < MyNode->Decorators.Num(); SubNodeIdx++)
+		{
+			if (MyNode->Decorators[SubNodeIdx])
+			{
+				const bool bUpdatedSubNode = MyNode->Decorators[SubNodeIdx]->RefreshNodeClass();
+				bUpdated = bUpdated || bUpdatedSubNode;
+			}
+		}
+
+		for (int32 SubNodeIdx = 0; SubNodeIdx < MyNode->Services.Num(); SubNodeIdx++)
+		{
+			if (MyNode->Services[SubNodeIdx])
+			{
+				const bool bUpdatedSubNode = MyNode->Services[SubNodeIdx]->RefreshNodeClass();
+				bUpdated = bUpdated || bUpdatedSubNode;
+			}
+		}
+	}
+
+	return bUpdated;
 }
 
 bool UBehaviorTreeGraph::UpdateInjectedNodes()

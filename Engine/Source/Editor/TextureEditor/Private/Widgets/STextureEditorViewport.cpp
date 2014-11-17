@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	STextureEditorViewport.cpp: Implements the STextureEditorViewport class.
-=============================================================================*/
-
 #include "TextureEditorPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "STextureEditorViewport"
 
+#define LOCTEXT_NAMESPACE "STextureEditorViewport"
 
 // Specifies the maximum allowed exposure bias.
 const int32 MaxExposure = 10;

@@ -39,11 +39,11 @@ protected:
 class ANIMGRAPH_API FAnimStateTransitionNodeSharedRulesHelper : public IAnimStateTransitionNodeSharedDataHelper
 {
 protected:
-	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) OVERRIDE;
-	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) OVERRIDE;
-	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) OVERRIDE;
+	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) override;
+	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) override;
+	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) override;
+	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) override;
+	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,11 +52,11 @@ protected:
 class ANIMGRAPH_API FAnimStateTransitionNodeSharedCrossfadeHelper : public IAnimStateTransitionNodeSharedDataHelper
 {
 protected:
-	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) OVERRIDE;
-	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) OVERRIDE;
-	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) OVERRIDE;
+	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) override;
+	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) override;
+	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) override;
+	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) override;
+	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) override;
 };
 
 /////////////////////////////////////////////////////
@@ -151,26 +151,6 @@ FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) con
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BoundGraph"), (BoundGraph != NULL) ? FText::FromString(BoundGraph->GetName()) : LOCTEXT("Null", "(null)") );
 		return FText::Format(LOCTEXT("TransitioNState", "Trans {BoundGraph}}"), Args);
-	}
-}
-
-FString UAnimStateTransitionNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UAnimStateNodeBase* PrevState = GetPreviousState();
-	UAnimStateNodeBase* NextState = GetNextState();
-
-	if (!SharedRulesName.IsEmpty())
-	{
-		return SharedRulesName;
-	}
-	else if ((PrevState != NULL) && (NextState != NULL))
-	{
-		return FString::Printf(TEXT("%s to %s"), *(PrevState->GetStateName()), *(NextState->GetStateName()));
-	}
-	else
-	{
-		return FString::Printf(TEXT("Trans %s"), (BoundGraph != NULL) ? *(BoundGraph->GetName()) : TEXT("(null)"));
 	}
 }
 

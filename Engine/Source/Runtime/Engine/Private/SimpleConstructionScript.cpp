@@ -139,7 +139,7 @@ void USimpleConstructionScript::PostLoad()
 	if (!Blueprint)
 	{
 		// sometimes the PostLoad can be called, after the object was trashed, we dont want this
-		UE_LOG(LogBlueprint, Warning, TEXT("USimpleConstructionScript::PostLoad() '%s' cannot find its owner blueprint"), *GetName());
+		UE_LOG(LogBlueprint, Warning, TEXT("USimpleConstructionScript::PostLoad() '%s' cannot find its owner blueprint"), *GetPathName());
 		return;
 	}
 
@@ -615,8 +615,9 @@ USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTe
 {
 	if(NewComponentTemplate)
 	{
-		// Create a node for the script, and save a pointer to the template.
-		USCS_Node* NewNode = NewObject<USCS_Node>(this);
+		// Create a node for the script, and save a pointer to the template
+		// NewNamedObject to work around the fact we shouldn't use NewObject for default subobjects
+		USCS_Node* NewNode = NewNamedObject<USCS_Node>(this, NAME_None);
 		NewNode->SetFlags(RF_Transactional);
 		NewNode->ComponentTemplate = NewComponentTemplate;
 

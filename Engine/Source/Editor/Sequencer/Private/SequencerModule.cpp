@@ -5,6 +5,8 @@
 #include "Sequencer.h"
 #include "Toolkits/ToolkitManager.h"
 #include "SequencerCommands.h"
+#include "SequencerAssetEditor.h"
+#include "SequencerObjectChangeListener.h"
 
 /**
  * SequencerModule implementation (private)
@@ -13,29 +15,49 @@ class FSequencerModule : public ISequencerModule
 {
 
 	/** ISequencerModule interface */
-	virtual TSharedPtr<ISequencer> CreateSequencer( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit ) OVERRIDE
+	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene, TSharedRef<ISequencerObjectBindingManager> ObjectBindingManager ) override
 	{
-		TSharedRef< FSequencer > SequencerInUse = MakeShareable(new FSequencer);
-		SequencerInUse->InitSequencer( Mode, InitToolkitHost, ObjectToEdit, TrackEditorDelegates );
-		return SequencerInUse;
+		TSharedRef< FSequencer > Sequencer = MakeShareable(new FSequencer);
+		
+		FSequencerInitParams SequencerInitParams;
+		SequencerInitParams.ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( Sequencer, false ) );
+		
+		SequencerInitParams.ObjectBindingManager = ObjectBindingManager;
+		
+		SequencerInitParams.RootMovieScene = RootMovieScene;
+		
+		SequencerInitParams.bEditWithinLevelEditor = false;
+		
+		SequencerInitParams.ToolkitHost = nullptr;
+		
+		Sequencer->InitSequencer( SequencerInitParams, TrackEditorDelegates );
+		
+		return Sequencer;
 	}
 	
-	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) OVERRIDE
+	virtual TSharedPtr<ISequencer> CreateSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, bool bEditWithinLevelEditor ) override
+	{
+		TSharedRef< FSequencerAssetEditor > SequencerAssetEditor = MakeShareable(new FSequencerAssetEditor);
+		SequencerAssetEditor->InitSequencerAssetEditor( Mode, InitToolkitHost, InRootMovieScene, TrackEditorDelegates, bEditWithinLevelEditor );
+		return SequencerAssetEditor->GetSequencerInterface();
+	}
+
+	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.AddUnique( InOnCreateTrackEditor );
 	}
 
-	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) OVERRIDE
+	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.Remove( InOnCreateTrackEditor );
 	}
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		FSequencerCommands::Register();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FSequencerCommands::Unregister();
 	}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherProfileLaunchRole.h: Declares the FLauncherProfileLaunchRole class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -12,9 +8,7 @@ class FLauncherProfileLaunchRole
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FLauncherProfileLaunchRole(  )
 		: InstanceType(ELauncherProfileRoleInstanceTypes::StandaloneClient)
 		, Name(TEXT("Unnamed Role"))
@@ -30,47 +24,46 @@ public:
 		Serialize(Archive);
 	}
 
-
 public:
 
 	// Begin ILauncherProfileLaunchRole interface
 
-	virtual const FString& GetAssignedDevice( ) const OVERRIDE
+	virtual const FString& GetAssignedDevice( ) const override
 	{
 		return AssignedDevice;
 	}
 
-	virtual const FString& GetCommandLine( ) const OVERRIDE
+	virtual const FString& GetCommandLine( ) const override
 	{
 		return CommandLine;
 	}
 
-	virtual const FString& GetInitialCulture( ) const OVERRIDE
+	virtual const FString& GetInitialCulture( ) const override
 	{
 		return InitialCulture;
 	}
 
-	virtual const FString& GetInitialMap( ) const OVERRIDE
+	virtual const FString& GetInitialMap( ) const override
 	{
 		return InitialMapName;
 	}
 
-	virtual ELauncherProfileRoleInstanceTypes::Type GetInstanceType( ) const OVERRIDE
+	virtual ELauncherProfileRoleInstanceTypes::Type GetInstanceType( ) const override
 	{
 		return InstanceType;
 	}
 
-	virtual const FString& GetName( ) const OVERRIDE
+	virtual const FString& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual bool IsVsyncEnabled( ) const OVERRIDE
+	virtual bool IsVsyncEnabled( ) const override
 	{
 		return VsyncEnabled;
 	}
 
-	virtual void Serialize( FArchive& Archive ) OVERRIDE
+	virtual void Serialize( FArchive& Archive ) override
 	{
 		Archive << AssignedDevice
 				<< CommandLine
@@ -82,38 +75,37 @@ public:
 				<< VsyncEnabled;
 	}
 
-	virtual void SetCommandLine( const FString& NewCommandLine ) OVERRIDE
+	virtual void SetCommandLine( const FString& NewCommandLine ) override
 	{
 		CommandLine = NewCommandLine;
 	}
 
-	virtual void SetInitialCulture( const FString& CultureName ) OVERRIDE
+	virtual void SetInitialCulture( const FString& CultureName ) override
 	{
 		InitialCulture = CultureName;
 	}
 
-	virtual void SetInitialMap( const FString& MapName ) OVERRIDE
+	virtual void SetInitialMap( const FString& MapName ) override
 	{
 		InitialMapName = MapName;
 	}
 
-	virtual void SetInstanceType( ELauncherProfileRoleInstanceTypes::Type InInstanceType ) OVERRIDE
+	virtual void SetInstanceType( ELauncherProfileRoleInstanceTypes::Type InInstanceType ) override
 	{
 		InstanceType = InInstanceType;
 	}
 
-	virtual void SetName( const FString& NewName ) OVERRIDE
+	virtual void SetName( const FString& NewName ) override
 	{
 		Name = NewName;
 	}
 
-	virtual void SetVsyncEnabled( bool Enabled ) OVERRIDE
+	virtual void SetVsyncEnabled( bool Enabled ) override
 	{
 		VsyncEnabled = Enabled;
 	}
 
 	// End ILauncherProfileLaunchRole interface
-
 
 private:
 

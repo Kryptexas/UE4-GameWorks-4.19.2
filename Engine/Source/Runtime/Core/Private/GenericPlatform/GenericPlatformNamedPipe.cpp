@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	GenericPlatformNamedPipe.cpp: Implements the FGenericPlatformNamedPipe class
-==============================================================================================*/
-
 #include "CorePrivate.h"
 
 
@@ -13,6 +9,7 @@ FGenericPlatformNamedPipe::FGenericPlatformNamedPipe()
 {
 	NamePtr = new FString();
 }
+
 
 FGenericPlatformNamedPipe::~FGenericPlatformNamedPipe()
 {

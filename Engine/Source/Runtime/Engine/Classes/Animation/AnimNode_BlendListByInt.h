@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AnimNodeBase.h"
+#include "Animation/AnimNode_BlendListBase.h"
 #include "AnimNode_BlendListByInt.generated.h"
 
 // Blend list node; has many children

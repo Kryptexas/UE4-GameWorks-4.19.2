@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FDeviceDetailsFeature.h: Declares the FDeviceDetailsFeature class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FDeviceDetailsFeature.
- */
+/** Type definition for shared pointers to instances of FDeviceDetailsFeature. */
 typedef TSharedPtr<struct FDeviceDetailsFeature> FDeviceDetailsFeaturePtr;
 
-/**
- * Type definition for shared references to instances of FDeviceDetailsFeature.
- */
+/** Type definition for shared references to instances of FDeviceDetailsFeature. */
 typedef TSharedRef<struct FDeviceDetailsFeature> FDeviceDetailsFeatureRef;
 
 
@@ -23,21 +15,17 @@ typedef TSharedRef<struct FDeviceDetailsFeature> FDeviceDetailsFeatureRef;
  */
 struct FDeviceDetailsFeature
 {
-	/**
-	 * Holds the name of the feature.
-	 */
+	/** Holds the name of the feature. */
 	FString FeatureName;
 
-	/**
-	 * Whether the feature is available.
-	 */
+	/** Whether the feature is available. */
 	bool Available;
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InFeatureName - The name of the feature.
-	 * @param InAvailable - Whether the feature is available.
+	 * @param InFeatureName The name of the feature.
+	 * @param InAvailable Whether the feature is available.
 	 */
 	FDeviceDetailsFeature( const FString& InFeatureName, bool InAvailable )
 		: FeatureName(InFeatureName)

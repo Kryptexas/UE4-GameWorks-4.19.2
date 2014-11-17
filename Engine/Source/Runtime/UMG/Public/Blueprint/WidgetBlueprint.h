@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Engine/Blueprint.h"
+#include "UserWidget.h"
 #include "WidgetBlueprintGeneratedClass.h"
 
 #include "WidgetBlueprint.generated.h"
@@ -33,7 +35,12 @@ struct UMG_API FDelegateEditorBinding
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
 
-UCLASS(dependson=(UBlueprint, AUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
+class UMovieScene;
+
+/**
+ * The widget blueprint enables extending UUserWidget the user extensible UWidget.
+ */
+UCLASS(BlueprintType)
 class UMG_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
@@ -46,12 +53,19 @@ public:
 	UPROPERTY()
 	TArray< FDelegateEditorBinding > Bindings;
 
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+	UPROPERTY()
+	TArray< UMovieScene* > AnimationData;
+	 
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
+
+	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	
 #if WITH_EDITOR
 	// UBlueprint interface
-	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
+	virtual UClass* GetBlueprintClass() const override;
+
+	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;
 	}

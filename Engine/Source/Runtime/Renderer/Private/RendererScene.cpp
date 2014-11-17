@@ -7,7 +7,10 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "ShaderCompiler.h"
-
+#include "StaticMeshResources.h"
+#include "ParameterCollection.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
+#include "EngineModule.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -21,6 +24,46 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDistanceCullFadeUniformShaderParameters,TEXT("P
 TGlobalResource< FGlobalDistanceCullFadeUniformBuffer > GDistanceCullFadedInUniformBuffer;
 
 SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
+
+/** Default constructor. */
+FSceneViewState::FSceneViewState()
+	: OcclusionQueryPool(RQT_Occlusion)
+{
+	LastRenderTime = -FLT_MAX;
+	LastRenderTimeDelta = 0.0f;
+	MotionBlurTimeScale = 1.0f;
+	PrevViewMatrixForOcclusionQuery.SetIdentity();
+	PrevViewOriginForOcclusionQuery = FVector::ZeroVector;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bIsFreezing = false;
+	bIsFrozen = false;
+#endif
+	// Register this object as a resource, so it will receive device reset notifications.
+	if ( IsInGameThread() )
+	{
+		BeginInitResource(this);
+	}
+	else
+	{
+		InitResource();
+	}
+	CachedVisibilityChunk = NULL;
+	CachedVisibilityHandlerId = INDEX_NONE;
+	CachedVisibilityBucketIndex = INDEX_NONE;
+	CachedVisibilityChunkIndex = INDEX_NONE;
+	MIDUsedCount = 0;
+	TemporalAASampleIndex = 0;
+	TemporalAASampleCount = 1;
+	AOTileIntersectionResources = NULL;
+	bBokehDOFHistory = true;
+
+	LightPropagationVolume = NULL; 
+
+	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
+	{
+		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
+	}
+}
 
 /**
  * Sets the FX system associated with the scene.
@@ -96,7 +139,7 @@ void FScene::CheckPrimitiveArrays()
 	check(Primitives.Num() == PrimitiveOcclusionBounds.Num());
 }
 
-void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo)
+void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddScenePrimitiveRenderThreadTime);
 	
@@ -118,7 +161,7 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSc
 	PrimitiveSceneInfo->LinkAttachmentGroup();
 
 	// Add the primitive to the scene.
-	PrimitiveSceneInfo->AddToScene(true);
+	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
 }
 
 /**
@@ -150,6 +193,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SimpleDirectionalLight(NULL)
 ,	SunLight(NULL)
 ,	IndirectLightingCache()
+,	SurfaceCacheResources(NULL)
 ,	PreshadowCacheLayout(0, 0, 0, 0, false, false)
 ,	AtmosphericFog(NULL)
 ,	PrecomputedVisibilityHandler(NULL)
@@ -190,6 +234,13 @@ FScene::~FScene()
 
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
+
+	if (SurfaceCacheResources)
+	{
+		SurfaceCacheResources->ReleaseResource();
+		delete SurfaceCacheResources;
+		SurfaceCacheResources = NULL;
+	}
 
 	if (AtmosphericFog)
 	{
@@ -285,12 +336,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FPrimitiveSceneInfo*,PrimitiveSceneInfo,PrimitiveSceneInfo,
 		{
 			FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-			Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
+			Scene->AddPrimitiveSceneInfo_RenderThread(RHICmdList, PrimitiveSceneInfo);
 		});
 
 }
 
-void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
 
@@ -313,7 +364,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* Primiti
 	check(!(bUpdateStaticDrawLists && PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num()));
 
 	// Re-add the primitive to the scene with the new transform.
-	PrimitiveSceneProxy->GetPrimitiveSceneInfo()->AddToScene(bUpdateStaticDrawLists);
+	PrimitiveSceneProxy->GetPrimitiveSceneInfo()->AddToScene(RHICmdList, bUpdateStaticDrawLists);
 }
 
 void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
@@ -399,7 +450,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
-					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
+					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
 				});
 		}
 	}
@@ -1247,43 +1298,43 @@ FVector4 FScene::GetDirectionalWindParameters(void) const
 	return NumActiveWindSources > 0 ? AccumulatedDirectionAndSpeed / NumActiveWindSources : FVector4(0,0,1,0);
 }
 
-void FScene::AddSpeedTreeWind(UStaticMesh* StaticMesh)
+void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FAddSpeedTreeWindCommand,
 			FScene*,Scene,this,
 			UStaticMesh*,StaticMesh,StaticMesh,
+			FVertexFactory*,VertexFactory,VertexFactory,
 			{
+				Scene->SpeedTreeVertexFactoryMap.Add(VertexFactory, StaticMesh);
+
 				if (Scene->SpeedTreeWindComputationMap.Contains(StaticMesh))
 				{
 					(*(Scene->SpeedTreeWindComputationMap.Find(StaticMesh)))->ReferenceCount++;
 				}
 				else
 				{
+					UE_LOG(LogRenderer, Log, TEXT("Adding SpeedTree wind for static mesh %s"), *StaticMesh->GetName());
 					FSpeedTreeWindComputation* WindComputation = new FSpeedTreeWindComputation;
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
 					WindComputation->UniformBuffer.InitResource();
 					Scene->SpeedTreeWindComputationMap.Add(StaticMesh, WindComputation);
-
-					for (int32 i = 0; i < StaticMesh->RenderData->LODResources.Num( ); ++i)
-					{
-						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[i].VertexFactory, StaticMesh);
-					}
 				}
 			});
 	}
 }
 
-void FScene::RemoveSpeedTreeWind(UStaticMesh* StaticMesh)
+void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FRemoveSpeedTreeWindCommand,
 			FScene*,Scene,this,
-			UStaticMesh*,StaticMesh,StaticMesh,
+			UStaticMesh*, StaticMesh, StaticMesh,
+			FVertexFactory*,VertexFactory,VertexFactory,
 			{
 				FSpeedTreeWindComputation** WindComputationRef = Scene->SpeedTreeWindComputationMap.Find(StaticMesh);
 				if (WindComputationRef != NULL)
@@ -1293,10 +1344,12 @@ void FScene::RemoveSpeedTreeWind(UStaticMesh* StaticMesh)
 					WindComputation->ReferenceCount--;
 					if (WindComputation->ReferenceCount < 1)
 					{
-						check( StaticMesh->RenderData.IsValid() );
-						for (int32 i = 0; i < StaticMesh->RenderData->LODResources.Num( ); ++i)
+						for (auto Iter = Scene->SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
 						{
-							Scene->SpeedTreeVertexFactoryMap.Remove(&StaticMesh->RenderData->LODResources[i].VertexFactory);
+							if (Iter.Value() == StaticMesh)
+							{
+								Iter.RemoveCurrent();
+							}
 						}
 
 						Scene->SpeedTreeWindComputationMap.Remove(StaticMesh);
@@ -1319,7 +1372,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 		{
 			FVector4 WindInfo = Scene->GetDirectionalWindParameters();
 
-			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It)
+			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; )
 			{
 				UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
@@ -1328,6 +1381,19 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				{
 					It.RemoveCurrent();
 					continue;
+				}
+
+				if (StaticMesh->SpeedTreeWind->NeedsReload( ))
+				{
+					// reload the wind since it may have changed or been scaled differently during reimport
+					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
+					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
+
+					// make sure the vertex factories are registered (sometimes goes wrong during a reimport)
+					for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+					{
+						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+					}
 				}
 
 				// advance the wind object
@@ -1349,19 +1415,19 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindBranchAnchor, SH_WIND_ANCHOR_X);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindBranchAdherences, SH_GLOBAL_DIRECTION_ADHERENCE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindTurbulences, SH_BRANCH_1_TURBULENCE);
-				SET_SPEEDTREE_TABLE_FLOAT4V(WindRollingBranches, SH_ROLLING_BRANCHES_MAX_SCALE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf1Ripple, SH_LEAF_1_RIPPLE_TIME);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf1Tumble, SH_LEAF_1_TUMBLE_TIME);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf1Twitch, SH_LEAF_1_TWITCH_THROW);
-				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf1Roll, SH_LEAF_1_ROLL_MAX_SCALE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Ripple, SH_LEAF_2_RIPPLE_TIME);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Tumble, SH_LEAF_2_TUMBLE_TIME);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Twitch, SH_LEAF_2_TWITCH_THROW);
-				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Roll, SH_LEAF_2_ROLL_MAX_SCALE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindFrondRipple, SH_FROND_RIPPLE_TIME);
+				SET_SPEEDTREE_TABLE_FLOAT4V(WindRollingBranch, SH_ROLLING_BRANCH_FIELD_MIN);
+				SET_SPEEDTREE_TABLE_FLOAT4V(WindRollingLeafAndDirection, SH_ROLLING_LEAF_RIPPLE_MIN);
+				SET_SPEEDTREE_TABLE_FLOAT4V(WindRollingNoise, SH_ROLLING_NOISE_PERIOD);
 
-				//BeginSetUniformBufferContents(WindComputation->UniformBuffer, UniformParameters);
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
+				++It;
 			}
 		});
 	
@@ -1444,7 +1510,7 @@ void FScene::SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* Preco
 	});
 }
 
-void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpdateMap& MaterialsToUpdate)
+void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmediate& RHICmdList, const FMaterialsToUpdateMap& MaterialsToUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Scene_SetShaderMapsOnMaterialResources_RT);
 
@@ -1488,7 +1554,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpd
 	// Update static draw lists, which cache shader references from materials, but the shader map has now changed
 	if (bFoundAnyInitializedMaterials)
 	{
-		UpdateStaticDrawListsForMaterials_RenderThread(MaterialArray);
+		UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, MaterialArray);
 	}
 }
 
@@ -1505,11 +1571,11 @@ void FScene::SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMate
 		FScene*,Scene,this,
 		FMaterialsToUpdateMap,MaterialsToUpdate,MaterialsToUpdate,
 	{
-		Scene->SetShaderMapsOnMaterialResources_RenderThread(MaterialsToUpdate);
+		Scene->SetShaderMapsOnMaterialResources_RenderThread(RHICmdList, MaterialsToUpdate);
 	});
 }
 
-void FScene::UpdateStaticDrawListsForMaterials_RenderThread(const TArray<const FMaterial*>& Materials)
+void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<const FMaterial*>& Materials)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Scene_UpdateStaticDrawListsForMaterials_RT);
 
@@ -1548,7 +1614,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(const TArray<const F
 		FPrimitiveSceneInfo* Primitive = PrimitivesToUpdate[PrimitiveIndex];
 
 		Primitive->RemoveStaticMeshes();
-		Primitive->AddStaticMeshes();
+		Primitive->AddStaticMeshes(RHICmdList);
 	}
 }
 
@@ -1559,7 +1625,7 @@ void FScene::UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& M
 		FScene*,Scene,this,
 		TArray<const FMaterial*>,Materials,Materials,
 	{
-		Scene->UpdateStaticDrawListsForMaterials_RenderThread(Materials);
+		Scene->UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, Materials);
 	});
 }
 
@@ -1813,6 +1879,8 @@ static void StaticMeshDrawListApplyWorldOffset(T(&InList)[N], FVector InOffset)
 
 void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneApplyWorldOffset);
+	
 	// Primitives
 	for (auto It = Primitives.CreateIterator(); It; ++It)
 	{
@@ -1838,7 +1906,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 
 	// Lights
-	VectorRegister OffsetReg = VectorLoadFloat3(&InOffset);
+	VectorRegister OffsetReg = VectorLoadFloat3_W0(&InOffset);
 	for (auto It = Lights.CreateIterator(); It; ++It)
 	{
 		(*It).BoundingSphereVector = VectorAdd((*It).BoundingSphereVector, OffsetReg);
@@ -1923,6 +1991,13 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 	}
 }
 
+void FScene::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	FeatureLevel = InFeatureLevel;
+	GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+	SetMaxRHIFeatureLevel(InFeatureLevel);
+}
+
 /**
  * Dummy NULL scene interface used by dedicated servers.
  */
@@ -1948,7 +2023,7 @@ public:
 
 	virtual void AddDecal(UDecalComponent*){}
 	virtual void RemoveDecal(UDecalComponent*){}
-	virtual void UpdateDecalTransform(UDecalComponent* Decal) OVERRIDE {}
+	virtual void UpdateDecalTransform(UDecalComponent* Decal) override {}
 
 	/** Updates the transform of a light which has already been added to the scene. */
 	virtual void UpdateLightTransform(ULightComponent* Light){}
@@ -1968,8 +2043,8 @@ public:
 	}
 	virtual FVector4 GetWindParameters(const FVector& Position) const { return FVector4(0,0,1,0); }
 	virtual FVector4 GetDirectionalWindParameters() const { return FVector4(0,0,1,0); }
-	virtual void AddSpeedTreeWind(UStaticMesh* StaticMesh) {}
-	virtual void RemoveSpeedTreeWind(UStaticMesh* StaticMesh) {}
+	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
+	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
 	virtual void UpdateSpeedTreeWind(double CurrentTime) {}
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) { return FUniformBufferRHIParamRef(); }
 

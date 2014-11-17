@@ -1258,18 +1258,18 @@ void SDistributionCurveEditor::ScaleTimeCommitted(const FText& CommentText, ETex
 
 		struct Local
 		{
-			static void ScaleCurveTime(FCurveEdEntry& Entry, float ScaleByValue)
+			static void ScaleCurveTime(FCurveEdEntry& Entry, float InScaleByValue)
 			{
 				FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
 				if(EdInterface)
 				{
 					// For each key
-					if (ScaleByValue >= 1.0f)
+					if (InScaleByValue >= 1.0f)
 					{
 						for (int32 KeyIndex = EdInterface->GetNumKeys() - 1; KeyIndex >= 0; KeyIndex--)
 						{
 							float InVal = EdInterface->GetKeyIn(KeyIndex);
-							EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+							EdInterface->SetKeyIn(KeyIndex, InVal * InScaleByValue);
 						}
 					}
 					else
@@ -1277,7 +1277,7 @@ void SDistributionCurveEditor::ScaleTimeCommitted(const FText& CommentText, ETex
 						for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
 						{
 							float InVal = EdInterface->GetKeyIn(KeyIndex);
-							EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+							EdInterface->SetKeyIn(KeyIndex, InVal * InScaleByValue);
 						}
 					}
 				}
@@ -1321,7 +1321,7 @@ void SDistributionCurveEditor::ScaleValueCommitted(const FText& CommentText, ETe
 
 		struct Local
 		{
-			static void ScaleCurveValue(FCurveEdEntry& Entry, int32 SubCurve, float ScaleByValue)
+			static void ScaleCurveValue(FCurveEdEntry& Entry, int32 SubCurve, float InScaleByValue)
 			{
 				FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
 				if(EdInterface)
@@ -1335,7 +1335,7 @@ void SDistributionCurveEditor::ScaleValueCommitted(const FText& CommentText, ETe
 						for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
 						{
 							float OutVal = EdInterface->GetKeyOut(SubCurve, KeyIndex);
-							EdInterface->SetKeyOut(SubCurve, KeyIndex, OutVal * ScaleByValue);
+							EdInterface->SetKeyOut(SubCurve, KeyIndex, OutVal * InScaleByValue);
 						}
 					}
 					else
@@ -1347,7 +1347,7 @@ void SDistributionCurveEditor::ScaleValueCommitted(const FText& CommentText, ETe
 							for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
 							{
 								float OutVal = EdInterface->GetKeyOut(SubIndex, KeyIndex);
-								EdInterface->SetKeyOut(SubIndex, KeyIndex, OutVal * ScaleByValue);
+								EdInterface->SetKeyOut(SubIndex, KeyIndex, OutVal * InScaleByValue);
 							}
 						}
 					}

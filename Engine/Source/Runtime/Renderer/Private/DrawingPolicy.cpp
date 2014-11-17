@@ -42,6 +42,7 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 }
 
 void FMeshDrawingPolicy::SetMeshRenderState(
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const FMeshBatch& Mesh,
@@ -52,14 +53,14 @@ void FMeshDrawingPolicy::SetMeshRenderState(
 {
 	EmitMeshDrawEvents(PrimitiveSceneProxy, Mesh);
 
-	// Use bitwise logic ops to avoid branches
-	RHISetRasterizerState(GetStaticRasterizerState<true>(
-		( Mesh.bWireframe | IsWireframe() ) ? FM_Wireframe : FM_Solid, ( ( IsTwoSided() & !NeedsBackfacePass() ) | Mesh.bDisableBackfaceCulling ) ? CM_None :
+		// Use bitwise logic ops to avoid branches
+	RHICmdList.SetRasterizerState( GetStaticRasterizerState<true>(
+			( Mesh.bWireframe | IsWireframe() ) ? FM_Wireframe : FM_Solid, ( ( IsTwoSided() & !NeedsBackfacePass() ) | Mesh.bDisableBackfaceCulling ) ? CM_None :
 			( ( (View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling ) ? CM_CCW : CM_CW )
-		));
+			));
 }
 
-void FMeshDrawingPolicy::DrawMesh(const FMeshBatch& Mesh, int32 BatchElementIndex) const
+void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const
 {
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
 	SCOPED_CONDITIONAL_DRAW_EVENTF(MeshEvent, GEmitMeshDrawEvent != 0, DEC_SCENE_ITEMS, TEXT("Mesh Draw"));
@@ -70,9 +71,14 @@ void FMeshDrawingPolicy::DrawMesh(const FMeshBatch& Mesh, int32 BatchElementInde
 	{
 		check(Mesh.DynamicVertexData);
 
+		//hack here to get the code checked in, but this needs to be fixed. It was not sensible to wind this all the way out of the callstack
+		FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
+		check(&RHICmdList == &RHICmdListIm);
+
 		if (BatchElement.DynamicIndexData)
 		{
-			RHIDrawIndexedPrimitiveUP(
+			DrawIndexedPrimitiveUP(
+				RHICmdListIm,
 				Mesh.Type,
 				BatchElement.MinVertexIndex,
 				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
@@ -85,7 +91,8 @@ void FMeshDrawingPolicy::DrawMesh(const FMeshBatch& Mesh, int32 BatchElementInde
 		}
 		else
 		{
-			RHIDrawPrimitiveUP(
+			DrawPrimitiveUP(
+				RHICmdListIm,
 				Mesh.Type,
 				BatchElement.NumPrimitives,
 				Mesh.DynamicVertexData,
@@ -98,33 +105,33 @@ void FMeshDrawingPolicy::DrawMesh(const FMeshBatch& Mesh, int32 BatchElementInde
 		if(BatchElement.IndexBuffer)
 		{
 			check(BatchElement.IndexBuffer->IsInitialized());
-			RHIDrawIndexedPrimitive(
-				BatchElement.IndexBuffer->IndexBufferRHI,
-				Mesh.Type,
-				0,
-				BatchElement.MinVertexIndex,
-				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-				BatchElement.FirstIndex,
-				BatchElement.NumPrimitives,
-				BatchElement.NumInstances
-				);
+			RHICmdList.DrawIndexedPrimitive(
+					BatchElement.IndexBuffer->IndexBufferRHI,
+					Mesh.Type,
+					0,
+					BatchElement.MinVertexIndex,
+					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+					BatchElement.FirstIndex,
+					BatchElement.NumPrimitives,
+					BatchElement.NumInstances
+					);
 		}
 		else
 		{
-			RHIDrawPrimitive(
-				Mesh.Type,
-				BatchElement.FirstIndex,
-				BatchElement.NumPrimitives,
-				BatchElement.NumInstances
-				);
+			RHICmdList.DrawPrimitive(
+					Mesh.Type,
+					BatchElement.FirstIndex,
+					BatchElement.NumPrimitives,
+					BatchElement.NumInstances
+					);
 		}
 	}
 }
 
-void FMeshDrawingPolicy::DrawShared(const FSceneView* View) const
+void FMeshDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
-	VertexFactory->Set();
+	VertexFactory->Set(RHICmdList);
 }
 
 /**

@@ -8,6 +8,6 @@ class UBehaviorTreeGraphNode_SimpleParallel : public UBehaviorTreeGraphNode_Comp
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 };

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectileMovement, Log, All);
 
@@ -203,7 +204,7 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 {
 	if (GetMaxSpeed() > 0.f)
 	{
-		NewVelocity = NewVelocity.ClampMaxSize(GetModifiedMaxSpeed());
+		NewVelocity = NewVelocity.ClampMaxSize(GetMaxSpeed());
 	}
 
 	return NewVelocity;

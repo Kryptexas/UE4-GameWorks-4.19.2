@@ -108,8 +108,8 @@ class KISMET_API UBlueprintPaletteFavorites : public UObject
 
 public:
 	// Begin UObject interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject interface
 
 	/**

@@ -41,7 +41,7 @@ class SRowHeaderColumnHeader : public SColumnHeader
 		];
 	}
 
-	virtual TSharedRef< SWidget > GenerateCell( const TSharedRef< class IPropertyTableRow >& PropertyTableRow ) OVERRIDE
+	virtual TSharedRef< SWidget > GenerateCell( const TSharedRef< class IPropertyTableRow >& PropertyTableRow ) override
 	{
 		TSharedRef< IPropertyTableCell > Cell = Column->GetCell( PropertyTableRow );
 		TSharedPtr< FPropertyNode > Node = Cell->GetNode();

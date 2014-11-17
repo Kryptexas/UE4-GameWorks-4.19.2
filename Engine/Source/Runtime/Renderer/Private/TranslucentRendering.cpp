@@ -10,28 +10,28 @@
 #include "SceneFilterRendering.h"
 #include "LightPropagationVolume.h"
 
-void SetTranslucentRenderTargetAndState(const FViewInfo& View, bool bSeparateTranslucencyPass)
+void SetTranslucentRenderTargetAndState(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bSeparateTranslucencyPass)
 {
 	bool bSetupTranslucentState = true;
 
 	if (bSeparateTranslucencyPass && GSceneRenderTargets.IsSeparateTranslucencyActive(View))
 	{
-		bSetupTranslucentState = GSceneRenderTargets.BeginRenderingSeparateTranslucency(View, false);
+		bSetupTranslucentState = GSceneRenderTargets.BeginRenderingSeparateTranslucency(RHICmdList, View, false);
 	}
 	else
 	{
-		GSceneRenderTargets.BeginRenderingTranslucency(View);
+		GSceneRenderTargets.BeginRenderingTranslucency(RHICmdList, View);
 	}
 
 	if (bSetupTranslucentState)
 	{
 		// Enable depth test, disable depth writes.
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
 	}
 }
 
-const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass)
+const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass)
 {
 	const FVisibleLightInfo* VisibleLightInfo = NULL;
 	FProjectedShadowInfo* TranslucentSelfShadow = NULL;
@@ -120,10 +120,10 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 				check(TranslucentSelfShadow->bAllocatedInTranslucentLayout);
 
 				// Render the translucency shadow map
-				TranslucentSelfShadow->RenderTranslucencyDepths(this);
+				TranslucentSelfShadow->RenderTranslucencyDepths(RHICmdList, this);
 
 				// Restore state
-				SetTranslucentRenderTargetAndState(View, bSeparateTranslucencyPass);
+				SetTranslucentRenderTargetAndState(RHICmdList, View, bSeparateTranslucencyPass);
 			}
 		}
 	}
@@ -146,9 +146,9 @@ public:
 	}
 	FCopySceneColorPS() {}
 
-	void SetParameters(const FViewInfo& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader(), View);
+		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -166,25 +166,28 @@ IMPLEMENT_SHADER_TYPE(,FCopySceneColorPS,TEXT("TranslucentLightingShaders"),TEXT
 
 FGlobalBoundShaderState CopySceneColorBoundShaderState;
 
-void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
+void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
 {
-	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString());
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
 
-	GSceneRenderTargets.ResolveSceneColor();
+	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneProxy->GetOwnerName().ToString(), *PrimitiveSceneProxy->GetResourceName().ToString());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	GSceneRenderTargets.BeginRenderingLightAttenuation();
-	RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+	GSceneRenderTargets.ResolveSceneColor(RHICmdList);
+
+	GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FCopySceneColorPS> PixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View);
+	/// ?
+	PixelShader->SetParameters(RHICmdList, View);
 
-	DrawRectangle( 
+	DrawRectangle(
+		RHICmdList,
 		0, 0, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -194,7 +197,7 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	GSceneRenderTargets.FinishRenderingLightAttenuation();
+	GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
 }
 
 /** The parameters used to draw a translucent mesh. */
@@ -247,12 +250,13 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		const bool bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
+		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
@@ -264,12 +268,13 @@ public:
 			Parameters.BlendMode,
 			// Translucent meshes need scene render targets set as textures
 			ESceneRenderTargetsMode::SetTextures,
-			bIsLitMaterial && Scene && Scene->SkyLight,
+			bIsLitMaterial && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
 			Scene && Scene->HasAtmosphericFog() && View.Family->EngineShowFlags.Atmosphere,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			Parameters.bAllowFog
 			);
 		DrawingPolicy.DrawShared(
+			RHICmdList, 
 			&View,
 			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
@@ -281,6 +286,7 @@ public:
 			if(BatchElementMask & 1)
 			{
 				DrawingPolicy.SetMeshRenderState(
+					RHICmdList, 
 					View,
 					Parameters.PrimitiveSceneProxy,
 					Parameters.Mesh,
@@ -288,7 +294,7 @@ public:
 					bBackFace,
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
 					);
-				DrawingPolicy.DrawMesh(Parameters.Mesh,BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh,BatchElementIndex);
 			}
 
 			BatchElementMask >>= 1;
@@ -302,6 +308,7 @@ public:
 * @return true if the mesh rendered
 */
 bool FTranslucencyDrawingPolicyFactory::DrawMesh(
+	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -313,15 +320,35 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	)
 {
 	bool bDirty = false;
+	const auto FeatureLevel = View.GetFeatureLevel();
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
-	const EMaterialLightingModel LightingModel = Material->GetLightingModel();
+	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))
 	{
+		if (Material->RequiresSceneColorCopy())
+		{
+			if (DrawingContext.bSceneColorCopyIsUpToDate == false)
+			{
+				//hack here to get the code checked in, but this needs to be fixed. It was not sensible to wind this all the way out of the callstack
+				FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
+				check(&RHICmdList == &RHICmdListIm);
+
+				CopySceneColor(RHICmdListIm, View, PrimitiveSceneProxy);
+				// Restore state
+				SetTranslucentRenderTargetAndState(RHICmdListIm, View, false);
+
+				// separate translucency is not updating scene color so we don't need to copy it multiple times.
+				// optimization:
+				// we should consider the same for non separate translucency (could cause artifacts but will be much faster)
+				DrawingContext.bSceneColorCopyIsUpToDate = DrawingContext.bSeparateTranslucencyPass;
+			}
+		}
+
 		const bool bDisableDepthTest = Material->ShouldDisableDepthTest();
 		const bool bEnableResponsiveAA = Material->ShouldEnableResponsiveAA();
 		// editor compositing not supported on translucent materials currently
@@ -331,20 +358,21 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		{
 			if( bDisableDepthTest )
 			{
-				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
 			}
 			else
 			{
 				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.	
-				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
 			}
 		}
 		else if( bDisableDepthTest )
 		{
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 		}
 
 		ProcessBasePassMesh(
+			RHICmdList, 
 			FProcessBasePassMeshParameters(
 				Mesh,
 				BatchElementMask,
@@ -352,7 +380,8 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				PrimitiveSceneProxy, 
 				!bPreFog,
 				bEditorCompositeDepthTest,
-				ESceneRenderTargetsMode::SetTextures
+				ESceneRenderTargetsMode::SetTextures,
+				FeatureLevel
 			),
 			FDrawTranslucentMeshAction(
 				View,
@@ -360,15 +389,14 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				HitProxyId,
 				DrawingContext.TranslucentSelfShadow,
 				PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow()
-			),
-			View.GetFeatureLevel()
+			)
 		);
 
 		if (bDisableDepthTest || bEnableResponsiveAA)
 		{
 			// Restore default depth state
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.	
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
 		}
 
 		bDirty = true;
@@ -382,6 +410,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
+	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -392,6 +421,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 	)
 {
 	return DrawMesh(
+		RHICmdList,
 		View,
 		DrawingContext,
 		Mesh,
@@ -407,6 +437,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
+	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FStaticMesh& StaticMesh,
@@ -417,6 +448,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 	)
 {
 	return DrawMesh(
+		RHICmdList,
 		View,
 		DrawingContext,
 		StaticMesh,
@@ -439,6 +471,7 @@ FTranslucentPrimSet
 * @return true if anything was drawn
 */
 void FTranslucentPrimSet::DrawPrimitives(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
 	FDeferredShadingSceneRenderer& Renderer,
 	bool bSeparateTranslucencyPass
@@ -449,10 +482,6 @@ void FTranslucentPrimSet::DrawPrimitives(
 	// copy to reference for easier access
 	const TArray<FSortedPrim,SceneRenderingAllocator>& PhaseSortedPrimitives =
 		bSeparateTranslucencyPass ? SortedSeparateTranslucencyPrims : SortedPrims;
-
-	// optimization - separate translucency is not updating scene color so we don't need to copy it multiple times
-	// we should consider the same for non separate translucency (can cause artifacts there but will be much faster)
-	bool bSceneColorWasAlreadyCopied = false;
 
 	if( PhaseSortedPrimitives.Num() )
 	{
@@ -465,26 +494,15 @@ void FTranslucentPrimSet::DrawPrimitives(
 
 			checkSlow(ViewRelevance.HasTranslucency());
 			
-			const FProjectedShadowInfo* TranslucentSelfShadow = Renderer.PrepareTranslucentShadowMap(View, PrimitiveSceneInfo, bSeparateTranslucencyPass);
+			const FProjectedShadowInfo* TranslucentSelfShadow = Renderer.PrepareTranslucentShadowMap(RHICmdList, View, PrimitiveSceneInfo, bSeparateTranslucencyPass);
 
-			if (ViewRelevance.bSceneColorRelevance)
-			{
-				if (!bSeparateTranslucencyPass || !bSceneColorWasAlreadyCopied)
-				{
-					Renderer.CopySceneColor(View, PrimitiveSceneInfo);
-					bSceneColorWasAlreadyCopied = true;
-
-					// Restore state
-					SetTranslucentRenderTargetAndState(View, bSeparateTranslucencyPass);
-				}
-			}
-
-			RenderPrimitive(View, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, bSeparateTranslucencyPass);
+			RenderPrimitive(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, bSeparateTranslucencyPass);
 		}
 	}
 }
 
 void FTranslucentPrimSet::RenderPrimitive(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View, 
 	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
 	const FPrimitiveViewRelevance& ViewRelevance, 
@@ -492,6 +510,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 	bool bSeparateTranslucencyPass) const
 {
 	checkSlow(ViewRelevance.HasTranslucency());
+	auto FeatureLevel = View.GetFeatureLevel();
 
 	if(ViewRelevance.bDrawRelevance)
 	{
@@ -500,7 +519,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 		{
 			TDynamicPrimitiveDrawer<FTranslucencyDrawingPolicyFactory> TranslucencyDrawer(
 				&View,
-				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow),
+				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, bSeparateTranslucencyPass),
 				false
 				);
 
@@ -514,18 +533,26 @@ void FTranslucentPrimSet::RenderPrimitive(
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )
 		{
+			//@todo-rco: Very temp code!!!
+			SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
+			static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
+			bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 3);
+			FRHICommandList LocalRHICmdList;
+			FRHICommandList& UseRHICmdList = bUseRHICmdList ? LocalRHICmdList : RHICmdList;
+
 			// Render static meshes from static scene prim
 			for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
 			{
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					// Only render static mesh elements using translucent materials
-					&& StaticMesh.IsTranslucent() 
-					&& (StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
+					&& StaticMesh.IsTranslucent(FeatureLevel)
+					&& (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
+						UseRHICmdList,
 						View,
-						FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow),
+						FTranslucencyDrawingPolicyFactory::ContextType( TranslucentSelfShadow, bSeparateTranslucencyPass),
 						StaticMesh,
 						StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
 						false,
@@ -596,10 +623,11 @@ bool FSceneRenderer::ShouldRenderTranslucency() const
 	return bRender;
 }
 
-void FDeferredShadingSceneRenderer::RenderTranslucency()
+void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList)
 {
 	if (ShouldRenderTranslucency())
 	{
+
 		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -608,10 +636,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucency()
 
 			const FViewInfo& View = Views[ViewIndex];
 
-			SetTranslucentRenderTargetAndState(View, false);
+			SetTranslucentRenderTargetAndState(RHICmdList, View, false);
 
 			// Draw only translucent prims that don't read from scene color
-			View.TranslucentPrimSet.DrawPrimitives(View, *this, false);
+			View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
 			DrawViewElements<FTranslucencyDrawingPolicyFactory>(View,FTranslucencyDrawingPolicyFactory::ContextType(),SDPG_World,false);
 			// Draw the view's mesh elements with the translucent drawing policy.
@@ -625,7 +653,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency()
 
 				if (LightPropagationVolume)
 				{
-					LightPropagationVolume->Visualise(View);
+					LightPropagationVolume->Visualise(RHICmdList, View);
 				}
 			}
 			
@@ -633,20 +661,20 @@ void FDeferredShadingSceneRenderer::RenderTranslucency()
 				bool bRenderSeparateTranslucency = View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0;
 
 				// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
-				bool bSetupTranslucency = GSceneRenderTargets.BeginRenderingSeparateTranslucency(View, true);
+				bool bSetupTranslucency = GSceneRenderTargets.BeginRenderingSeparateTranslucency(RHICmdList, View, true);
 
 				// Draw only translucent prims that are in the SeparateTranslucency pass
 				if (bRenderSeparateTranslucency)
 				{
 					if (bSetupTranslucency)
 					{
-						RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
 					}
 
-					View.TranslucentPrimSet.DrawPrimitives(View, *this, true);
+					View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, true);
 				}
 
-				GSceneRenderTargets.FinishRenderingSeparateTranslucency(View);
+				GSceneRenderTargets.FinishRenderingSeparateTranslucency(RHICmdList, View);
 			}
 		}
 	}

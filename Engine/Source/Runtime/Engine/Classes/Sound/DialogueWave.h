@@ -6,6 +6,8 @@
  * Context to sound wave map for spoken dialogue 
  */
 
+#include "DialogueTypes.h"
+
 #include "DialogueWave.generated.h"
 
 class USoundWave;
@@ -34,7 +36,7 @@ struct FDialogueContextMapping
 bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 
-UCLASS(DependsOn=UDialogueTypes, hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueWave : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -62,16 +64,16 @@ class UDialogueWave : public UObject
 
 public:
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual FString GetDesc() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	virtual void PostDuplicate(bool bDuplicateForPIE);
 	virtual void PostLoad();
 
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
 	// End UObject interface. 

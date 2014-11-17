@@ -13,6 +13,7 @@
 #include "MallocProfiler.h"
 #include "Net/NetworkProfiler.h"
 #include "ConfigCacheIni.h"
+#include "EngineModule.h"
 
 #include "AVIWriter.h"
 
@@ -80,16 +81,21 @@ int32 GetBoundFullScreenModeCVar()
 // depending on WindowMode and the console variable r.FullScreenMode
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	EWindowMode::Type CurrentWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
-
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if (WindowMode != EWindowMode::Windowed && GEngine && GEngine->HMDDevice.IsValid())
+		if (WindowMode == EWindowMode::Windowed)
+		{
+			return WindowMode;
+		}
+
+		if (GEngine && GEngine->HMDDevice.IsValid())
 		{
 			return EWindowMode::Fullscreen;
 		}
-		
-		return CurrentWindowMode;
+
+		// Figure out which full screen mode we should be
+		EWindowMode::Type DesiredFullScreenWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
+		return DesiredFullScreenWindowMode;
 	}
 
 	return EWindowMode::Fullscreen;
@@ -174,7 +180,12 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
 	{
 		// -FullScreen
+#if PLATFORM_MAC // @TODO: Fullscreen mode isn't working fully on OS X as it requires explicit CGL back-buffer size and mouse<->display coordinate conversions.
+		// For now use the windowed fullscreen mode which merely stretches to fill the display, which is what OS X does for us by default.
+		WindowMode = EWindowMode::WindowedFullscreen;
+#else
 		WindowMode = EWindowMode::Fullscreen;
+#endif
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
@@ -350,14 +361,6 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 			GameViewport->Viewport->Draw(bShouldPresent);
 		}
 	}
-
-	// render the secondary viewports
-	checkSlow(SecondaryViewportClients.Num() == SecondaryViewportFrames.Num());
-	for (int32 SecondaryIndex = 0; SecondaryIndex < SecondaryViewportFrames.Num(); SecondaryIndex++)
-	{
-		SecondaryViewportFrames[SecondaryIndex]->GetViewport()->Draw(bShouldPresent);
-	}
-
 }
 
 /*-----------------------------------------------------------------------------
@@ -411,6 +414,14 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		GNetworkProfiler.EnableTracking(true);
 	}
 #endif
+
+	// Load game modules
+	{
+		if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+		{
+			FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
+		}
+	}
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
@@ -780,13 +791,13 @@ float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothin
 				}
 			}*/
 		}
+	}
 
-		// See if the code in the base class wants to replace this
-		float SuperTickRate = Super::GetMaxTickRate(DeltaTime, bAllowFrameRateSmoothing);
-		if(SuperTickRate != 0.0)
-		{
-			MaxTickRate = SuperTickRate;
-		}
+	// See if the code in the base class wants to replace this
+	float SuperTickRate = Super::GetMaxTickRate(DeltaTime, bAllowFrameRateSmoothing);
+	if(SuperTickRate != 0.0)
+	{
+		MaxTickRate = SuperTickRate;
 	}
 
 	return MaxTickRate;
@@ -1108,72 +1119,6 @@ void UGameEngine::ProcessToggleFreezeStreamingCommand(UWorld* InWorld)
 	InWorld->bIsLevelStreamingFrozen = !InWorld->bIsLevelStreamingFrozen;
 }
 
-bool UGameEngine::HasSecondaryScreenActive()
-{
-	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
-	if (GameEngine)
-{
-		check(GameEngine->SecondaryViewportClients.Num() == GameEngine->SecondaryViewportFrames.Num());
-		return (GameEngine->SecondaryViewportFrames.Num() > 0 ? true : false);
-	}
-	return false;
-}
-
-void UGameEngine::CreateSecondaryViewport(uint32 SizeX, uint32 SizeY)
-{
-/*
-	// this needs a client object to succeed (ie not be a dedicated server)
-	if (Client == NULL)
-	{
-		UE_LOG(LogEngine, Log, TEXT("Attempted to create a secondary viewport without a client object. This will not work"));
-		return;
-	}
-
-	// create a second window
-	UClass* SecondaryClass = LoadObject<UClass>(NULL, *SecondaryViewportClientClassName, NULL, LOAD_None, NULL);
-	if (SecondaryClass)
-	{
-		UScriptViewportClient* SecondClient = ConstructObject<UScriptViewportClient>(SecondaryClass);
-		FViewportFrame* SecondFrame = Client->CreateViewportFrame(SecondClient, TEXT("SecondScreen"), SizeX, SizeY, false);
-		if (SecondFrame != NULL)
-		{
-			// since nothing will directly point to this object from another object, we add it to the root
-			SecondClient->AddToRoot();
-
-			// add it to the engine for drawing, etc
-			SecondaryViewportClients.Add(SecondClient);
-			SecondaryViewportFrames.Add(SecondFrame);
-
-			// Update any mobile input zones after adding the secondary viewport
-			//extern void UpdateMobileInputZoneLayout();
-			//UpdateMobileInputZoneLayout();
-		}
-	}
-*/
-}
-
-
-void UGameEngine::CloseSecondaryViewports()
-{
-/*	if (Client == NULL)
-	{
-		return;
-	}
-
-	// Close the secondary viewports
-	for (int32 ViewportIndex = 0; ViewportIndex < SecondaryViewportFrames.Num(); ViewportIndex++)
-	{
-		Client->CloseViewport(SecondaryViewportFrames[ViewportIndex]->GetViewport());
-	}
-	SecondaryViewportFrames.Empty();
-	
-	// Remove the secondary clients 
-	for (int32 ClientIndex = 0; ClientIndex < SecondaryViewportClients.Num(); ClientIndex++)
-	{
-		SecondaryViewportClients[ClientIndex]->RemoveFromRoot();
-	}
-	SecondaryViewportClients.Empty();*/
-}
 
 UWorld* UGameEngine::GetGameWorld()
 {

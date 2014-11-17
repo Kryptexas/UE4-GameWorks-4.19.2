@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
+#include "Animation/AnimNodeBase.h"
 #include "WidgetBlueprintCompiler.h"
 #include "Kismet2NameValidators.h"
 #include "KismetReinstanceUtilities.h"
@@ -536,7 +537,9 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	TArray<UWidget*> Widgets;
+	Blueprint->WidgetTree->GetAllWidgets(Widgets);
+	for ( UWidget* Widget : Widgets )
 	{
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
@@ -571,16 +574,20 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 {
 	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
 
+	// Make sure our typed pointer is set
+	check(ClassToClean == NewClass);
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
+
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
 	TArray<UObject*> ClassSubObjects;
 	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
 
-	UWidgetBlueprint* Blueprint = WidgetBlueprint();
+	//UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
-	if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
-	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<USlateWrapperComponent>(Blueprint->WidgetTree->WidgetTemplates));
-	}
+	//if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
+	//{
+	//	ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UWidget>(Blueprint->WidgetTree->WidgetTemplates));
+	//}
 }
 
 void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
@@ -591,7 +598,11 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 	ValidateWidgetNames();
 
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	// Build the set of variables based on the variable widgets in the widget tree.
+	TArray<UWidget*> Widgets;
+	Blueprint->WidgetTree->GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
 	{
 		// Skip non-variable widgets
 		if ( !Widget->bIsVariable )
@@ -619,7 +630,11 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
 	BPGClass->WidgetTree = NULL;
+
+	// @todo UMG Possibly need duplication here 
 	BPGClass->WidgetTree = Blueprint->WidgetTree;
+	BPGClass->AnimationData = Blueprint->AnimationData;
+
 	BPGClass->Bindings.Reset();
 
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )

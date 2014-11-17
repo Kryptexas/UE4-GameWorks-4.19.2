@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "DynamicMeshBuilder.h"
+#include "PhysxUserData.h"
 
 /**
  * Physics stats
@@ -276,8 +276,10 @@ private:
 	class PxCpuDispatcher*			CPUDispatcher;
 	/** Simulation event callback object */
 	class FPhysXSimEventCallback*			SimEventCallback;
+#if WITH_VEHICLE
 	/** Vehicle scene */
 	class FPhysXVehicleManager*			VehicleManager;
+#endif
 #endif	//
 
 public:
@@ -286,8 +288,10 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
+#if WITH_VEHICLE
 	/** Get the vehicle manager */
 	FPhysXVehicleManager*						GetVehicleManager();
+#endif
 #endif
 
 #if WITH_APEX
@@ -343,7 +347,7 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping()
+	bool IsSubstepping() const
 	{
 #if WITH_SUBSTEPPING
 		return bSubstepping;
@@ -372,6 +376,10 @@ public:
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
 	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM, bool bAllowSubstepping);
+
+	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
+	  * Returns true if kinematic target has been set. If false the OutTM is invalid */
+	bool GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const;
 
 	/** Gets the collision disable table */
 	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()
@@ -470,7 +478,7 @@ struct FPhysSceneShaderInfo
 
 #endif
 
-// Might be handy somewhere...
+/** Enum to indicate types of simple shapes */
 enum EKCollisionPrimitiveType
 {
 	KPT_Sphere = 0,
@@ -525,7 +533,7 @@ class FConvexCollisionVertexBuffer : public FVertexBuffer
 public:
 	TArray<FDynamicMeshVertex> Vertices;
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 };
 
 class FConvexCollisionIndexBuffer : public FIndexBuffer 
@@ -533,7 +541,7 @@ class FConvexCollisionIndexBuffer : public FIndexBuffer
 public:
 	TArray<int32> Indices;
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 };
 
 class FConvexCollisionVertexFactory : public FLocalVertexFactory

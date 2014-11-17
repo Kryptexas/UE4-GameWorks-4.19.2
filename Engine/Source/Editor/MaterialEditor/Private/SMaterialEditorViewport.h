@@ -19,9 +19,9 @@ public:
 	void Construct(const FArguments& InArgs);
 	~SMaterialEditorViewport();
 	
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void RefreshViewport();
 	
 	/**
@@ -83,11 +83,11 @@ public:
 
 protected:
 	/** SEditorViewport interface */
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
-	virtual EVisibility OnGetViewportContentVisibility() const OVERRIDE;
-	virtual void BindCommands() OVERRIDE;
-	virtual void OnFocusViewportToSelection() OVERRIDE;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual EVisibility OnGetViewportContentVisibility() const override;
+	virtual void BindCommands() override;
+	virtual void OnFocusViewportToSelection() override;
 private:
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;

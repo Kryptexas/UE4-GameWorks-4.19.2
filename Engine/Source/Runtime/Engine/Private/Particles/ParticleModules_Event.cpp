@@ -6,6 +6,13 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Event/ParticleModuleEventBase.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
+#include "Particles/Event/ParticleModuleEventReceiverKillParticles.h"
+#include "Particles/Event/ParticleModuleEventReceiverSpawn.h"
+#include "Particles/Event/ParticleModuleEventSendToGame.h"
+#include "Particles/ParticleLODLevel.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.

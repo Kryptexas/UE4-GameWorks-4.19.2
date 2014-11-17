@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Canvas.h"
+
 #include "HUD.generated.h"
 
 /** List of actors and debug text to draw, @see AddDebugText(), RemoveDebugText(), and DrawDebugTextList() */
@@ -151,7 +154,7 @@ private:
 // Base class of the heads-up display.
 //
 //=============================================================================
-UCLASS(config=Game, hidecategories=(Rendering,Actor,Input,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, transient, dependson=UCanvas, BlueprintType, Blueprintable)
+UCLASS(config=Game, hidecategories=(Rendering,Actor,Input,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, transient, BlueprintType, Blueprintable)
 class ENGINE_API AHUD : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -185,10 +188,6 @@ class ENGINE_API AHUD : public AActor
 	/** If true, show hitbox debugging info. */
 	UPROPERTY()
 	uint32 bShowHitBoxDebugInfo:1;    
-
-	/** If true, native HUD will not draw.  Allows blueprinted HUDs to totally replace an existing HUD. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=HUD)
-	uint32 bSuppressNativeHUD:1;
 
 	/** If true, render actor overlays. */
 	UPROPERTY()
@@ -398,7 +397,65 @@ public:
 	FVector Project(FVector Location);
 	
 	/** Transforms a 2D screen location into a 3D location and direction */
+	UFUNCTION(BlueprintPure, Category=HUD)
 	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
+
+
+	/*
+	 * Returns the array of actors inside a selection rectangle, with a class filter.
+	 *
+	 * Sample usage:
+	 *
+	 *       TArray<AStaticMeshActor*> ActorsInSelectionRect;
+	 * 		Canvas->GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
+	 *
+	 *
+	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
+	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
+	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
+	 *
+	 * returns false if selection could not occur. Make sure template class is extending AActor.
+	 */
+	template <typename ClassFilter>
+	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bActorMustBeFullyEnclosed = false)
+	{
+		//Is Actor subclass?
+		if (!ClassFilter::StaticClass()->IsChildOf(AActor::StaticClass()))
+		{
+			return false;
+		}
+
+		//Run Inner Function, output to Base AActor Array
+		TArray<AActor*> OutActorsBaseArray;
+		GetActorsInSelectionRectangle(ClassFilter::StaticClass(), FirstPoint, SecondPoint, OutActorsBaseArray, bActorMustBeFullyEnclosed);
+
+		//Construct casted template type array
+		for (AActor* EachActor : OutActorsBaseArray)
+		{
+			OutActors.Add(CastChecked<ClassFilter>(EachActor));
+		}
+
+		return true;
+	};
+
+	/**
+	 * Returns the array of actors inside a selection rectangle, with a class filter.
+	 *
+	 * Sample usage:
+	 *
+	 *       TArray<AStaticMeshActor*> ActorsInSelectionRect;
+	 * 		Canvas->GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
+	 *
+	 *
+	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
+	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
+	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
+	 *
+	 */
+	UFUNCTION(BlueprintPure, Category=HUD)
+	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed = false);
 
 
 	/**
@@ -443,7 +500,7 @@ public:
 	/** Set the canvas and debug canvas to use during drawing */
 	void SetCanvas(class UCanvas* InCanvas, class UCanvas* InDebugCanvas);
 
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
 	/** draw overlays for actors that were rendered this tick and have added themselves to the PostRenderedActors array	*/
 	virtual void DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation);
@@ -525,7 +582,7 @@ public:
 	 * Update the list of hitboxes and dispatch events for any hits.
 	 * @param	InEventType	Input event that triggered the call.
 	 */
-	bool UpdateAndDispatchHitBoxClickEvents(const FVector2D ClickLocation, const EInputEvent InEventType, const bool bDispatchOverOutEvent);
+	bool UpdateAndDispatchHitBoxClickEvents(const FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent);
 	
 	/**
 	 * Update a the list of hitboxes that have been hit this frame.

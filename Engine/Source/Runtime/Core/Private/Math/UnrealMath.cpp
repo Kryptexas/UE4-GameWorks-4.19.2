@@ -55,7 +55,7 @@ bool FVector2D::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuc
 
 bool FRotator::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	SerializeCompressed( Ar );
+	SerializeCompressedShort( Ar );
 	bOutSuccess = true;
 	return true;
 }
@@ -104,6 +104,53 @@ void FRotator::SerializeCompressed( FArchive& Ar )
 		Pitch = FRotator::DecompressAxisFromByte(BytePitch);
 		Yaw	= FRotator::DecompressAxisFromByte(ByteYaw);
 		Roll = FRotator::DecompressAxisFromByte(ByteRoll);
+	}
+}
+
+void FRotator::SerializeCompressedShort( FArchive& Ar )
+{
+	uint16 ShortPitch = FRotator::CompressAxisToShort(Pitch);
+	uint16 ShortYaw = FRotator::CompressAxisToShort(Yaw);
+	uint16 ShortRoll = FRotator::CompressAxisToShort(Roll);
+
+	uint8 B = (ShortPitch!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortPitch;
+	}
+	else
+	{
+		ShortPitch = 0;
+	}
+
+	B = (ShortYaw!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortYaw;
+	}
+	else
+	{
+		ShortYaw = 0;
+	}
+
+	B = (ShortRoll!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortRoll;
+	}
+	else
+	{
+		ShortRoll = 0;
+	}
+
+	if( Ar.IsLoading() )
+	{
+		Pitch = FRotator::DecompressAxisFromShort(ShortPitch);
+		Yaw	= FRotator::DecompressAxisFromShort(ShortYaw);
+		Roll = FRotator::DecompressAxisFromShort(ShortRoll);
 	}
 }
 
@@ -1732,6 +1779,30 @@ bool FMath::GetDistanceWithinConeSegment(FVector Point, FVector ConeStartPoint, 
 	return true;
 }
 
+bool FMath::PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance)
+{
+	//less than 4 points = coplanar
+	if (Points.Num() < 4)
+	{
+		return true;
+	}
+
+	//Get the Normal for plane determined by first 3 points
+	const FVector Normal = FVector::CrossProduct(Points[2] - Points[0], Points[1] - Points[0]).SafeNormal();
+
+	const int32 Total = Points.Num();
+	for (int32 v = 3; v < Total; v++)
+	{
+		//Abs of PointPlaneDist, dist should be 0
+		if (FMath::Abs(FVector::PointPlaneDist(Points[v], Points[0], Normal)) > Tolerance)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool FMath::GetDotDistance
 ( 
 			FVector2D	&OutDotDist, 
@@ -2134,6 +2205,13 @@ FVector FMath::VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, f
 	{
 		return Dir.SafeNormal();
 	}
+}
+
+FVector FMath::RandPointInBox(const FBox& Box)
+{
+	return FVector(	FRandRange(Box.Min.X, Box.Max.X),
+					FRandRange(Box.Min.Y, Box.Max.Y),
+					FRandRange(Box.Min.Z, Box.Max.Z) );
 }
 
 struct FClusterMovedHereToMakeCompile

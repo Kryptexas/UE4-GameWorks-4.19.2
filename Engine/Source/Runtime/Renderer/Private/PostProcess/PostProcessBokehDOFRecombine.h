@@ -17,7 +17,7 @@ class FRCPassPostProcessBokehDOFRecombine : public TRenderingCompositePassBase<3
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:

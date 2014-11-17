@@ -74,6 +74,9 @@ struct FLinearColor;
 #define THRESH_ZERO_NORM_SQUARED		(0.0001f)	/* Size of a unit normal that is considered "zero", squared */
 #define THRESH_VECTORS_ARE_PARALLEL		(0.02f)		/* Vectors are parallel if dot product varies less than this */
 
+#define THRESH_VECTOR_NORMALIZED		(0.01f)		/** Allowed error for a normalized vector (against squared magnitude) */
+#define THRESH_QUAT_NORMALIZED			(0.01f)		/** Allowed error for a normalized quaternion (against squared magnitude) */
+
 /*-----------------------------------------------------------------------------
 	Global functions.
 -----------------------------------------------------------------------------*/
@@ -121,6 +124,8 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad);
 
+	/** Returns a random point within the passed in bounding box */
+	static CORE_API FVector RandPointInBox(const FBox& Box);
 
 	// Predicates
 
@@ -250,6 +255,12 @@ struct FMath : public FPlatformMath
 	static FORCEINLINE T DivideAndRoundUp(T Dividend,T Divisor)
 	{
 		return (Dividend + Divisor - 1) / Divisor;
+	}
+
+	template <class T>
+	static FORCEINLINE T DivideAndRoundDown(T Dividend,T Divisor)
+	{
+		return Dividend / Divisor;
 	}
 
 	/**
@@ -813,6 +824,15 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool GetDistanceWithinConeSegment(FVector Point, FVector ConeStartPoint, FVector ConeLine, float RadiusAtStart, float RadiusAtEnd, float &PercentageOut);
 
+	/**
+	 * Determines whether a given set of points are coplanar, with a tolerance. Any three points or less are always coplanar.
+	 *
+	 * @param Points - The set of points to determine coplanarity for.
+	 * @param Tolerance - Larger numbers means more variance is allowed.
+	 *
+	 * @return Whether the points are relatively coplanar, based on the tolerance
+	 */
+	static CORE_API bool PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance = 0.1f);
 
 	// Formatting functions
 

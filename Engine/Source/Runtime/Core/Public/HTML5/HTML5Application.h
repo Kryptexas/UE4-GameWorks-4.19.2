@@ -21,11 +21,11 @@ public:
 
 	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
-	virtual void PollGameDeviceState( const float TimeDelta ) OVERRIDE;
+	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
-	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const OVERRIDE;
+	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDesktopMetrics ) const OVERRIDE;
+	virtual void GetDisplayMetrics( FDisplayMetrics& OutDesktopMetrics ) const override;
 
 
 	TSharedRef< FGenericWindow > MakeWindow();

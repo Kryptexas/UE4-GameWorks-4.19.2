@@ -22,6 +22,8 @@ struct FKeyDrawingInfo
 class IKeyArea
 {
 public:
+	virtual ~IKeyArea() {}
+
 	/** @return The array of unsorted key handles in the key area */
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const = 0;
 

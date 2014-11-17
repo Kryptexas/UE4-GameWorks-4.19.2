@@ -127,6 +127,7 @@ public:
 		OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
 		OutInitializer.Scales = FVector(1.0f,InvTanOuterCone,InvTanOuterCone);
 		OutInitializer.FaceDirection = FVector(1,0,0);
+		//@todo - these half radius bounds are not correct, but quite a few things depend on it at this point
 		OutInitializer.SubjectBounds = FBoxSphereBounds(
 			GetLightToWorld().RemoveTranslation().TransformPosition(FVector(Radius / 2.0f,0,0)),
 			FVector(Radius/2.0f,Radius/2.0f,Radius/2.0f),
@@ -141,7 +142,7 @@ public:
 
 	virtual float GetOuterConeAngle() const { return OuterConeAngle; }
 
-	virtual FVector2D GetLightShaftConeParams() const OVERRIDE { return FVector2D(CosLightShaftConeAngle, InvCosLightShaftConeDifference); }
+	virtual FVector2D GetLightShaftConeParams() const override { return FVector2D(CosLightShaftConeAngle, InvCosLightShaftConeDifference); }
 
 	virtual FSphere GetBoundingSphere() const
 	{
@@ -256,3 +257,24 @@ ELightComponentType USpotLightComponent::GetLightType() const
 {
 	return LightType_Spot;
 }
+
+#if WITH_EDITOR
+
+void USpotLightComponent::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		if (PropertyChangedEvent.Property->GetFName() == TEXT("InnerConeAngle"))
+		{
+			OuterConeAngle = FMath::Max(InnerConeAngle, OuterConeAngle);
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == TEXT("OuterConeAngle"))
+		{
+			InnerConeAngle = FMath::Min(InnerConeAngle, OuterConeAngle);
+		}
+	}
+
+	UPointLightComponent::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+#endif	// WITH_EDITOR

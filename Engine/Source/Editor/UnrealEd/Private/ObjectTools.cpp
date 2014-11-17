@@ -28,7 +28,36 @@
 #include "DesktopPlatformModule.h"
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
+#include "ComponentReregisterContext.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
+
+// This function should ONLY be needed by ConsolidateObjects and ForceDeleteObjects
+// Use anywhere else could be dangerous as this involves a map transition and GC
+void ReloadEditorWorldForReferenceReplacementIfNecessary(TArray<UObject*>& InOutObjectsToReplace)
+{
+	// If we are force-deleting or consolidating the editor world, first transition to an empty map to prevent reference problems.
+	// Then, re-load the world from disk to set it up for delete as an inactive world which isn't attached to the editor engine or other systems.
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+
+	// Remove the world from ObjectsToDelete since NewMap() will delete the object naturally
+	int32 NumEntriesRemoved = InOutObjectsToReplace.Remove(EditorWorld);
+	if (NumEntriesRemoved > 0)
+	{
+		const FString ObjectPath = EditorWorld->GetPathName();
+
+		// Transition to a new map. This will invoke garbage collection and destroy the EditorWorld
+		GEditor->NewMap();
+
+		// Attempt to reload the editor world so we can make sure the file gets deleted and everything is handled normally.
+		// It is okay for this to fail. If we could not reload the world, it is not on disk and is gone.
+		UObject* ReloadedEditorWorld = LoadObject<UWorld>(nullptr, *ObjectPath, nullptr, LOAD_Quiet | LOAD_NoWarn);
+		if (ReloadedEditorWorld)
+		{
+			InOutObjectsToReplace.Add(ReloadedEditorWorld);
+		}
+	}
+}
 
 namespace ObjectTools
 {
@@ -720,6 +749,9 @@ namespace ObjectTools
 			// objects they are replacing until the objects are garbage collected
 			TMap<UObjectRedirector*, FName> RedirectorToObjectNameMap;
 
+			// If the current editor world is in this list, transition to a new map and reload the world to finish the consolidate
+			ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToConsolidate);
+
 			FForceReplaceInfo ReplaceInfo;
 			// Scope the reregister context below to complete after object deletion and before garbage collection
 			{
@@ -733,7 +765,7 @@ namespace ObjectTools
 
 			// See if this is a blueprint consolidate and replace instances of the generated class
 			UBlueprint* BlueprintToConsolidateTo = Cast<UBlueprint>(ObjectToConsolidateTo);
-			if ( BlueprintToConsolidateTo != NULL && ensure(BlueprintToConsolidateTo->GeneratedClass) != NULL )
+			if ( BlueprintToConsolidateTo != NULL && ensure(BlueprintToConsolidateTo->GeneratedClass) )
 			{
 				for ( TArray<UObject*>::TConstIterator ConsolIter( ReplaceInfo.ReplaceableObjects ); ConsolIter; ++ConsolIter )
 				{
@@ -1243,11 +1275,7 @@ namespace ObjectTools
 			FString PackageFilename;
 			if( FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
 			{
-				// Cull out non-UAssets
-				if ( FPaths::GetExtension(PackageFilename, /*bIncludeDot=*/true).ToLower() != FPackageName::GetAssetPackageExtension() )
-				{
-					PackagesToDelete.RemoveAt(PackageIdx);
-				}
+				PackagesToDelete.RemoveAt(PackageIdx);
 			}
 			else
 			{
@@ -1361,13 +1389,6 @@ namespace ObjectTools
 					continue;
 				}
 
-				if ( FPaths::GetExtension(PackageFilename, /*bIncludeDot=*/true).ToLower() != FPackageName::GetAssetPackageExtension() )
-				{
-					// Only delete UAsset packages because that is what we checked for in ShowDeleteConfirmationDialog()
-					PackagesToDelete.RemoveAt(PackageIdx);
-					continue;
-				}
-
 				PackageFilesToDelete.Add(PackageFilename);
 				Cast<UPackage>(Package)->SetDirtyFlag(false);
 				if ( ISourceControlModule::Get().IsEnabled() )
@@ -1378,6 +1399,9 @@ namespace ObjectTools
 		}
 
 		GWarn->EndSlowTask();
+
+		// Let the package auto-saver know that it needs to ignore the deleted packages
+		GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
 
 		// Unload the packages and collect garbage.
 		if ( PackagesToDelete.Num() > 0 )
@@ -1456,13 +1480,62 @@ namespace ObjectTools
 
 	int32 DeleteAssets( const TArray<FAssetData>& AssetsToDelete, bool bShowConfirmation )
 	{
+		TArray<TWeakObjectPtr<UPackage>> PackageFilesToDelete;
 		TArray<UObject*> ObjectsToDelete;
 		for ( int i = 0; i < AssetsToDelete.Num(); i++ )
 		{
-			ObjectsToDelete.Add( AssetsToDelete[i].GetAsset() );
+			const FAssetData& AssetData = AssetsToDelete[i];
+			UObject *ObjectToDelete = AssetData.GetAsset();
+			// Assets can be loaded even when their underlying type/class no longer exists...
+			if ( ObjectToDelete!=nullptr )
+			{
+				ObjectsToDelete.Add( ObjectToDelete );
+			}
+			else if ( AssetData.IsUAsset() )
+			{
+				// ... In this cases there is no underlying asset or type so remove the package itself directly after confirming it's valid to do so.
+				FString PackageFilename;
+				if( !FPackageName::DoesPackageExist( AssetData.PackageName.ToString(), NULL, &PackageFilename ) )
+				{
+					// Could not determine filename for package so we can not delete
+					continue;
+				}
+
+				UPackage* Package = FindPackage(nullptr, *AssetData.PackageName.ToString());
+				if ( Package )
+				{
+					PackageFilesToDelete.Add(Package);
+				}
+			}
 		}
 
-		return DeleteObjects( ObjectsToDelete, bShowConfirmation );
+		int32 NumObjectsToDelete = ObjectsToDelete.Num();
+		if ( NumObjectsToDelete > 0 )
+		{
+			NumObjectsToDelete = DeleteObjects( ObjectsToDelete, bShowConfirmation );
+		}
+
+		const int32 NumPackagesToDelete = PackageFilesToDelete.Num();
+		if (NumPackagesToDelete > 0)
+		{
+			TArray<UPackage*> PackagePointers;
+			for ( const auto& PkgIt : PackageFilesToDelete )
+			{
+				UPackage* Package = PkgIt.Get();
+				if ( Package )
+				{
+					PackagePointers.Add(Package);
+				}
+			}
+			
+			if ( PackagePointers.Num() > 0 )
+			{
+				const bool bPerformReferenceCheck = true;
+				CleanupAfterSuccessfulDelete(PackagePointers, bPerformReferenceCheck);
+			}
+		}
+
+		return NumPackagesToDelete + NumObjectsToDelete;
 	}
 
 	int32 DeleteObjects( const TArray< UObject* >& ObjectsToDelete, bool bShowConfirmation )
@@ -1762,6 +1835,9 @@ namespace ObjectTools
 				ObjectsToDelete.Add( CurrentObject );
 			}
 		}
+
+		// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
+		ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDelete);
 
 		{
 			// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
@@ -2521,12 +2597,12 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	void GenerateFactoryFileExtensions( UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions )
+	void GenerateFactoryFileExtensions( UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory )
 	{
 		// Place the factory in an array and call the overloaded version of this function
 		TArray<UFactory*> FactoryArray;
 		FactoryArray.Add( InFactory );
-		GenerateFactoryFileExtensions( FactoryArray, out_Filetypes, out_Extensions );
+		GenerateFactoryFileExtensions( FactoryArray, out_Filetypes, out_Extensions, out_FilterIndexToFactory );
 	}
 
 	/**
@@ -2536,10 +2612,11 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions )
+	void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory )
 	{
 		// Store all the descriptions and their corresponding extensions in a map
-		TMultiMap<FString, FString> DescToExtensionMap;		
+		TMultiMap<FString, FString> DescToExtensionMap;
+		TMultiMap<FString, UFactory*> DescToFactory;
 
 		// Iterate over each factory, retrieving their supported file descriptions and extensions, and storing them into the map
 		for ( TArray<UFactory*>::TConstIterator FactoryIter(InFactories); FactoryIter; ++FactoryIter )
@@ -2556,6 +2633,7 @@ namespace ObjectTools
 			for ( int32 FormatIndex = 0; FormatIndex < Descriptions.Num() && FormatIndex < Extensions.Num(); ++FormatIndex )
 			{
 				DescToExtensionMap.AddUnique( Descriptions[FormatIndex], Extensions[FormatIndex ] );
+				DescToFactory.AddUnique( Descriptions[FormatIndex], *FactoryIter );
 			}
 		}
 		
@@ -2570,6 +2648,8 @@ namespace ObjectTools
 		TArray<FString> DescriptionKeyMap;
 		DescToExtensionMap.GetKeys( DescriptionKeyMap );
 		const TArray<FString>& DescriptionKeys = DescriptionKeyMap;
+
+		uint32 IdxFilter = 1; // the type list will start by an all supported files wildcard value
 
 		// Iterate over each unique map key, retrieving all of each key's associated values in order to populate the strings
 		for ( TArray<FString>::TConstIterator DescIter( DescriptionKeys ); DescIter; ++DescIter )
@@ -2605,7 +2685,18 @@ namespace ObjectTools
 					{
 						out_Filetypes += TEXT("|");
 					}
-					out_Filetypes += CurLine;	
+					out_Filetypes += CurLine;
+
+					// save the order in which descriptions are added to be able to identify 
+					// factories using filter index
+					TArray<UFactory*> Factories;
+					DescToFactory.MultiFind( CurDescription, Factories );
+					TArray<UFactory*>::TIterator FactIt(Factories);
+					for (;FactIt;++FactIt)
+					{
+						out_FilterIndexToFactory.Add( IdxFilter, *FactIt );
+					}
+					++IdxFilter;
 				}
 			}
 		}
@@ -3282,13 +3373,6 @@ namespace ThumbnailTools
 		}
 		check( RenderTargetResource != NULL );
 
-		// Manually call RHIBeginScene since we are issuing draw calls outside of the main rendering function
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			BeginCommand,
-		{
-			RHIBeginScene();
-		});
-
 		// Create a canvas for the render target and clear it to black
 		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime );
 		Canvas.Clear( FLinearColor::Black );
@@ -3384,7 +3468,7 @@ namespace ThumbnailTools
 					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 				{
 					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICopyToResolveTarget(
+					RHICmdList.CopyToResolveTarget(
 						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 						RenderTargetResource->TextureRHI,					// Dest texture
 						false,												// Do we need the source image content again?
@@ -3406,12 +3490,6 @@ namespace ThumbnailTools
 				}
 			}
 		}
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			EndCommand,
-		{
-			RHIEndScene();
-		});
 	}
 
 
@@ -3435,7 +3513,7 @@ namespace ThumbnailTools
 			if ( UMaterial* InMaterial = Cast<UMaterial>(InObject) )
 			{
 				const bool bAllowNewSlowTask = true;
-				FStatusMessageContext SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
+				FScopedSlowTask SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
 
 				// Block until the shader maps that we will save have finished being compiled
 				InMaterial->GetMaterialResource(GRHIFeatureLevel)->FinishCompilation();

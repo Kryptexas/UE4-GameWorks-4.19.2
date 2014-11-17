@@ -34,9 +34,9 @@ public:
 	}
 
 	/** ISourceControlLabel implementation */
-	virtual const FString& GetName() const OVERRIDE;
-	virtual bool GetFileRevisions( const TArray<FString>& InFiles, TArray< TSharedRef<ISourceControlRevision, ESPMode::ThreadSafe> >& OutRevisions ) const OVERRIDE;
-	virtual bool Sync( const FString& InFilename ) const OVERRIDE;
+	virtual const FString& GetName() const override;
+	virtual bool GetFileRevisions( const TArray<FString>& InFiles, TArray< TSharedRef<ISourceControlRevision, ESPMode::ThreadSafe> >& OutRevisions ) const override;
+	virtual bool Sync( const FString& InFilename ) const override;
 
 private:
 

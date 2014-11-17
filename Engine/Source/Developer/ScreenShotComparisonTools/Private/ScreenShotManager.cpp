@@ -33,7 +33,6 @@ void FScreenShotManager::CreateData()
 
 	// Root directory
 	FString PathName = FPaths::AutomationDir();
-	PathName += "AutomationTest/";
 
 	// Array to store the list of platforms
 	TArray<FString> TempPlatforms;
@@ -46,6 +45,8 @@ void FScreenShotManager::CreateData()
 		FString PathString = AllPNGFiles[PathIndex];
 		FString ChangeListName;
 		FString PathRemainder;
+
+		FPaths::MakePathRelativeTo(PathString, *PathName);
 
 		if (PathString.Split(TEXT("/"), &PathRemainder, &ChangeListName, ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
 		{
@@ -61,8 +62,9 @@ void FScreenShotManager::CreateData()
 				PathString = PathRemainder;
 				TempPlatforms.AddUnique( PlatformName );
 
-				FString ScreenShotName;
-				if ( PathString.Split(TEXT("/"), &PathRemainder, &ScreenShotName, ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
+				//Take the rest of the path as the screenshot name
+				FString ScreenShotName = PathString;
+				if ( !ScreenShotName.IsEmpty() )
 				{
  					FScreenShotDataItem ScreenItem( ScreenShotName, PlatformName, AllPNGFiles[PathIndex], ChangeListNumber );
  					ScreenShotDataArray.Add( ScreenItem );
@@ -148,6 +150,14 @@ void FScreenShotManager::SetFilter( TSharedPtr< ScreenShotFilterCollection > InF
 	ScreenFilterChangedDelegate.ExecuteIfBound();
 }
 
+void FScreenShotManager::SetDisplayEveryNthScreenshot(int32 NewNth)
+{
+	ScreenShotRoot->SetDisplayEveryNthScreenshot(NewNth);
+
+	// Update the UI
+	ScreenFilterChangedDelegate.ExecuteIfBound();
+}
+
 
 /* IScreenShotManager event handlers
  *****************************************************************************/
@@ -155,7 +165,7 @@ void FScreenShotManager::SetFilter( TSharedPtr< ScreenShotFilterCollection > InF
 void FScreenShotManager::HandleScreenShotMessage( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context )
 {
 	bool bTree = true;
-	FString FileName = FPaths::AutomationDir() + Message.ScreenShotName;
+	FString FileName = FPaths::RootDir() + Message.ScreenShotName;
 	IFileManager::Get().MakeDirectory( *FPaths::GetPath(FileName), bTree );
 	FFileHelper::SaveArrayToFile( Message.ScreenImage, *FileName );
 

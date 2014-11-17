@@ -20,9 +20,10 @@ public:
 	virtual ~SMiniCurveEditor();
 
 	// IAssetEditorInstance interface
-	virtual FName GetEditorName() const OVERRIDE;
-	virtual void FocusWindow(UObject* ObjectToFocusOn) OVERRIDE;
-	virtual bool CloseWindow() OVERRIDE;
+	virtual FName GetEditorName() const override;
+	virtual void FocusWindow(UObject* ObjectToFocusOn) override;
+	virtual bool CloseWindow() override;
+	virtual bool IsPrimaryEditor() const override { return true; };
 private:
 
 	float ViewMinInput;

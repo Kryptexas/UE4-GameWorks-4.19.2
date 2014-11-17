@@ -292,5 +292,48 @@ namespace UnrealBuildTool
 			}
 			return "";
 		}
+
+		/// <summary>
+		/// Get the project folder for the given project name
+		/// </summary>
+		/// <param name="InProjectName">Name of the project of interest</param>
+		/// <returns>The project filename, empty string if not found</returns>
+		public static List<string> GetEnabledPlugins(string ProjectFileName, List<string> DefaultEnabledPlugins, UnrealTargetPlatform Platform)
+		{
+			// Parse the project file
+			string ProjectFile = File.ReadAllText(ProjectFileName);
+			try
+			{
+				List<string> EnabledPlugins = new List<string>(DefaultEnabledPlugins);
+
+				// Create a case-insensitive dictionary of the contents
+				Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(ProjectFile);
+				Descriptor = new Dictionary<string,object>(Descriptor, StringComparer.InvariantCultureIgnoreCase);
+
+				// Get the list of plugins
+				object PluginsObject;
+				if(Descriptor.TryGetValue("Plugins", out PluginsObject))
+				{
+					object[] PluginsArrayObject = (object[])PluginsObject;
+					foreach(object PluginObject in PluginsArrayObject)
+					{
+						PluginReferenceDescriptor Plugin = PluginReferenceDescriptor.FromJson((Dictionary<string, object>)PluginObject);
+						if(Plugin.IsEnabledForPlatform(Platform))
+						{
+							EnabledPlugins.Add(Plugin.Name);
+						}
+						else
+						{
+							EnabledPlugins.RemoveAll(x => x.Equals(Plugin.Name, StringComparison.CurrentCultureIgnoreCase));
+						}
+					}
+				}
+				return EnabledPlugins;
+			}
+			catch(BuildException Exception)
+			{
+				throw new BuildException("While parsing '{0}': {1}", ProjectFileName, Exception.ToString());
+			}
+		}
 	}
 }

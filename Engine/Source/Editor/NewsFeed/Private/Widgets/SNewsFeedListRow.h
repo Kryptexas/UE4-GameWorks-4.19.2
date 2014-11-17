@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SNewsFeedListRow.h: Declares the SNewsFeedListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,7 +23,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The arguments.
+	 * @param InArgs The arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FNewsFeedCacheRef& InNewsFeedCache )
 	{
@@ -44,12 +40,11 @@ public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == TEXT("Icon"))
 		{
@@ -97,7 +92,7 @@ public:
 							SNew(STextBlock)
 								.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
-								.Text(FText::AsDate(NewsFeedItem->Issued.ToDate()))
+								.Text(FText::AsDate(NewsFeedItem->Issued))
 						]
 				]
 				

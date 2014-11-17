@@ -38,6 +38,7 @@ public:
 
 	SLATE_END_ARGS()
 
+	virtual ~SMenuAnchor();
 	
 	/**
 	 * Construct this widget
@@ -49,9 +50,14 @@ public:
 	SMenuAnchor();
 
 	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
+	/** See Content Slot attribute */
+	void SetContent(TSharedRef<SWidget> InContent);
+
+	/** See MenuContent attribute */
+	void SetMenuContent(TSharedRef<SWidget> InMenuContent);
 	
 	/**
 	 * Open or close the popup

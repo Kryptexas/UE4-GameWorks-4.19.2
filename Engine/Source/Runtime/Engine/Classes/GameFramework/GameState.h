@@ -91,7 +91,7 @@ public:
 	virtual void OnRep_MatchState();
 
 	// Begin AActor interface
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 	// End AActor interface
 
 	/** Helper to return the default object of the GameMode class corresponding to this GameState */

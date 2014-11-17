@@ -4,12 +4,18 @@
 StreamingPauseRendering.cpp: Streaming pause implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "StreamingPauseRendering.h"
 #include "SceneViewport.h"
 #include "MoviePlayer.h"
 
 IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRendering);
+
+static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
+	TEXT("r.RenderLastFrameInStreamingPause"),
+	1,
+	TEXT("If 1 the previous frame is displayed during streaming pause. If zero the screen is left black."),
+	ECVF_RenderThreadSafe);
 
 FStreamingPauseRenderingModule::FStreamingPauseRenderingModule()
 : Viewport(NULL)
@@ -58,8 +64,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 	);
 
 	//Render the current scene to a new viewport.
-	static const auto* CVarRenderLastFrameInStreamingPause = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderLastFrameInStreamingPause"));
-	if( CVarRenderLastFrameInStreamingPause && CVarRenderLastFrameInStreamingPause->GetValueOnGameThread() != 0 ) 
+	if (CVarRenderLastFrameInStreamingPause.GetValueOnGameThread() != 0)
 	{
 		ViewportClient = GameViewport->GetClient();
 
@@ -86,7 +91,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 			FViewport*,Viewport,Viewport.Get(),
 			//FIntPoint,InRestoreSize,RestoreSize,
 		{
-			Viewport->EndRenderFrame( false, false );
+			Viewport->EndRenderFrame(RHICmdList, false, false);
 		});
 	}
 

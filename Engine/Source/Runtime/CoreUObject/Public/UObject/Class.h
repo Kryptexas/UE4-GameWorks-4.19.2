@@ -62,8 +62,8 @@ class COREUOBJECT_API UField : public UObject
 	UField(EStaticConstructor, EObjectFlags InFlags);
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
 
 	// UField interface.
 	virtual void AddCppProperty( UProperty* Property );
@@ -165,6 +165,19 @@ class COREUOBJECT_API UField : public UObject
 
 	/**
 	* Find the metadata value associated with the key
+	* and return int32 
+	* @param Key The key to lookup in the metadata
+	* @return the int value stored in the metadata.
+	*/
+	int32 GetINTMetaData(const FName& Key) const
+	{
+		const FString & INTString = GetMetaData(Key);
+		int32 Value = FCString::Atoi(*INTString);
+		return Value;
+	}
+
+	/**
+	* Find the metadata value associated with the key
 	* and return float
 	* @param Key The key to lookup in the metadata
 	* @return the float value stored in the metadata.
@@ -177,7 +190,22 @@ class COREUOBJECT_API UField : public UObject
 		return Value;
 	}
 
+	/**
+	* Find the metadata value associated with the key
+	* and return float
+	* @param Key The key to lookup in the metadata
+	* @return the float value stored in the metadata.
+	*/
+	float GetFLOATMetaData(const FName& Key) const
+	{
+		const FString & FLOATString = GetMetaData(Key);
+		// FString == operator does case insensitive comparison
+		float Value = FCString::Atof(*FLOATString);
+		return Value;
+	}
+
 	UClass* GetClassMetaData(const TCHAR* Key) const;
+	UClass* GetClassMetaData(const FName& Key) const;
 
 	/** Clear any metadata associated with the key */
 	void RemoveMetaData(const TCHAR* Key);
@@ -231,13 +259,13 @@ public:
 	explicit UStruct(const class FPostConstructInitializeProperties& PCIP, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
 
 	// UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void RegisterDependencies() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void FinishDestroy() override;
+	virtual void RegisterDependencies() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	// UField interface.
-	virtual void AddCppProperty(UProperty* Property) OVERRIDE;
+	virtual void AddCppProperty(UProperty* Property) override;
 
 	/**
 	 * Creates new copies of components
@@ -274,7 +302,7 @@ public:
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 
 	/**
 	 * Returns the struct/ class prefix used for the C++ declaration of this struct/ class.
@@ -338,8 +366,11 @@ public:
 	}
 
 #if WITH_EDITOR
-	/** Try and find metadata with the given key. If not found on this class, work up hierarchy looking for it. */
+	/** Try and find boolean metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetBoolMetaDataHierarchical(const FName& Key) const;
+
+	/** Try and find string metadata with the given key. If not found on this class, work up hierarchy looking for it. */
+	bool GetStringMetaDataHierarchical(const FName& Key, FString* OutValue = nullptr) const;
 #endif
 };
 
@@ -529,7 +560,7 @@ FORCEINLINE typename TEnableIf<!TStructOpsTypeTraits<CPPSTRUCT>::WithCopy, bool>
 template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithCopy, bool>::Type CopyOrNot(CPPSTRUCT* Dest, CPPSTRUCT const* Src, int32 ArrayDim)
 {
-	checkAtCompileTime((!TIsPODType<CPPSTRUCT>::Value),you_probably_dont_want_custom_copy_for_a_pod_type); 
+	static_assert((!TIsPODType<CPPSTRUCT>::Value), "You probably don't want custom copy for a POD type.");
 	for (;ArrayDim;--ArrayDim)
 	{
 		*Dest++ = *Src++;
@@ -559,7 +590,7 @@ FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithAddStructRef
 template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithIdentical && TStructOpsTypeTraits<CPPSTRUCT>::WithIdenticalViaEquality, bool>::Type IdenticalOrNot(const CPPSTRUCT* A, const CPPSTRUCT* B, uint32 PortFlags, bool& bOutResult)
 {
-	checkAtCompileTime(sizeof(CPPSTRUCT) == 0,should_not_have_both_WithIdenticalViaEquality_and_WithIdentical);
+	static_assert(sizeof(CPPSTRUCT) == 0, "Should not have both WithIdenticalViaEquality and WithIdentical.");
 }
 
 template<class CPPSTRUCT>
@@ -775,124 +806,124 @@ public:
 			: ICppStructOps(sizeof(CPPSTRUCT), ALIGNOF(CPPSTRUCT))
 		{
 		}
-		virtual bool HasNoopConstructor() OVERRIDE
+		virtual bool HasNoopConstructor() override
 		{
 			return TTraits::WithNoInitConstructor;
 		}		
-		virtual bool HasZeroConstructor() OVERRIDE
+		virtual bool HasZeroConstructor() override
 		{
 			return TTraits::WithZeroConstructor;
 		}
-		virtual void Construct(void *Dest) OVERRIDE
+		virtual void Construct(void *Dest) override
 		{
 			check(!TTraits::WithZeroConstructor); // don't call this if we have indicated it is not necessary
 			// that could have been an if statement, but we might as well force optimization above the virtual call
 			// could also not attempt to call the constructor for types where this is not possible, but I didn't do that here
 			ConstructWithNoInitOrNot<CPPSTRUCT>(Dest);
 		}
-		virtual bool HasDestructor() OVERRIDE
+		virtual bool HasDestructor() override
 		{
 			return !(TTraits::WithNoDestructor || TIsPODType<CPPSTRUCT>::Value);
 		}
-		virtual void Destruct(void *Dest) OVERRIDE
+		virtual void Destruct(void *Dest) override
 		{
 			check(!(TTraits::WithNoDestructor || TIsPODType<CPPSTRUCT>::Value)); // don't call this if we have indicated it is not necessary
 			// that could have been an if statement, but we might as well force optimization above the virtual call
 			// could also not attempt to call the destructor for types where this is not possible, but I didn't do that here
 			((CPPSTRUCT*)Dest)->~CPPSTRUCT();
 		}
-		virtual bool HasSerializer() OVERRIDE
+		virtual bool HasSerializer() override
 		{
 			return TTraits::WithSerializer;
 		}
-		virtual bool Serialize(FArchive& Ar, void *Data) OVERRIDE
+		virtual bool Serialize(FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithSerializer); // don't call this if we have indicated it is not necessary
 			return SerializeOrNot(Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasPostSerialize() OVERRIDE
+		virtual bool HasPostSerialize() override
 		{
 			return TTraits::WithPostSerialize;
 		}
-		virtual void PostSerialize(const FArchive& Ar, void *Data) OVERRIDE
+		virtual void PostSerialize(const FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithPostSerialize); // don't call this if we have indicated it is not necessary
 			PostSerializeOrNot(Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasNetSerializer() OVERRIDE
+		virtual bool HasNetSerializer() override
 		{
 			return TTraits::WithNetSerializer;
 		}
-		virtual bool HasNetDeltaSerializer() OVERRIDE
+		virtual bool HasNetDeltaSerializer() override
 		{
 			return TTraits::WithNetDeltaSerializer;
 		}
-		virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess, void *Data) OVERRIDE
+		virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess, void *Data) override
 		{
 			return NetSerializeOrNot(Ar, Map, bOutSuccess, (CPPSTRUCT*)Data);
 		}
-		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) OVERRIDE
+		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) override
 		{
 			return NetDeltaSerializeOrNot(DeltaParms, (CPPSTRUCT*)Data);
 		}
-		virtual bool IsPlainOldData() OVERRIDE
+		virtual bool IsPlainOldData() override
 		{
 			return TIsPODType<CPPSTRUCT>::Value;
 		}
-		virtual bool HasCopy() OVERRIDE
+		virtual bool HasCopy() override
 		{
 			return TTraits::WithCopy;
 		}
-		virtual bool Copy(void* Dest, void const* Src, int32 ArrayDim) OVERRIDE
+		virtual bool Copy(void* Dest, void const* Src, int32 ArrayDim) override
 		{
 			return CopyOrNot((CPPSTRUCT*)Dest, (CPPSTRUCT const*)Src, ArrayDim);
 		}
-		virtual bool HasIdentical() OVERRIDE
+		virtual bool HasIdentical() override
 		{
 			return TTraits::WithIdentical || TTraits::WithIdenticalViaEquality;
 		}
-		virtual bool Identical(const void* A, const void* B, uint32 PortFlags, bool& bOutResult) OVERRIDE
+		virtual bool Identical(const void* A, const void* B, uint32 PortFlags, bool& bOutResult) override
 		{
 			check((TTraits::WithIdentical || TTraits::WithIdenticalViaEquality)); // don't call this if we have indicated it is not necessary
 			return IdenticalOrNot((const CPPSTRUCT*)A, (const CPPSTRUCT*)B, PortFlags, bOutResult);
 		}
-		virtual bool HasExportTextItem() OVERRIDE
+		virtual bool HasExportTextItem() override
 		{
 			return TTraits::WithExportTextItem;
 		}
-		virtual bool ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, class UObject* Parent, int32 PortFlags, class UObject* ExportRootScope) OVERRIDE
+		virtual bool ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, class UObject* Parent, int32 PortFlags, class UObject* ExportRootScope) override
 		{
 			check(TTraits::WithExportTextItem); // don't call this if we have indicated it is not necessary
 			return ExportTextItemOrNot(ValueStr, (const CPPSTRUCT*)PropertyValue, (const CPPSTRUCT*)DefaultValue, Parent, PortFlags, ExportRootScope);
 		}
-		virtual bool HasImportTextItem() OVERRIDE
+		virtual bool HasImportTextItem() override
 		{
 			return TTraits::WithImportTextItem;
 		}
-		virtual bool ImportTextItem(const TCHAR*& Buffer, void* Data, int32 PortFlags, class UObject* OwnerObject, FOutputDevice* ErrorText) OVERRIDE
+		virtual bool ImportTextItem(const TCHAR*& Buffer, void* Data, int32 PortFlags, class UObject* OwnerObject, FOutputDevice* ErrorText) override
 		{
 			check(TTraits::WithImportTextItem); // don't call this if we have indicated it is not necessary
 			return ImportTextItemOrNot(Buffer, (CPPSTRUCT*)Data, PortFlags, OwnerObject, ErrorText);
 		}
-		virtual bool HasAddStructReferencedObjects() OVERRIDE
+		virtual bool HasAddStructReferencedObjects() override
 		{
 			return TTraits::WithAddStructReferencedObjects;
 		}
-		virtual TPointerToAddStructReferencedObjects AddStructReferencedObjects() OVERRIDE
+		virtual TPointerToAddStructReferencedObjects AddStructReferencedObjects() override
 		{
 			check(TTraits::WithAddStructReferencedObjects); // don't call this if we have indicated it is not necessary
 			return &AddStructReferencedObjectsOrNot<CPPSTRUCT>;
 		}
-		virtual bool HasSerializeFromMismatchedTag() OVERRIDE
+		virtual bool HasSerializeFromMismatchedTag() override
 		{
 			return TTraits::WithSerializeFromMismatchedTag;
 		}
-		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) OVERRIDE
+		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithSerializeFromMismatchedTag); // don't call this if we have indicated it is not allowed
 			return SerializeFromMismatchedTagOrNot(Tag, Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasMessageHandling() OVERRIDE
+		virtual bool HasMessageHandling() override
 		{
 			return TTraits::WithMessageHandling;
 		}
@@ -934,11 +965,11 @@ private:
 public:
 
 	// UObject Interface
-	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual COREUOBJECT_API void PostLoad() OVERRIDE;
+	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) override;
+	virtual COREUOBJECT_API void PostLoad() override;
 
 	// UStruct interface.
-	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	// End of UStruct interface.
 
 	/** Stash a CppStructOps for future use 
@@ -950,14 +981,14 @@ public:
 	/** Look for the CppStructOps and hook it up **/
 	COREUOBJECT_API void PrepareCppStructOps();
 
-	FORCEINLINE ICppStructOps* GetCppStructOps()
+	FORCEINLINE ICppStructOps* GetCppStructOps() const
 	{
 		check(bPrepareCppStructOpsCompleted);
 		return CppStructOps;
 	}
 
 	/** return true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class **/
-	FORCEINLINE bool InheritedCppStructOps()
+	FORCEINLINE bool InheritedCppStructOps() const
 	{
 		check(bPrepareCppStructOpsCompleted);
 		return bCppStructOpsFromBaseClass;
@@ -974,7 +1005,7 @@ public:
 	 * If it is native, it is assumed to have defaults because it has a constructor
 	 * @return true if this struct has defaults
 	**/
-	FORCEINLINE bool HasDefaults()
+	FORCEINLINE bool HasDefaults() const
 	{
 		return !!GetCppStructOps();
 	}
@@ -984,7 +1015,7 @@ public:
 	 *
 	 * @param	Ar	Archive the struct is going to be serialized with later on
 	 */
-	bool ShouldSerializeAtomically( FArchive& Ar )
+	bool ShouldSerializeAtomically(FArchive& Ar) const
 	{
 		if( (StructFlags&STRUCT_Atomic) != 0)
 		{
@@ -1004,7 +1035,7 @@ public:
 	 * @param	PortFlags	Comparison flags
 	 * @return true if the structs are identical
 	 */
-	bool CompareScriptStruct( const void* A, const void* B, uint32 PortFlags );
+	bool CompareScriptStruct(const void* A, const void* B, uint32 PortFlags) const;
 
 	/**
 	 * Copy a struct over an existing struct
@@ -1014,7 +1045,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
+	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
 	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
 	 *
@@ -1022,7 +1053,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1);
+	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 	/**
 	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1030,7 +1061,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
-	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1);
+	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 	/**
 	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1038,11 +1069,60 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1);
+	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 };
 
+struct FStructOnScope
+{
+private:
+	TWeakObjectPtr<const UScriptStruct> ScriptStruct;
+	uint8* SampleStructMemory;
+
+	FStructOnScope(const FStructOnScope&);
+	FStructOnScope& operator=(const FStructOnScope&);
+
+public:
+	FStructOnScope(const UScriptStruct* InScriptStruct)
+		: ScriptStruct(InScriptStruct)
+		, SampleStructMemory(NULL)
+	{
+		if (ScriptStruct.IsValid())
+		{
+			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
+			ScriptStruct.Get()->InitializeScriptStruct(SampleStructMemory);
+		}
+	}
+
+	uint8* GetStructMemory() { return SampleStructMemory; }
+
+	const uint8* GetStructMemory() const { return SampleStructMemory; }
+
+	const UScriptStruct* GetStruct() const { return ScriptStruct.Get(); }
+
+	bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
+
+	void Destroy()
+	{
+		if (ScriptStruct.IsValid() && SampleStructMemory)
+		{
+			ScriptStruct.Get()->DestroyScriptStruct(SampleStructMemory);
+			ScriptStruct = NULL;
+		}
+
+		if (SampleStructMemory)
+		{
+			FMemory::Free(SampleStructMemory);
+			SampleStructMemory = NULL;
+		}
+	}
+
+	~FStructOnScope()
+	{
+		Destroy();
+	}
+};
 
 /*-----------------------------------------------------------------------------
 	UFunction.
@@ -1111,14 +1191,14 @@ public:
 	void InitializeDerivedMembers();
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	// UField interface.
-	virtual void Bind() OVERRIDE;
+	virtual void Bind() override;
 
 	// UStruct interface.
-	virtual UStruct* GetInheritanceSuper() const OVERRIDE { return NULL;}
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual UStruct* GetInheritanceSuper() const override { return NULL;}
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 
 	// UFunction interface.
 	UFunction* GetSuperFunction() const
@@ -1219,7 +1299,7 @@ protected:
 
 public:
 	// UObject interface.
-	COREUOBJECT_API virtual void Serialize(FArchive& Ar) OVERRIDE;
+	COREUOBJECT_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface.
 
 	COREUOBJECT_API ~UEnum();
@@ -1648,6 +1728,8 @@ public:
 	// List of network relevant fields (properties and functions)
 	TArray<UField*> NetFields;
 
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all classes have stable net names
+
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
@@ -1694,8 +1776,20 @@ public:
 	 **/
 	TArray<FImplementedInterface> Interfaces;
 
+	/**
+	 * Prepends reference token stream with super class's stream.
+	 *
+	 * @param SuperClass Super class to prepend stream with.
+	 */
+	void PrependStreamWithSuperClass(UClass& SuperClass);
+
 	/** Reference token stream used by realtime garbage collector, finalized in AssembleReferenceTokenStream */
 	FGCReferenceTokenStream ReferenceTokenStream;
+
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+	/* TokenIndex map to look-up token stream index origin. */
+	FGCDebugReferenceTokenMap DebugTokenMap;
+#endif
 
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;
@@ -1759,27 +1853,27 @@ public:
 	UFunction* FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper = EIncludeSuperFlag::IncludeSuper) const;
 
 	// UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* Name) OVERRIDE;
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void FinishDestroy() override;
+	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* Name) override;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
+	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual FRestoreForUObjectOverwrite* GetRestoreForUObjectOverwrite() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual FRestoreForUObjectOverwrite* GetRestoreForUObjectOverwrite() override;
+	virtual FString GetDesc() override;
+	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface.
 
 	// UField interface.
-	virtual void Bind() OVERRIDE;
-	virtual const TCHAR* GetPrefixCPP() const OVERRIDE;
+	virtual void Bind() override;
+	virtual const TCHAR* GetPrefixCPP() const override;
 	// End of UField interface.
 
 	// UStruct interface.
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
-	virtual void SetSuperStruct(UStruct* NewSuperStruct) OVERRIDE;
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual void SetSuperStruct(UStruct* NewSuperStruct) override;
 	// End of UStruct interface.
 	
 	/**
@@ -1914,28 +2008,32 @@ public:
 	 * Realtime garbage collection helper function used to emit token containing information about a 
 	 * direct UObject reference at the passed in offset.
 	 *
-	 * @param Offset	offset into object at which object reference is stored
+	 * @param Offset	Offset into object at which object reference is stored.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Kind		Optional parameter the describe the type of the reference.
 	 */
-	void EmitObjectReference(int32 Offset, EGCReferenceType Kind = GCRT_Object);
+	void EmitObjectReference(int32 Offset, const FName& DebugName, EGCReferenceType Kind = GCRT_Object);
 
 	/**
 	 * Realtime garbage collection helper function used to emit token containing information about a 
 	 * an array of UObject references at the passed in offset. Handles both TArray and TTransArray.
 	 *
-	 * @param Offset	offset into object at which array of objects is stored
+	 * @param Offset	Offset into object at which array of objects is stored.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
 	 */
-	void EmitObjectArrayReference(int32 Offset);
+	void EmitObjectArrayReference(int32 Offset, const FName& DebugName);
 
 	/**
 	 * Realtime garbage collection helper function used to indicate an array of structs at the passed in 
 	 * offset.
 	 *
-	 * @param Offset	offset into object at which array of structs is stored
-	 * @param Stride	size/ stride of struct
-	 * @return	index into token stream at which later on index to next token after the array is stored
+	 * @param Offset	Offset into object at which array of structs is stored
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Stride	Size/stride of struct
+	 * @return	Index into token stream at which later on index to next token after the array is stored
 	 *			which is used to skip over empty dynamic arrays
 	 */
-	uint32 EmitStructArrayBegin(int32 Offset, int32 Stride);
+	uint32 EmitStructArrayBegin(int32 Offset, const FName& DebugName, int32 Stride);
 
 	/**
 	 * Realtime garbage collection helper function used to indicate the end of an array of structs. The
@@ -1950,11 +2048,12 @@ public:
 	 * Realtime garbage collection helper function used to indicate the beginning of a fixed array.
 	 * All tokens issues between Begin and End will be replayed Count times.
 	 *
-	 * @param Offset	offset at which fixed array starts
-	 * @param Stride	Stride of array element, e.g. sizeof(struct) or sizeof(UObject*)
-	 * @param Count		fixed array count
+	 * @param Offset	Offset at which fixed array starts.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Stride	Stride of array element, e.g. sizeof(struct) or sizeof(UObject*).
+	 * @param Count		Fixed array count.
 	 */
-	void EmitFixedArrayBegin(int32 Offset, int32 Stride, int32 Count);
+	void EmitFixedArrayBegin(int32 Offset, const FName& DebugName, int32 Stride, int32 Count);
 	
 	/**
 	 * Realtime garbage collection helper function used to indicated the end of a fixed array.

@@ -1,17 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorPrivatePCH.h: Pre-compiled header file for the TextureEditor module.
-=============================================================================*/
+#pragma once
 
-#ifndef TEXTURE_EDITOR_PRIVATEPCH_H
-#define TEXTURE_EDITOR_PRIVATEPCH_H
+#include "TextureEditor.h"
 
 
-#include "../Public/TextureEditor.h"
-
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "CubemapUnwrapUtils.h"
@@ -36,6 +30,7 @@ const double MaxZoom = 16.0;
 const double MinZoom = 0.01;
 const double ZoomStep = 0.1;
 
+
 #include "TextureEditorCommands.h"
 #include "TextureEditorSettings.h"
 #include "TextureEditorViewOptionsMenu.h"
@@ -43,6 +38,3 @@ const double ZoomStep = 0.1;
 #include "STextureEditorViewport.h"
 #include "TextureEditorViewportClient.h"
 #include "TextureEditorToolkit.h"
-
-
-#endif

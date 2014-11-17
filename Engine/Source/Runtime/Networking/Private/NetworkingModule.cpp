@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkingModule.cpp: Implements the FNetworkingModule class.
-=============================================================================*/
-
 #include "NetworkingPrivatePCH.h"
-
 #include "ModuleManager.h"
 
 

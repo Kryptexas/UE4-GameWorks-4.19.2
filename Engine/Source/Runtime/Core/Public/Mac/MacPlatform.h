@@ -29,7 +29,7 @@ typedef FMacPlatformTypes FPlatformTypes;
 #define PLATFORM_LITTLE_ENDIAN						1
 //#define PLATFORM_EXCEPTIONS_DISABLED				!PLATFORM_DESKTOP
 #define PLATFORM_SUPPORTS_PRAGMA_PACK				1
-//#define PLATFORM_ENABLE_VECTORINTRINSICS			0
+#define PLATFORM_ENABLE_VECTORINTRINSICS			1
 //#define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR			1
 #define PLATFORM_USE_SYSTEM_VSWPRINTF				0
 #define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			1
@@ -52,8 +52,6 @@ typedef FMacPlatformTypes FPlatformTypes;
 #define TEXT_HELPER(a,b)	a ## b
 #define TEXT(s)				TEXT_HELPER(L, s)
 
-#define OVERRIDE override
-#define FINAL
 #define ABSTRACT abstract
 
 // Alignment.

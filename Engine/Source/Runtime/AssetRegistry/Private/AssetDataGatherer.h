@@ -13,10 +13,10 @@ public:
 	virtual ~FAssetDataGatherer();
 
 	// FRunnable implementation
-	virtual bool Init() OVERRIDE;
-	virtual uint32 Run() OVERRIDE;
-	virtual void Stop() OVERRIDE;
-	virtual void Exit() OVERRIDE;
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override;
 
 	/** Signals to end the thread and waits for it to close before returning */
 	void EnsureCompletion();

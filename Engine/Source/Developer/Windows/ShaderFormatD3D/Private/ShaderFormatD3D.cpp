@@ -15,9 +15,9 @@ class FShaderFormatD3D : public IShaderFormat
 	enum
 	{
 		/** Version for shader format, this becomes part of the DDC key. */
-		UE_SHADER_PCD3D_SM5_VER = 0,
-		UE_SHADER_PCD3D_SM4_VER = 0,
-		UE_SHADER_PCD3D_ES2_VER = 0
+		UE_SHADER_PCD3D_SM5_VER = 2,
+		UE_SHADER_PCD3D_SM4_VER = 2,
+		UE_SHADER_PCD3D_ES2_VER = 2
 	};
 
 	void CheckFormat(FName Format) const
@@ -26,7 +26,7 @@ class FShaderFormatD3D : public IShaderFormat
 	}
 
 public:
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		CheckFormat(Format);
 		if (Format == NAME_PCD3D_SM5) 

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-
+#include "TextEditHelper.h"
 
 /** Constructor */
 SVirtualKeyboardEntry::SVirtualKeyboardEntry()
@@ -123,22 +123,6 @@ void SVirtualKeyboardEntry::Tick( const FGeometry& AllottedGeometry, const doubl
 }
 
 /**
- * Gets the height of the largest character in the font
- *
- * @return  The fonts height
- */
-float SVirtualKeyboardEntry::GetFontHeight() const
-{
-	// Take a local copy of the FontInfo and remove any flags that could affect the outcome in a negative way
-	FSlateFontInfo FontCopy = Font.Get();
-
-	// Aesthetic choice: editable text can use a little more room, and should never be smaller than a W of the font.
-	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const FVector2D FontSize = FontMeasureService->Measure( FString(TEXT("W")), FontCopy );
-	return FontSize.Y;
-}
-
-/**
  * Computes the desired size of this widget (SWidget)
  *
  * @return  The widget's desired size
@@ -148,7 +132,7 @@ FVector2D SVirtualKeyboardEntry::ComputeDesiredSize() const
 	const FSlateFontInfo& FontInfo = Font.Get();
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
-	const float FontMaxCharHeight = GetFontHeight();
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
 
 	FVector2D TextSize;
 
@@ -195,7 +179,7 @@ int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const F
 	const FString VisibleText = GetStringToRender();
 	const FLinearColor ThisColorAndOpacity = ColorAndOpacity.Get().GetColor(InWidgetStyle);
 	const FColor ColorAndOpacitySRGB = ThisColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint();
-	const float FontMaxCharHeight = GetFontHeight();
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
 	const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 
 	// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned

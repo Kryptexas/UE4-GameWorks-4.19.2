@@ -11,12 +11,12 @@ public:
 	void Construct(const FArguments& InArgs, UK2Node* InNode);
 
 	// SNodePanel::SNode interface
-	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const OVERRIDE;
+	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const override;
 	// End of SNodePanel::SNode interface
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
-	virtual void CreateBelowWidgetControls(TSharedPtr<SVerticalBox> MainBox) OVERRIDE;
+	virtual void UpdateGraphNode() override;
+	virtual void CreateBelowWidgetControls(TSharedPtr<SVerticalBox> MainBox) override;
 	// End of SGraphNode interface
 
 protected:

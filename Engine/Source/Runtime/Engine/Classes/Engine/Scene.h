@@ -828,7 +828,8 @@ struct FPostProcessSettings
 		AutoExposureSpeedDown = 1.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
-		LensFlareIntensity = 1.0f;
+		// Note: We changed this from 1.0f to 0.0f for a faster default.
+		LensFlareIntensity = 0.0f;
 		LensFlareTint = FLinearColor(1.0f, 1.0f, 1.0f);
 		LensFlareBokehSize = 3.0f;
 		LensFlareThreshold = 8.0f;

@@ -229,7 +229,6 @@ void FMacPlatformSplash::Show()
 					const FText PlatformBits = FText::FromString( TEXT( "32" ) );
 #endif	//PLATFORM_64BITS
 
-					const FText GameName = FText::FromString( FApp::GetGameName() );
 					const FText Version = FText::FromString( GEngineVersion.ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 
 					FText VersionInfo = FText::Format( NSLOCTEXT("UnrealEd", "UnrealEdTitleWithVersion_F", "Unreal Editor - {0} ({1}-bit) [Version {2}]" ), GameName, PlatformBits, Version );

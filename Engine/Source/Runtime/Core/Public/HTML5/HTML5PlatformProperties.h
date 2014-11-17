@@ -18,11 +18,6 @@
 struct FHTML5PlatformProperties
 	: public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "HTML5";
-	}
-
 	static FORCEINLINE const char* GetPhysicsFormat( )
 	{
 		return "PhysXPC";
@@ -76,5 +71,10 @@ struct FHTML5PlatformProperties
 	static FORCEINLINE bool HasFixedResolution()
 	{
 		return false;
+	}
+
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
 	}
 };

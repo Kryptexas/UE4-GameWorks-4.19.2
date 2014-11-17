@@ -7,13 +7,19 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
+#include "AnimTree.h"
+#include "Animation/AnimNode_StateMachine.h"
+#include "GameFramework/Character.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
-
 #include "MessageLog.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AnimComposite.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimMontage.h"
 
 /** Anim stats */
-
 
 DEFINE_STAT(STAT_UpdateSkelMeshBounds);
 DEFINE_STAT(STAT_MeshObjectUpdate);
@@ -35,10 +41,15 @@ DEFINE_STAT(STAT_InterpolateSkippedFrames);
 DEFINE_STAT(STAT_AnimTickTime);
 DEFINE_STAT(STAT_SkinnedMeshCompTick);
 DEFINE_STAT(STAT_TickUpdateRate);
+DEFINE_STAT(STAT_PerformAnimEvaluation);
+DEFINE_STAT(STAT_PostAnimEvaluation);
 
 DEFINE_STAT(STAT_AnimStateMachineUpdate);
 DEFINE_STAT(STAT_AnimStateMachineFindTransition);
 DEFINE_STAT(STAT_AnimStateMachineEvaluate);
+
+DEFINE_STAT(STAT_SkinPerPolyVertices);
+DEFINE_STAT(STAT_UpdateTriMeshVertices);
 
 // Define AnimNotify
 DEFINE_LOG_CATEGORY(LogAnimNotify);
@@ -683,9 +694,9 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		{
 			FIndenter NotifyIndent(Indent);
 
-			const FAnimNotifyEvent* NotifyState = ActiveAnimNotifyState[NotifyIndex];
+			const FAnimNotifyEvent& NotifyState = ActiveAnimNotifyState[NotifyIndex];
 
-			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState->NotifyName.ToString(), *NotifyState->NotifyStateClass->GetName(), NotifyState->Duration);
+			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState.NotifyName.ToString(), *NotifyState.NotifyStateClass->GetName(), NotifyState.Duration);
 			Canvas->DrawText(RenderFont, NotifyEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
@@ -1051,11 +1062,12 @@ void UAnimInstance::AddCurveValue(const FName & CurveName, float Value, int32 Cu
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
-	TArray<const FAnimNotifyEvent *> NewActiveAnimNotifyState;
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
 
-	// Remove NULL entries.
-	ActiveAnimNotifyState.RemoveSwap(NULL);
+	// Array that will replace the 'ActiveAnimNotifyState' at the end of this function.
+	TArray<FAnimNotifyEvent> NewActiveAnimNotifyState;
+	// AnimNotifyState freshly added that need their 'NotifyBegin' event called.
+	TArray<const FAnimNotifyEvent *> NotifyStateBeginEvent;
 
 	for (int32 Index=0; Index<AnimNotifies.Num(); Index++)
 	{
@@ -1064,11 +1076,12 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 		// AnimNotifyState
 		if( AnimNotifyEvent->NotifyStateClass )
 		{
-			if( !ActiveAnimNotifyState.RemoveSingleSwap(AnimNotifyEvent) )
+			if( !ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent) )
 			{
-				AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+				// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
+				NotifyStateBeginEvent.Add(AnimNotifyEvent);
 			}
-			NewActiveAnimNotifyState.Add(AnimNotifyEvent);
+			NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
 			continue;
 		}
 
@@ -1115,18 +1128,25 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	// Send end notification to AnimNotifyState not active anymore.
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
-		const FAnimNotifyEvent * AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent->NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
+		AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()));
+	}
+
+	// Call 'NotifyBegin' event on freshly added AnimNotifyState.
+	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
+	{
+		const FAnimNotifyEvent * AnimNotifyEvent = NotifyStateBeginEvent[Index];
+		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
 	}
 
 	// Switch our arrays.
-	ActiveAnimNotifyState = NewActiveAnimNotifyState;
+	ActiveAnimNotifyState = MoveTemp(NewActiveAnimNotifyState);
 
 	// Tick currently active AnimNotifyState
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
-		const FAnimNotifyEvent * AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent->NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()), DeltaSeconds);
+		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
+		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
 	}
 }
 
@@ -1926,42 +1946,12 @@ void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 // 
 void UAnimInstance::LockAIResources(bool bLockMovement, bool LockAILogic)
 {
-	APawn* PawnOwner = TryGetPawnOwner();
-	if (PawnOwner)
-	{
-		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
-		if( OwningAI )
-		{
-			if (bLockMovement && OwningAI->PathFollowingComponent)
-			{
-				OwningAI->PathFollowingComponent->LockResource(EAILockSource::Animation);
-			}
-			if (LockAILogic && OwningAI->BrainComponent)
-			{
-				OwningAI->BrainComponent->LockResource(EAILockSource::Animation);
-			}			
-		}
-	}
+	UE_LOG(LogAnimation, Error, TEXT("%s: LockAIResources is no longer supported. Please use LockAIResourcesWithAnimation instead."), *GetName());	
 }
 
 void UAnimInstance::UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic)
 {
-	APawn* PawnOwner = TryGetPawnOwner();
-	if (PawnOwner)
-	{
-		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
-		if( OwningAI )
-		{
-			if (bUnlockMovement && OwningAI->PathFollowingComponent)
-			{
-				OwningAI->PathFollowingComponent->ClearResourceLock(EAILockSource::Animation);
-			}
-			if (UnlockAILogic && OwningAI->BrainComponent)
-			{
-				OwningAI->BrainComponent->ClearResourceLock(EAILockSource::Animation);
-			}			
-		}
-	}
+	UE_LOG(LogAnimation, Error, TEXT("%s: UnlockAIResources is no longer supported. Please use UnlockAIResourcesWithAnimation instead."), *GetName());
 }
 
 #undef LOCTEXT_NAMESPACE 

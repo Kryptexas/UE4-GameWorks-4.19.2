@@ -5,9 +5,13 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Foliage/FoliageType_InstancedStaticMesh.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -17,79 +21,77 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogInstancedFoliage, Log, All);
 
-IMPLEMENT_HIT_PROXY(HInstancedStaticMeshInstance,HHitProxy);
+IMPLEMENT_HIT_PROXY(HInstancedStaticMeshInstance, HHitProxy);
 
 //
 // Serializers for struct data
 //
 
-FArchive& operator<<( FArchive& Ar, FFoliageInstance& Instance )
+FArchive& operator<<(FArchive& Ar, FFoliageInstance& Instance)
 {
 	Ar << Instance.Base;
 	Ar << Instance.Location;
 	Ar << Instance.Rotation;
 	Ar << Instance.DrawScale3D;
-		Ar << Instance.ClusterIndex;
-		Ar << Instance.PreAlignRotation;
-		Ar << Instance.Flags;
-		Ar << Instance.ZOffset;
+	Ar << Instance.ClusterIndex;
+	Ar << Instance.PreAlignRotation;
+	Ar << Instance.Flags;
+	Ar << Instance.ZOffset;
 	return Ar;
 }
 
-FArchive& operator<<( FArchive& Ar, FFoliageInstanceCluster& Cluster )
+FArchive& operator<<(FArchive& Ar, FFoliageInstanceCluster& Cluster)
 {
 	Ar << Cluster.Bounds;
 	Ar << Cluster.ClusterComponent;
 
-	//!! editor only
-	Ar << Cluster.InstanceIndices;
+#if WITH_EDITORONLY_DATA
+	if (!Ar.ArIsFilterEditorOnly ||
+		Ar.UE4Ver() < VER_UE4_FOLIAGE_SETTINGS_TYPE)
+	{
+		Ar << Cluster.InstanceIndices;
+	}
+#endif
 
 	return Ar;
 }
 
-FArchive& operator<<( FArchive& Ar, FFoliageMeshInfo& MeshInfo )
+FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo)
 {
 	Ar << MeshInfo.InstanceClusters;
-	//!! editor only
-	Ar << MeshInfo.Instances;
+
+#if WITH_EDITORONLY_DATA
+	if (!Ar.ArIsFilterEditorOnly ||
+		Ar.UE4Ver() < VER_UE4_FOLIAGE_SETTINGS_TYPE)
+	{
+		Ar << MeshInfo.Instances;
+	}
 
 	// Serialize the transient data for undo.
-	if( Ar.IsTransacting() )
+	if (Ar.IsTransacting())
 	{
 		Ar << *MeshInfo.InstanceHash;
 		Ar << MeshInfo.ComponentHash;
 		Ar << MeshInfo.FreeInstanceIndices;
 		Ar << MeshInfo.SelectedIndices;
 	}
-
-		Ar << MeshInfo.Settings;
+#endif
 
 	return Ar;
 }
 
-FArchive& operator<<( FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo )
+FArchive& operator<<(FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo)
 {
 	return Ar << ComponentHashInfo.CachedLocation << ComponentHashInfo.CachedRotation << ComponentHashInfo.CachedDrawScale << ComponentHashInfo.Instances;
 }
 
 //
-// UInstancedFoliageSettings
+// UFoliageType
 //
 
-UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructInitializeProperties& PCIP)
+UFoliageType::UFoliageType(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FName NAME_None;
-		FConstructorStatics()
-			: NAME_None(TEXT("None"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	Density = 100.0f;
 	Radius = 0.0f;
 	AlignToNormal = true;
@@ -108,7 +110,7 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	HeightMax = 262144.0f;
 	ZOffsetMin = 0.0f;
 	ZOffsetMax = 0.0f;
-	LandscapeLayer = ConstructorStatics.NAME_None;
+	LandscapeLayer = NAME_None;
 	MaxInstancesPerCluster = 100;
 	MaxClusterRadius = 10000.0f;
 	DisplayOrder = 0;
@@ -122,73 +124,55 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
-	// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
-	// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
-	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 	CastShadow = true;
-	//bCastDynamicShadow = true;
-	//bCastStaticShadow = true;
+	bCastDynamicShadow = true;
+	bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
+	bReceivesDecals = false;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+}
+
+UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	Mesh = nullptr;
 }
 
 //
 // FFoliageMeshInfo
 //
 FFoliageMeshInfo::FFoliageMeshInfo()
-:	InstanceHash(NULL)
-,	Settings(NULL)
-{
-	if( GIsEditor )
-	{
-		InstanceHash = new FFoliageInstanceHash();
-	}
-}
+#if WITH_EDITOR
+	: InstanceHash(GIsEditor ? new FFoliageInstanceHash() : nullptr)
+#endif
+{ }
 
-FFoliageMeshInfo::FFoliageMeshInfo(const FFoliageMeshInfo& Other)
-:	InstanceHash(NULL)
-,	Settings(NULL)
-{
-	if( GIsEditor )
-	{
-		InstanceHash = new FFoliageInstanceHash();
-	}	
-}
-
-FFoliageMeshInfo::~FFoliageMeshInfo()
-{
-	if( GIsEditor )
-	{
-		delete InstanceHash;
-	}
-}
 
 #if WITH_EDITOR
-
 
 void FFoliageMeshInfo::CheckValid()
 {
 #if DO_FOLIAGE_CHECK
-	int32 ClusterTotal=0;
-	int32 ComponentTotal=0;
+	int32 ClusterTotal = 0;
+	int32 ComponentTotal = 0;
 
-	for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+	for (FFoliageInstanceCluster& Cluster : InstanceClusters)
 	{
-		check( InstanceClusters[ClusterIdx].ClusterComponent != NULL);
-		ClusterTotal += InstanceClusters[ClusterIdx].InstanceIndices.Num();
-		ComponentTotal += InstanceClusters[ClusterIdx].ClusterComponent->PerInstanceSMData.Num();
+		check(Cluster.ClusterComponent != nullptr);
+		ClusterTotal += Cluster.InstanceIndices.Num();
+		ComponentTotal += Cluster.ClusterComponent->PerInstanceSMData.Num();
 	}
 
-	check( ClusterTotal == ComponentTotal );
+	check(ClusterTotal == ComponentTotal);
 
 	int32 FreeTotal = 0;
 	int32 InstanceTotal = 0;
-	for( int32 InstanceIdx=0; InstanceIdx<Instances.Num(); InstanceIdx++ )
+	for (int32 InstanceIdx = 0; InstanceIdx < Instances.Num(); InstanceIdx++)
 	{
-		if( Instances[InstanceIdx].ClusterIndex != -1 )
+		if (Instances[InstanceIdx].ClusterIndex != -1)
 		{
 			InstanceTotal++;
 		}
@@ -204,7 +188,7 @@ void FFoliageMeshInfo::CheckValid()
 	InstanceHash->CheckInstanceCount(InstanceTotal);
 
 	int32 ComponentHashTotal = 0;
-	for( TMap<class UActorComponent*, FFoliageComponentHashInfo >::TConstIterator It(ComponentHash); It; ++It )
+	for( TMap<UActorComponent*, FFoliageComponentHashInfo >::TConstIterator It(ComponentHash); It; ++It )
 	{
 		ComponentHashTotal += It.Value().Instances.Num();
 	}
@@ -221,12 +205,12 @@ void FFoliageMeshInfo::CheckValid()
 		{
 			int32 InstanceIdx = Indices(InstIdx);
 
-			FMatrix InstanceTransform = Instances(InstanceIdx).GetInstanceTransform();
-			FMatrix& CompTransform = Comp->PerInstanceSMData(InstIdx).Transform;
-			
-			if( InstanceTransform != CompTransform )
+			FTransform InstanceToWorldEd = Instances(InstanceIdx).GetInstanceTransform();
+			FTransform InstanceToWorldCluster = Comp->PerInstanceSMData(InstIdx).Transform * Comp->GetComponentToWorld();
+
+			if( !InstanceToWorldEd.Equals(InstanceToWorldCluster) )
 			{
-				CompTransform = InstanceTransform;
+				Comp->PerInstanceSMData(InstIdx).Transform = InstanceToWorldEd.ToMatrixWithScale();
 				MismatchCount++;
 			}
 		}
@@ -241,7 +225,7 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
-void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* InMesh, const FFoliageInstance& InNewInstance )
+void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance)
 {
 	InIFA->Modify();
 
@@ -254,27 +238,27 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 	// Add the instance to the hash
 	InstanceHash->InsertInstance(InNewInstance.Location, InstanceIndex);
 	FFoliageComponentHashInfo* ComponentHashInfo = ComponentHash.Find(InNewInstance.Base);
-	if( ComponentHashInfo == NULL )
+	if (ComponentHashInfo == nullptr)
 	{
 		ComponentHashInfo = &ComponentHash.Add(InNewInstance.Base, FFoliageComponentHashInfo(InNewInstance.Base));
 	}
 	ComponentHashInfo->Instances.Add(InstanceIndex);
 
 	// Find the best cluster to allocate the instance to.
-	FFoliageInstanceCluster* BestCluster = NULL;
+	FFoliageInstanceCluster* BestCluster = nullptr;
 	int32 BestClusterIndex = INDEX_NONE;
 	float BestClusterDistSq = FLT_MAX;
 
-	int32 MaxInstancesPerCluster = Settings->MaxInstancesPerCluster;
-	float MaxClusterRadiusSq = FMath::Square(Settings->MaxClusterRadius);
+	int32 MaxInstancesPerCluster = InSettings->MaxInstancesPerCluster;
+	float MaxClusterRadiusSq = FMath::Square(InSettings->MaxClusterRadius);
 
-	for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+	for (int32 ClusterIdx = 0; ClusterIdx < InstanceClusters.Num(); ClusterIdx++)
 	{
 		FFoliageInstanceCluster& Cluster = InstanceClusters[ClusterIdx];
-		if( Cluster.InstanceIndices.Num() < MaxInstancesPerCluster )
+		if (Cluster.InstanceIndices.Num() < MaxInstancesPerCluster)
 		{
 			float DistSq = (Cluster.Bounds.Origin - InNewInstance.Location).SizeSquared();
-			if( DistSq < BestClusterDistSq && DistSq < MaxClusterRadiusSq )
+			if (DistSq < BestClusterDistSq && DistSq < MaxClusterRadiusSq)
 			{
 				BestCluster = &Cluster;
 				BestClusterIndex = ClusterIdx;
@@ -284,40 +268,39 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 	}
 
 	// Calculate transform for the instance
-	FMatrix InstanceTransform = InNewInstance.GetInstanceTransform();
+	FTransform InstanceToWorld = InNewInstance.GetInstanceWorldTransform();
 
-	if( BestCluster == NULL )
+	if (BestCluster == nullptr)
 	{
 		BestClusterIndex = InstanceClusters.Num();
-		BestCluster = new(InstanceClusters) FFoliageInstanceCluster(
-			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),InIFA,NAME_None,RF_Transactional),
-			InMesh->GetBounds().TransformBy(InstanceTransform)
+		BestCluster = new(InstanceClusters)FFoliageInstanceCluster(
+			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), InIFA, NAME_None, RF_Transactional),
+			InSettings->GetStaticMesh()->GetBounds().TransformBy(InstanceToWorld)
 			);
 
 		// Make the instanced static mesh component movable so it doesn't get statically lit; see the comment below about CastShadow for more details
 		BestCluster->ClusterComponent->Mobility = EComponentMobility::Movable;
 
-		BestCluster->ClusterComponent->StaticMesh = InMesh;
+		BestCluster->ClusterComponent->StaticMesh = InSettings->GetStaticMesh();
 		BestCluster->ClusterComponent->bSelectable = true;
 		BestCluster->ClusterComponent->bHasPerInstanceHitProxies = true;
 		BestCluster->ClusterComponent->InstancingRandomSeed = FMath::Rand();
-		BestCluster->ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
-		BestCluster->ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
+		BestCluster->ClusterComponent->InstanceStartCullDistance = InSettings->StartCullDistance;
+		BestCluster->ClusterComponent->InstanceEndCullDistance = InSettings->EndCullDistance;
 
-		// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
-		// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
-		// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
-		BestCluster->ClusterComponent->CastShadow = Settings->CastShadow;
-		BestCluster->ClusterComponent->bCastDynamicShadow = true; //Settings->bCastDynamicShadow;
-		BestCluster->ClusterComponent->bCastStaticShadow = false; //Settings->bCastStaticShadow;
-		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = Settings->bAffectDynamicIndirectLighting;
-		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
-		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;
+		BestCluster->ClusterComponent->CastShadow = InSettings->CastShadow;
+		BestCluster->ClusterComponent->bCastDynamicShadow = InSettings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastStaticShadow = InSettings->bCastStaticShadow;
+		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = InSettings->bAffectDynamicIndirectLighting;
+		BestCluster->ClusterComponent->bCastHiddenShadow = InSettings->bCastHiddenShadow;
+		BestCluster->ClusterComponent->bCastShadowAsTwoSided = InSettings->bCastShadowAsTwoSided;
+		BestCluster->ClusterComponent->bReceivesDecals = InSettings->bReceivesDecals;
 
-		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&Settings->BodyInstance);
+		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
 
-		BestCluster->ClusterComponent->SetRelativeTransform(FTransform::Identity);
+		BestCluster->ClusterComponent->AttachTo(InIFA->GetRootComponent());
 		BestCluster->ClusterComponent->RegisterComponent();
+		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
 	}
 	else
 	{
@@ -329,28 +312,28 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 
 	// Save the cluster index
 	AddedInstance.ClusterIndex = BestClusterIndex;
-	
-	// Add the instance to the component
-	BestCluster->ClusterComponent->AddInstance(FTransform(InstanceTransform));
 
-	if( BestCluster->ClusterComponent->SelectedInstances.Num() > 0 )
+	// Add the instance to the component
+	BestCluster->ClusterComponent->AddInstanceWorldSpace(InstanceToWorld);
+
+	if (BestCluster->ClusterComponent->SelectedInstances.Num() > 0)
 	{
 		BestCluster->ClusterComponent->SelectedInstances.Add(false);
 	}
 
 	// Update the bounds for the cluster
-	BestCluster->Bounds = BestCluster->ClusterComponent->CalcBounds(FTransform::Identity);
+	BestCluster->Bounds = BestCluster->ClusterComponent->CalcBounds(BestCluster->ClusterComponent->ComponentToWorld);
 
 	// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
 	// it is based on the center of the component's bounds.
-	float CullDistance = Settings->EndCullDistance > 0 ? (float)Settings->EndCullDistance + BestCluster->Bounds.SphereRadius : 0.f;
+	float CullDistance = InSettings->EndCullDistance > 0 ? (float)InSettings->EndCullDistance + BestCluster->Bounds.SphereRadius : 0.f;
 	BestCluster->ClusterComponent->LDMaxDrawDistance = CullDistance;
 	BestCluster->ClusterComponent->CachedMaxDrawDistance = CullDistance;
 
 	CheckValid();
 }
 
-void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove )
+void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove)
 {
 	bool bRemoved = false;
 
@@ -360,16 +343,16 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 	TMap<int32, TSet<int32> > ClusterInstanceSetMap;
 
 	// Remove instances from the hash
-	for( TArray<int32>::TConstIterator It(InInstancesToRemove); It; ++It )
+	for (TArray<int32>::TConstIterator It(InInstancesToRemove); It; ++It)
 	{
 		int32 InstanceIndex = *It;
 		const FFoliageInstance& Instance = Instances[InstanceIndex];
 		InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
 		FFoliageComponentHashInfo* ComponentHashInfo = ComponentHash.Find(Instance.Base);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
 			ComponentHashInfo->Instances.Remove(InstanceIndex);
-			if( ComponentHashInfo->Instances.Num() == 0 )
+			if (ComponentHashInfo->Instances.Num() == 0)
 			{
 				// Remove the component from the component hash if this is the last instance.
 				ComponentHash.Remove(Instance.Base);
@@ -383,7 +366,7 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 	}
 
 	// Process each cluster in turn
-	for( TMap<int32, TSet<int32> >::TIterator It(ClusterInstanceSetMap); It; ++It )
+	for (TMap<int32, TSet<int32> >::TIterator It(ClusterInstanceSetMap); It; ++It)
 	{
 		int32 CurrentClusterIndex = It.Key();
 		FFoliageInstanceCluster& Cluster = InstanceClusters[CurrentClusterIndex];
@@ -393,21 +376,21 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 		TSet<int32>& ClusterInstancesToRemove = It.Value();
 
 		// Look through all indices in this cluster
-		for( int32 ClusterInstanceIdx=0;ClusterInstanceIdx<Cluster.InstanceIndices.Num();ClusterInstanceIdx++ )
+		for (int32 ClusterInstanceIdx = 0; ClusterInstanceIdx < Cluster.InstanceIndices.Num(); ClusterInstanceIdx++)
 		{
 			int32 InstanceIndex = Cluster.InstanceIndices[ClusterInstanceIdx];
 
 			// Check if this instance is one we need to remove
-			if( ClusterInstancesToRemove.Contains(InstanceIndex) )
+			if (ClusterInstancesToRemove.Contains(InstanceIndex))
 			{
 				// Remove the instance data and the index array entry
-				if( ClusterComponent->IsRegistered() )
+				if (ClusterComponent->IsRegistered())
 				{
 					ClusterComponent->UnregisterComponent();
 				}
 				ClusterComponent->Modify();
 				ClusterComponent->PerInstanceSMData.RemoveAtSwap(ClusterInstanceIdx);
-				if( ClusterInstanceIdx < ClusterComponent->SelectedInstances.Num() )
+				if (ClusterInstanceIdx < ClusterComponent->SelectedInstances.Num())
 				{
 					ClusterComponent->SelectedInstances.RemoveAtSwap(ClusterInstanceIdx);
 				}
@@ -424,8 +407,8 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 
 				// Invalidate this instance's editor data so we reuse the slot later
 				FFoliageInstance& InstanceEditorData = Instances[InstanceIndex];
-				InstanceEditorData.ClusterIndex = -1;
-				InstanceEditorData.Base = NULL;
+				InstanceEditorData.ClusterIndex = INDEX_NONE;
+				InstanceEditorData.Base = nullptr;
 
 				// And remember the slot to reuse it.
 				FreeInstanceIndices.Add(InstanceIndex);
@@ -435,7 +418,7 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 			}
 		}
 
-		if( bRemovedFromComponent )
+		if (bRemovedFromComponent)
 		{
 			//!! need to update bounds for this cluster
 			ClusterComponent->RegisterComponent();
@@ -443,13 +426,13 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 		}
 	}
 
-	if( bRemoved )
+	if (bRemoved)
 	{
 		// See if we can delete any clusters.
-		for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+		for (int32 ClusterIdx = 0; ClusterIdx < InstanceClusters.Num(); ClusterIdx++)
 		{
-			if( InstanceClusters[ClusterIdx].InstanceIndices.Num() == 0 )
-			{			
+			if (InstanceClusters[ClusterIdx].InstanceIndices.Num() == 0)
+			{
 				// Unregister the component to remove it from the scene
 				UInstancedStaticMeshComponent* Component = InstanceClusters[ClusterIdx].ClusterComponent;
 
@@ -460,9 +443,9 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 				InstanceClusters.RemoveAt(ClusterIdx);
 
 				// update the ClusterIndex for remaining foliage instances
-				for( int32 InstanceIdx=0;InstanceIdx<Instances.Num();InstanceIdx++ )
+				for (int32 InstanceIdx = 0; InstanceIdx < Instances.Num(); InstanceIdx++)
 				{
-					if( Instances[InstanceIdx].ClusterIndex > ClusterIdx )
+					if (Instances[InstanceIdx].ClusterIndex > ClusterIdx)
 					{
 						Instances[InstanceIdx].ClusterIndex--;
 					}
@@ -478,10 +461,10 @@ void FFoliageMeshInfo::RemoveInstances( AInstancedFoliageActor* InIFA, const TAr
 	}
 }
 
-void FFoliageMeshInfo::PreMoveInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove )
+void FFoliageMeshInfo::PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove)
 {
 	// Remove instances from the hash
-	for( TArray<int32>::TConstIterator It(InInstancesToMove); It; ++It )
+	for (TArray<int32>::TConstIterator It(InInstancesToMove); It; ++It)
 	{
 		int32 InstanceIndex = *It;
 		const FFoliageInstance& Instance = Instances[InstanceIndex];
@@ -490,32 +473,34 @@ void FFoliageMeshInfo::PreMoveInstances( class AInstancedFoliageActor* InIFA, co
 }
 
 
-void FFoliageMeshInfo::PostUpdateInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash )
+void FFoliageMeshInfo::PostUpdateInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash)
 {
-	for( TArray<int32>::TConstIterator It(InInstancesUpdated); It; ++It )
+	for (TArray<int32>::TConstIterator It(InInstancesUpdated); It; ++It)
 	{
 		int32 InstanceIndex = *It;
 		const FFoliageInstance& Instance = Instances[InstanceIndex];
 
 		// Update this instances' transform in the UInstancedStaticMeshComponent
-		if( InstanceClusters.IsValidIndex(Instance.ClusterIndex) )
+		if (InstanceClusters.IsValidIndex(Instance.ClusterIndex))
 		{
 			FFoliageInstanceCluster& Cluster = InstanceClusters[Instance.ClusterIndex];
 			Cluster.ClusterComponent->Modify();
 			int32 ClusterInstanceDataIndex = Cluster.InstanceIndices.Find(InstanceIndex);
-			check(ClusterInstanceDataIndex != INDEX_NONE);					
+			check(ClusterInstanceDataIndex != INDEX_NONE);
 			check(Cluster.ClusterComponent->PerInstanceSMData.IsValidIndex(ClusterInstanceDataIndex));
 			Cluster.ClusterComponent->MarkRenderStateDirty();
 
 			// Update bounds
-			FMatrix InstanceTransform = Instance.GetInstanceTransform();
-			Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
-			// Update transform in InstancedStaticMeshComponent
-			Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+			FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+			Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
+			// Update transform in InstancedStaticMeshComponent (in component local space)
+			// Transform from world space to local space
+			FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+			Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 			Cluster.ClusterComponent->InvalidateLightingCache();
 		}
-		
-		if( bReAddToHash )
+
+		if (bReAddToHash)
 		{
 			// Re-add instance to the hash
 			InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
@@ -523,18 +508,17 @@ void FFoliageMeshInfo::PostUpdateInstances( class AInstancedFoliageActor* InIFA,
 	}
 }
 
-void FFoliageMeshInfo::PostMoveInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved )
+void FFoliageMeshInfo::PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved)
 {
-	PostUpdateInstances( InIFA, InInstancesMoved, true );
+	PostUpdateInstances(InIFA, InInstancesMoved, true);
 }
 
-void FFoliageMeshInfo::DuplicateInstances( class AInstancedFoliageActor* InIFA, class UStaticMesh* InMesh, const TArray<int32>& InInstancesToDuplicate )
+void FFoliageMeshInfo::DuplicateInstances(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const TArray<int32>& InInstancesToDuplicate)
 {
-	for( TArray<int32>::TConstIterator It(InInstancesToDuplicate); It; ++It )
+	for (int32 InstanceIndex : InInstancesToDuplicate)
 	{
-		int32 InstanceIndex = *It;
 		const FFoliageInstance TempInstance = Instances[InstanceIndex];
-		AddInstance(InIFA, InMesh, TempInstance);
+		AddInstance(InIFA, InSettings, TempInstance);
 	}
 }
 
@@ -542,9 +526,9 @@ void FFoliageMeshInfo::DuplicateInstances( class AInstancedFoliageActor* InIFA, 
 int32 FFoliageMeshInfo::GetInstanceCount() const
 {
 	int32 Count = 0;
-	for( int32 Idx=0;Idx<Instances.Num();Idx++ )
+	for (int32 Idx = 0; Idx < Instances.Num(); Idx++)
 	{
-		if( Instances[Idx].ClusterIndex != -1 )
+		if (Instances[Idx].ClusterIndex != -1)
 		{
 			Count++;
 		}
@@ -553,34 +537,23 @@ int32 FFoliageMeshInfo::GetInstanceCount() const
 }
 
 // Destroy existing clusters and reassign all instances to new clusters
-void FFoliageMeshInfo::ReallocateClusters( AInstancedFoliageActor* InIFA, UStaticMesh* InMesh )
+void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings)
 {
 	// Detach all components
 	InIFA->UnregisterAllComponents();
 
 	// Delete any existing clusters from the components array
-	for( int32 ClusterIndex=0;ClusterIndex < InstanceClusters.Num(); ClusterIndex++ )
+	for (FFoliageInstanceCluster& Cluster : InstanceClusters)
 	{
-		UInstancedStaticMeshComponent* Component = InstanceClusters[ClusterIndex].ClusterComponent;
-		if( Component != NULL )
+		UInstancedStaticMeshComponent* Component = Cluster.ClusterComponent;
+		if (Component != nullptr)
 		{
 			Component->bAutoRegister = false;
 		}
 	}
 
 	TArray<FFoliageInstance> OldInstances = Instances;
-	for( int32 Idx=0;Idx<OldInstances.Num();Idx++ )
-	{
-		if( OldInstances[Idx].ClusterIndex == -1 )
-		{
-			OldInstances.RemoveAtSwap(Idx);
-			Idx--;
-		}
-		else
-		{
-			OldInstances[Idx].ClusterIndex = -1;
-		}
-	}
+	OldInstances.RemoveAllSwap([](FFoliageInstance& Instance){ return Instance.ClusterIndex == INDEX_NONE; });
 
 	// Remove everything
 	InstanceClusters.Empty();
@@ -591,60 +564,57 @@ void FFoliageMeshInfo::ReallocateClusters( AInstancedFoliageActor* InIFA, UStati
 	SelectedIndices.Empty();
 
 	// Re-add
-	for( int32 Idx=0;Idx<OldInstances.Num();Idx++ )
+	for (FFoliageInstance& Instance : OldInstances)
 	{
-		AddInstance( InIFA, InMesh, OldInstances[Idx] );
+		Instance.ClusterIndex = INDEX_NONE;
+		AddInstance(InIFA, InSettings, Instance);
 	}
 
 	InIFA->RegisterAllComponents();
 }
 
 // Update settings in the clusters based on the current settings (eg culling distance, collision, ...)
-void FFoliageMeshInfo::UpdateClusterSettings( AInstancedFoliageActor* InIFA )
+//void FFoliageMeshInfo::UpdateClusterSettings(AInstancedFoliageActor* InIFA)
+//{
+//	for (FFoliageInstanceCluster& Cluster : InstanceClusters)
+//	{
+//		UInstancedStaticMeshComponent* ClusterComponent = Cluster.ClusterComponent;
+//		ClusterComponent->Modify();
+//		ClusterComponent->MarkRenderStateDirty();
+//
+//		// Copy settings
+//		ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
+//		ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
+//
+//		// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
+//		// it is based on the center of the component's bounds.
+//		float CullDistance = Settings->EndCullDistance > 0 ? (float)Settings->EndCullDistance + Cluster.Bounds.SphereRadius : 0.f;
+//		ClusterComponent->LDMaxDrawDistance = CullDistance;
+//		ClusterComponent->CachedMaxDrawDistance = CullDistance;
+//	}
+//
+//	InIFA->MarkComponentsRenderStateDirty();
+//}
+
+void FFoliageMeshInfo::GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances)
 {
-	for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+	auto TempInstances = InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W)));
+	for (int32 Idx : TempInstances)
 	{
-		UInstancedStaticMeshComponent* ClusterComponent = InstanceClusters[ClusterIdx].ClusterComponent;
-		ClusterComponent->Modify();
-		ClusterComponent->MarkRenderStateDirty();
-
-		// Copy settings
-		ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
-		ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;	
-
-		// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
-		// it is based on the center of the component's bounds.
-		float CullDistance = Settings->EndCullDistance > 0 ? (float)Settings->EndCullDistance + InstanceClusters[ClusterIdx].Bounds.SphereRadius : 0.f;
-		ClusterComponent->LDMaxDrawDistance = CullDistance;
-		ClusterComponent->CachedMaxDrawDistance = CullDistance;
-	}
-
-	InIFA->MarkComponentsRenderStateDirty();
-}
-
-void FFoliageMeshInfo::GetInstancesInsideSphere( const FSphere& Sphere, TArray<int32>& OutInstances )
-{
-	TSet<int32> TempInstances;
-	InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W,Sphere.W,Sphere.W)), TempInstances );
-
-	for( TSet<int32>::TConstIterator It(TempInstances); It; ++It )
-	{
-		if( FSphere(Instances[*It].Location,0.f).IsInside(Sphere) )
+		if (FSphere(Instances[Idx].Location, 0.f).IsInside(Sphere))
 		{
-			OutInstances.Add(*It);
+			OutInstances.Add(Idx);
 		}
-	}	
+	}
 }
 
 // Returns whether or not there is are any instances overlapping the sphere specified
-bool FFoliageMeshInfo::CheckForOverlappingSphere( const FSphere& Sphere )
+bool FFoliageMeshInfo::CheckForOverlappingSphere(const FSphere& Sphere)
 {
-	TSet<int32> TempInstances;
-	InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W,Sphere.W,Sphere.W)), TempInstances );
-
-	for( TSet<int32>::TConstIterator It(TempInstances); It; ++It )
+	auto TempInstances = InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W)));
+	for (int32 Idx : TempInstances)
 	{
-		if( FSphere(Instances[*It].Location,0.f).IsInside(Sphere) )
+		if (FSphere(Instances[Idx].Location, 0.f).IsInside(Sphere))
 		{
 			return true;
 		}
@@ -653,15 +623,14 @@ bool FFoliageMeshInfo::CheckForOverlappingSphere( const FSphere& Sphere )
 }
 
 // Returns whether or not there is are any instances overlapping the instance specified, excluding the set of instances provided
-bool FFoliageMeshInfo::CheckForOverlappingInstanceExcluding( int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances )
+bool FFoliageMeshInfo::CheckForOverlappingInstanceExcluding(int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances)
 {
-	FSphere Sphere( Instances[TestInstanceIdx].Location,Radius);
-	TSet<int32> TempInstances;
-	InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W,Sphere.W,Sphere.W)), TempInstances );
+	FSphere Sphere(Instances[TestInstanceIdx].Location, Radius);
 
-	for( TSet<int32>::TConstIterator It(TempInstances); It; ++It )
+	auto TempInstances = InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Sphere.Center, FVector(Sphere.W)));
+	for (int32 Idx : TempInstances)
 	{
-		if( *It != TestInstanceIdx && !ExcludeInstances.Contains(*It) && FSphere(Instances[*It].Location,0.f).IsInside(Sphere) )
+		if (Idx != TestInstanceIdx && !ExcludeInstances.Contains(Idx) && FSphere(Instances[Idx].Location, 0.f).IsInside(Sphere))
 		{
 			return true;
 		}
@@ -669,33 +638,31 @@ bool FFoliageMeshInfo::CheckForOverlappingInstanceExcluding( int32 TestInstanceI
 	return false;
 }
 
-void FFoliageMeshInfo::SelectInstances( AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& InInstances )
+void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& InInstances)
 {
 	InIFA->Modify();
 
-	if( bSelect )
+	if (bSelect)
 	{
-		for( int32 i=0;i<InInstances.Num();i++ )
+		for (int32 i : InInstances)
 		{
-			SelectedIndices.AddUnique(InInstances[i]);
+			SelectedIndices.AddUnique(i);
 		}
 
-		for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+		for (FFoliageInstanceCluster& Cluster : InstanceClusters)
 		{
-			FFoliageInstanceCluster& Cluster = InstanceClusters[ClusterIdx];
-
 			// Apply any selections in the component
 			Cluster.ClusterComponent->Modify();
 			Cluster.ClusterComponent->MarkRenderStateDirty();
-			if( Cluster.ClusterComponent->SelectedInstances.Num() != Cluster.InstanceIndices.Num() )
+			if (Cluster.ClusterComponent->SelectedInstances.Num() != Cluster.InstanceIndices.Num())
 			{
 				Cluster.ClusterComponent->SelectedInstances.Init(false, Cluster.InstanceIndices.Num());
 			}
 
-			for( int32 ClusterInstanceIdx=0;ClusterInstanceIdx<Cluster.InstanceIndices.Num();ClusterInstanceIdx++ )
+			for (int32 ClusterInstanceIdx = 0; ClusterInstanceIdx < Cluster.InstanceIndices.Num(); ClusterInstanceIdx++)
 			{
 				int32 InstanceIdx = Cluster.InstanceIndices[ClusterInstanceIdx];
-				if( InInstances.Find(InstanceIdx) != INDEX_NONE )
+				if (InInstances.Find(InstanceIdx) != INDEX_NONE)
 				{
 					Cluster.ClusterComponent->SelectedInstances[ClusterInstanceIdx] = true;
 				}
@@ -704,25 +671,23 @@ void FFoliageMeshInfo::SelectInstances( AInstancedFoliageActor* InIFA, bool bSel
 	}
 	else
 	{
-		for( int32 i=0;i<InInstances.Num();i++ )
+		for (int32 i : InInstances)
 		{
-			SelectedIndices.RemoveSingleSwap(InInstances[i]);
+			SelectedIndices.RemoveSingleSwap(i);
 		}
 
-		for( int32 ClusterIdx=0;ClusterIdx<InstanceClusters.Num();ClusterIdx++ )
+		for (FFoliageInstanceCluster& Cluster : InstanceClusters)
 		{
-			FFoliageInstanceCluster& Cluster = InstanceClusters[ClusterIdx];
-
-			if( Cluster.ClusterComponent->SelectedInstances.Num() != 0 )
+			if (Cluster.ClusterComponent->SelectedInstances.Num() != 0)
 			{
 				// Remove any selections from the component
 				Cluster.ClusterComponent->Modify();
 				Cluster.ClusterComponent->MarkRenderStateDirty();
 
-				for( int32 ClusterInstanceIdx=0;ClusterInstanceIdx<Cluster.InstanceIndices.Num();ClusterInstanceIdx++ )
+				for (int32 ClusterInstanceIdx = 0; ClusterInstanceIdx < Cluster.InstanceIndices.Num(); ClusterInstanceIdx++)
 				{
 					int32 InstanceIdx = Cluster.InstanceIndices[ClusterInstanceIdx];
-					if( InInstances.Find(InstanceIdx) != INDEX_NONE )
+					if (InInstances.Find(InstanceIdx) != INDEX_NONE)
 					{
 						Cluster.ClusterComponent->SelectedInstances[ClusterInstanceIdx] = false;
 					}
@@ -737,9 +702,13 @@ void FFoliageMeshInfo::SelectInstances( AInstancedFoliageActor* InIFA, bool bSel
 //
 // AInstancedFoliageActor
 //
-AInstancedFoliageActor::AInstancedFoliageActor(const class FPostConstructInitializeProperties& PCIP)
+AInstancedFoliageActor::AInstancedFoliageActor(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	RootComponent = SceneComponent;
+	RootComponent->Mobility = EComponentMobility::Movable;
+	
 	SetActorEnableCollision(true);
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
@@ -747,21 +716,21 @@ AInstancedFoliageActor::AInstancedFoliageActor(const class FPostConstructInitial
 }
 
 #if WITH_EDITOR
-AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActor(UWorld* InWorld,bool bCreateIfNone)
+AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone)
 {
-	for( TActorIterator<AInstancedFoliageActor> It(InWorld);It;++It )
+	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
 	{
 		AInstancedFoliageActor* InstancedFoliageActor = *It;
-		if( InstancedFoliageActor )
+		if (InstancedFoliageActor)
 		{
-			if( InstancedFoliageActor->GetLevel()->IsCurrentLevel() && !InstancedFoliageActor->IsPendingKill() )
+			if (InstancedFoliageActor->GetLevel()->IsCurrentLevel() && !InstancedFoliageActor->IsPendingKill())
 			{
 				return InstancedFoliageActor;
 			}
 		}
 	}
 
-	return bCreateIfNone ? InWorld->SpawnActor<AInstancedFoliageActor>() : NULL;
+	return bCreateIfNone ? InWorld->SpawnActor<AInstancedFoliageActor>() : nullptr;
 }
 
 
@@ -769,7 +738,7 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel
 {
 	if (!InLevel)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	for (int32 ActorIndex = 0; ActorIndex < InLevel->Actors.Num(); ++ActorIndex)
@@ -780,100 +749,101 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel
 			return InstancedFoliageActor;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfieldCollisionComponent* InLandscapeComponent, const FBox& InInstanceBox )
+void AInstancedFoliageActor::SnapInstancesForLandscape(ULandscapeHeightfieldCollisionComponent* InLandscapeComponent, const FBox& InInstanceBox)
 {
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
 		// Find the per-mesh info matching the mesh.
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		UFoliageType* Settings = MeshPair.Key;
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InLandscapeComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
 			float TraceExtentSize = InLandscapeComponent->Bounds.SphereRadius * 2.f + 10.f; // extend a little
-			FVector TraceVector = InLandscapeComponent->GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis( EAxis::Z ) * TraceExtentSize;
+			FVector TraceVector = InLandscapeComponent->GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
 
 			bool bFirst = true;
 			TArray<int32> InstancesToRemove;
-			for( TSet<int32>::TConstIterator InstIt(ComponentHashInfo->Instances); InstIt; ++InstIt )
+			for (int32 InstanceIndex : ComponentHashInfo->Instances)
 			{
-				int32 InstanceIndex = *InstIt;
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
 
 				// Test location should remove any Z offset
 				FVector TestLocation = FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER
-					?	(FVector)Instance.GetInstanceTransform().TransformPosition(FVector(0,0,-Instance.ZOffset))
-					:	Instance.Location;
+					? (FVector)Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, -Instance.ZOffset))
+					: Instance.Location;
 
-				if( InInstanceBox.IsInside(TestLocation) )
+				if (InInstanceBox.IsInside(TestLocation))
 				{
-					if( bFirst )
+					if (bFirst)
 					{
 						bFirst = false;
 						Modify();
 					}
 
 					FVector Start = TestLocation + TraceVector;
-					FVector End   = TestLocation - TraceVector;
+					FVector End = TestLocation - TraceVector;
 
 					static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
 					TArray<FHitResult> Results;
 					UWorld* World = InLandscapeComponent->GetWorld();
 					check(World);
-					World->LineTraceMulti(Results, Start, End, FCollisionQueryParams(TraceTag, true), FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects));
-				
+					// Editor specific landscape heightfield uses ECC_Visibility collision channel
+					World->LineTraceMulti(Results, Start, End, FCollisionQueryParams(TraceTag, true), FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility));
+
 					bool bFoundHit = false;
-					for( int32 HitIdx=0; HitIdx<Results.Num(); HitIdx++ )
+					for (const FHitResult& Hit : Results)
 					{
-						const FHitResult& Hit = Results[HitIdx];
-						if( Hit.Component == InLandscapeComponent )
+						if (Hit.Component == InLandscapeComponent)
 						{
 							bFoundHit = true;
-							if( (TestLocation - Hit.Location).SizeSquared() > KINDA_SMALL_NUMBER )
+							if ((TestLocation - Hit.Location).SizeSquared() > KINDA_SMALL_NUMBER)
 							{
 								// Remove instance location from the hash. Do not need to update ComponentHash as we re-add below.
 								MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-							
+
 								// Update the instance editor data
 								Instance.Location = Hit.Location;
 
-								if( Instance.Flags & FOLIAGE_AlignToNormal )
+								if (Instance.Flags & FOLIAGE_AlignToNormal)
 								{
 									// Remove previous alignment and align to new normal.
 									Instance.Rotation = Instance.PreAlignRotation;
-									Instance.AlignToNormal(Hit.Normal, MeshInfo.Settings->AlignMaxAngle);
+									Instance.AlignToNormal(Hit.Normal, Settings->AlignMaxAngle);
 								}
 
 								// Reapply the Z offset in local space
-								if( FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER )
+								if (FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER)
 								{
-									Instance.Location = Instance.GetInstanceTransform().TransformPosition(FVector(0,0,Instance.ZOffset));
+									Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Instance.ZOffset));
 								}
 
 								// Todo: add do validation with other parameters such as max/min height etc.
 
 								// Update this instances' transform in the UInstancedStaticMeshComponent
-								if( MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex) )
+								if (MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex))
 								{
 									FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[Instance.ClusterIndex];
 
 									Cluster.ClusterComponent->Modify();
-									
+
 									int32 ClusterInstanceDataIndex = Cluster.InstanceIndices.Find(InstanceIndex);
-									
-									check(ClusterInstanceDataIndex != INDEX_NONE);					
+
+									check(ClusterInstanceDataIndex != INDEX_NONE);
 									check(Cluster.ClusterComponent->PerInstanceSMData.IsValidIndex(ClusterInstanceDataIndex));
 									Cluster.ClusterComponent->MarkRenderStateDirty();
-									
+
 									// Update bounds
-									FMatrix InstanceTransform = Instance.GetInstanceTransform();
-									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
-									
+									FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
+
 									// Update transform in InstancedStaticMeshComponent
-									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+									FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 									Cluster.ClusterComponent->InvalidateLightingCache();
 								}
 
@@ -884,7 +854,7 @@ void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfi
 						}
 					}
 
-					if( !bFoundHit )
+					if (!bFoundHit)
 					{
 						// Couldn't find new spot - remove instance
 						InstancesToRemove.Add(InstanceIndex);
@@ -898,18 +868,18 @@ void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfi
 	}
 }
 
-void AInstancedFoliageActor::MoveInstancesForMovedComponent( class UActorComponent* InComponent )
+void AInstancedFoliageActor::MoveInstancesForMovedComponent(UActorComponent* InComponent)
 {
 	bool bUpdatedInstances = false;
 	bool bFirst = true;
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
-			if( bFirst )
+			if (bFirst)
 			{
 				bFirst = false;
 				Modify();
@@ -920,16 +890,15 @@ void AInstancedFoliageActor::MoveInstancesForMovedComponent( class UActorCompone
 			FVector OldDrawScale = ComponentHashInfo->CachedDrawScale;
 			ComponentHashInfo->UpdateLocationFromActor(InComponent);
 
-			for( TSet<int32>::TConstIterator InstIt(ComponentHashInfo->Instances); InstIt; ++InstIt )
+			for (int32 InstanceIndex : ComponentHashInfo->Instances)
 			{
-				int32 InstanceIndex = *InstIt;
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
 
 				MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-				
+
 				// Apply change
-				FMatrix DeltaTransform = 
-					FRotationMatrix(Instance.Rotation) * 
+				FMatrix DeltaTransform =
+					FRotationMatrix(Instance.Rotation) *
 					FTranslationMatrix(Instance.Location) *
 					FTranslationMatrix(-OldLocation) *
 					FInverseRotationMatrix(OldRotation) *
@@ -942,65 +911,61 @@ void AInstancedFoliageActor::MoveInstancesForMovedComponent( class UActorCompone
 				Instance.Rotation = DeltaTransform.Rotator();
 
 				// Update this instances' transform in the UInstancedStaticMeshComponent
-				if( MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex) )
+				if (MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex))
 				{
 					FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[Instance.ClusterIndex];
 					Cluster.ClusterComponent->Modify();
 					int32 ClusterInstanceDataIndex = Cluster.InstanceIndices.Find(InstanceIndex);
-					check(ClusterInstanceDataIndex != INDEX_NONE);					
+					check(ClusterInstanceDataIndex != INDEX_NONE);
 					check(Cluster.ClusterComponent->PerInstanceSMData.IsValidIndex(ClusterInstanceDataIndex));
 					Cluster.ClusterComponent->MarkRenderStateDirty();
 					bUpdatedInstances = true;
 					// Update bounds
-					FMatrix InstanceTransform = Instance.GetInstanceTransform();
-					Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
+					FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+					Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
 					// Update transform in InstancedStaticMeshComponent
-					Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+					FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+					Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 					Cluster.ClusterComponent->InvalidateLightingCache();
 				}
 
 				// Re-add the new instance location to the hash
 				MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
-			}	
+			}
 		}
 	}
 }
 
-void AInstancedFoliageActor::DeleteInstancesForComponent( class UActorComponent* InComponent )
+void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComponent)
 {
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
 			MeshInfo.RemoveInstances(this, ComponentHashInfo->Instances.Array());
 		}
 	}
 }
 
-void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel( class UActorComponent* InComponent )
+void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent)
 {
-	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActor(InComponent->GetWorld());
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InComponent->GetWorld());
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
-			FFoliageMeshInfo* NewMeshInfo = NewIFA->FoliageMeshes.Find( MeshIt.Key() );
-			if( !NewMeshInfo )
-			{
-				NewMeshInfo = NewIFA->AddMesh( MeshIt.Key() );
-			}
+			FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(MeshPair.Key);
 
 			// Add the foliage to the new level
-			for( TSet<int32>::TConstIterator InstIt(ComponentHashInfo->Instances); InstIt; ++InstIt )
+			for (int32 InstanceIndex : ComponentHashInfo->Instances)
 			{
-				int32 InstanceIndex = *InstIt;
-				NewMeshInfo->AddInstance( NewIFA, MeshIt.Key(), MeshInfo.Instances[InstanceIndex] );
+				NewMeshInfo->AddInstance(NewIFA, MeshPair.Key, MeshInfo.Instances[InstanceIndex]);
 			}
 
 			// Remove from old level
@@ -1009,7 +974,7 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel( class UAct
 	}
 }
 
-void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent* InOldComponent, class UActorComponent* InNewComponent )
+void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent)
 {
 	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>());
 	if (!NewIFA)
@@ -1018,9 +983,9 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent*
 	}
 	check(NewIFA);
 
-	for (TPair<UStaticMesh*, FFoliageMeshInfo>& Entry : FoliageMeshes)
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = Entry.Value;
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InOldComponent);
 		if (ComponentHashInfo)
@@ -1043,11 +1008,7 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent*
 			}
 			else
 			{
-				FFoliageMeshInfo* NewMeshInfo = NewIFA->FoliageMeshes.Find(Entry.Key);
-				if (!NewMeshInfo)
-				{
-					NewMeshInfo = NewIFA->AddMesh(Entry.Key);
-				}
+				FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(MeshPair.Key);
 
 				// Add the foliage to the new level
 				for (int32 InstanceIndex : ComponentHashInfo->Instances)
@@ -1055,7 +1016,7 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent*
 					FFoliageInstance NewInstance = MeshInfo.Instances[InstanceIndex];
 					NewInstance.Base = InNewComponent;
 					NewInstance.ClusterIndex = INDEX_NONE;
-					NewMeshInfo->AddInstance(NewIFA, Entry.Key, NewInstance);
+					NewMeshInfo->AddInstance(NewIFA, MeshPair.Key, NewInstance);
 				}
 
 				// Remove from old level
@@ -1066,23 +1027,22 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent*
 	}
 }
 
-TMap<class UStaticMesh*,TArray<const FFoliageInstancePlacementInfo*> > AInstancedFoliageActor::GetInstancesForComponent( class UActorComponent* InComponent )
+TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> AInstancedFoliageActor::GetInstancesForComponent(UActorComponent* InComponent)
 {
-	TMap<class UStaticMesh*,TArray<const struct FFoliageInstancePlacementInfo*> > Result;
+	TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> Result;
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TConstIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		const FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		const FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
-			TArray<const FFoliageInstancePlacementInfo*>& Array = Result.Add(MeshIt.Key(),TArray<const FFoliageInstancePlacementInfo*>() );
+			TArray<const FFoliageInstancePlacementInfo*>& Array = Result.Add(MeshPair.Key, TArray<const FFoliageInstancePlacementInfo*>());
 			Array.Empty(ComponentHashInfo->Instances.Num());
 
-			for( TSet<int32>::TConstIterator InstIt(ComponentHashInfo->Instances); InstIt; ++InstIt )
+			for (int32 InstanceIndex : ComponentHashInfo->Instances)
 			{
-				int32 InstanceIndex = *InstIt;
 				const FFoliageInstancePlacementInfo* Instance = &MeshInfo.Instances[InstanceIndex];
 				Array.Add(Instance);
 			}
@@ -1092,59 +1052,59 @@ TMap<class UStaticMesh*,TArray<const FFoliageInstancePlacementInfo*> > AInstance
 	return Result;
 }
 
-struct FFoliageMeshInfo* AInstancedFoliageActor::AddMesh( class UStaticMesh* InMesh )
+FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(UFoliageType* InType)
 {
-	check( FoliageMeshes.Find(InMesh) == NULL );
+	TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
+	FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : nullptr;
+	return MeshInfo;
+}
+
+FFoliageMeshInfo* AInstancedFoliageActor::FindOrAddMesh(UFoliageType* InType)
+{
+	TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
+	FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : AddMesh(InType);
+	return MeshInfo;
+}
+
+FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings)
+{
+	check(GetSettingsForMesh(InMesh) == nullptr);
 
 	MarkPackageDirty();
 
-	int32 MaxDisplayOrder = 0;
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator It(FoliageMeshes); It; ++It )
-	{
-		if( It.Value().Settings->DisplayOrder > MaxDisplayOrder )
-		{
-			MaxDisplayOrder = It.Value().Settings->DisplayOrder;
-		}
-	}
-
-	FFoliageMeshInfo& MeshInfo = FoliageMeshes.Add(InMesh, FFoliageMeshInfo());
+	UFoliageType_InstancedStaticMesh* Settings = nullptr;
 #if WITH_EDITORONLY_DATA
-	UInstancedFoliageSettings* DefaultSettings = InMesh->FoliageDefaultSettings;
-	if( DefaultSettings != NULL )
+	if (InMesh->FoliageDefaultSettings)
 	{
-		MeshInfo.Settings = Cast<UInstancedFoliageSettings>(StaticDuplicateObject(DefaultSettings,this,TEXT("None")));
+		// TODO: Can't we just use this directly?
+		Settings = DuplicateObject<UFoliageType_InstancedStaticMesh>(InMesh->FoliageDefaultSettings, this);
 	}
 	else
 #endif
 	{
-		MeshInfo.Settings = ConstructObject<UInstancedFoliageSettings>(UInstancedFoliageSettings::StaticClass(), this);
+		Settings = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
 	}
+	Settings->Mesh = InMesh;
+
+	FFoliageMeshInfo* MeshInfo = AddMesh(Settings);
 
 	const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
 
-	// Set IsPendingKill() to true so that when the initial undo record is made,
-	// the component will be treated as destroyed, in that undo an add will
-	// actually work
-	MeshInfo.Settings->SetFlags(RF_PendingKill);
-	MeshInfo.Settings->Modify( false );
-	MeshInfo.Settings->ClearFlags(RF_PendingKill);
-	MeshInfo.Settings->IsSelected = true;
-	MeshInfo.Settings->DisplayOrder = MaxDisplayOrder+1;
-	MeshInfo.Settings->MeshBounds = MeshBounds;
+	Settings->MeshBounds = MeshBounds;
 
 	// Make bottom only bound
 	FBox LowBound = MeshBounds.GetBox();
 	LowBound.Max.Z = LowBound.Min.Z + (LowBound.Max.Z - LowBound.Min.Z) * 0.1f;
 
 	float MinX = FLT_MAX, MaxX = FLT_MIN, MinY = FLT_MAX, MaxY = FLT_MIN;
-	MeshInfo.Settings->LowBoundOriginRadius = FVector::ZeroVector;
+	Settings->LowBoundOriginRadius = FVector::ZeroVector;
 
 	if (InMesh->RenderData)
 	{
 		FPositionVertexBuffer& PositionVertexBuffer = InMesh->RenderData->LODResources[0].PositionVertexBuffer;
-		for( uint32 Index = 0; Index < PositionVertexBuffer.GetNumVertices(); ++Index )
+		for (uint32 Index = 0; Index < PositionVertexBuffer.GetNumVertices(); ++Index)
 		{
-			const FVector& Pos = PositionVertexBuffer.VertexPosition( Index );
+			const FVector& Pos = PositionVertexBuffer.VertexPosition(Index);
 			if (Pos.Z < LowBound.Max.Z)
 			{
 				MinX = FMath::Min(MinX, Pos.X);
@@ -1155,55 +1115,108 @@ struct FFoliageMeshInfo* AInstancedFoliageActor::AddMesh( class UStaticMesh* InM
 		}
 	}
 
-	MeshInfo.Settings->LowBoundOriginRadius = FVector((MinX+MaxX), (MinY+MaxY), FMath::Sqrt( FMath::Square(MaxX-MinX) + FMath::Square(MaxY-MinY)) ) * 0.5f;
+	Settings->LowBoundOriginRadius = FVector((MinX + MaxX), (MinY + MaxY), FMath::Sqrt(FMath::Square(MaxX - MinX) + FMath::Square(MaxY - MinY))) * 0.5f;
 
-	return &MeshInfo;
+	if (OutSettings)
+	{
+		*OutSettings = Settings;
+	}
+
+	return MeshInfo;
 }
 
-void AInstancedFoliageActor::RemoveMesh( class UStaticMesh* InMesh )
+FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UFoliageType* InType)
+{
+	check(FoliageMeshes.Find(InType) == nullptr);
+
+	MarkPackageDirty();
+
+	if (InType->DisplayOrder == 0)
+	{
+		int32 MaxDisplayOrder = 0;
+		for (auto& MeshPair : FoliageMeshes)
+		{
+			if (MeshPair.Key->DisplayOrder > MaxDisplayOrder)
+			{
+				MaxDisplayOrder = MeshPair.Key->DisplayOrder;
+			}
+		}
+		InType->DisplayOrder = MaxDisplayOrder + 1;
+	}
+
+	FFoliageMeshInfo* MeshInfo = &*FoliageMeshes.Add(InType);
+	InType->IsSelected = true;
+
+	return MeshInfo;
+}
+
+void AInstancedFoliageActor::RemoveMesh(UFoliageType* InSettings)
 {
 	Modify();
 	MarkPackageDirty();
 	UnregisterAllComponents();
 
 	// Remove all components for this mesh from the Components array.
-	FFoliageMeshInfo* MeshInfo =  FoliageMeshes.Find(InMesh);
-	if( MeshInfo )
+	FFoliageMeshInfo* MeshInfo = FindMesh(InSettings);
+	if (MeshInfo)
 	{
-		for( int32 ClusterIndex=0;ClusterIndex < MeshInfo->InstanceClusters.Num(); ClusterIndex++ )
+		for (FFoliageInstanceCluster& Cluster : MeshInfo->InstanceClusters)
 		{
-			UInstancedStaticMeshComponent* Component = MeshInfo->InstanceClusters[ClusterIndex].ClusterComponent;
-			if( Component != NULL )
+			UInstancedStaticMeshComponent* Component = Cluster.ClusterComponent;
+			if (Component != nullptr)
 			{
 				Component->bAutoRegister = false;
 			}
 		}
 	}
 
-	FoliageMeshes.Remove(InMesh);
+	FoliageMeshes.Remove(InSettings);
 	RegisterAllComponents();
 	CheckSelection();
 }
 
-void AInstancedFoliageActor::SelectInstance( class UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle )
+UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
+{
+	UFoliageType* Type = nullptr;
+	FFoliageMeshInfo* MeshInfo = nullptr;
+
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		UFoliageType* Settings = MeshPair.Key;
+		if (Settings && Settings->GetStaticMesh() == InMesh)
+		{
+			Type = MeshPair.Key;
+			MeshInfo = &*MeshPair.Value;
+			break;
+		}
+	}
+
+	if (OutMeshInfo)
+	{
+		*OutMeshInfo = MeshInfo;
+	}
+	return Type;
+}
+
+void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle)
 {
 	bool bNeedsUpdate = false;
 
 	Modify();
 
 	// If we're not toggling, we need to first deselect everything else
-	if( !bToggle )
+	if (!bToggle)
 	{
-		for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+		for (auto& MeshPair : FoliageMeshes)
 		{
-			FFoliageMeshInfo& Mesh = MeshIt.Value();
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-			if( Mesh.SelectedIndices.Num() > 0 )
+			if (MeshInfo.SelectedIndices.Num() > 0)
 			{
-				for( int32 ClusterIdx=0;ClusterIdx<Mesh.InstanceClusters.Num();ClusterIdx++ )
+				for (int32 ClusterIdx = 0; ClusterIdx < MeshInfo.InstanceClusters.Num(); ClusterIdx++)
 				{
-					FFoliageInstanceCluster& Cluster = Mesh.InstanceClusters[ClusterIdx];
-					if( Cluster.ClusterComponent->SelectedInstances.Num() > 0 )
+					FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[ClusterIdx];
+					if (Cluster.ClusterComponent->SelectedInstances.Num() > 0)
 					{
 						Cluster.ClusterComponent->Modify();
 						Cluster.ClusterComponent->SelectedInstances.Empty();
@@ -1213,65 +1226,64 @@ void AInstancedFoliageActor::SelectInstance( class UInstancedStaticMeshComponent
 				bNeedsUpdate = true;
 			}
 
-			Mesh.SelectedIndices.Empty();
+			MeshInfo.SelectedIndices.Empty();
 		}
 	}
 
-	if( InComponent )
+	if (InComponent)
 	{
-		FFoliageMeshInfo* Mesh = FoliageMeshes.Find(InComponent->StaticMesh);
+		UFoliageType* Type = nullptr;
+		FFoliageMeshInfo* MeshInfo = nullptr;
 
-		if( Mesh )
+		Type = GetSettingsForMesh(InComponent->StaticMesh, &MeshInfo);
+
+		if (MeshInfo)
 		{
-			for( int32 ClusterIdx=0;ClusterIdx<Mesh->InstanceClusters.Num();ClusterIdx++ )
+			FFoliageInstanceCluster* Cluster = MeshInfo->InstanceClusters.FindByPredicate([InComponent](FFoliageInstanceCluster& Cluster){ return Cluster.ClusterComponent == InComponent; });
+			if (ensure(Cluster))
 			{
-				FFoliageInstanceCluster& Cluster = Mesh->InstanceClusters[ClusterIdx];
-				if( Cluster.ClusterComponent == InComponent )
+				InComponent->Modify();
+				int32 InstanceIndex = Cluster->InstanceIndices[InComponentInstanceIndex];
+				int32 SelectedIndex = MeshInfo->SelectedIndices.Find(InstanceIndex);
+
+				bNeedsUpdate = true;
+
+				// Deselect if it's already selected.
+				if (InComponentInstanceIndex < InComponent->SelectedInstances.Num())
 				{
-					InComponent->Modify();
-					int32 InstanceIndex = Cluster.InstanceIndices[InComponentInstanceIndex];
-					int32 SelectedIndex = Mesh->SelectedIndices.Find(InstanceIndex);
+					InComponent->SelectedInstances[InComponentInstanceIndex] = false;
+					InComponent->MarkRenderStateDirty();
+				}
+				if (SelectedIndex != INDEX_NONE)
+				{
+					MeshInfo->SelectedIndices.RemoveAt(SelectedIndex);
+				}
 
-					bNeedsUpdate = true;
+				if (bToggle && SelectedIndex != INDEX_NONE)
+				{
+					if (SelectedMesh == Type && MeshInfo->SelectedIndices.Num() == 0)
+					{
+						SelectedMesh = nullptr;
+					}
+				}
+				else
+				{
+					// Add the selection
+					if (InComponent->SelectedInstances.Num() < InComponent->PerInstanceSMData.Num())
+					{
+						InComponent->SelectedInstances.Init(false, Cluster->InstanceIndices.Num());
+					}
+					InComponent->SelectedInstances[InComponentInstanceIndex] = true;
+					InComponent->MarkRenderStateDirty();
 
-					// Deselect if it's already selected.
-					if( InComponentInstanceIndex < InComponent->SelectedInstances.Num() )
-					{
-						InComponent->SelectedInstances[InComponentInstanceIndex] = false;
-						InComponent->MarkRenderStateDirty();
-					}
-					if( SelectedIndex != INDEX_NONE )
-					{
-						Mesh->SelectedIndices.RemoveAt(SelectedIndex);
-					}
-
-					if( bToggle && SelectedIndex != INDEX_NONE)
-					{
-						if( SelectedMesh == InComponent->StaticMesh && Mesh->SelectedIndices.Num() == 0 )
-						{
-							SelectedMesh = NULL;
-						}
-					}
-					else
-					{
-						// Add the selection
-						if( InComponent->SelectedInstances.Num() < InComponent->PerInstanceSMData.Num() )
-						{
-							InComponent->SelectedInstances.Init(false, Cluster.InstanceIndices.Num());
-						}
-						InComponent->SelectedInstances[InComponentInstanceIndex] = true;
-						InComponent->MarkRenderStateDirty();
-
-						SelectedMesh = InComponent->StaticMesh;
-						Mesh->SelectedIndices.Insert(InstanceIndex,0);
-					}
-					break;
+					SelectedMesh = Type;
+					MeshInfo->SelectedIndices.Insert(InstanceIndex, 0);
 				}
 			}
 		}
 	}
 
-	if( bNeedsUpdate )
+	if (bNeedsUpdate)
 	{
 		// Update selection
 		MarkComponentsRenderStateDirty();
@@ -1280,31 +1292,29 @@ void AInstancedFoliageActor::SelectInstance( class UInstancedStaticMeshComponent
 	CheckSelection();
 }
 
-void AInstancedFoliageActor::ApplySelectionToComponents( bool bApply )
+void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 {
 	bool bNeedsUpdate = false;
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& Mesh = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-		if( bApply )
+		if (bApply)
 		{
-			if( Mesh.SelectedIndices.Num() > 0 )
+			if (MeshInfo.SelectedIndices.Num() > 0)
 			{
-				for( int32 ClusterIdx=0;ClusterIdx<Mesh.InstanceClusters.Num();ClusterIdx++ )
+				for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
 				{
-					FFoliageInstanceCluster& Cluster = Mesh.InstanceClusters[ClusterIdx];
-
 					// Apply any selections in the component
 					Cluster.ClusterComponent->SelectedInstances.Init(false, Cluster.InstanceIndices.Num());
 					Cluster.ClusterComponent->MarkRenderStateDirty();
 					bNeedsUpdate = true;
 
-					for( int32 ClusterInstanceIdx=0;ClusterInstanceIdx<Cluster.InstanceIndices.Num();ClusterInstanceIdx++ )
+					for (int32 ClusterInstanceIdx = 0; ClusterInstanceIdx < Cluster.InstanceIndices.Num(); ClusterInstanceIdx++)
 					{
 						int32 InstanceIdx = Cluster.InstanceIndices[ClusterInstanceIdx];
-						if( Mesh.SelectedIndices.Find(InstanceIdx) != INDEX_NONE )
+						if (MeshInfo.SelectedIndices.Find(InstanceIdx) != INDEX_NONE)
 						{
 							Cluster.ClusterComponent->SelectedInstances[ClusterInstanceIdx] = true;
 						}
@@ -1314,11 +1324,9 @@ void AInstancedFoliageActor::ApplySelectionToComponents( bool bApply )
 		}
 		else
 		{
-			for( int32 ClusterIdx=0;ClusterIdx<Mesh.InstanceClusters.Num();ClusterIdx++ )
+			for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
 			{
-				FFoliageInstanceCluster& Cluster = Mesh.InstanceClusters[ClusterIdx];
-
-				if( Cluster.ClusterComponent->SelectedInstances.Num() > 0 )
+				if (Cluster.ClusterComponent->SelectedInstances.Num() > 0)
 				{
 					// remove any selections in the component
 					Cluster.ClusterComponent->SelectedInstances.Empty();
@@ -1329,7 +1337,7 @@ void AInstancedFoliageActor::ApplySelectionToComponents( bool bApply )
 		}
 	}
 
-	if( bNeedsUpdate )
+	if (bNeedsUpdate)
 	{
 		// Update selection
 		MarkComponentsRenderStateDirty();
@@ -1339,24 +1347,24 @@ void AInstancedFoliageActor::ApplySelectionToComponents( bool bApply )
 void AInstancedFoliageActor::CheckSelection()
 {
 	// Check if we have to change the selection.
-	if( SelectedMesh != NULL )
+	if (SelectedMesh != nullptr)
 	{
-		FFoliageMeshInfo* Mesh = FoliageMeshes.Find(SelectedMesh);
-		if( Mesh && Mesh->SelectedIndices.Num() > 0 )
+		FFoliageMeshInfo* MeshInfo = FindMesh(SelectedMesh);
+		if (MeshInfo && MeshInfo->SelectedIndices.Num() > 0)
 		{
 			return;
 		}
 	}
 
-	SelectedMesh = NULL;
+	SelectedMesh = nullptr;
 
 	// Try to find a new selection
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
-		FFoliageMeshInfo& Mesh = MeshIt.Value();
-		if( Mesh.SelectedIndices.Num() > 0 )
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		if (MeshInfo.SelectedIndices.Num() > 0)
 		{
-			SelectedMesh = MeshIt.Key();
+			SelectedMesh = MeshPair.Key;
 			return;
 		}
 	}
@@ -1364,14 +1372,14 @@ void AInstancedFoliageActor::CheckSelection()
 
 FVector AInstancedFoliageActor::GetSelectionLocation()
 {
-	FVector Result(0,0,0);
+	FVector Result(0, 0, 0);
 
-	if( SelectedMesh != NULL )
+	if (SelectedMesh != nullptr)
 	{
-		FFoliageMeshInfo* Mesh = FoliageMeshes.Find(SelectedMesh);
-		if( Mesh && Mesh->SelectedIndices.Num() > 0 )
+		FFoliageMeshInfo* MeshInfo = FindMesh(SelectedMesh);
+		if (MeshInfo && MeshInfo->SelectedIndices.Num() > 0)
 		{
-			Result = Mesh->Instances[Mesh->SelectedIndices[0]].Location;
+			Result = MeshInfo->Instances[MeshInfo->SelectedIndices[0]].Location;
 		}
 	}
 
@@ -1383,95 +1391,189 @@ void AInstancedFoliageActor::MapRebuild()
 	// Map rebuilt - this may have modified the BSP components and thrown the previous ones away - if so we need to migrate the foliage across.
 	UE_LOG(LogInstancedFoliage, Log, TEXT("Map Rebuilt - Update all BSP painted foliage!"));
 
-	TMap< UStaticMesh*, TArray<FFoliageInstance> > NewInstances;
+	TMap<UFoliageType*, TArray<FFoliageInstance>> NewInstances;
 	TArray<UActorComponent*> RemovedComponents;
 	UWorld* World = GetWorld();
 	check(World);
 
 	// For each foliage brush, represented by the mesh/info pair
-	for( TMap<UStaticMesh*, FFoliageMeshInfo>::TConstIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : FoliageMeshes)
 	{
 		// each target component has some foliage instances
-		FFoliageMeshInfo const& MeshInfo = MeshIt.Value();
-		UStaticMesh* Mesh = MeshIt.Key();
-		check(Mesh);
-		
-		for (TMap<UActorComponent*, FFoliageComponentHashInfo >::TConstIterator ComponentFoliageIt(MeshInfo.ComponentHash); ComponentFoliageIt; ++ComponentFoliageIt)
+		FFoliageMeshInfo const& MeshInfo = *MeshPair.Value;
+		UFoliageType* Settings = MeshPair.Key;
+		check(Settings);
+
+		for (auto& ComponentFoliagePair : MeshInfo.ComponentHash)
 		{
 			// BSP components are UModelComponents - they are the only ones we need to change
-			UActorComponent* TargetComponent = ComponentFoliageIt.Key();
-			if(!TargetComponent || TargetComponent->IsA(UModelComponent::StaticClass()))
+			UActorComponent* TargetComponent = ComponentFoliagePair.Key;
+			if (!TargetComponent || TargetComponent->IsA(UModelComponent::StaticClass()))
 			{
 				// Delete it later
 				RemovedComponents.Add(TargetComponent);
 
-				FFoliageComponentHashInfo const& FoliageInfo = ComponentFoliageIt.Value();
+				FFoliageComponentHashInfo const& FoliageInfo = ComponentFoliagePair.Value;
 
 				// We have to test each instance to see if we can migrate it across
-				for( TSet<int32>::TConstIterator InstanceIt(FoliageInfo.Instances); InstanceIt; ++InstanceIt )
+				for (int32 InstanceIdx : FoliageInfo.Instances)
 				{
 					// Use a line test against the world, similar to FoliageEditMode.
-					check(MeshInfo.Instances.IsValidIndex(*InstanceIt));
-					FFoliageInstance const& Instance = MeshInfo.Instances[*InstanceIt];
+					check(MeshInfo.Instances.IsValidIndex(InstanceIdx));
+					FFoliageInstance const& Instance = MeshInfo.Instances[InstanceIdx];
 
 					FFoliageInstance NewInstance = Instance;
-					NewInstance.ClusterIndex = -1;
-					
-					FMatrix InstanceTransform(Instance.GetInstanceTransform());
+					NewInstance.ClusterIndex = INDEX_NONE;
+
+					FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
 					FVector Down(-FVector::UpVector);
-					FVector Start(InstanceTransform.TransformPosition(FVector::UpVector));
-					FVector End(InstanceTransform.TransformPosition(Down));
+					FVector Start(InstanceToWorld.TransformPosition(FVector::UpVector));
+					FVector End(InstanceToWorld.TransformPosition(Down));
 
 					FHitResult Result;
 					bool bHit = World->LineTraceSingle(Result, Start, End, FCollisionQueryParams(true), FCollisionObjectQueryParams(ECC_WorldStatic));
-					
-					if(bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
+
+					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
-						NewInstance.Base = Cast<UActorComponent>(Result.Component.Get());
+						NewInstance.Base = CastChecked<UPrimitiveComponent>(Result.Component.Get());
 					}
 					else
 					{
 						// Untargeted instances remain for manual deletion.
-						NewInstance.Base = NULL;
+						NewInstance.Base = nullptr;
 					}
 
-					NewInstances.FindOrAdd(Mesh).Add(NewInstance);
+					NewInstances.FindOrAdd(Settings).Add(NewInstance);
 				}
 			}
 		}
 	}
 
 	// Remove all existing & broken instances & component references.
-	for (TArray<UActorComponent*>::TConstIterator ComponentIt(RemovedComponents); ComponentIt; ++ComponentIt)
+	for (UActorComponent* Component : RemovedComponents)
 	{
-		DeleteInstancesForComponent(*ComponentIt);
+		DeleteInstancesForComponent(Component);
 	}
 
 	// And then finally add our new instances to the correct target components.
-	for (TMap< UStaticMesh*, TArray<FFoliageInstance> >::TConstIterator NewInstanceIt(NewInstances); NewInstanceIt; ++NewInstanceIt)
+	for (auto& NewInstancePair : NewInstances)
 	{
-		UStaticMesh* Mesh = NewInstanceIt.Key();
-		check(Mesh);
-		FFoliageMeshInfo& MeshInfo = FoliageMeshes.FindOrAdd(Mesh);
-		for(TArray<FFoliageInstance>::TConstIterator InstanceIt(NewInstanceIt.Value()); InstanceIt; ++InstanceIt)
+		UFoliageType* Settings = NewInstancePair.Key;
+		check(Settings);
+		FFoliageMeshInfo& MeshInfo = *FindOrAddMesh(Settings);
+		for (FFoliageInstance& Instance : NewInstancePair.Value)
 		{
-			MeshInfo.AddInstance(this, Mesh, *InstanceIt);
+			MeshInfo.AddInstance(this, Settings, Instance);
 		}
 	}
 }
 
-#endif
+void AInstancedFoliageActor::ApplyLevelTransform(const FTransform& LevelTransform)
+{
+	// Apply transform to foliage editor only data
+	if (GIsEditor)
+	{
+		for (auto& MeshPair : FoliageMeshes)
+		{
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		
+			MeshInfo.InstanceHash->Empty();
+			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
+			{
+				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIdx];
+				FTransform NewTransform = Instance.GetInstanceWorldTransform() * LevelTransform;
+			
+				Instance.Location		= NewTransform.GetLocation();
+				Instance.Rotation		= NewTransform.GetRotation().Rotator();
+				Instance.DrawScale3D	= NewTransform.GetScale3D();
+			
+				// Rehash instance location
+				MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
+			}
+
+			for (auto It = MeshInfo.ComponentHash.CreateIterator(); It; ++It)
+			{
+				// We assume here that component we painted foliage on, was transformed as well
+				FFoliageComponentHashInfo& Info = It.Value();
+				Info.UpdateLocationFromActor(It.Key());
+			}
+
+			// Recalc cluster bounds
+			for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
+			{
+				Cluster.Bounds = Cluster.ClusterComponent->CalcBounds(Cluster.ClusterComponent->ComponentToWorld);
+			}
+		}
+	}
+}
+
+#endif // WITH_EDITOR
+
+struct FFoliageMeshInfo_Old
+{
+	TArray<FFoliageInstanceCluster> InstanceClusters;
+	TArray<FFoliageInstance> Instances;
+	//FFoliageInstanceHash* InstanceHash;
+	//TMap<UActorComponent*, FFoliageComponentHashInfo> ComponentHash;
+	//TArray<int32> FreeInstanceIndices;
+	//TArray<int32> SelectedIndices;
+	UFoliageType_InstancedStaticMesh* Settings; // Type remapped via +ActiveClassRedirects
+};
+FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo_Old& MeshInfo)
+{
+	Ar << MeshInfo.InstanceClusters;
+	Ar << MeshInfo.Instances;
+	Ar << MeshInfo.Settings;
+
+	return Ar;
+}
 
 void AInstancedFoliageActor::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-	Ar << FoliageMeshes;
+	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_SETTINGS_TYPE)
+	{
+		TMap<UStaticMesh*, FFoliageMeshInfo_Old> OldFoliageMeshes;
+		Ar << OldFoliageMeshes;
+		for (auto& OldMeshInfo : OldFoliageMeshes)
+		{
+			FFoliageMeshInfo NewMeshInfo;
+			NewMeshInfo.InstanceClusters = MoveTemp(OldMeshInfo.Value.InstanceClusters);
+#if WITH_EDITORONLY_DATA
+			NewMeshInfo.Instances = MoveTemp(OldMeshInfo.Value.Instances);
+#endif
+
+			UFoliageType_InstancedStaticMesh* FoliageType = OldMeshInfo.Value.Settings;
+			if (FoliageType == nullptr)
+			{
+				// If the Settings object was null, eg the user forgot to save their settings asset, create a new one.
+				FoliageType = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
+			}
+
+			if (FoliageType->Mesh == nullptr)
+			{
+				FoliageType->Modify();
+				FoliageType->Mesh = OldMeshInfo.Key;
+			}
+			else if (FoliageType->Mesh != OldMeshInfo.Key)
+			{
+				// If mesh doesn't match (two meshes sharing the same settings object?) then we need to duplicate as that is no longer supported
+				FoliageType = (UFoliageType_InstancedStaticMesh*)StaticDuplicateObject(FoliageType, this, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
+				FoliageType->Mesh = OldMeshInfo.Key;
+			}
+			FoliageMeshes.Add(FoliageType, TUniqueObj<FFoliageMeshInfo>(MoveTemp(NewMeshInfo)));
+		}
+	}
+	else
+	{
+		Ar << FoliageMeshes;
+	}
 
 	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
 	{
-		for (const TPair<UStaticMesh*, FFoliageMeshInfo>& MeshInfo : FoliageMeshes)
+		for (auto& MeshInfo : FoliageMeshes)
 		{
-			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value.InstanceClusters)
+			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value->InstanceClusters)
 			{
 				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
 					Cluster.ClusterComponent->SetMobility(EComponentMobility::Movable);
@@ -1480,45 +1582,80 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 			}
 		}
 	}
+
+	// Attach cluster components to a root component
+	if (Ar.UE4Ver() < VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR && GIsEditor && Ar.IsLoading())
+	{
+		TArray<UInstancedStaticMeshComponent*> ClusterComponents;
+		GetComponents(ClusterComponents);
+		for (UInstancedStaticMeshComponent* Component : ClusterComponents)
+		{
+			Component->AttachTo(GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+		}
+	}
 }
 
 void AInstancedFoliageActor::PostLoad()
 {
 	Super::PostLoad();
-	if( GIsEditor )
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerUE4Version() < VER_UE4_DISALLOW_FOLIAGE_ON_BLUEPRINTS)
 	{
-		for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+		for (auto& MeshPair : FoliageMeshes)
 		{
-			// Remove any NULL entries.
-			if( MeshIt.Key() == NULL )
+			for (FFoliageInstance& Instance : MeshPair.Value->Instances)
+			{
+				// Clear out the Base for any instances based on blueprint-created components,
+				// as those components will be destroyed when the construction scripts are
+				// re-run, leaving dangling references and causing crashes (woo!)
+				if (Instance.Base && Instance.Base->bCreatedByConstructionScript)
+				{
+					Instance.Base = NULL;
+				}
+			}
+		}
+	}
+#endif
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		{
+			bool bContainsNull = FoliageMeshes.Remove(nullptr) > 0;
+			if (bContainsNull)
 			{
 				FMessageLog("MapCheck").Warning()
 					->AddToken(FUObjectToken::Create(this))
 					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_FoliageMissingStaticMesh", "Foliage instances for a missing static mesh have been removed.")))
 					->AddToken(FMapErrorToken::Create(FMapErrors::FoliageMissingStaticMesh));
-				MeshIt.RemoveCurrent();
-				continue;
+				while (bContainsNull)
+				{
+					bContainsNull = FoliageMeshes.Remove(nullptr) > 0;
+				}
 			}
-
+		}
+		for (auto& MeshPair : FoliageMeshes)
+		{
 			// Find the per-mesh info matching the mesh.
-			FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 			// Update the FreeInstanceIndices list and hash.
-			for( int32 InstanceIdx=0; InstanceIdx<MeshInfo.Instances.Num(); InstanceIdx++ )
+			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIdx];
-				if( Instance.ClusterIndex == -1 )
+				if (Instance.ClusterIndex == INDEX_NONE)
 				{
 					// Add invalid instances to the FreeInstanceIndices list.
 					MeshInfo.FreeInstanceIndices.Add(InstanceIdx);
-					Instance.Base = NULL;
+					Instance.Base = nullptr;
 				}
 				else
 				{
 					// Add valid instances to the hash.
 					MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
 					FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(Instance.Base);
-					if( ComponentHashInfo == NULL )
+					if (ComponentHashInfo == nullptr)
 					{
 						ComponentHashInfo = &MeshInfo.ComponentHash.Add(Instance.Base, FFoliageComponentHashInfo(Instance.Base));
 					}
@@ -1526,27 +1663,28 @@ void AInstancedFoliageActor::PostLoad()
 				}
 			}
 
-			// Check if any of the clusters are NULL
+			// Check if any of the clusters are nullptr
 			int32 NumMissingComponents = 0;
-			for( int32 ClusterIdx=0;ClusterIdx<MeshInfo.InstanceClusters.Num();ClusterIdx++ )
+			for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
 			{
-				if( MeshInfo.InstanceClusters[ClusterIdx].ClusterComponent == NULL )
+				if (Cluster.ClusterComponent == nullptr)
 				{
 					NumMissingComponents++;
 				}
 			}
-			if( NumMissingComponents> 0 )
+			if (NumMissingComponents > 0)
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("MissingCount"), NumMissingComponents);
-				Arguments.Add(TEXT("MeshName"), FText::FromString(MeshIt.Key()->GetName()));
+				Arguments.Add(TEXT("MeshName"), FText::FromString(MeshPair.Key->GetName()));
 				FMessageLog("MapCheck").Warning()
 					->AddToken(FUObjectToken::Create(this))
-					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_FoliageMissingClusterComponent", "Foliage in this map is missing {MissingCount} cluster component(s) for static mesh {MeshName}. Opening the Foliage tool will this problem."), Arguments) ))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_FoliageMissingClusterComponent", "Foliage in this map is missing {MissingCount} cluster component(s) for static mesh {MeshName}. Opening the Foliage tool will this problem."), Arguments)))
 					->AddToken(FMapErrorToken::Create(FMapErrors::FoliageMissingClusterComponent));
 			}
 		}
 	}
+#endif
 }
 
 //
@@ -1555,74 +1693,73 @@ void AInstancedFoliageActor::PostLoad()
 void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	AInstancedFoliageActor* This = CastChecked<AInstancedFoliageActor>(InThis);
-	if( This->SelectedMesh )
+	if (This->SelectedMesh)
 	{
-		Collector.AddReferencedObject( This->SelectedMesh, This );
+		Collector.AddReferencedObject(This->SelectedMesh, This);
 	}
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(This->FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : This->FoliageMeshes)
 	{
-		Collector.AddReferencedObject( MeshIt.Key(), This );
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		Collector.AddReferencedObject(MeshPair.Key, This);
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-		if(MeshInfo.Settings != NULL )
+#if WITH_EDITORONLY_DATA
+		for (FFoliageInstance& Instance : MeshInfo.Instances)
 		{
-			Collector.AddReferencedObject( MeshInfo.Settings, This );
-		}
-
-		for( int32 InstanceIdx=0;InstanceIdx<MeshInfo.Instances.Num();InstanceIdx++ )
-		{
-			class UActorComponent* Base = MeshInfo.Instances[InstanceIdx].Base;
-			if( Base != NULL )
+			UActorComponent* Base = Instance.Base;
+			if (Base != nullptr)
 			{
-				Collector.AddReferencedObject( Base, This );
+				Collector.AddReferencedObject(Base, This);
 			}
 		}
+#endif
 
-		for( int32 ClusterIdx=0;ClusterIdx<MeshInfo.InstanceClusters.Num();ClusterIdx++ )
+		for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
 		{
-			Collector.AddReferencedObject( MeshInfo.InstanceClusters[ClusterIdx].ClusterComponent, This );	
+			Collector.AddReferencedObject(Cluster.ClusterComponent, This);
 		}
 	}
 	Super::AddReferencedObjects(This, Collector);
 }
 
 /** InstancedStaticMeshInstance hit proxy */
-void HInstancedStaticMeshInstance::AddReferencedObjects( FReferenceCollector& Collector )
+void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	Collector.AddReferencedObject( Component );
+	Collector.AddReferencedObject(Component);
 }
 
 void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	TArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 CompIndex = 0; CompIndex < Components.Num(); CompIndex++)
-	{
-		Components[CompIndex]->ApplyWorldOffset(InOffset, bWorldShift);
-	}
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
 
 	if (GIsEditor)
 	{
-		for (auto MeshIt = FoliageMeshes.CreateIterator(); MeshIt; ++MeshIt)
+		for (auto& MeshPair : FoliageMeshes)
 		{
-			FFoliageMeshInfo& MeshInfo = MeshIt.Value();
-			
-			for (int32 ClusterIdx = 0; ClusterIdx < MeshInfo.InstanceClusters.Num(); ClusterIdx++)
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+
+			for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
 			{
-				FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[ClusterIdx];
-				Cluster.Bounds.Origin+= InOffset;
+				Cluster.Bounds.Origin += InOffset;
 			}
-			
+
+#if WITH_EDITORONLY_DATA
 			MeshInfo.InstanceHash->Empty();
 			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIdx];
-				Instance.Location+= InOffset;
+				Instance.Location += InOffset;
 				// Rehash instance location
 				MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
 			}
+
+			for (auto It = MeshInfo.ComponentHash.CreateIterator(); It; ++It)
+			{
+				// We assume here that component we painted foliage on will be shifted by same value
+				FFoliageComponentHashInfo& Info = It.Value();
+				Info.CachedLocation += InOffset;
+			}
+#endif
 		}
 	}
 }

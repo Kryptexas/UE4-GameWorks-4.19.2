@@ -23,7 +23,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
  		UK2Node_MakeArray* ArrayNode = CastChecked<UK2Node_MakeArray>(Node);
  		UEdGraphPin* OutputPin = ArrayNode->GetOutputPin();
@@ -39,7 +39,7 @@ public:
  		Context.NetMap.Add(OutputPin, Term);
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_MakeArray* ArrayNode = CastChecked<UK2Node_MakeArray>(Node);
 		UEdGraphPin* OutputPin = ArrayNode->GetOutputPin();

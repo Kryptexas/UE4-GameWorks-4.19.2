@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "ActiveSound.h"
+#include "Sound/DialogueSoundWaveProxy.h"
+#include "Sound/SoundWave.h"
 #include "SubtitleManager.h"
 
 bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS)

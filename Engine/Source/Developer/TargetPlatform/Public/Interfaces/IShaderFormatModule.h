@@ -18,10 +18,12 @@ public:
 	/**
 	 * Gets the shader format.
 	 */
-	virtual IShaderFormat* GetShaderFormat() = 0;
+	virtual IShaderFormat* GetShaderFormat( ) = 0;
 
+public:
 
-protected:
-
-	IShaderFormatModule() { }
+	/**
+	 * Virtual destructor.
+	 */
+	~IShaderFormatModule( ) { }
 };

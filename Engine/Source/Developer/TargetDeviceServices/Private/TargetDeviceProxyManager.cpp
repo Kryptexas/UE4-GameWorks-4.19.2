@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceProxyManager.cpp: Implements the FTargetDeviceProxyManager class.
-=============================================================================*/
-
 #include "TargetDeviceServicesPrivatePCH.h"
 
 

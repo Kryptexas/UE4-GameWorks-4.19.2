@@ -585,6 +585,7 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 
 void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 {
+#if WITH_APEX_CLOTHING
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
 	MenuBuilder.BeginSection("ClothPreview", LOCTEXT("ClothPreview_Label", "Preview"));
@@ -622,6 +623,7 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowOnlyClothSections);
 		MenuBuilder.AddMenuEntry(Actions.HideOnlyClothSections);
 	}
+#endif // #if WITH_APEX_CLOTHING
 }
 
 FText SAnimViewportToolBar::GetLODMenuLabel() const
@@ -702,7 +704,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewportTypeMenu() const
 	// Camera types
 	CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Perspective);
 
-	CameraMenuBuilder.BeginSection("LevelViewportCameraType_Ortho", LOCTEXT("CameraTypeHeader_Ortho", "Othographic"));
+	CameraMenuBuilder.BeginSection("LevelViewportCameraType_Ortho", LOCTEXT("CameraTypeHeader_Ortho", "Orthographic"));
 	CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Top);
 	CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Side);
 	CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Front);

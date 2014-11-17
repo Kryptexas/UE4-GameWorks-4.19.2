@@ -41,7 +41,7 @@ public:
 	 * @param InEnumName Enum name.
 	 * @return Full enum name.
 	 */
-	virtual FString GenerateFullEnumName(const TCHAR* InEnumName) const OVERRIDE;
+	virtual FString GenerateFullEnumName(const TCHAR* InEnumName) const override;
 
 	/*
 	 *	Try to update value in enum variable after an enum's change.
@@ -49,19 +49,19 @@ public:
 	 *	@param EnumeratorIndex	old index
 	 *	@return	new index
 	 */
-	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const OVERRIDE;
+	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const override;
 
 	/**
 	 * @return	The enum string at the specified index.
 	 */
-	virtual FText GetEnumText(int32 InIndex) const OVERRIDE;
+	virtual FText GetEnumText(int32 InIndex) const override;
 
 #if WITH_EDITOR
 	// Begin UObject interface
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostLoad() override;
+	virtual void PostEditUndo() override;
 	// End of UObject interface
 
 	FString GenerateNewEnumeratorName();

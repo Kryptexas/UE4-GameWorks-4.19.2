@@ -11,13 +11,13 @@ void SClippingHorizontalBox::Tick( const FGeometry& AllottedGeometry, const doub
 	ClippedIdx = ArrangedChildren.Num() - 1;
 }
 
-void SClippingHorizontalBox::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// If WrapButton hasn't been initialized, that means AddWrapButton() hasn't 
 	// been called and this method isn't going to behave properly
 	check(WrapButton.IsValid());
 
-	SHorizontalBox::ArrangeChildren(AllottedGeometry, ArrangedChildren);
+	SHorizontalBox::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Remove children that are clipped by the allotted geometry
 	const int32 NumChildren = ArrangedChildren.Num(); 
@@ -62,8 +62,9 @@ int32 SClippingHorizontalBox::OnPaint( const FGeometry& AllottedGeometry, const 
 	ArrangeChildren(AllottedGeometry, ClippedArrangedChildren);
 	
 	// Get the non-clipped children info
+	// @todo umg: One should not call the virtual OnArrangeChildren, one should only call ArrangeChildren.
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	SBoxPanel::ArrangeChildren(AllottedGeometry, ArrangedChildren);
+	SBoxPanel::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 	
 	if ((ClippedArrangedChildren.Num() != 0) && (ArrangedChildren.Num() != 0))
 	{

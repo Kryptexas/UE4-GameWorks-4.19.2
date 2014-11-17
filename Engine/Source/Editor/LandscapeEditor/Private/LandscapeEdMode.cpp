@@ -2,6 +2,7 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 
+#include "EditorSupportDelegates.h"
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
@@ -16,11 +17,20 @@
 #include "LandscapeEdModeTools.h"
 #include "ScopedTransaction.h"
 #include "ImageWrapper.h"
+#include "DynamicMeshBuilder.h"
 
 //Slate dependencies
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/SLevelViewport.h"
 #include "SLandscapeEditor.h"
+
+// Classes
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -85,15 +95,8 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 		LandscapeEdit.GetHeightDataFast(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetTypedData(), 0, (uint16*)NormalData.GetTypedData());
 
 		// Construct the heightmap textures
-		UObject* Outer = bMoveToCurrentLevel ? Comp->GetWorld()->GetCurrentLevel()->GetOutermost() : Comp->GetOutermost();
-		HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Outer, NAME_None, RF_Public);
-		HeightmapTexture->Source.Init2DWithMipChain(HeightmapSizeU, HeightmapSizeV, TSF_BGRA8);
-		HeightmapTexture->SRGB = false;
-		HeightmapTexture->CompressionNone = true;
-		HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-		HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-		HeightmapTexture->AddressX = TA_Clamp;
-		HeightmapTexture->AddressY = TA_Clamp;
+		UObject* TextureOuter = bMoveToCurrentLevel ? Comp->GetWorld()->GetCurrentLevel()->GetOutermost() : nullptr;
+		HeightmapTexture = Comp->GetLandscapeProxy()->CreateLandscapeTexture(HeightmapSizeU, HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8, TextureOuter);
 
 		int32 MipSubsectionSizeQuads = Comp->SubsectionSizeQuads;
 		int32 MipSizeU = HeightmapSizeU;
@@ -156,12 +159,6 @@ FEdModeLandscape::FEdModeLandscape()
 ,	DraggingEdge_Remainder(0)
 ,	CachedLandscapeMaterial(NULL)
 {
-	ID = FBuiltinEditorModes::EM_Landscape;
-	Name = NSLOCTEXT("EditorModes", "LandscapeMode", "Landscape");
-	IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.LandscapeMode", "LevelEditor.LandscapeMode.Small");
-	bVisible = true;
-	PriorityOrder = 300;
-
 	GizmoMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/GizmoMaterial.GizmoMaterial"), NULL, LOAD_None, NULL);
 
 	GLayerDebugColorMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial"), NULL, LOAD_None, NULL);
@@ -552,21 +549,21 @@ void FEdModeLandscape::Exit()
 		{
 			ALandscapeGizmoActor* Gizmo = Cast<ALandscapeGizmoActor>(*It);
 			if (Gizmo)
-			{	
+			{
 				GetWorld()->DestroyActor(Gizmo, false, false);
 			}
 		}
 	}
 
-	// Recreate Hole Collision
-	GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeHoleCollision"));
+	// Redraw one last time to remove any landscape editor stuff from view
+	GEditor->RedrawLevelEditingViewports();
 
 	// Call parent implementation
 	FEdMode::Exit();
 }
 
 /** FEdMode: Called once per frame */
-void FEdModeLandscape::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	FEdMode::Tick(ViewportClient,DeltaTime);
 
@@ -612,7 +609,7 @@ void FEdModeLandscape::Tick(FLevelEditorViewportClient* ViewportClient,float Del
 
 
 /** FEdMode: Called when the mouse is moved over the viewport */
-bool FEdModeLandscape::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
+bool FEdModeLandscape::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
 {
 	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
 	{
@@ -656,7 +653,7 @@ bool FEdModeLandscape::DisallowMouseDeltaTracking() const
  *
  * @return	true if input was handled
  */
-bool FEdModeLandscape::CapturedMouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
+bool FEdModeLandscape::CapturedMouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
 {
 	return MouseMove(ViewportClient, Viewport, MouseX, MouseY);
 }
@@ -667,7 +664,7 @@ namespace
 }
 
 /** FEdMode: Called when a mouse button is pressed */
-bool FEdModeLandscape::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeLandscape::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	if (CurrentGizmoActor.IsValid() && CurrentGizmoActor->IsSelected() && GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo)
 	{
@@ -680,7 +677,7 @@ bool FEdModeLandscape::StartTracking(FLevelEditorViewportClient* InViewportClien
 
 
 /** FEdMode: Called when the a mouse button is released */
-bool FEdModeLandscape::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeLandscape::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	if (GIsGizmoDragging)
 	{
@@ -714,7 +711,7 @@ namespace
 };
 
 /** Trace under the mouse cursor and return the landscape hit and the hit location (in landscape quad space) */
-bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, float& OutHitX, float& OutHitY )
+bool FEdModeLandscape::LandscapeMouseTrace( FEditorViewportClient* ViewportClient, float& OutHitX, float& OutHitY )
 {
 	int32 MouseX = ViewportClient->Viewport->GetMouseX();
 	int32 MouseY = ViewportClient->Viewport->GetMouseY();
@@ -722,7 +719,7 @@ bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* Viewport
 	return LandscapeMouseTrace( ViewportClient, MouseX, MouseY, OutHitX, OutHitY );
 }
 
-bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, FVector& OutHitLocation )
+bool FEdModeLandscape::LandscapeMouseTrace( FEditorViewportClient* ViewportClient, FVector& OutHitLocation )
 {
 	int32 MouseX = ViewportClient->Viewport->GetMouseX();
 	int32 MouseY = ViewportClient->Viewport->GetMouseY();
@@ -731,7 +728,7 @@ bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* Viewport
 }
 
 /** Trace under the specified coordinates and return the landscape hit and the hit location (in landscape quad space) */
-bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, float& OutHitX, float& OutHitY )
+bool FEdModeLandscape::LandscapeMouseTrace( FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, float& OutHitX, float& OutHitY )
 {
 	FVector HitLocation;
 	bool bResult = LandscapeMouseTrace( ViewportClient, MouseX, MouseY, HitLocation );
@@ -740,7 +737,7 @@ bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* Viewport
 	return bResult;
 }
 
-bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, FVector& OutHitLocation )
+bool FEdModeLandscape::LandscapeMouseTrace( FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, FVector& OutHitLocation )
 {
 	// Cache a copy of the world pointer	
 	UWorld* World = ViewportClient->GetWorld();
@@ -820,7 +817,7 @@ bool FEdModeLandscape::LandscapeMouseTrace( FLevelEditorViewportClient* Viewport
 	return false;
 }
 
-bool FEdModeLandscape::LandscapePlaneTrace(FLevelEditorViewportClient* ViewportClient, const FPlane& Plane, FVector& OutHitLocation)
+bool FEdModeLandscape::LandscapePlaneTrace(FEditorViewportClient* ViewportClient, const FPlane& Plane, FVector& OutHitLocation)
 {
 	int32 MouseX = ViewportClient->Viewport->GetMouseX();
 	int32 MouseY = ViewportClient->Viewport->GetMouseY();
@@ -828,7 +825,7 @@ bool FEdModeLandscape::LandscapePlaneTrace(FLevelEditorViewportClient* ViewportC
 	return LandscapePlaneTrace(ViewportClient, MouseX, MouseY, Plane, OutHitLocation);
 }
 
-bool FEdModeLandscape::LandscapePlaneTrace(FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation)
+bool FEdModeLandscape::LandscapePlaneTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation)
 {
 	// Cache a copy of the world pointer
 	UWorld* World = ViewportClient->GetWorld();
@@ -1127,7 +1124,7 @@ bool FEdModeLandscape::ProcessEditPaste()
 	return Result;
 }
 
-bool FEdModeLandscape::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
+bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
 {
 	if (GEditor->PlayWorld != NULL)
 	{
@@ -1149,7 +1146,7 @@ bool FEdModeLandscape::HandleClick(FLevelEditorViewportClient* InViewportClient,
 }
 
 /** FEdMode: Called when a key is pressed */
-bool FEdModeLandscape::InputKey( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+bool FEdModeLandscape::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
 	if (GEditor->PlayWorld != NULL)
 	{
@@ -1175,7 +1172,7 @@ bool FEdModeLandscape::InputKey( FLevelEditorViewportClient* ViewportClient, FVi
 						DraggingEdge = EdgeProxy->Edge;
 						DraggingEdge_Remainder = 0;
 
-						return false; // false to let FLevelEditorViewportClient.InputKey start mouse tracking and enable InputDelta() so we can use it
+						return false; // false to let FEditorViewportClient.InputKey start mouse tracking and enable InputDelta() so we can use it
 					}
 				}
 			}
@@ -1186,7 +1183,7 @@ bool FEdModeLandscape::InputKey( FLevelEditorViewportClient* ViewportClient, FVi
 					DraggingEdge = ELandscapeEdge::None;
 					DraggingEdge_Remainder = 0;
 
-					return false; // false to let FLevelEditorViewportClient.InputKey end mouse tracking
+					return false; // false to let FEditorViewportClient.InputKey end mouse tracking
 				}
 			}
 		}
@@ -1348,7 +1345,7 @@ bool FEdModeLandscape::InputKey( FLevelEditorViewportClient* ViewportClient, FVi
 }
 
 /** FEdMode: Called when mouse drag input is applied */
-bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FEdModeLandscape::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	if (GEditor->PlayWorld != NULL)
 	{
@@ -1805,7 +1802,7 @@ void FEdModeLandscape::OnWorldChange()
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
 		CurrentToolTarget.LandscapeInfo == NULL)
 	{
-		GEditorModeTools().DeactivateMode(ID);
+		RequestDeletion();
 	}
 }
 
@@ -1841,7 +1838,7 @@ void FEdModeLandscape::Render( const FSceneView* View, FViewport* Viewport, FPri
 		static const FLinearColor SectionBorderColour   (0.0f,  0.4f,  0.0f);
 		static const FLinearColor InnerColour           (0.0f,  0.25f, 0.0f);
 
-		const ELevelViewportType ViewportType = ((FLevelEditorViewportClient*)Viewport->GetClient())->ViewportType;
+		const ELevelViewportType ViewportType = ((FEditorViewportClient*)Viewport->GetClient())->ViewportType;
 
 		const int32 ComponentCountX = UISettings->NewLandscape_ComponentCount.X;
 		const int32 ComponentCountY = UISettings->NewLandscape_ComponentCount.Y;
@@ -2083,7 +2080,7 @@ void FEdModeLandscape::Render( const FSceneView* View, FViewport* Viewport, FPri
 }
 
 /** FEdMode: Render HUD elements for this tool */
-void FEdModeLandscape::DrawHUD( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas )
+void FEdModeLandscape::DrawHUD( FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas )
 {
 
 }
@@ -2281,19 +2278,18 @@ void FEdModeLandscape::ActorMoveNotify()
 }
 
 /** Forces all level editor viewports to realtime mode */
-void FEdModeLandscape::ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState )
+void FEdModeLandscape::ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState)
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<ILevelEditor> LevelEditor = LevelEditorModule.GetFirstLevelEditor();
 	if (LevelEditor.IsValid())
 	{
 		TArray<TSharedPtr<ILevelViewport>> Viewports = LevelEditor->GetViewports();
-		for (auto It = Viewports.CreateConstIterator(); It; It++)
+		for (const TSharedPtr<ILevelViewport>& ViewportWindow :  Viewports)
 		{
-			const TSharedPtr<ILevelViewport>& ViewportWindow = *It;
 			if (ViewportWindow.IsValid())
 			{
-				FLevelEditorViewportClient& Viewport = ViewportWindow->GetLevelViewportClient();
+				FEditorViewportClient& Viewport = ViewportWindow->GetLevelViewportClient();
 				if (bEnable)
 				{
 					Viewport.SetRealtime(bEnable, bStoreCurrentState);
@@ -2555,6 +2551,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->LODDistanceFactor           = OldLandscapeProxy->LODDistanceFactor;
 			Landscape->StaticLightingResolution    = OldLandscapeProxy->StaticLightingResolution;
 			Landscape->bCastStaticShadow           = OldLandscapeProxy->bCastStaticShadow;
+			Landscape->bCastShadowAsTwoSided	   = OldLandscapeProxy->bCastShadowAsTwoSided;
 			Landscape->LightmassSettings           = OldLandscapeProxy->LightmassSettings;
 			Landscape->CollisionThickness          = OldLandscapeProxy->CollisionThickness;
 			Landscape->BodyInstance.SetCollisionProfileName(OldLandscapeProxy->BodyInstance.GetCollisionProfileName());
@@ -2624,6 +2621,34 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	}
 
 	return Landscape;
+}
+
+bool LandscapeEditorUtils::SetHeightmapData(ALandscapeProxy* Landscape, const TArray<uint16>& Data)
+{
+	FIntRect ComponentsRect = Landscape->GetBoundingRect() + Landscape->LandscapeSectionOffset;
+		
+	if (Data.Num() == (1+ComponentsRect.Width())*(1+ComponentsRect.Height()))
+	{
+		FHeightmapAccessor<false> HeightmapAccessor(Landscape->GetLandscapeInfo());
+		HeightmapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData());
+		return true;
+	}
+
+	return false;
+}
+
+bool LandscapeEditorUtils::SetWeightmapData(ALandscapeProxy* Landscape, ULandscapeLayerInfoObject* LayerObject, const TArray<uint8>& Data)
+{
+	FIntRect ComponentsRect = Landscape->GetBoundingRect() + Landscape->LandscapeSectionOffset;	
+	
+	if (Data.Num() == (1+ComponentsRect.Width())*(1+ComponentsRect.Height()))
+	{
+		FAlphamapAccessor<false, true> AlphamapAccessor(Landscape->GetLandscapeInfo(), LayerObject);
+		AlphamapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData(), ELandscapeLayerPaintingRestriction::None);
+		return true;
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

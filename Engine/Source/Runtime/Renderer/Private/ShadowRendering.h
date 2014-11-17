@@ -7,46 +7,42 @@
 #ifndef __ShadowRendering_H__
 #define __ShadowRendering_H__
 
+#include "ShaderParameterUtils.h"
+
 // Forward declarations.
 class FProjectedShadowInfo;
 
 /** Utility functions for drawing a sphere */
 namespace StencilingGeometry
 {
-	const int32 NUM_SPHERE_SIDES = 18;
-	const int32 NUM_SPHERE_RINGS = 12;
-
-	/** 
-	* Calculates the world transform for a sphere.
-	* @param OutTransform - The output world transform.
-	* @param Sphere - The sphere to generate the transform for.
-	* @param PreViewTranslation - The pre-view translation to apply to the transform.
-	* @param bConservativelyBoundSphere - when true, the sphere that is drawn will contain all positions in the analytical sphere,
-	*		 Otherwise the sphere vertices will lie on the analytical sphere and the positions on the faces will lie inside the sphere.
-	*/
-	extern void CalcTransform(FVector4& OutPosAndScale, const FSphere& Sphere, const FVector& PreViewTranslation, bool bConservativelyBoundSphere = true);
-
 	/**
 	* Draws a sphere using RHIDrawIndexedPrimitive, useful as approximate bounding geometry for deferred passes.
 	* Note: The sphere will be of unit size unless transformed by the shader. 
 	*/
-	extern void DrawSphere();
+	extern void DrawSphere(FRHICommandList& RHICmdList);
 	/** Renders a cone with a spherical cap, used for rendering spot lights in deferred passes. */
-	extern void DrawCone();
+	extern void DrawCone(FRHICommandList& RHICmdList);
 
 	/** 
 	* Vertex buffer for a sphere of unit size. Used for drawing a sphere as approximate bounding geometry for deferred passes.
 	*/
-	class FStencilSphereVertexBuffer : public FVertexBuffer
+	template<int32 NumSphereSides, int32 NumSphereRings>
+	class TStencilSphereVertexBuffer : public FVertexBuffer
 	{
 	public:
+
+		int32 GetNumRings() const
+		{
+			return NumSphereRings;
+		}
+
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
-			const int32 NumSides = StencilingGeometry::NUM_SPHERE_SIDES;
-			const int32 NumRings = StencilingGeometry::NUM_SPHERE_RINGS;
+			const int32 NumSides = NumSphereSides;
+			const int32 NumRings = NumSphereRings;
 			const int32 NumVerts = (NumSides + 1) * (NumRings + 1);
 
 			const float RadiansPerRingSegment = PI / (float)NumRings;
@@ -81,10 +77,35 @@ namespace StencilingGeometry
 			uint32 Size = Verts.GetResourceDataSize();
 
 			// Create vertex buffer. Fill buffer with initial data upon creation
-			VertexBufferRHI = RHICreateVertexBuffer(Size,&Verts,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Verts);
+			VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		}
 
 		int32 GetVertexCount() const { return NumSphereVerts; }
+
+	/** 
+	* Calculates the world transform for a sphere.
+	* @param OutTransform - The output world transform.
+	* @param Sphere - The sphere to generate the transform for.
+	* @param PreViewTranslation - The pre-view translation to apply to the transform.
+	* @param bConservativelyBoundSphere - when true, the sphere that is drawn will contain all positions in the analytical sphere,
+	*		 Otherwise the sphere vertices will lie on the analytical sphere and the positions on the faces will lie inside the sphere.
+	*/
+	void CalcTransform(FVector4& OutPosAndScale, const FSphere& Sphere, const FVector& PreViewTranslation, bool bConservativelyBoundSphere = true)
+	{
+		float Radius = Sphere.W;
+		if (bConservativelyBoundSphere)
+		{
+			const int32 NumRings = NumSphereRings;
+			const float RadiansPerRingSegment = PI / (float)NumRings;
+
+			// Boost the effective radius so that the edges of the sphere approximation lie on the sphere, instead of the vertices
+			Radius /= FMath::Cos(RadiansPerRingSegment);
+		}
+
+		const FVector Translate(Sphere.Center + PreViewTranslation);
+		OutPosAndScale = FVector4(Translate, Radius);
+	}
 
 	private:
 		int32 NumSphereVerts;
@@ -93,16 +114,17 @@ namespace StencilingGeometry
 	/** 
 	* Stenciling sphere index buffer
 	*/
-	class FStencilSphereIndexBuffer : public FIndexBuffer
+	template<int32 NumSphereSides, int32 NumSphereRings>
+	class TStencilSphereIndexBuffer : public FIndexBuffer
 	{
 	public:
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
-			const int32 NumSides = StencilingGeometry::NUM_SPHERE_SIDES;
-			const int32 NumRings = StencilingGeometry::NUM_SPHERE_RINGS;
+			const int32 NumSides = NumSphereSides;
+			const int32 NumRings = NumSphereRings;
 			TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 
 			// Add triangles for all the vertices generated
@@ -127,7 +149,8 @@ namespace StencilingGeometry
 			const uint32 Stride = sizeof(uint16);
 
 			// Create index buffer. Fill buffer with initial data upon creation
-			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, &Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static, CreateInfo);
 		}
 
 		int32 GetIndexCount() const { return NumIndices; }; 
@@ -146,7 +169,7 @@ namespace StencilingGeometry
 
 		static const uint32 NumVerts = NumSides * NumSlices * 2;
 
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 
@@ -197,7 +220,8 @@ namespace StencilingGeometry
 			NumIndices = Indices.Num();
 
 			// Create index buffer. Fill buffer with initial data upon creation
-			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, &Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static,CreateInfo);
 		}
 
 		int32 GetIndexCount() const { return NumIndices; } 
@@ -217,7 +241,7 @@ namespace StencilingGeometry
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
 			Verts.Empty(NumVerts);
@@ -229,14 +253,17 @@ namespace StencilingGeometry
 			uint32 Size = Verts.GetResourceDataSize();
 
 			// Create vertex buffer. Fill buffer with initial data upon creation
-			VertexBufferRHI = RHICreateVertexBuffer(Size, &Verts, BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Verts);
+			VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 		}
 
 		int32 GetVertexCount() const { return NumVerts; }
 	};
 
-	extern TGlobalResource<FStencilSphereVertexBuffer> GStencilSphereVertexBuffer;
-	extern TGlobalResource<FStencilSphereIndexBuffer> GStencilSphereIndexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12> > GStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereIndexBuffer<18, 12> > GStencilSphereIndexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4> > GLowPolyStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereIndexBuffer<4, 4> > GLowPolyStencilSphereIndexBuffer;
 	extern TGlobalResource<FStencilConeVertexBuffer> GStencilConeVertexBuffer;
 	extern TGlobalResource<FStencilConeIndexBuffer> GStencilConeIndexBuffer;
 
@@ -306,7 +333,7 @@ public:
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
 			&& bPreShadow == Other.bPreShadow;
 	}
-	void DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const;
+	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
@@ -316,6 +343,7 @@ public:
 	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -385,6 +413,7 @@ public:
 	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh);
 
 	static bool DrawDynamicMesh(
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		ContextType Context,
 		const FMeshBatch& Mesh,
@@ -516,9 +545,6 @@ public:
 
 	FSphere ShadowBounds;
 
-	/** The extruded cascade frustum's culling planes, if a whole scene directional shadow. */
-	TArray<FPlane> FrustumCullPlanes;
-
 	FShadowCascadeSettings CascadeSettings;
 
 	/** X and Y position of the shadow in the appropriate depth buffer.  These are only initialized after the shadow has been allocated. */
@@ -628,16 +654,7 @@ public:
 		const FWholeSceneProjectedShadowInitializer& Initializer,
 		uint32 InResolutionX,
 		uint32 InResolutionY,
-		const TArray<float, TInlineAllocator<2> >& InFadeAlphas
-		);
-
-	/** Initialization constructor for a whole-scene reflective shadow map */
-	FProjectedShadowInfo(
-		FLightSceneInfo* InLightSceneInfo,
-		FViewInfo* InDependentView,
-		const FRsmWholeSceneProjectedShadowInitializer& Initializer,
-		uint32 InResolutionX,
-		uint32 InResolutionY
+		bool bInReflectiveShadowMap
 		);
 
 	float GetShaderDepthBias() const { return ShaderDepthBias; }
@@ -645,20 +662,20 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
-	void ClearDepth(class FDeferredShadingSceneRenderer* SceneRenderer);
+	void ClearDepth(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/** Renders shadow maps for translucent primitives. */
-	void RenderTranslucencyDepths(class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderTranslucencyDepths(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
-	void RenderProjection(int32 ViewIndex, const class FViewInfo* View) const;
+	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View) const;
 
 	/** Render one pass point light shadow projections. */
-	void RenderOnePassPointLightProjection(int32 ViewIndex, const FViewInfo& View) const;
+	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View) const;
 
 	/**
 	 * Renders the projected shadow's frustum wireframe with the given FPrimitiveDrawInterface.
@@ -726,7 +743,7 @@ private:
 
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
-	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
+	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */
@@ -742,30 +759,31 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(ShaderRHIParamRef ShaderRHI, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void Set(FRHICommandList& RHICmdList, ShaderRHIParamRef ShaderRHI, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
 	{
 		SetShaderValue(
+			RHICmdList, 
 			ShaderRHI,
 			ProjectionMatrix,
 			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
 			);
 
-		SetShaderValue(ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
 		// Only clamp vertices to the near plane when rendering whole scene directional light shadow depths or preshadows from directional lights
 		const bool bClampToNearPlaneValue = ShadowInfo->IsWholeSceneDirectionalShadow() || (ShadowInfo->bPreShadow && ShadowInfo->bDirectionalLight);
-		SetShaderValue(ShaderRHI,ClampToNearPlane,bClampToNearPlaneValue ? 1.0f : 0.0f);
+		SetShaderValue(RHICmdList, ShaderRHI,ClampToNearPlane,bClampToNearPlaneValue ? 1.0f : 0.0f);
 	}
 
 	/** Set the vertex shader parameter values. */
-	void SetVertexShader(FShader* VertexShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void SetVertexShader(FRHICommandList& RHICmdList, FShader* VertexShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
 	{
-		Set(VertexShader->GetVertexShader(), View, ShadowInfo, MaterialRenderProxy);
+		Set(RHICmdList, VertexShader->GetVertexShader(), View, ShadowInfo, MaterialRenderProxy);
 	}
 
 	/** Set the domain shader parameter values. */
-	void SetDomainShader(FShader* DomainShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void SetDomainShader(FRHICommandList& RHICmdList, FShader* DomainShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
 	{
-		Set(DomainShader->GetDomainShader(), View, ShadowInfo, MaterialRenderProxy);
+		Set(RHICmdList, DomainShader->GetDomainShader(), View, ShadowInfo, MaterialRenderProxy);
 	}
 
 	/** Serializer. */
@@ -797,25 +815,26 @@ public:
 		StencilPreViewTranslation.Bind(ParameterMap, TEXT("StencilingPreViewTranslation"));
 	}
 
-	void Set(FShader* Shader, const FVector4& InStencilingGeometryPosAndScale) const
+	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FVector4& InStencilingGeometryPosAndScale) const
 	{
-		SetShaderValue(Shader->GetVertexShader(), StencilGeometryPosAndScale, InStencilingGeometryPosAndScale);
-		SetShaderValue(Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilGeometryPosAndScale, InStencilingGeometryPosAndScale);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
 	}
 
-	void Set(FShader* Shader, const FSceneView& View, const FLightSceneInfo* LightSceneInfo) const
+	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView& View, const FLightSceneInfo* LightSceneInfo) const
 	{
 		FVector4 GeometryPosAndScale;
 		if(LightSceneInfo->Proxy->GetLightType() == LightType_Point)
 		{
-			StencilingGeometry::CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
-			SetShaderValue(Shader->GetVertexShader(), StencilGeometryPosAndScale, GeometryPosAndScale);
-			SetShaderValue(Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
+			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilGeometryPosAndScale, GeometryPosAndScale);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
 		}
 		else if(LightSceneInfo->Proxy->GetLightType() == LightType_Spot)
 		{
-			SetShaderValue(Shader->GetVertexShader(), StencilConeTransform, LightSceneInfo->Proxy->GetLightToWorld());
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilConeTransform, LightSceneInfo->Proxy->GetLightToWorld());
 			SetShaderValue(
+				RHICmdList, 
 				Shader->GetVertexShader(),
 				StencilConeParameters,
 				FVector4(
@@ -823,7 +842,7 @@ public:
 					StencilingGeometry::FStencilConeIndexBuffer::NumSlices,
 					LightSceneInfo->Proxy->GetOuterConeAngle(),
 					LightSceneInfo->Proxy->GetRadius()));
-			SetShaderValue(Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.PreViewTranslation);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.PreViewTranslation);
 		}
 	}
 
@@ -866,10 +885,10 @@ public:
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)1);
 	}
 
-	void SetParameters(const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, int32 ShadowSplitIndex = INDEX_NONE);
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, int32 ShadowSplitIndex = INDEX_NONE);
 
 	// Begin FShader interface
-	virtual bool Serialize(FArchive& Ar) OVERRIDE
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;
@@ -906,9 +925,9 @@ public:
 		return true;
 	}
 
-	inline void SetParameters(const FSceneView& View)
+	inline void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View); 
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View); 
 	}
 };
 
@@ -939,12 +958,13 @@ public:
 	 * @param ShadowInfo - projected shadow info for a single light
 	 */
 	virtual void SetParameters(
+		FRHICommandList& RHICmdList, 
 		int32 ViewIndex,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
 		)
 	{ 
-		FGlobalShader::SetParameters(GetPixelShader(),View);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(),View);
 	}
 
 };
@@ -953,6 +973,9 @@ public:
 class FShadowProjectionShaderParameters
 {
 public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+	}
 
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
@@ -969,15 +992,15 @@ public:
 		InvFadePlaneLength.Bind(ParameterMap,TEXT("InvFadePlaneLength"));
 	}
 
-	void Set(FShader* Shader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
+	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = Shader->GetPixelShader();
 
-		DeferredParameters.Set(ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		// Set the transform from screen coordinates to shadow depth texture coordinates.
 		const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View);
-		SetShaderValue(ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
+		SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
 
 		const FIntPoint ShadowBufferResolution = ShadowInfo->GetShadowBufferResolution();
 
@@ -985,39 +1008,39 @@ public:
 		{
 			const float TransitionSize = ShadowInfo->ComputeTransitionSize();
 
-			SetShaderValue(ShaderRHI, SoftTransitionScale, FVector(0, 0, 1.0f / TransitionSize));
+			SetShaderValue(RHICmdList, ShaderRHI, SoftTransitionScale, FVector(0, 0, 1.0f / TransitionSize));
 		}
 
 		if (ShadowBufferSize.IsBound())
 		{
 			FVector2D ShadowBufferSizeValue(ShadowBufferResolution.X, ShadowBufferResolution.Y);
 
-			SetShaderValue(ShaderRHI, ShadowBufferSize,
+			SetShaderValue(RHICmdList, ShaderRHI, ShadowBufferSize,
 				FVector4(ShadowBufferSizeValue.X, ShadowBufferSizeValue.Y, 1.0f / ShadowBufferSizeValue.X, 1.0f / ShadowBufferSizeValue.Y));
 		}
 
 		FTexture2DRHIRef ShadowDepthTextureValue = GSceneRenderTargets.GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
-		SetTextureParameter(ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);
-		SetTextureParameter(ShaderRHI, ShadowDepthTextureObject, ShadowDepthTextureValue);
+		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);
+		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTextureObject, ShadowDepthTextureValue);
 
 		if (ShadowDepthSampler.IsBound())
 		{
-			RHISetShaderSampler(
+			RHICmdList.SetShaderSampler(
 				ShaderRHI, 
 				ShadowDepthSampler.GetBaseIndex(), 
 				DepthSamplerState
 				);
 		}
 
-		SetShaderValue(ShaderRHI, ProjectionDepthBias, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
-		SetShaderValue(ShaderRHI, FadePlaneOffset, ShadowInfo->CascadeSettings.FadePlaneOffset);
+		SetShaderValue(RHICmdList, ShaderRHI, ProjectionDepthBias, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
+		SetShaderValue(RHICmdList, ShaderRHI, FadePlaneOffset, ShadowInfo->CascadeSettings.FadePlaneOffset);
 
 		if(InvFadePlaneLength.IsBound())
 		{
 			check(ShadowInfo->CascadeSettings.FadePlaneLength > 0);
-			SetShaderValue(ShaderRHI, InvFadePlaneLength, 1.0f / ShadowInfo->CascadeSettings.FadePlaneLength);
+			SetShaderValue(RHICmdList, ShaderRHI, InvFadePlaneLength, 1.0f / ShadowInfo->CascadeSettings.FadePlaneLength);
 		}
 	}
 
@@ -1091,7 +1114,8 @@ public:
 	 */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FShadowProjectionPixelShaderInterface::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FShadowProjectionPixelShaderInterface::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FShadowProjectionShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SHADOW_QUALITY"), Quality);
 		OutEnvironment.SetDefine(TEXT("USE_FADE_PLANE"), (uint32)(bUseFadePlane ? 1 : 0));
 	}
@@ -1102,17 +1126,18 @@ public:
 	 * @param ShadowInfo - projected shadow info for a single light
 	 */
 	virtual void SetParameters(
+		FRHICommandList& RHICmdList, 
 		int32 ViewIndex,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
-		)
+		) override
 	{
-		FShadowProjectionPixelShaderInterface::SetParameters(ViewIndex,View,ShadowInfo);
+		FShadowProjectionPixelShaderInterface::SetParameters(RHICmdList, ViewIndex,View,ShadowInfo);
 
-		ProjectionParameters.Set(this, View, ShadowInfo);
+		ProjectionParameters.Set(RHICmdList, this, View, ShadowInfo);
 
-		SetShaderValue( GetPixelShader(), ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex] );
-		SetShaderValue( GetPixelShader(), ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f );
+		SetShaderValue(RHICmdList, GetPixelShader(), ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex] );
+		SetShaderValue(RHICmdList, GetPixelShader(), ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f );
 	}
 
 	/**
@@ -1147,9 +1172,10 @@ public:
 		TranslucencyShadowTransmission1Sampler.Bind(ParameterMap,TEXT("TranslucencyShadowTransmission1Sampler"));
 	}
 
-	void Set(FShader* Shader) const
+	void Set(FRHICommandList& RHICmdList, FShader* Shader) const
 	{
 		SetTextureParameter(
+			RHICmdList, 
 			Shader->GetPixelShader(),
 			TranslucencyShadowTransmission0,
 			TranslucencyShadowTransmission0Sampler,
@@ -1158,6 +1184,7 @@ public:
 			);
 
 		SetTextureParameter(
+			RHICmdList, 
 			Shader->GetPixelShader(),
 			TranslucencyShadowTransmission1,
 			TranslucencyShadowTransmission1Sampler,
@@ -1211,13 +1238,14 @@ public:
 	}
 
 	virtual void SetParameters(
+		FRHICommandList& RHICmdList, 
 		int32 ViewIndex,
 		const FSceneView& View,
-		const FProjectedShadowInfo* ShadowInfo)
+		const FProjectedShadowInfo* ShadowInfo) override
 	{
-		TShadowProjectionPS<Quality>::SetParameters(ViewIndex, View, ShadowInfo);
+		TShadowProjectionPS<Quality>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 
-		TranslucencyProjectionParameters.Set(this);
+		TranslucencyProjectionParameters.Set(RHICmdList, this);
 	}
 
 	/**
@@ -1250,9 +1278,10 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
 	{
 		SetTextureParameter(
+			RHICmdList, 
 			ShaderRHI, 
 			ShadowDepthTexture, 
 			GSceneRenderTargets.GetCubeShadowDepthZTexture(ShadowInfo->ResolutionX)
@@ -1260,7 +1289,7 @@ public:
 
 		if (ShadowDepthCubeComparisonSampler.IsBound())
 		{
-			RHISetShaderSampler(
+			RHICmdList.SetShaderSampler(
 				ShaderRHI, 
 				ShadowDepthCubeComparisonSampler.GetBaseIndex(), 
 				// Use a comparison sampler to do hardware PCF
@@ -1269,13 +1298,14 @@ public:
 		}
 
 		SetShaderValueArray<ShaderRHIParamRef, FMatrix>(
+			RHICmdList, 
 			ShaderRHI,
 			ShadowViewProjectionMatrices,
 			ShadowInfo->OnePassShadowViewProjectionMatrices.GetData(),
 			ShadowInfo->OnePassShadowViewProjectionMatrices.Num()
 			);
 
-		SetShaderValue(ShaderRHI,InvShadowmapResolution,1.0f / ShadowInfo->ResolutionX);
+		SetShaderValue(RHICmdList, ShaderRHI,InvShadowmapResolution,1.0f / ShadowInfo->ResolutionX);
 	}
 
 	/** Serializer. */ 
@@ -1321,7 +1351,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SHADOW_QUALITY"), Quality);
 	}
 
@@ -1331,6 +1361,7 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		int32 ViewIndex,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
@@ -1338,16 +1369,16 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI,View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI,View);
 
-		DeferredParameters.Set(ShaderRHI, View);
-		OnePassShadowParameters.Set(ShaderRHI, ShadowInfo);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		OnePassShadowParameters.Set(RHICmdList, ShaderRHI, ShadowInfo);
 
-		SetShaderValue(ShaderRHI, LightPosition, FVector4(ShadowInfo->LightSceneInfo->Proxy->GetPosition(), 1.0f / ShadowInfo->LightSceneInfo->Proxy->GetRadius()));
+		SetShaderValue(RHICmdList, ShaderRHI, LightPosition, FVector4(ShadowInfo->LightSceneInfo->Proxy->GetPosition(), 1.0f / ShadowInfo->LightSceneInfo->Proxy->GetRadius()));
 
-		SetShaderValue(ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex]);
-		SetShaderValue(ShaderRHI, ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f);
-		SetShaderValue(ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex]);
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
 	}
 
 	virtual bool Serialize(FArchive& Ar)

@@ -30,17 +30,17 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 			MakePropertyEditor(InParentCategory->GetParentLayoutImpl().GetPropertyUtilities());
 		}
 
-		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-		// Check if the property is valid for struct customization.  Note: Static arrays of structs will be a UStructProperty with array elements as children
-		if (!PropertyEditorHelpers::IsStaticArray(*PropertyNodeRef) && StructProperty && StructProperty->Struct)
+		// Check if the property is valid for type customization.  Note: Static arrays of types will be a UProperty with array elements as children
+		if (!PropertyEditorHelpers::IsStaticArray(*PropertyNodeRef))
 		{
-			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct);
-			if (StructLayoutInstanceDelegate.IsBound())
+			static FName PropertyEditor("PropertyEditor");
+			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle);
+			if (LayoutCallback.IsValid())
 			{
 				if (PropertyHandle->IsValidHandle())
 				{
-					CustomStructInterface = StructLayoutInstanceDelegate.Execute();
+					CustomTypeInterface = LayoutCallback.GetCustomizationInstance();
 				}
 			}
 		}
@@ -110,17 +110,17 @@ void FDetailPropertyRow::GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, 
 
 void FDetailPropertyRow::GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, FDetailWidgetRow& Row )
 {
-	TSharedPtr<FDetailWidgetRow> CustomStructRow;
-	if ( CustomStructInterface.IsValid() ) 
+	TSharedPtr<FDetailWidgetRow> CustomTypeRow;
+	if ( CustomTypeInterface.IsValid() ) 
 	{
-		CustomStructRow = MakeShareable(new FDetailWidgetRow);
+		CustomTypeRow = MakeShareable(new FDetailWidgetRow);
 
-		CustomStructInterface->CustomizeStructHeader(PropertyHandle.ToSharedRef(), *CustomStructRow, *this);
+		CustomTypeInterface->CustomizeHeader(PropertyHandle.ToSharedRef(), *CustomTypeRow, *this);
 	}
 
 	const bool bAddWidgetDecoration = false;
-	MakeNameWidget(Row,CustomStructRow);
-	MakeValueWidget(Row,CustomStructRow,bAddWidgetDecoration);
+	MakeNameWidget(Row,CustomTypeRow);
+	MakeValueWidget(Row,CustomTypeRow,bAddWidgetDecoration);
 
 	OutNameWidget = Row.NameWidget.Widget;
 	OutValueWidget = Row.ValueWidget.Widget;
@@ -135,7 +135,7 @@ bool FDetailPropertyRow::HasColumns() const
 
 bool FDetailPropertyRow::ShowOnlyChildren() const
 {
-	return StructLayoutBuilder.IsValid() && CustomPropertyWidget.IsValid() && !CustomPropertyWidget->HasAnyContent();
+	return PropertyTypeLayoutBuilder.IsValid() && CustomPropertyWidget.IsValid() && !CustomPropertyWidget->HasAnyContent();
 }
 
 bool FDetailPropertyRow::RequiresTick() const
@@ -189,11 +189,11 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 	IsParentEnabled = InIsParentEnabled;
 
 	// Don't customize the user already customized
-	if( !CustomPropertyWidget.IsValid() && CustomStructInterface.IsValid() )
+	if( !CustomPropertyWidget.IsValid() && CustomTypeInterface.IsValid() )
 	{
 		CustomPropertyWidget = MakeShareable(new FDetailWidgetRow);
 
-		CustomStructInterface->CustomizeStructHeader(PropertyHandle.ToSharedRef(), *CustomPropertyWidget, *this);
+		CustomTypeInterface->CustomizeHeader(PropertyHandle.ToSharedRef(), *CustomPropertyWidget, *this);
 
 		// set initial value of enabled attribute to settings from struct customization
 		if (CustomPropertyWidget->IsEnabledAttr.IsBound())
@@ -202,10 +202,10 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 		}
 	}
 
-	if( bShowCustomPropertyChildren && CustomStructInterface.IsValid() )
+	if( bShowCustomPropertyChildren && CustomTypeInterface.IsValid() )
 	{
-		StructLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory));
-		CustomStructInterface->CustomizeStructChildren(PropertyHandle.ToSharedRef(), *StructLayoutBuilder, *this);
+		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory));
+		CustomTypeInterface->CustomizeChildren(PropertyHandle.ToSharedRef(), *PropertyTypeLayoutBuilder, *this);
 	}
 }
 
@@ -227,9 +227,9 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 		ParentEnabledState.Bind( this, &FDetailPropertyRow::GetEnabledState );
 	}
 
-	if( StructLayoutBuilder.IsValid() && bShowCustomPropertyChildren )
+	if( PropertyTypeLayoutBuilder.IsValid() && bShowCustomPropertyChildren )
 	{
-		const TArray< FDetailLayoutCustomization >& ChildRows = StructLayoutBuilder->GetChildCustomizations();
+		const TArray< FDetailLayoutCustomization >& ChildRows = PropertyTypeLayoutBuilder->GetChildCustomizations();
 
 		for( int32 ChildIndex = 0; ChildIndex < ChildRows.Num(); ++ChildIndex )
 		{
@@ -240,6 +240,12 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 	}
 	else if (bShowCustomPropertyChildren || !CustomPropertyWidget.IsValid() )
 	{
+		TSharedRef<FDetailCategoryImpl> ParentCategoryRef = ParentCategory.Pin().ToSharedRef();
+		IDetailLayoutBuilder& LayoutBuilder = ParentCategoryRef->GetParentLayout();
+		UProperty* ParentProperty = RootPropertyNode->GetProperty();
+
+		const bool bStructProperty = ParentProperty && ParentProperty->IsA<UStructProperty>();
+
 		for( int32 ChildIndex = 0; ChildIndex < RootPropertyNode->GetNumChildNodes(); ++ChildIndex )
 		{
 			TSharedPtr<FPropertyNode> ChildNode = RootPropertyNode->GetChildNode(ChildIndex);
@@ -251,11 +257,12 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 					// Skip over object nodes and generate their children.  Object nodes are not visible
 					GenerateChildrenForPropertyNode( ChildNode, OutChildren );
 				}
-				else
-				{
+				// Only struct children can have custom visibility that is different from their parent.
+				else if ( !bStructProperty || LayoutBuilder.IsPropertyVisible( FPropertyAndParent(*ChildNode->GetProperty(), ParentProperty ) ) )
+				{			
 					FDetailLayoutCustomization Customization;
-					Customization.PropertyRow = MakeShareable( new FDetailPropertyRow( ChildNode, ParentCategory.Pin().ToSharedRef() ) );
-					TSharedRef<FDetailItemNode> ChildNodeItem = MakeShareable( new FDetailItemNode( Customization, ParentCategory.Pin().ToSharedRef(), ParentEnabledState ) );
+					Customization.PropertyRow = MakeShareable( new FDetailPropertyRow( ChildNode, ParentCategoryRef ) );
+					TSharedRef<FDetailItemNode> ChildNodeItem = MakeShareable( new FDetailItemNode( Customization, ParentCategoryRef, ParentEnabledState ) );
 					ChildNodeItem->Initialize();
 					OutChildren.Add( ChildNodeItem );
 				}

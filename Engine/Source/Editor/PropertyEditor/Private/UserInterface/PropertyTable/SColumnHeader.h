@@ -70,7 +70,7 @@ protected:
 		this->SetToolTip( ToolTip );
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( !Column->IsFrozen() && MouseEvent.IsMouseButtonDown( EKeys::MiddleMouseButton ) )
 		{

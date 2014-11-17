@@ -11,7 +11,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	// IDetailCustomization interface
-	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) OVERRIDE;
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) override;
 	// End of IDetailCustomization interface
 
 protected:

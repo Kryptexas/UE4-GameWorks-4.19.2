@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
+
 typedef TFilterCollection< const TSharedPtr< FLevelViewModel >& > LevelFilterCollection;
 typedef IFilter< const TSharedPtr< FLevelViewModel >& > LevelFilter;
 
@@ -32,9 +34,9 @@ public:
 
 public:
 	// Begin FTickableEditorObject Interface
-	virtual bool IsTickable(void) const OVERRIDE { return true; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual bool IsTickable(void) const override { return true; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject
 
 	/** Handler for when a world has been added. */
@@ -136,6 +138,9 @@ public:
 
 	/** Caches the variables for which SCC menu options are available */
 	void CacheCanExecuteSourceControlVars();
+
+	/** Directly adds the levels selected from the asset picker to the world */
+	void AddExistingLevelFromAssetPicker(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);
 
 	/********************************************************************
 	 * EVENTS
@@ -240,8 +245,8 @@ private:
 	void AppendSelectLevelNames( TArray< FName >& OutLevelNames ) const;
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE { Refresh(); }
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override { Refresh(); }
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 	/**
@@ -303,6 +308,9 @@ private:
 
 	/** @return whether the currently selected levels are unlocked and do not contain the persistent level */
 	bool AreSelectedLevelsUnlockedAndNotPersistent() const;
+
+	/** @return true if we have selected levels and they are all editable and visible, */
+	bool AreAllSelectedLevelsUnlockedAndVisible() const;
 
 	/** @return	whether -at least- one actor is selected */
 	bool AreActorsSelected() const;
@@ -453,7 +461,15 @@ private:
 
 	/** Toggle all read-only levels */
 	void ToggleReadOnlyLevels_Executed();
+	
+	/** @return whether moving the selected actors to the selected level is a valid action */
+	bool IsValidMoveActorsToLevel();
 
+	/** delegate used to pickup when the selection has changed */
+	void OnActorSelectionChanged(UObject* obj);
+
+	/** Sets a flag to re-cache whether the selected actors move to the selected level is valid */
+	void OnActorOrLevelSelectionChanged();
 private:
 
 	/** true if the LevelsView is in the middle of refreshing */
@@ -522,6 +538,8 @@ private:
 	/** true if Source Control options are generally available. */
 	bool bCanExecuteSCC;
 	
+	/** Flag for whether the selection of levels or actors has changed */
+	bool bSelectionHasChanged;
 };
 
 

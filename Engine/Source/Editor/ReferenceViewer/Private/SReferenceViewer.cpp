@@ -3,6 +3,7 @@
 #include "ReferenceViewerPrivatePCH.h"
 #include "GraphEditor.h"
 #include "AssetRegistryModule.h"
+#include "AssetEditorManager.h"
 #include "AssetThumbnail.h"
 #include "ReferenceViewerActions.h"
 #include "EditorWidgets.h"
@@ -478,6 +479,13 @@ void SReferenceViewer::RegisterActions()
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSelectionInContentBrowser));
 
 	ReferenceViewerActions->MapAction(
+		FReferenceViewerActions::Get().OpenSelectedInAssetEditor,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::OpenSelectedInAssetEditor),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &SReferenceViewer::IsSingleSelectedItemValidObject));
+
+	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ReCenterGraph,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ReCenterGraph),
 		FCanExecuteAction());
@@ -530,6 +538,16 @@ void SReferenceViewer::ShowSelectionInContentBrowser()
 	if (AssetList.Num() > 0)
 	{
 		GEditor->SyncBrowserToObjects(AssetList);
+	}
+}
+
+void SReferenceViewer::OpenSelectedInAssetEditor()
+{
+	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
+
+	if( SelectedObject )
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(SelectedObject);
 	}
 }
 
@@ -657,6 +675,17 @@ bool SReferenceViewer::HasExactlyOneNodeSelected() const
 		return GraphEditorPtr->GetSelectedNodes().Num() == 1;
 	}
 	
+	return false;
+}
+
+bool SReferenceViewer::IsSingleSelectedItemValidObject() const
+{
+	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
+
+	if ( SelectedObject )
+	{
+		return true;
+	}
 	return false;
 }
 

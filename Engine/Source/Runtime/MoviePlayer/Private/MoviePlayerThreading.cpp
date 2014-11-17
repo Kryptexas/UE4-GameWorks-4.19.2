@@ -27,8 +27,8 @@ public:
 	}
 
 	/** FRunnable interface */
-	virtual bool Init() OVERRIDE;
-	virtual uint32 Run() OVERRIDE;
+	virtual bool Init() override;
+	virtual uint32 Run() override;
 private:
 	/** Hold a handle to our parent sync mechanism which handles all of our threading locks */
 	class FSlateLoadingSynchronizationMechanism* SyncMechanism;
@@ -53,15 +53,7 @@ void FSlateLoadingSynchronizationMechanism::Initialize()
 	MainLoop.Lock();
 
 	SlateRunnableTask = new FSlateLoadingThreadTask( *this );
-	SlateLoadingThread = 
-		FRunnableThread::Create
-		(
-			SlateRunnableTask,
-			TEXT("SlateLoadingThread"),
-			false,
-			false
-		);
-
+	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, TEXT("SlateLoadingThread"));
 }
 
 void FSlateLoadingSynchronizationMechanism::DestroySlateThread()

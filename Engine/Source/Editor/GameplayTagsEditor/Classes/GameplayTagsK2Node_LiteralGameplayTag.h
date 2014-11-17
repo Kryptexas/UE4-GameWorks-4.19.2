@@ -12,19 +12,19 @@ class UGameplayTagsK2Node_LiteralGameplayTag : public UK2Node
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node interface
 #endif
 

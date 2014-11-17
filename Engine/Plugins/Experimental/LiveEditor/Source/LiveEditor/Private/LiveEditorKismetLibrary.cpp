@@ -1,6 +1,7 @@
 
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorKismetLibrary.h"
+#include "DefaultValueHelper.h"
 
 namespace nLiveEditorKismetLibrary
 {
@@ -49,7 +50,7 @@ namespace nLiveEditorKismetLibrary
 		}
 	}
 
-	static UProperty *GetPropertyByNameRecurse( UStruct *InStruct, const FString &TokenString, void ** hContainerPtr )
+	static UProperty *GetPropertyByNameRecurse( UStruct *InStruct, const FString &TokenString, void ** hContainerPtr, int32 &OutArrayIndex )
 	{
 		FString FirstToken;
 		FString RemainingTokens;
@@ -65,6 +66,17 @@ namespace nLiveEditorKismetLibrary
 			RemainingTokens = FString(TEXT(""));
 		}
 
+		//get the array index if there is any
+		int32 ArrayIndex = 0;
+		if ( FirstToken.FindChar( '[', SplitIndex ) )
+		{
+			FString ArrayIndexString = FirstToken.RightChop( SplitIndex+1 );
+			ArrayIndexString = ArrayIndexString.LeftChop( 1 );
+			FDefaultValueHelper::ParseInt( ArrayIndexString, ArrayIndex );
+
+			FirstToken = FirstToken.LeftChop( FirstToken.Len()-SplitIndex );
+		}
+
 		for (TFieldIterator<UProperty> PropertyIt(InStruct, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
@@ -74,6 +86,7 @@ namespace nLiveEditorKismetLibrary
 				if ( RemainingTokens.Len() == 0 )
 				{
 					check( *hContainerPtr != NULL );
+					OutArrayIndex = ArrayIndex;
 					return Property;
 				}
 				else
@@ -82,8 +95,8 @@ namespace nLiveEditorKismetLibrary
 					if ( StructProp )
 					{
 						check( *hContainerPtr != NULL );
-						*hContainerPtr = Property->ContainerPtrToValuePtr<void>(*hContainerPtr);
-						return GetPropertyByNameRecurse( StructProp->Struct, RemainingTokens, hContainerPtr );
+						*hContainerPtr = Property->ContainerPtrToValuePtr<void>( *hContainerPtr, ArrayIndex );
+						return GetPropertyByNameRecurse( StructProp->Struct, RemainingTokens, hContainerPtr, OutArrayIndex );
 					}
 				}
 			}
@@ -91,13 +104,9 @@ namespace nLiveEditorKismetLibrary
 
 		return NULL;
 	}
-	static void ModifyPropertyValue( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin, float ClampMax )
+	static UProperty *GetPropertyByName( UObject *Target, UStruct *InStruct, const FString &PropertyName, void ** hContainerPtr, int32 &OutArrayIndex )
 	{
-		if ( Target == NULL )
-			return;
-
-		void *ContainerPtr = Target;
-		UProperty *Prop = GetPropertyByNameRecurse( Target->GetClass(), PropertyName, &ContainerPtr );
+		UProperty *Prop = GetPropertyByNameRecurse( Target->GetClass(), PropertyName, hContainerPtr, OutArrayIndex );
 		if ( Prop == NULL )
 		{
 			AActor *AsActor = Cast<AActor>(Target);
@@ -123,12 +132,23 @@ namespace nLiveEditorKismetLibrary
 						}
 						*/
 
-						ContainerPtr = Component;
-						Prop = GetPropertyByNameRecurse( Component->GetClass(), ComponentPropertyName, &ContainerPtr );
+						*hContainerPtr = Component;
+						Prop = GetPropertyByNameRecurse( Component->GetClass(), ComponentPropertyName, hContainerPtr, OutArrayIndex );
 					}
 				}
 			}
 		}
+
+		return Prop;
+	}
+	static void ModifyPropertyValue( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin, float ClampMax )
+	{
+		if ( Target == NULL )
+			return;
+
+		void *ContainerPtr = Target;
+		int32 ArrayIndex = 0;
+		UProperty *Prop = GetPropertyByName( Target, Target->GetClass(), PropertyName, &ContainerPtr, ArrayIndex );
 		if ( Prop == NULL || !Prop->IsA( UNumericProperty::StaticClass() ) )
 			return;
 
@@ -150,72 +170,72 @@ namespace nLiveEditorKismetLibrary
 		if ( Prop->IsA( UByteProperty::StaticClass() ) )
 		{
 			UByteProperty *NumericProp = CastChecked<UByteProperty>(Prop);
-			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			uint8 NewValue = CalculateNewValue<uint8>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UInt8Property::StaticClass() ) )
 		{
 			UInt8Property *NumericProp = CastChecked<UInt8Property>(Prop);
-			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			uint8 NewValue = CalculateNewValue<uint8>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UInt16Property::StaticClass() ) )
 		{
 			UInt16Property *NumericProp = CastChecked<UInt16Property>(Prop);
-			int16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			int16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			int16 NewValue = CalculateNewValue<int16>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UIntProperty::StaticClass() ) )
 		{
 			UIntProperty *NumericProp = CastChecked<UIntProperty>(Prop);
-			int32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			int32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			int32 NewValue = CalculateNewValue<int32>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-			int64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			int64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			int64 NewValue = CalculateNewValue<int64>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UUInt16Property::StaticClass() ) )
 		{
 			UUInt16Property *NumericProp = CastChecked<UUInt16Property>(Prop);
-			uint16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			uint16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			uint16 NewValue = CalculateNewValue<uint16>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UUInt32Property::StaticClass() ) )
 		{
 			UUInt32Property *NumericProp = CastChecked<UUInt32Property>(Prop);
-			uint32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			uint32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			uint32 NewValue = CalculateNewValue<uint32>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-			uint64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			uint64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			uint64 NewValue = CalculateNewValue<uint64>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UFloatProperty::StaticClass() ) )
 		{
 			UFloatProperty *NumericProp = CastChecked<UFloatProperty>(Prop);
-			float CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			float CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			float NewValue = CalculateNewValue<float>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 		else if ( Prop->IsA( UDoubleProperty::StaticClass() ) )
 		{
 			UDoubleProperty *NumericProp = CastChecked<UDoubleProperty>(Prop);
-			double CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
+			double CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr, ArrayIndex);
 			double NewValue = CalculateNewValue<double>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
-			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue, ArrayIndex);
 		}
 	}
 
@@ -225,71 +245,77 @@ namespace nLiveEditorKismetLibrary
 			return;
 
 		void *ArchetypeContainerPtr = Archetype;
-		UProperty *Prop = GetPropertyByNameRecurse( Target->GetClass(), PropertyName.ToString(), &ArchetypeContainerPtr );
-		if ( !Prop->IsA( UNumericProperty::StaticClass() ) )
+		int32 ArchetypeArrayIndex;
+		UProperty *Prop = GetPropertyByName( Archetype, Archetype->GetClass(), PropertyName.ToString(), &ArchetypeContainerPtr, ArchetypeArrayIndex );
+		if ( !Prop || !Prop->IsA( UNumericProperty::StaticClass() ) )
 			return;
 		check(ArchetypeContainerPtr != NULL);
-		void *TargetContainerPtr = (void*)((uint8*)ArchetypeContainerPtr - (uint8*)Archetype + (uint8*)Target);
+
+		void *TargetContainerPtr = Target; //(void*)((uint8*)ArchetypeContainerPtr - (uint8*)Archetype + (uint8*)Target);
+		int32 TargetArrayIndex;
+		UProperty *TargetProp = GetPropertyByName( Target, Target->GetClass(), PropertyName.ToString(), &TargetContainerPtr, TargetArrayIndex );
+		check( TargetProp != NULL && TargetProp->IsA( UNumericProperty::StaticClass() ) );
+		check( TargetArrayIndex == ArchetypeArrayIndex );
 
 		if ( Prop->IsA( UByteProperty::StaticClass() ) )
 		{
 			UByteProperty *NumericProp = CastChecked<UByteProperty>(Prop);
-			uint8 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			uint8 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UInt8Property::StaticClass() ) )
 		{
 			UInt8Property *NumericProp = CastChecked<UInt8Property>(Prop);
-			int32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			int32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UInt16Property::StaticClass() ) )
 		{
 			UInt16Property *NumericProp = CastChecked<UInt16Property>(Prop);
-			int16 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			int16 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UIntProperty::StaticClass() ) )
 		{
 			UIntProperty *NumericProp = CastChecked<UIntProperty>(Prop);
-			int32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			int32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-			int64 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			int64 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UUInt16Property::StaticClass() ) )
 		{
 			UUInt16Property *NumericProp = CastChecked<UUInt16Property>(Prop);
-			uint16 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			uint16 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UUInt32Property::StaticClass() ) )
 		{
 			UUInt32Property *NumericProp = CastChecked<UUInt32Property>(Prop);
-			uint32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			uint32 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-			uint64 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			uint64 ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UFloatProperty::StaticClass() ) )
 		{
 			UFloatProperty *NumericProp = CastChecked<UFloatProperty>(Prop);
-			float ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			float ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 		else if ( Prop->IsA( UDoubleProperty::StaticClass() ) )
 		{
 			UDoubleProperty *NumericProp = CastChecked<UDoubleProperty>(Prop);
-			double ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr);
-			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal);
+			double ArchetypeVal = NumericProp->GetPropertyValue_InContainer(ArchetypeContainerPtr, ArchetypeArrayIndex);
+			NumericProp->SetPropertyValue_InContainer(TargetContainerPtr, ArchetypeVal, ArchetypeArrayIndex);
 		}
 	}
 
@@ -391,13 +417,14 @@ void ULiveEditorKismetLibrary::ReplicateChangesToChildren( FName PropertyName, U
 	}
 
 	void *ContainerPtr = Archetype;
-	UProperty *Prop = nLiveEditorKismetLibrary::GetPropertyByNameRecurse( Archetype->GetClass(), PropertyName.ToString(), &ContainerPtr );
+	int32 ArrayIndex = 0;
+	UProperty *Prop = nLiveEditorKismetLibrary::GetPropertyByName( Archetype, Archetype->GetClass(), PropertyName.ToString(), &ContainerPtr, ArrayIndex );
 	if ( Prop && Prop->IsA( UNumericProperty::StaticClass() ) )
 	{
 		check( ContainerPtr != NULL );
 		FString ClassName = Archetype->GetClass()->GetName();
 		FString ValueString;
-		void *Value = Prop->ContainerPtrToValuePtr<void>(ContainerPtr);
+		void *Value = Prop->ContainerPtrToValuePtr<void>(ContainerPtr, ArrayIndex);
 		Prop->ExportTextItem(ValueString, Value, NULL, NULL, 0);
 		FLiveEditorManager::Get().BroadcastValueUpdate( ClassName, PropertyName.ToString(), ValueString );
 	}

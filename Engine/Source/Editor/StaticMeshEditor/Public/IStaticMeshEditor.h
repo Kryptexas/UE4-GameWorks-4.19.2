@@ -4,6 +4,7 @@
 
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "PhysicsPublic.h"
 
 /**
  * Public interface to Static Mesh Editor
@@ -11,6 +12,24 @@
 class IStaticMeshEditor : public FAssetEditorToolkit
 {
 public:
+	/**
+	 * Primitive data use to track which aggregate geometry is selected
+	 */
+	struct FPrimData
+	{
+		EKCollisionPrimitiveType		PrimType;
+		int32							PrimIndex;
+
+		FPrimData(EKCollisionPrimitiveType InPrimType, int32 InPrimIndex) :
+			PrimType(InPrimType),
+			PrimIndex(InPrimIndex) {}
+
+		bool operator==(const FPrimData& Other) const
+		{
+			return (PrimType == Other.PrimType && PrimIndex == Other.PrimIndex);
+		}
+	};
+
 	/** Called after an undo is performed to give child widgets a chance to refresh. */
 	DECLARE_MULTICAST_DELEGATE( FOnPostUndoMulticaster );
 
@@ -39,21 +58,122 @@ public:
 	/** Requests to rename selected socket */
 	virtual void RequestRenameSelectedSocket() = 0;
 
-	/** 	Retrieves the number of triangles in the current static mesh or it's forced LOD. 
+	/** 
+	 *  Checks to see if the prim data is valid compared with the static mesh
+	 *
+	 *  @param  InPrimData			The data to check
+	 */
+	virtual bool IsPrimValid(const FPrimData& InPrimData) const = 0;
+
+	/** Checks to see if any prims are selected */
+	virtual bool HasSelectedPrims() const = 0;
+
+	/** 
+	 *  Adds primitive information to the selected prims list
+	 *
+	 *  @param  InPrimData			The data to add
+	 */
+	virtual void AddSelectedPrim(const FPrimData& InPrimData) = 0;
+
+	/** 
+	 *  Removes primitive information to the selected prims list
+	 *
+	 *  @param  InPrimData			The data to remove
+	 */
+	virtual void RemoveSelectedPrim(const FPrimData& InPrimData) = 0;
+
+	/** Removes all invalid primitives from the list */
+	virtual void RemoveInvalidPrims() = 0;
+
+	/** 
+	 *  Checks to see if the parsed primitive data is selected
+	 *
+	 *  @param  InPrimData			The data to compare
+	 *  @returns					True, if the prim is selected
+	 */
+	virtual bool IsSelectedPrim(const FPrimData& InPrimData) const = 0;
+
+	/** Removes all primitive data from the list */
+	virtual void ClearSelectedPrims() = 0;
+
+	/**
+	 *  Duplicates all the selected primitives and selects them
+	 *
+	 *  @param  InOffset			[optional] Allows the duplicate to be offset by this factor
+	 */
+	virtual void DuplicateSelectedPrims(const FVector* InOffset) = 0;
+
+	/**
+	 *  Translates the selected primitives by the specified amount
+	 *
+	 *  @param  InDrag				The amount to translate
+	 */
+	virtual void TranslateSelectedPrims(const FVector& InDrag) = 0;
+
+	/**
+	 *  Rotates the selected primitives by the specified amount
+	 *
+	 *  @param  InRot				The amount to rotate
+	 */
+	virtual void RotateSelectedPrims(const FRotator& InRot) = 0;
+
+	/**
+	 *  Scales the selected primitives by the specified amount
+	 *
+	 *  @param  InScale				The amount to scale
+	 */
+	virtual void ScaleSelectedPrims(const FVector& InScale) = 0;
+
+	/**
+	 *  Calculates the bounding box of our selected primitives
+	 *
+	 *  @param  OutBox				The bounding data for our selection
+	 *  @returns					True, if there are any prims selected
+	 */
+	virtual bool CalcSelectedPrimsAABB(FBox &OutBox) const = 0;
+
+	/**
+	 *  Fetches the transform of the last primitive to be selected
+	 *
+	 *  @param  OutTransform		The transform of the last selected primitive
+	 *  @returns					True, if there was a prim selected
+	 */
+	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const = 0;
+
+	/**
+	 *  Gets the transform of the specified primitive
+	 *
+	 *  @param  InPrimData			The data about the primitive
+	 *  @returns					The transform of the specified primitive
+	 */
+	virtual FTransform GetPrimTransform(const FPrimData& InPrimData) const = 0;
+
+	/**
+	 *  Sets the transform of the specified primitive
+	 *
+	 *  @param  InPrimData			The data about the primitive
+	 *  @param  InPrimTransform		The transform to apply to the primitive
+	 */
+	virtual void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const = 0;
+
+	/** 
+	 *  Retrieves the number of triangles in the current static mesh or it's forced LOD. 
 	 *
 	 *  @param  LODLevel			The desired LOD to retrieve the number of triangles for.
 	 *	@returns					The number of triangles for the specified LOD level.
 	 */
 	virtual int32 GetNumTriangles(int32 LODLevel = 0) const = 0;
 
-	/** Retrieves the number of vertices in the current static mesh or it's forced LOD. 
+	/** 
+	 *  Retrieves the number of vertices in the current static mesh or it's forced LOD. 
 	 *
 	 *  @param  LODLevel			The desired LOD to retrieve the number of vertices for.	 
 	 *	@returns					The number of vertices for the specified LOD level.
 	 */
 	virtual int32 GetNumVertices(int32 LODLevel = 0) const = 0;
 
-	/** Retrieves the number of UV channels available.
+	/** 
+	 *  Retrieves the number of UV channels available.
 	 *
 	 *  @param  LODLevel			The desired LOD to retrieve the number of UV channels for.
 	 *	@returns					The number of triangles for the specified LOD level.

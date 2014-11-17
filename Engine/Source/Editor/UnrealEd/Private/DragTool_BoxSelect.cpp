@@ -122,7 +122,7 @@ void FDragTool_ActorBoxSelect::AddDelta( const FVector& InDelta )
 */
 void FDragTool_ActorBoxSelect::EndDrag()
 {
-	FEditorModeTools& EdModeTools = GEditorModeTools();
+	FEditorModeTools& EdModeTools = GLevelEditorModeTools();
 	const bool bGeometryMode = EdModeTools.IsModeActive( FBuiltinEditorModes::EM_Geometry );
 	
 	FScopedTransaction Transaction( NSLOCTEXT("ActorFrustumSelect", "MarqueeSelectTransation", "Marquee Select" ) );
@@ -139,11 +139,11 @@ void FDragTool_ActorBoxSelect::EndDrag()
 	else if( !bShiftDown )
 	{
 		// If the user is selecting, but isn't hold down SHIFT, remove all current selections.
-		GEditorModeTools().SelectNone();
+		GLevelEditorModeTools().SelectNone();
 	}
 
 	// Let the editor mode try to handle the box selection.
-	const bool bEditorModeHandledBoxSelection = GEditorModeTools().BoxSelect( SelBBox, bLeftMouseButtonDown );
+	const bool bEditorModeHandledBoxSelection = GLevelEditorModeTools().BoxSelect( SelBBox, bLeftMouseButtonDown );
 
 	// If the edit mode didn't handle the selection, try normal actor box selection.
 	if ( !bEditorModeHandledBoxSelection )
@@ -277,7 +277,7 @@ bool FDragTool_ActorBoxSelect::IntersectsBox( AActor& InActor, const FBox& InBox
 {
 	bool bActorHitByBox = false;
 
-	FEditorModeTools& EdModeTools = GEditorModeTools();
+	FEditorModeTools& EdModeTools = GLevelEditorModeTools();
 	const bool bGeometryMode = EdModeTools.IsModeActive( FBuiltinEditorModes::EM_Geometry );
 
 	// Check for special cases (like certain show flags that might hide an actor)

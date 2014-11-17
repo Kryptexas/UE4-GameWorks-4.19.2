@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/Size/ParticleModuleSizeBase.h"
 #include "ParticleModuleSizeScaleBySpeed.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Size By Speed"))
@@ -23,7 +23,8 @@ class UParticleModuleSizeScaleBySpeed : public UParticleModuleSizeBase
 
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
+	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// End UParticleModule Interface
 };
 

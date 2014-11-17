@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Animation/VertexAnim/VertexAnimBase.h"
 #include "MorphTarget.generated.h"
 
 class USkeletalMesh;
@@ -74,19 +74,19 @@ public:
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// Begin UObject interface.
 
 	/** Post process after importing **/
-	ENGINE_API void PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex );
+	ENGINE_API void PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
 
 	/** Remap vertex indices with base mesh. */
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
 	// Begin UVertexAnimBase interface
-	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) OVERRIDE;
-	virtual bool HasDataForLOD(int32 LODIndex) OVERRIDE;
+	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) override;
+	virtual bool HasDataForLOD(int32 LODIndex) override;
 	// End UVertexAnimBase interface
 
 private:
@@ -99,6 +99,6 @@ private:
 	* @param	TargetSource - final target vertex positions/attributes 
 	* @param	LODIndex - level of detail to use for the geometry
 	*/
-	void CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex );
+	void CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
 };
 

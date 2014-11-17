@@ -25,23 +25,9 @@ FText UK2Node_CallParentFunction::GetNodeTitle(ENodeTitleType::Type TitleType) c
 	return FText::Format( LOCTEXT( "CallSuperFunction", "Parent: {FunctionName}" ), Args);
 }
 
-FString UK2Node_CallParentFunction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
-	FString FunctionName = Function ? GetUserFacingFunctionName( Function ) : FunctionReference.GetMemberName().ToString();
-	FString Result = FString::Printf( TEXT("Parent: %s" ), *FunctionName);
-
-	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
-	{
-		Result = FName::NameToDisplayString(Result, false);
-	}
-	return Result;
-}
-
 FLinearColor UK2Node_CallParentFunction::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ParentFunctionCallNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ParentFunctionCallNodeTitleColor;
 }
 
 void UK2Node_CallParentFunction::AllocateDefaultPins()

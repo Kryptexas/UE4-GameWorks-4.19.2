@@ -133,6 +133,9 @@ private:
 	/** Handler for when "Source Control Revert" is selected */
 	void ExecuteSCCRevert();
 
+	/** Handler for when "Source Control Merge" is selected */
+	void ExecuteSCCMerge();
+
 	/** Handler for when "Source Control Sync" is selected */
 	void ExecuteSCCSync();
 
@@ -186,6 +189,9 @@ private:
 
 	/** Handler to check to see if "Source Control Revert" can be executed */
 	bool CanExecuteSCCRevert() const;
+
+	/** Handler to check to see if "Source Control Merge" can be executed */
+	bool CanExecuteSCCMerge() const;
 
 	/** Handler to check to see if "Source Control Sync" can be executed */
 	bool CanExecuteSCCSync() const;
@@ -246,5 +252,6 @@ private:
 	bool bCanExecuteSCCCheckIn;
 	bool bCanExecuteSCCHistory;
 	bool bCanExecuteSCCRevert;
+	bool bCanExecuteSCCMerge;
 	bool bCanExecuteSCCSync;
 };

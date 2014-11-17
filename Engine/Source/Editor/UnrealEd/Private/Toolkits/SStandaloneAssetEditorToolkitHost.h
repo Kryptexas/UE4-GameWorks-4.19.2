@@ -44,19 +44,19 @@ public:
 	virtual ~SStandaloneAssetEditorToolkitHost();
 
 	/** IToolkitHost interface */
-	virtual TSharedRef< class SWidget > GetParentWidget() OVERRIDE;
-	virtual void BringToFront() OVERRIDE;
-	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) OVERRIDE;
-	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) OVERRIDE;
-	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual TSharedRef< class SWidget > GetParentWidget() override;
+	virtual void BringToFront() override;
+	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) override;
+	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) override;
+	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) override;
+	virtual UWorld* GetWorld() const override;
 
 	/** SWidget overrides */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 	/** Fills in the content by loading the associated layout or using the defaults provided.  Must be called after
 	  * the widget is constructed.*/

@@ -126,24 +126,25 @@ public:
 
 	void InitSettings( const FSceneView& View );
 
-	void Clear();
+	void Clear(FRHICommandListImmediate& RHICmdList);
 
 	void SetVplInjectionConstants(
 		const FProjectedShadowInfo&	ProjectedShadowInfo,
 		const FLightSceneProxy* LightProxy );
 
-	void InjectDirectionalLightRSM(		
+	void InjectDirectionalLightRSM(
+		FRHICommandListImmediate& RHICmdList,
 		const FTexture2DRHIRef&		RsmDiffuseTex, 
 		const FTexture2DRHIRef&		RsmNormalTex, 
 		const FTexture2DRHIRef&		RsmDepthTex, 
 		const FProjectedShadowInfo&	ProjectedShadowInfo,
 		const FLinearColor&			LightColour );
 
-	void InjectLightDirect( const FLightSceneProxy& Light );
+	void InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light);
 
-	void Propagate();
+	void Propagate(FRHICommandListImmediate& RHICmdList);
 
-	void Visualise( const FSceneView& View ) const;
+	void Visualise(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const;
 
 	const FIntVector& GetGridOffset() const { return mGridOffset; }
 

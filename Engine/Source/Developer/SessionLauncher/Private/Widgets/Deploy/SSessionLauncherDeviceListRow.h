@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDevicesListRow.h: Declares the SSessionLauncherDevicesListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,7 +33,6 @@ public:
 
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -55,7 +50,6 @@ public:
 		SMultiColumnTableRow<ITargetDeviceProxyPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
-
 public:
 
 	/**
@@ -65,7 +59,7 @@ public:
 	 *
 	 * @return The widget.
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "CheckBox")
 		{
@@ -81,8 +75,13 @@ public:
 			+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SNew(SImage)
-						.Image(this, &SSessionLauncherDeviceListRow::HandleDeviceImage)
+					SNew(SBox)
+						.WidthOverride(24)
+						.HeightOverride(24)
+						[
+							SNew(SImage)
+								.Image(this, &SSessionLauncherDeviceListRow::HandleDeviceImage)
+						]
 				]
 
 			+ SHorizontalBox::Slot()
@@ -101,7 +100,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(this, &SSessionLauncherDeviceListRow::HandleHostPlatformText)
+						.Text(this, &SSessionLauncherDeviceListRow::HandleHostPlatformText)
 				];
 		}
 		else if (ColumnName == "Host")
@@ -127,7 +126,6 @@ public:
 
 		return SNullWidget::NullWidget;
 	}
-
 
 private:
 
@@ -171,7 +169,8 @@ private:
 	// Callback for getting the icon image of the device.
 	const FSlateBrush* HandleDeviceImage( ) const
 	{
-		return FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *DeviceProxy->GetPlatformName()));
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetPlatformName());
+		return (PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the friendly name.

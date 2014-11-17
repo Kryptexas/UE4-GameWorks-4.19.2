@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_InputActionEvent.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 
@@ -35,7 +35,7 @@ void UK2Node_InputAction::AllocateDefaultPins()
 
 FLinearColor UK2Node_InputAction::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -43,12 +43,6 @@ FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("InputActionName"), FText::FromName(InputActionName));
 	return FText::Format(NSLOCTEXT("K2Node", "InputAction_Name", "InputAction {InputActionName}"), Args);
-}
-
-FString UK2Node_InputAction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("InputAction %s"), *InputActionName.ToString());
 }
 
 FString UK2Node_InputAction::GetTooltip() const

@@ -19,7 +19,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogBlueprintAutomationTests, Log, All);
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintCompileOnLoadTest, "Blueprints.Compile-On-Load", EAutomationTestFlags::ATF_Editor )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintInstancesTest, "Blueprints.Instance Test", EAutomationTestFlags::ATF_Editor )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintReparentTest, "Blueprints.Reparent", EAutomationTestFlags::ATF_Editor )
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintRenameAndCloneTest, "Blueprints.Rename And Clone", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintRenameAndCloneTest, "Blueprints.Rename And Clone", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser) )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FCompileBlueprintsTest, "Blueprints.Compile Blueprints", EAutomationTestFlags::ATF_Editor )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FCompileAnimBlueprintsTest, "Blueprints.Compile Anims", EAutomationTestFlags::ATF_Editor )
 

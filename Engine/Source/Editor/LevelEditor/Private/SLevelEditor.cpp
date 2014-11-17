@@ -41,10 +41,12 @@
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
-static const FName LevelEditorWorldBrowserTab("LevelEditorWorldBrowser");
 static const FName MainFrameModuleName("MainFrame");
 static const FName NewsFeedModuleName("NewsFeed");
 static const FName LevelEditorModuleName("LevelEditor");
+static const FName WorldBrowserHierarchyTab("WorldBrowserHierarchy");
+static const FName WorldBrowserDetailsTab("WorldBrowserDetails");
+static const FName WorldBrowserCompositionTab("WorldBrowserComposition");
 
 
 namespace LevelEditorConstants
@@ -147,20 +149,23 @@ void SLevelEditor::BindCommands()
 
 void SLevelEditor::Construct( const SLevelEditor::FArguments& InArgs)
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
-	LevelEditorModule.OnNotificationBarChanged().AddSP( this, &SLevelEditor::ConstructNotificationBar );
+	// Important: We use raw bindings here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
 
-	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddSP(this, &SLevelEditor::HandleExperimentalSettingChanged);
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
+	LevelEditorModule.OnNotificationBarChanged().AddRaw( this, &SLevelEditor::ConstructNotificationBar );
+
+	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &SLevelEditor::HandleExperimentalSettingChanged);
 
 	BindCommands();
 
 	// We need to register when modes list changes so that we can refresh the auto generated commands.
-	GEditorModeTools().OnRegisteredModesChanged().AddSP(this, &SLevelEditor::RefreshEditorModeCommands);
+	FEditorModeRegistry::Get().OnRegisteredModesChanged().AddRaw(this, &SLevelEditor::RefreshEditorModeCommands);
 
 	// @todo This is a hack to get this working for now. This won't work with multiple worlds
 	GEditor->GetEditorWorldContext(true).AddRef(World);
 
-	FEditorDelegates::MapChange.AddSP(this, &SLevelEditor::HandleEditorMapChange);
+	FEditorDelegates::MapChange.AddRaw(this, &SLevelEditor::HandleEditorMapChange);
 	HandleEditorMapChange(MapChangeEventFlags::NewMap);
 }
 
@@ -256,7 +261,7 @@ SLevelEditor::~SLevelEditor()
 	
 	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll( this );
 	GEditor->AccessEditorUserSettings().OnUserSettingChanged().RemoveAll( this );
-	GEditorModeTools().OnRegisteredModesChanged().RemoveAll( this );
+	FEditorModeRegistry::Get().OnRegisteredModesChanged().RemoveAll( this );
 
 	FEditorDelegates::MapChange.RemoveAll(this);
 
@@ -503,10 +508,10 @@ static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
 {
 	struct Local
 	{
-		static bool IsPropertyVisible( const UProperty* InProperty )
+		static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 		{
 			// For details views in the level editor all properties are the instanced versions
-			if ((InProperty != NULL) && InProperty->HasAllPropertyFlags(CPF_DisableEditOnInstance))
+			if (PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
 			{
 				return false;
 			}
@@ -627,11 +632,11 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			InitOptions.DefaultMenuExtender = MakeShareable(new FExtender);
 			InitOptions.DefaultMenuExtender->AddMenuExtension(
 				"FolderSection", EExtensionHook::Before, GetLevelEditorActions(),
-				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> WeakLevelEditor){
+				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> InWeakLevelEditor){
 					// Only extend the menu if we have actors selected
 					if (GEditor->GetSelectedActors()->Num())
 					{
-						FLevelEditorContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
+						FLevelEditorContextMenu::FillMenu(MenuBuilder, InWeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
 					}
 				}, WeakLevelEditor)
 			);
@@ -676,8 +681,10 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					]
 				];
 	}
-	else if( TabIdentifier == TEXT("LevelEditorLevelBrowser") )
+	else if( TabIdentifier == WorldBrowserHierarchyTab || TabIdentifier == TEXT("LevelEditorLevelBrowser") )
 	{
+		if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
+		{
 			FLevelsModule& LevelsModule = FModuleManager::LoadModuleChecked<FLevelsModule>( "Levels" );
 			return SNew( SDockTab )
 				.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.Levels" ) )
@@ -690,15 +697,37 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 						LevelsModule.CreateLevelBrowser()
 					]
 				];
+		}
+		else
+		{
+			FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
+			return SNew( SDockTab )
+				.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
+				.Label( NSLOCTEXT("LevelEditor", "WorldBrowserHierarchyTabTitle", "Levels") )
+				[
+					WorldBrowserModule.CreateWorldBrowserHierarchy()
+				];
+		}
+				
 	}
-	else if( GetDefault<UEditorExperimentalSettings>()->bWorldBrowser && TabIdentifier == LevelEditorWorldBrowserTab )
+	else if( TabIdentifier == WorldBrowserDetailsTab && !FParse::Param(FCommandLine::Get(), TEXT("oldlevels")) )
 	{
 		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
 		return SNew( SDockTab )
-			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
-			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserTabTitle", "World Browser") )
+			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowserDetails" ) )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserDetailsTabTitle", "Level Details") )
 			[
-				WorldBrowserModule.CreateWorldBrowser()
+				WorldBrowserModule.CreateWorldBrowserDetails()
+			];
+	}
+	else if( TabIdentifier == WorldBrowserCompositionTab && !FParse::Param(FCommandLine::Get(), TEXT("oldlevels")) )
+	{
+		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
+		return SNew( SDockTab )
+			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowserComposition" ) )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserCompositionTabTitle", "Levels Composition") )
+			[
+				WorldBrowserModule.CreateWorldBrowserComposition()
 			];
 	}
 	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
@@ -991,6 +1020,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				.SetIcon( LayersIcon );
 		}
 		
+		if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
 		{
 			const FSlateIcon LevelsIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Levels");
 			LevelEditorTabManager->RegisterTabSpawner( "LevelEditorLevelBrowser", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("LevelEditorLevelBrowser"), FString()) )
@@ -999,12 +1029,27 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				.SetGroup( MenuStructure.GetLevelEditorCategory() )
 				.SetIcon( LevelsIcon );
 		}
-
-		if (GetDefault<UEditorExperimentalSettings>()->bWorldBrowser)
+		else
 		{
-			RegisterWorldBrowserTabSpawner();
+			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserHierarchyTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserHierarchyTab, FString()) )
+				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserHierarchy", "Levels"))
+				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "WorldBrowserHierarchyTooltipText", "Open the Levels tab. Use this to manage the levels in the current project."))
+				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
+				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
+			
+			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserDetailsTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserDetailsTab, FString()) )
+				.SetMenuType( ETabSpawnerMenuType::Hide )
+				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserDetails", "Level Details"))
+				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
+				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowserDetails") );
+		
+			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserCompositionTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserCompositionTab, FString()) )
+				.SetMenuType( ETabSpawnerMenuType::Hide )
+				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserComposition", "Levels Composition"))
+				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
+				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowserComposition") );
 		}
-
+		
 		{
 			const FSlateIcon StatsViewerIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.StatsViewer");
 			LevelEditorTabManager->RegisterTabSpawner( LevelEditorStatsViewerTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorStatsViewerTab, FString()) )
@@ -1045,8 +1090,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 	// or there wont be any tab spawners for the modes.
 	RefreshEditorModeCommands();
 
-	const TSharedRef<FTabManager::FLayout> Layout = FLayoutSaveRestore::LoadUserConfigVersionOf
-	(	
+	const TSharedRef<FTabManager::FLayout> Layout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 		FTabManager::NewLayout( "LevelEditor_Layout_v1.1" )
 		->AddArea
 		(
@@ -1127,32 +1171,6 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 
 void SLevelEditor::HandleExperimentalSettingChanged(FName PropertyName)
 {
-	if (PropertyName == TEXT("bWorldBrowser"))
-	{
-		if (GetDefault<UEditorExperimentalSettings>()->bWorldBrowser )
-		{
-			RegisterWorldBrowserTabSpawner();
-		}
-		else
-		{
-			UnregisterWorldBrowserTabSpawner();
-		}
-	}
-}
-
-void SLevelEditor::RegisterWorldBrowserTabSpawner()
-{
-	TSharedPtr<FTabManager> LevelEditorTabManager = GetTabManager();
-	LevelEditorTabManager->RegisterTabSpawner( LevelEditorWorldBrowserTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorWorldBrowserTab, FString()) )
-		.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "LevelEditorWorldBrowser", "World Browser"))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
-		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
-}
-
-void SLevelEditor::UnregisterWorldBrowserTabSpawner()
-{
-	TSharedPtr<FTabManager> LevelEditorTabManager = GetTabManager();
-	LevelEditorTabManager->UnregisterTabSpawner( LevelEditorWorldBrowserTab );
 }
 
 FName SLevelEditor::GetEditorModeTabId( FEditorModeID ModeID )
@@ -1163,17 +1181,17 @@ FName SLevelEditor::GetEditorModeTabId( FEditorModeID ModeID )
 void SLevelEditor::ToggleEditorMode( FEditorModeID ModeID )
 {
 	// *Important* - activate the mode first since FEditorModeTools::DeactivateMode will
-	// activate EM_Default when the stack becomes empty, resulting in multiple active visible modes.
-	GEditorModeTools().ActivateMode( ModeID );
+	// activate the default mode when the stack becomes empty, resulting in multiple active visible modes.
+	GLevelEditorModeTools().ActivateMode( ModeID );
 
 	// Find and disable any other 'visible' modes since we only ever allow one of those active at a time.
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for ( FEdMode* Mode : ActiveModes )
 	{
-		if ( Mode->IsVisible() && Mode->GetID() != ModeID )
+		if ( Mode->GetID() != ModeID && Mode->GetModeInfo().bVisible )
 		{
-			GEditorModeTools().DeactivateMode( Mode->GetID() );
+			GLevelEditorModeTools().DeactivateMode( Mode->GetID() );
 		}
 	}
 
@@ -1183,15 +1201,15 @@ void SLevelEditor::ToggleEditorMode( FEditorModeID ModeID )
 	TSharedRef<SDockTab> ToolboxTab = LevelEditorTabManager->InvokeTab( FTabId("LevelEditorToolBox") );
 
 	//// If it's already active deactivate the mode
-	//if ( GEditorModeTools().IsModeActive( ModeID ) )
+	//if ( GLevelEditorModeTools().IsModeActive( ModeID ) )
 	//{
-	//	//GEditorModeTools().DeactivateAllModes();
-	//	//GEditorModeTools().DeactivateMode( ModeID );
+	//	//GLevelEditorModeTools().DeactivateAllModes();
+	//	//GLevelEditorModeTools().DeactivateMode( ModeID );
 	//}
 	//else // Activate the mode and create the tab for it.
 	//{
-	//	GEditorModeTools().DeactivateAllModes();
-	//	GEditorModeTools().ActivateMode( ModeID );
+	//	GLevelEditorModeTools().DeactivateAllModes();
+	//	GLevelEditorModeTools().ActivateMode( ModeID );
 
 	//	//FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor" );
 	//	//TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
@@ -1200,33 +1218,23 @@ void SLevelEditor::ToggleEditorMode( FEditorModeID ModeID )
 	//}
 }
 
-static bool IsDefaultModeActive()
+bool SLevelEditor::IsModeActive( FEditorModeID ModeID )
 {
-	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
-	for ( FEdMode* Mode : ActiveModes )
+	// The level editor changes the default mode to placement
+	if ( ModeID == FBuiltinEditorModes::EM_Placement )
 	{
-		if ( Mode->IsVisible() )
+		// Only return true if this is the *only* active mode
+		TArray<FEdMode*> ActiveModes;
+		GLevelEditorModeTools().GetActiveModes(ActiveModes);
+		for( FEdMode* Mode : ActiveModes )
 		{
-			if ( !( Mode->GetID() == FBuiltinEditorModes::EM_Placement ||
-					Mode->GetID() == FBuiltinEditorModes::EM_Default ) )
+			if( Mode->GetModeInfo().bVisible && Mode->GetID() != FBuiltinEditorModes::EM_Placement )
 			{
 				return false;
 			}
 		}
 	}
-
-	return GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Placement );
-}
-
-bool SLevelEditor::IsModeActive( FEditorModeID ModeID )
-{
-	if ( ModeID == FBuiltinEditorModes::EM_Placement || ModeID == FBuiltinEditorModes::EM_Default )
-	{
-		return IsDefaultModeActive();
-	}
-
-	return GEditorModeTools().IsModeActive( ModeID );
+	return GLevelEditorModeTools().IsModeActive( ModeID );
 }
 
 void SLevelEditor::RefreshEditorModeCommands()
@@ -1242,32 +1250,17 @@ void SLevelEditor::RefreshEditorModeCommands()
 	// We need to remap all the actions to commands.
 	const FLevelEditorModesCommands& Commands = FLevelEditorModesCommands::Get();
 
-	TArray<FEdMode*> Modes;
-	GEditorModeTools().GetModes(Modes);
-
-	int editorMode = 0;
-
-	struct FCompareEdModeByPriority
-	{
-		FORCEINLINE bool operator()(const FEdMode& A, const FEdMode& B) const
-		{
-			return A.GetPriorityOrder() < B.GetPriorityOrder();
-		}
-	};
-
-	Modes.Sort(FCompareEdModeByPriority());
-
 	int commandIndex = 0;
-	for ( FEdMode* Mode : Modes )
+	for( const FEditorModeInfo& Mode : FEditorModeRegistry::Get().GetSortedModeInfo() )
 	{
 		// If the mode isn't visible don't create a menu option for it.
-		if ( !Mode->IsVisible() )
+		if( !Mode.bVisible )
 		{
 			continue;
 		}
 
-		FName EditorModeTabName = GetEditorModeTabId( Mode->GetID() );
-		FName EditorModeCommandName = FName(*(FString("EditorMode.") + Mode->GetID().ToString()));
+		FName EditorModeTabName = GetEditorModeTabId( Mode.ID );
+		FName EditorModeCommandName = FName(*(FString("EditorMode.") + Mode.ID.ToString()));
 
 		TSharedPtr<FUICommandInfo> EditorModeCommand = 
 			FInputBindingManager::Get().FindCommandInContext(Commands.GetContextName(), EditorModeCommandName);
@@ -1277,51 +1270,22 @@ void SLevelEditor::RefreshEditorModeCommands()
 		{
 			LevelEditorCommands->MapAction(
 				Commands.EditorModeCommands[commandIndex],
-				FExecuteAction::CreateStatic( &SLevelEditor::ToggleEditorMode, Mode->GetID() ),
+				FExecuteAction::CreateStatic( &SLevelEditor::ToggleEditorMode, Mode.ID ),
 				FCanExecuteAction(),
-				FIsActionChecked::CreateStatic( &SLevelEditor::IsModeActive, Mode->GetID() ));
+				FIsActionChecked::CreateStatic( &SLevelEditor::IsModeActive, Mode.ID ));
 		}
-
-		// Register the new tab spawner, and unregister the old one if it exists
-		//if ( LevelEditorTabManager.IsValid() )
-		//{
-		//	LevelEditorTabManager->UnregisterTabSpawner( EditorModeTabName );
-
-		//	LevelEditorTabManager->RegisterTabSpawner( EditorModeTabName, FOnSpawnTab::CreateSP<SLevelEditor, FEdMode*>(this, &SLevelEditor::SpawnLevelEditorModeTab, Mode) )
-		//		.SetDisplayName( Mode->GetName() ) 
-		//		.SetGroup( MenuStructure.GetLevelEditorModesCategory() )
-		//		.SetIcon( Mode->GetIcon() );
-		//}
 
 		commandIndex++;
 	}
-}
 
-TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode )
-{
-	if (!GEditorModeTools().IsModeActive(EditorMode->GetID()))
+	for( const auto& ToolBoxTab : ToolBoxTabs )
 	{
-		GEditorModeTools().ActivateMode(EditorMode->GetID());
+		auto Tab = ToolBoxTab.Pin();
+		if( Tab.IsValid() )
+		{
+			Tab->OnEditorModeCommandsChanged();
+		}
 	}
-
-	TSharedPtr<SDockTab> NewEditorModeTab;
-	TSharedPtr<SLevelEditorModeContent> NewToolBox;
-
-	SAssignNew( NewEditorModeTab, SDockTab )
-		.Icon( EditorMode->GetIcon().GetSmallIcon() )
-		.Label( EditorMode->GetName() );
-
-	NewEditorModeTab->SetContent(
-		SNew( STutorialWrapper, TEXT("ToolsPanel") )
-		[
-			SAssignNew( NewToolBox, SLevelEditorModeContent, SharedThis( this ), NewEditorModeTab.ToSharedRef(), EditorMode )
-			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-		]
-	);
-
-	ModesTabs.Add( NewToolBox );
-
-	return NewEditorModeTab.ToSharedRef();
 }
 
 FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -1409,7 +1373,6 @@ void SLevelEditor::SummonLevelViewportContextMenu()
 {
 	FLevelEditorContextMenu::SummonMenu( SharedThis( this ), LevelEditorMenuContext::Viewport );
 }
-
 
 const TArray< TSharedPtr< IToolkit > >& SLevelEditor::GetHostedToolkits() const
 {

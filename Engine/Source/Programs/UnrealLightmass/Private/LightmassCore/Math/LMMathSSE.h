@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMMathSSE.h: Intel SSE specific vector intrinsics (also using D3D9X)
-=============================================================================*/
-
-
 #pragma once
 
 
@@ -73,7 +68,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
  *	Intrinsics:
  *============================================================================*/
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 #undef VectorZero
 #undef VectorOne
 #undef VectorLoad

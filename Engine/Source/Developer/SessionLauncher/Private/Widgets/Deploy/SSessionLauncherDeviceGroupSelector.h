@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeviceGroupSelector.h: Declares the SSessionLauncherDeviceGroupSelector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -40,7 +36,6 @@ public:
 
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -54,7 +49,6 @@ public:
 			ProfileManager->OnDeviceGroupRemoved().RemoveAll(this);
 		}
 	}
-
 
 public:
 
@@ -109,7 +103,6 @@ public:
 		ProfileManager->OnDeviceGroupRemoved().AddSP(this, &SSessionLauncherDeviceGroupSelector::HandleProfileManagerDeviceGroupsChanged);
 	}
 
-
 	/**
 	 * Gets the currently selected device group.
 	 *
@@ -136,7 +129,6 @@ public:
 			DeviceGroupComboBox->SetSelectedItem(DeviceGroup);
 		}		
 	}
-
 
 private:
 
@@ -234,7 +226,6 @@ private:
 		DeviceGroupComboBox->RefreshOptions();
 	}
 
-
 private:
 
 	// Holds the device group combo box.
@@ -242,7 +233,6 @@ private:
 
 	// Holds the profile manager.
 	ILauncherProfileManagerPtr ProfileManager;
-
 
 private:
 

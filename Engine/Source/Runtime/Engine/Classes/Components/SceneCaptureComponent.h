@@ -10,6 +10,10 @@ class USceneCaptureComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	/** The components won't rendered by current component.*/
+ 	UPROPERTY()
+ 	TArray<TWeakObjectPtr<UPrimitiveComponent> > HiddenComponents;
+
 	/** Whether to update the capture's contents every frame.  If disabled, the component will render once on load and then only when moved. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	bool bCaptureEveryFrame;
@@ -20,5 +24,12 @@ class USceneCaptureComponent : public USceneComponent
 
 public:
 
+	/** Adds the component to our list of hidden components. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	ENGINE_API void HideComponent(UPrimitiveComponent* InComponent);
+
+	/** Adds all primitive components in the actor to our list of hidden components. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	ENGINE_API void HideActorComponents(AActor* InActor);
 };
 

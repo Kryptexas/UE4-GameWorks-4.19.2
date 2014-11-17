@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/EditorModes.h"
 
 #define LOCTEXT_NAMESPACE "StructureCompiler"
 
@@ -146,8 +147,15 @@ struct FUserDefinedStructureCompilerInner
 			}
 
 			NewProperty->SetPropertyFlags(CPF_Edit);
+			if (VarDesc.bDontEditoOnInstance)
+			{
+				NewProperty->SetPropertyFlags(CPF_DisableEditOnInstance);
+			}
+			if (VarDesc.bEnable3dWidget)
+			{
+				NewProperty->SetMetaData(FEdMode::MD_MakeEditWidget, TEXT("true"));
+			}
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
-			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
 			NewProperty->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc.ToolTip);
 			NewProperty->RepNotifyFunc = NAME_None;
 
@@ -191,7 +199,7 @@ struct FUserDefinedStructureCompilerInner
 		return true;
 	}
 
-	static void BuildDependencyMapAndCompile(TArray<UUserDefinedStruct*>& ChangedStructs, FCompilerResultsLog& MessageLog)
+	static void BuildDependencyMapAndCompile(const TArray<UUserDefinedStruct*>& ChangedStructs, FCompilerResultsLog& MessageLog)
 	{
 		struct FDependencyMapEntry
 		{
@@ -200,7 +208,7 @@ struct FUserDefinedStructureCompilerInner
 
 			FDependencyMapEntry() : Struct(NULL) {}
 
-			void Initialize(UUserDefinedStruct* ChangedStruct, TArray<UUserDefinedStruct*>& AllChangedStructs) 
+			void Initialize(UUserDefinedStruct* ChangedStruct, const TArray<UUserDefinedStruct*>& AllChangedStructs) 
 			{ 
 				Struct = ChangedStruct;
 				check(Struct);
@@ -218,7 +226,7 @@ struct FUserDefinedStructureCompilerInner
 		};
 
 		TArray<FDependencyMapEntry> DependencyMap;
-		for (auto Iter = ChangedStructs.CreateIterator(); Iter; ++Iter)
+		for (auto Iter = ChangedStructs.CreateConstIterator(); Iter; ++Iter)
 		{
 			DependencyMap.Add(FDependencyMapEntry());
 			DependencyMap.Last().Initialize(*Iter, ChangedStructs);
@@ -256,7 +264,9 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 {
 	if (FStructureEditorUtils::UserDefinedStructEnabled() && Struct)
 	{
+		TSet<UBlueprint*> BlueprintsThatHaveBeenRecompiled;
 		TSet<UBlueprint*> BlueprintsToRecompile;
+
 		TArray<UUserDefinedStruct*> ChangedStructs; 
 
 		if (FUserDefinedStructureCompilerInner::ShouldBeCompiled(Struct) || bForceRecompile)
@@ -266,27 +276,68 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 
 		for (int32 StructIdx = 0; StructIdx < ChangedStructs.Num(); ++StructIdx)
 		{
-			FUserDefinedStructureCompilerInner::ReplaceStructWithTempDuplicate(ChangedStructs[StructIdx], BlueprintsToRecompile, ChangedStructs);
-			ChangedStructs[StructIdx]->Status = EUserDefinedStructureStatus::UDSS_Dirty;
+			UUserDefinedStruct* ChangedStruct = ChangedStructs[StructIdx];
+			if (ChangedStruct)
+			{
+				FStructureEditorUtils::FStructEditorManager::Get().PreChange(ChangedStruct);
+				FUserDefinedStructureCompilerInner::ReplaceStructWithTempDuplicate(ChangedStruct, BlueprintsToRecompile, ChangedStructs);
+				ChangedStruct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
+			}
 		}
 
 		// COMPILE IN PROPER ORDER
 		FUserDefinedStructureCompilerInner::BuildDependencyMapAndCompile(ChangedStructs, MessageLog);
 
 		// UPDATE ALL THINGS DEPENDENT ON COMPILED STRUCTURES
-		for (TObjectIterator<UK2Node_StructOperation> It(RF_Transient | RF_PendingKill | RF_ClassDefaultObject, true); It && ChangedStructs.Num(); ++It)
+		for (TObjectIterator<UK2Node> It(RF_Transient | RF_PendingKill | RF_ClassDefaultObject, true); It && ChangedStructs.Num(); ++It)
 		{
-			UK2Node_StructOperation* Node = *It;
-			if (Node && !Node->HasAnyFlags(RF_Transient|RF_PendingKill))
+			bool bReconstruct = false;
+
+			UK2Node* Node = *It;
+
+			if (Node && !Node->HasAnyFlags(RF_Transient | RF_PendingKill))
 			{
-				UUserDefinedStruct* StructInNode = Cast<UUserDefinedStruct>(Node->StructType);
-				if (StructInNode && ChangedStructs.Contains(StructInNode))
+				// If this is a struct operation node operation on the changed struct we must reconstruct
+				if (UK2Node_StructOperation* StructOpNode = Cast<UK2Node_StructOperation>(Node))
 				{
-					if (UBlueprint* FoundBlueprint = Node->GetBlueprint())
+					UUserDefinedStruct* StructInNode = Cast<UUserDefinedStruct>(StructOpNode->StructType);
+					if (StructInNode && ChangedStructs.Contains(StructInNode))
 					{
-						Node->ReconstructNode();
-						BlueprintsToRecompile.Add(FoundBlueprint);
+						bReconstruct = true;
 					}
+				}
+				if (!bReconstruct)
+				{
+					// Look through the nodes pins and if any of them are split and the type of the split pin is a user defined struct we need to reconstruct
+					for (UEdGraphPin* Pin : Node->Pins)
+					{
+						if (Pin->SubPins.Num() > 0)
+						{
+							UUserDefinedStruct* StructType = Cast<UUserDefinedStruct>(Pin->PinType.PinSubCategoryObject.Get());
+							if (StructType && ChangedStructs.Contains(StructType))
+							{
+								bReconstruct = true;
+								break;
+							}
+						}
+
+					}
+				}
+			}
+
+			if (bReconstruct)
+			{
+				if (UBlueprint* FoundBlueprint = Node->GetBlueprint())
+				{
+					// The blueprint skeleton needs to be updated before we reconstruct the node
+					// or else we may have member references that point to the old skeleton
+					if (!BlueprintsThatHaveBeenRecompiled.Contains(FoundBlueprint))
+					{
+						BlueprintsThatHaveBeenRecompiled.Add(FoundBlueprint);
+						BlueprintsToRecompile.Remove(FoundBlueprint);
+						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(FoundBlueprint);
+					}
+					Node->ReconstructNode();
 				}
 			}
 		}
@@ -294,6 +345,16 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 		for (auto BPIter = BlueprintsToRecompile.CreateIterator(); BPIter; ++BPIter)
 		{
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(*BPIter);
+		}
+
+		// UPDATE UI
+		for (auto ChangedStruct : ChangedStructs)
+		{
+			if (ChangedStruct)
+			{
+				FStructureEditorUtils::FStructEditorManager::Get().PostChange(ChangedStruct);
+				ChangedStruct->MarkPackageDirty();
+			}
 		}
 	}
 }

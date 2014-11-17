@@ -42,7 +42,7 @@ public:
 	 * @param CategoryName	Name of the category
 	 * @param DisplayName	Localized label to display in the animation outliner
 	 */
-	TSharedRef<class FSectionCategoryNode> AddCategoryNode( FName CategoryName, const FString& DisplayLabel );
+	TSharedRef<class FSectionCategoryNode> AddCategoryNode( FName CategoryName, const FText& DisplayLabel );
 
 	/**
 	 * Adds a new section area for this node.
@@ -59,7 +59,7 @@ public:
 	 * @param DisplayLabel	Localized label to display in the animation outliner
 	 * @param KeyArea		Key area interface for drawing and interaction with keys
 	 */
-	void AddKeyAreaNode( FName KeyAreaName, const FString& DisplayLabel, TSharedRef<IKeyArea> KeyArea );
+	void AddKeyAreaNode( FName KeyAreaName, const FText& DisplayLabel, TSharedRef<IKeyArea> KeyArea );
 
 	/**
 	 * @return The type of node this is
@@ -77,7 +77,7 @@ public:
 	/**
 	 * @return The localized display name of this node
 	 */
-	virtual FString GetDisplayName() const = 0;
+	virtual FText GetDisplayName() const = 0;
 
 	/**
 	 * Generates a widget for display in the animation outliner portion of the track area
@@ -85,7 +85,7 @@ public:
 	 * @param Sequencer	Sequencer interface to pass to outliner widgets
 	 * @return Generated outliner widget
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForOutliner( TSharedRef<class ISequencerInternals> Sequencer );
+	virtual TSharedRef<SWidget> GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer );
 
 	/**
 	 * Generates a widget for display in the section area portion of the track area
@@ -129,7 +129,7 @@ public:
 	TSharedPtr<FSequencerDisplayNode> GetParent() const { return ParentNode.Pin(); }
 	
 	/** Gets the sequencer that owns this node */
-	ISequencerInternals& GetSequencer() const { return ParentTree.GetSequencer(); }
+	FSequencer& GetSequencer() const { return ParentTree.GetSequencer(); }
 	
 	/** Gets all the key area nodes recursively, including this node if applicable */
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;
@@ -240,17 +240,17 @@ public:
 	 * @param InParentTree	The tree this node is in
 	 * @param bInTopLevel	If true the node is part of the section itself instead of taking up extra height in the section
 	 */
-	FSectionKeyAreaNode( FName NodeName, const FString& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree, bool bInTopLevel = false )
+	FSectionKeyAreaNode( FName NodeName, const FText& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree, bool bInTopLevel = false )
 		: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 		, DisplayName( InDisplayName )
 		, bTopLevel( bInTopLevel )
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::KeyArea; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::KeyArea; }
+	virtual float GetNodeHeight() const override;
+	virtual FText GetDisplayName() const override { return DisplayName; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 
 	/**
 	 * Adds a key area to this node
@@ -278,7 +278,7 @@ public:
 	bool IsTopLevel() const { return bTopLevel; }
 private:
 	/** The display name of the key area */
-	FString DisplayName;
+	FText DisplayName;
 	/** All key areas on this node (one per section) */
 	TArray< TSharedRef<IKeyArea> > KeyAreas;
 	/** If true the node is part of the section itself instead of taking up extra height in the section */
@@ -303,12 +303,12 @@ public:
 	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Track; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
-	virtual bool IsSelectable() const OVERRIDE { return true; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
-	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Track; }
+	virtual float GetNodeHeight() const override;
+	virtual FText GetDisplayName() const override;
+	virtual bool IsSelectable() const override { return true; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
+	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
 
 	/**
 	 * Adds a section to this node
@@ -369,18 +369,18 @@ public:
 	 * @param InParentNode		The parent of this node or NULL if this is a root node
 	 * @param InParentTree		The tree this node is in
 	 */
-	FObjectBindingNode( FName NodeName, const FString& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+	FObjectBindingNode( FName NodeName, const FText& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 		: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 		, ObjectBinding( InObjectBinding )
 		, DisplayName( InObjectName )
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Object; }
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual bool IsSelectable() const OVERRIDE { return true; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
+	virtual FText GetDisplayName() const override { return DisplayName; }
+	virtual float GetNodeHeight() const override;
+	virtual bool IsSelectable() const override { return true; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 	
 	/** @return The object binding on this node */
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
@@ -392,7 +392,7 @@ private:
 	/** The binding to live objects */
 	FGuid ObjectBinding;
 	/** Display name of the object */
-	FString DisplayName;
+	FText DisplayName;
 };
 
 /**
@@ -409,17 +409,17 @@ public:
 	 * @param InParentNode	The parent of this node or NULL if this is a root node
 	 * @param InParentTree	The tree this node is in
 	 */
-	FSectionCategoryNode( FName NodeName, const FString& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+	FSectionCategoryNode( FName NodeName, const FText& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 		: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 		, DisplayName( InDisplayName )
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Category; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Category; }
+	virtual float GetNodeHeight() const override;
+	virtual FText GetDisplayName() const override { return DisplayName; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 private:
 	/** The display name of the category */
-	FString DisplayName;
+	FText DisplayName;
 };

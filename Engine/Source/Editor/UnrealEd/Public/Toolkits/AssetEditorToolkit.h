@@ -40,20 +40,21 @@ public:
 	virtual ~FAssetEditorToolkit();
 
 	/** IToolkit interface */
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual bool IsAssetEditor() const OVERRIDE;
-	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual bool IsAssetEditor() const override;
+	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
 	virtual FName GetToolkitFName() const = 0;					// Must implement in derived class!
 	virtual FText GetBaseToolkitName() const = 0;				// Must implement in derived class!
-	virtual FText GetToolkitName() const OVERRIDE;		
+	virtual FText GetToolkitName() const override;		
 	virtual FString GetWorldCentricTabPrefix() const = 0;		// Must implement in derived class!
-	virtual class FEdMode* GetEditorMode() const OVERRIDE;
+	virtual class FEdMode* GetEditorMode() const override;
 
 	/** IAssetEditorInstance interface */
-	virtual FName GetEditorName() const OVERRIDE;
-	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
-	virtual bool CloseWindow() OVERRIDE;
+	virtual FName GetEditorName() const override;
+	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
+	virtual bool CloseWindow() override;
+	virtual bool IsPrimaryEditor() const override { return true; };
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file
@@ -127,6 +128,13 @@ public:
 	/** True if this actually is editing an asset */
 	bool IsActuallyAnAsset() const;
 
+	/** 
+	 * Gets the text to display in a toolkit titlebar for an object 
+	 * @param	InObject	The object we want a description of
+	 * @return a formatted description of the object state (e.g. "MyObject*")
+	 */
+	static FText GetDescriptionForObject(const UObject* InObject);
+
 protected:
 
 	/**	Returns the single object currently being edited. Asserts if currently editing no object or multiple objects */
@@ -191,6 +199,18 @@ private:
 	/** Spawns the toolbar tab */
 	TSharedRef<SDockTab> SpawnTab_Toolbar(const FSpawnTabArgs& Args);
 
+	// Callback for persisting the Asset Editor's layout.
+	void HandleTabManagerPersistLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave )
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	}
+
+	/** Called when "View References" is called for this asset */
+	void ViewReferences_Execute();
+
+	/** If true ViewReferences_Execute can be called, also caches ViewableObjects */
+	bool CanViewReferences();
+
 protected:
 
 	/** For standalone asset editing tool-kits that were switched from world-centric mode on the fly, this stores
@@ -229,6 +249,9 @@ private:
 
 	/**	The tab ids for all the tabs used */
 	static const FName ToolbarTabId;
+
+	/** A cached list of selected objects that can be viewed in the reference viewer */
+	TArray< FName > ViewableObjects;
 };
 
 
@@ -242,6 +265,8 @@ DECLARE_DELEGATE_RetVal_TwoParams( TSharedRef<FExtender>, FAssetEditorExtender, 
 class UNREALED_API FExtensibilityManager
 {
 public:
+	virtual ~FExtensibilityManager() {}
+
 	/** Functions for outsiders to add or remove their extenders */
 	virtual void AddExtender(TSharedPtr<FExtender> Extender) {Extenders.AddUnique(Extender);}
 	virtual void RemoveExtender(TSharedPtr<FExtender> Extender) {Extenders.Remove(Extender);}

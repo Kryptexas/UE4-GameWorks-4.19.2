@@ -5,13 +5,72 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineClasses.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpTrackInstProperty.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackInstVisibility.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackInstAnimControl.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackInstEvent.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackInstToggle.h"
+#include "Matinee/InterpTrackFade.h"
+#include "Matinee/InterpTrackInstFade.h"
+#include "Matinee/InterpTrackSlomo.h"
+#include "Matinee/InterpTrackInstSlomo.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackInstSound.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackInstFloatProp.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "Matinee/InterpTrackInstVectorProp.h"
+#include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackInstBoolProp.h"
+#include "Matinee/InterpTrackColorProp.h"
+#include "Matinee/InterpTrackInstColorProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
+#include "Matinee/InterpTrackInstLinearColorProp.h"
+#include "Matinee/InterpTrackAudioMaster.h"
+#include "Matinee/InterpTrackInstAudioMaster.h"
+#include "Matinee/InterpTrackColorScale.h"
+#include "Matinee/InterpTrackInstColorScale.h"
+#include "Matinee/InterpTrackFloatParticleParam.h"
+#include "Matinee/InterpTrackInstFloatParticleParam.h"
+#include "Matinee/InterpTrackFloatMaterialParam.h"
+#include "Matinee/InterpTrackInstFloatMaterialParam.h"
+#include "Matinee/InterpTrackVectorMaterialParam.h"
+#include "Matinee/InterpTrackInstVectorMaterialParam.h"
+#include "Matinee/InterpTrackParticleReplay.h"
+#include "Matinee/InterpTrackInstParticleReplay.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInstDirector.h"
+#include "Matinee/InterpGroupCamera.h"
+#include "Matinee/InterpGroupInstCamera.h"
+#include "Matinee/InterpFilter_Classes.h"
+#include "Matinee/InterpFilter_Custom.h"
+#include "Materials/MaterialInstanceActor.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
+#include "AudioDevice.h"
+#include "Sound/SoundBase.h"
 #include "InterpolationHitProxy.h"
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
 #include "MatineeUtils.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystemReplay.h"
+#include "ContentStreaming.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -132,7 +191,7 @@ int32 TrackClass::SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdate
 		MoveKey.TimeVar = NewKeyTime; \
 		/* Find correct new position and insert. */ \
 		int32 i=0; \
-		for( i=0; i<KeyArray.Num() && KeyArray[i].TimeVar < NewKeyTime; i++); \
+		for( i=0; i<KeyArray.Num() && KeyArray[i].TimeVar < NewKeyTime; i++) {}; \
 		KeyArray.InsertZeroed(i); \
 		KeyArray[i] = MoveKey; \
 		return i; \
@@ -170,7 +229,7 @@ int32 TrackClass::DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTra
 	KeyType NewKey = KeyArray[KeyIndex]; \
 	NewKey.TimeVar = NewKeyTime; \
 	/* Find the correct index to insert this key. */ \
-	int32 i=0; for( i=0; i<DestTrack->KeyArray.Num() && DestTrack->KeyArray[i].TimeVar < NewKeyTime; i++); \
+	int32 i=0; for( i=0; i<DestTrack->KeyArray.Num() && DestTrack->KeyArray[i].TimeVar < NewKeyTime; i++) {}; \
 	DestTrack->KeyArray.InsertZeroed(i); \
 	DestTrack->KeyArray[i] = NewKey; \
 	return i; \
@@ -1699,36 +1758,36 @@ UInterpData::UInterpData(const class FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 void UInterpData::CreateDefaultFilters()
 {
-	UInterpFilter* FilterAll = NewNamedObject<UInterpFilter>(this, TEXT("FilterAll"), RF_Transient);
+	UInterpFilter* FilterAll = NewNamedObject<UInterpFilter>(this, TEXT("FilterAll"), RF_Transient | RF_TextExportTransient);
 	FilterAll->Caption = TEXT("All");
 	DefaultFilters.Add(FilterAll);
 
-	UInterpFilter_Classes* FilterCameras = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterCameras"), RF_Transient);
+	UInterpFilter_Classes* FilterCameras = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterCameras"), RF_Transient | RF_TextExportTransient);
 	FilterCameras->Caption = TEXT("Cameras");
 	FilterCameras->ClassToFilterBy = ACameraActor::StaticClass();
 	DefaultFilters.Add(FilterCameras);
 
-	UInterpFilter_Classes* FilterSkeletalMeshes = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSkeletalMeshes"), RF_Transient);
+	UInterpFilter_Classes* FilterSkeletalMeshes = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSkeletalMeshes"), RF_Transient | RF_TextExportTransient);
 	FilterSkeletalMeshes->Caption = TEXT("Skeletal Meshes");
 	FilterSkeletalMeshes->ClassToFilterBy = ASkeletalMeshActor::StaticClass();
 	DefaultFilters.Add(FilterSkeletalMeshes);
 
-	UInterpFilter_Classes* FilterLighting = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterLighting"), RF_Transient);
+	UInterpFilter_Classes* FilterLighting = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterLighting"), RF_Transient | RF_TextExportTransient);
 	FilterLighting->Caption = TEXT("Lights");
 	FilterLighting->ClassToFilterBy = ALight::StaticClass();
 	DefaultFilters.Add(FilterLighting);
 
-	UInterpFilter_Classes* FilterEmitters = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEmitters"), RF_Transient);
+	UInterpFilter_Classes* FilterEmitters = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEmitters"), RF_Transient | RF_TextExportTransient);
 	FilterEmitters->Caption = TEXT("Particles");
 	FilterEmitters->ClassToFilterBy = AEmitter::StaticClass();
 	DefaultFilters.Add(FilterEmitters);
 
-	UInterpFilter_Classes* FilterSounds = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSounds"), RF_Transient);
+	UInterpFilter_Classes* FilterSounds = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSounds"), RF_Transient | RF_TextExportTransient);
 	FilterSounds->Caption = TEXT("Sounds");
 	FilterSounds->TrackClasses.Add(UInterpTrackSound::StaticClass());
 	DefaultFilters.Add(FilterSounds);
 
-	UInterpFilter_Classes* FilterEvents = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEvents"), RF_Transient);
+	UInterpFilter_Classes* FilterEvents = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEvents"), RF_Transient | RF_TextExportTransient);
 	FilterEvents->Caption = TEXT("Events");
 	FilterEvents->TrackClasses.Add(UInterpTrackEvent::StaticClass());
 	DefaultFilters.Add(FilterEvents);
@@ -2953,7 +3012,7 @@ UInterpTrackInst::UInterpTrackInst(const class FPostConstructInitializePropertie
 }
 
 
-AActor* UInterpTrackInst::GetGroupActor()
+AActor* UInterpTrackInst::GetGroupActor() const
 {
 	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
 	return GrInst->GetGroupActor();
@@ -2962,9 +3021,15 @@ AActor* UInterpTrackInst::GetGroupActor()
 
 UWorld* UInterpTrackInst::GetWorld() const
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
-	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
-	return MatineeActor->GetWorld();
+	// find an actor
+	AActor const* Actor = GetGroupActor();
+	if (Actor == nullptr)
+	{
+		// search the outer chain for an actor
+		Actor = GetTypedOuter<AActor>();
+	}
+
+	return Actor ? Actor->GetWorld() : nullptr;
 }
 
 /*-----------------------------------------------------------------------------
@@ -7800,7 +7865,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 
 		// Check if we're in the audio range, and if we need to start playing the audio,
 		// either because it has never been played, or isn't currently playing.
-		bool bIsInRangeAndNeedsStart = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+		// We only do this when we've jumped position.
+		bool bIsInRangeAndNeedsStart = !bPlaying && NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
 		if ( bIsInRangeAndNeedsStart )
 		{
 			bIsInRangeAndNeedsStart = SoundInst->PlayAudioComp == NULL || !SoundInst->PlayAudioComp->IsPlaying();
@@ -7811,6 +7877,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 		// lets start it.
 		if ( StartSoundIndex != EndSoundIndex || bIsInRangeAndNeedsStart )
 		{
+			bPlaying = true;
+
 			USoundBase* NewSound = SoundTrackKey.Sound;
 
 			APawn* Speaker = NULL;
@@ -7929,7 +7997,13 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 
 void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst)
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( TrInst->GetOuter() );
+	if (Sounds.Num() <= 0)
+	{
+		//UE_LOG(LogMatinee, Warning,TEXT("No sounds for sound track %s"),*GetName());
+		return;
+	}
+
+	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>(TrInst->GetOuter());
 	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
 	UInterpTrackInstSound* SoundInst = CastChecked<UInterpTrackInstSound>( TrInst );
 	UInterpGroup* Group = CastChecked<UInterpGroup>( GetOuter() );
@@ -7990,6 +8064,7 @@ void UInterpTrackSound::PreviewStopPlayback(class UInterpTrackInst* TrInst)
 	{
 		SoundTrInst->PlayAudioComp->Stop();
 	}
+	bPlaying = false;
 }
 
 /*-----------------------------------------------------------------------------

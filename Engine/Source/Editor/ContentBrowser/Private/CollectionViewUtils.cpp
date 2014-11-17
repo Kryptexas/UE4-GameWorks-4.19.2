@@ -19,12 +19,16 @@ namespace CollectionViewUtils
 		{
 		case ECollectionShareType::CST_System:
 			CollectionTypeStr = "System";
+			break;
 		case ECollectionShareType::CST_Local:
 			CollectionTypeStr = "Local";
+			break;
 		case ECollectionShareType::CST_Private:
 			CollectionTypeStr = "Private";
+			break;
 		case ECollectionShareType::CST_Shared:
 			CollectionTypeStr = "Shared";
+			break;
 		default:
 			break;
 		}

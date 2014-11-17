@@ -3,7 +3,7 @@
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyDetailsUtilities.h"
 
-FPropertyDetailsUtilities::FPropertyDetailsUtilities( SDetailsView& InDetailsView )
+FPropertyDetailsUtilities::FPropertyDetailsUtilities(IDetailsViewPrivate& InDetailsView)
 	: DetailsView( InDetailsView )
 {
 }
@@ -52,4 +52,9 @@ TSharedPtr<class FAssetThumbnailPool> FPropertyDetailsUtilities::GetThumbnailPoo
 void FPropertyDetailsUtilities::NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
 	DetailsView.NotifyFinishedChangingProperties(PropertyChangedEvent);
+}
+
+bool FPropertyDetailsUtilities::DontUpdateValueWhileEditing() const
+{
+	return DetailsView.DontUpdateValueWhileEditing();
 }

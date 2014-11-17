@@ -7,7 +7,7 @@ public class zlib : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string zlibPath = UEBuildConfiguration.UEThirdPartyDirectory + "zlib/zlib-1.2.5/";
+		string zlibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/";
 
 		PublicIncludePaths.Add(zlibPath + "inc");
 
@@ -32,7 +32,19 @@ public class zlib : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib_Oz.bc");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
+			}
         }
-	}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            PublicLibraryPaths.Add(zlibPath + "Lib/Linux/" + Target.Architecture);
+            PublicAdditionalLibraries.Add("z");
+        }
+    }
 }

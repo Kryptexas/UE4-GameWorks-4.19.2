@@ -13,7 +13,7 @@ public:
 	// Begin IFilter functions
 
 	DECLARE_DERIVED_EVENT(FScreenShotComparisonFilter, IFilter< const TSharedPtr< class IScreenShotData >& >::FChangedEvent, FChangedEvent);
-	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
+	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 
 	/**
@@ -22,7 +22,7 @@ public:
 	 * @param InReport - The automation report
 	 * @return true if it passes the test
 	 */
-	virtual bool PassesFilter( const TSharedPtr< IScreenShotData >& InReport ) const OVERRIDE
+	virtual bool PassesFilter( const TSharedPtr< IScreenShotData >& InReport ) const override
 	{
 		bool FilterPassed = true;
 

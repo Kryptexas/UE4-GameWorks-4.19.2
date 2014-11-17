@@ -24,6 +24,7 @@
 
 #include "IDocumentation.h"
 #include "Kismet2NameValidators.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -139,7 +140,7 @@ public:
 	EDropActionType PendingDropAction;
 	
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
@@ -759,13 +760,13 @@ protected:
 
 	// FCustomizableTextObjectFactory implementation
 
-	virtual bool CanCreateClass(UClass* ObjectClass) const OVERRIDE
+	virtual bool CanCreateClass(UClass* ObjectClass) const override
 	{
 		// Only allow actor component types to be created
 		return ObjectClass->IsChildOf(UActorComponent::StaticClass());
 	}
 
-	virtual void ProcessConstructedObject(UObject* NewObject) OVERRIDE
+	virtual void ProcessConstructedObject(UObject* NewObject) override
 	{
 		check(NewObject);
 
@@ -2341,14 +2342,22 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 	}
 }
 
-
-
-
-
-
 TArray<FSCSEditorTreeNodePtrType>  SSCSEditor::GetSelectedNodes() const
 {
-	return SCSTreeWidget->GetSelectedItems();
+	TArray<FSCSEditorTreeNodePtrType> SelectedTreeNodes = SCSTreeWidget->GetSelectedItems();
+
+	struct FCompareSelectedSCSEditorTreeNodes
+	{
+		FORCEINLINE bool operator()(const FSCSEditorTreeNodePtrType& A, const FSCSEditorTreeNodePtrType& B) const
+		{
+			return B.IsValid() && B->IsAttachedTo(A);
+		}
+	};
+
+	// Ensure that nodes are ordered from parent to child (otherwise they are sorted in the order that they were selected)
+	SelectedTreeNodes.Sort(FCompareSelectedSCSEditorTreeNodes());
+
+	return SelectedTreeNodes;
 }
 
 FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComponent* ActorComponent, bool bIncludeAttachedComponents) const

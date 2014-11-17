@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_CallFunction.h"
 #include "K2Node_Message.generated.h"
 
 UCLASS(MinimalAPI)
@@ -11,22 +12,21 @@ class UK2Node_Message : public UK2Node_CallFunction
 
 
 	// Begin UEdGraphNode interface.
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface.
 
 	// Begin K2Node interface.
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual FName GetCornerIcon() const OVERRIDE;
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual FName GetCornerIcon() const override;
 	// End K2Node interface.
 
 	// Begin K2Node_CallFunction Interface.
-	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) OVERRIDE;
+	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) override;
 
 protected:
-	virtual void EnsureFunctionIsInBlueprint() OVERRIDE;
+	virtual void EnsureFunctionIsInBlueprint() override;
 	// End K2Node_CallFunction Interface.
 };
 

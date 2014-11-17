@@ -4,7 +4,7 @@
 
 #include "SAnimationOutlinerView.h"
 #include "ScopedTransaction.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 
 
@@ -154,7 +154,7 @@ EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 	return DisplayNode->GetNumChildren() > 0 ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<ISequencerInternals> InSequencer )
+void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<FSequencer> InSequencer )
 {
 	SAnimationOutlinerViewBase::Construct( SAnimationOutlinerViewBase::FArguments(), InRootNode );
 
@@ -196,7 +196,7 @@ void SAnimationOutlinerView::GenerateWidgetForNode( TSharedRef<FSequencerDisplay
 }
 
 
-void SAnimationOutlinerView::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SAnimationOutlinerView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const float Padding = SequencerLayoutConstants::NodePadding;
 	const float IndentAmount = SequencerLayoutConstants::IndentAmount;
@@ -239,7 +239,7 @@ void SAnimationOutlinerView::OnSelectionChanged( TSharedPtr<FSequencerDisplayNod
 		TArray<UObject*> RuntimeObjects;
 		Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
 		
-		if( RuntimeObjects.Num() > 0 )
+		if( RuntimeObjects.Num() > 0 && Sequencer.Pin()->IsLevelEditorSequencer() )
 		{
 			const bool bNotifySelectionChanged = false;
 			const bool bDeselectBSP = true;

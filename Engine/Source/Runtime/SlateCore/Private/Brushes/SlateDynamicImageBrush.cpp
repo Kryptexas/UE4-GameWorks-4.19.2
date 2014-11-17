@@ -14,6 +14,12 @@ FSlateDynamicImageBrush::~FSlateDynamicImageBrush( )
 {
 	if (FSlateApplicationBase::IsInitialized())
 	{
+		// Brush resource is no longer referenced by this object
+		if( ResourceObject )
+		{
+			ResourceObject->RemoveFromRoot();
+		}
+
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
 
 		if (Renderer.IsValid())

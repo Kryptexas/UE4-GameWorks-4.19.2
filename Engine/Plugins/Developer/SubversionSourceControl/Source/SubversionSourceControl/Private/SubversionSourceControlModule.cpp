@@ -28,6 +28,8 @@ void FSubversionSourceControlModule::StartupModule()
 	SubversionSourceControlProvider.RegisterWorker( "Revert", FGetSubversionSourceControlWorker::CreateStatic( &CreateWorker<FSubversionRevertWorker> ) );
 	SubversionSourceControlProvider.RegisterWorker( "Sync", FGetSubversionSourceControlWorker::CreateStatic( &CreateWorker<FSubversionSyncWorker> ) );
 	SubversionSourceControlProvider.RegisterWorker( "CheckIn", FGetSubversionSourceControlWorker::CreateStatic( &CreateWorker<FSubversionCheckInWorker> ) );
+	SubversionSourceControlProvider.RegisterWorker( "Copy", FGetSubversionSourceControlWorker::CreateStatic( &CreateWorker<FSubversionCopyWorker> ) );
+	SubversionSourceControlProvider.RegisterWorker( "Resolve", FGetSubversionSourceControlWorker::CreateStatic( &CreateWorker<FSubversionResolveWorker> ) );
 
 	// load our settings
 	SubversionSourceControlSettings.LoadSettings();

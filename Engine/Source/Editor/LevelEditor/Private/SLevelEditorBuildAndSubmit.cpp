@@ -7,6 +7,7 @@
 #include "LevelEditorActions.h"
 #include "EditorBuildUtils.h"
 #include "MessageLog.h"
+#include "LightingBuildOptions.h"
 
 #include "AssetToolsModule.h"
 
@@ -34,7 +35,7 @@ public:
 	 *
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (NAME_NameColumn == ColumnName)
 		{
@@ -121,7 +122,7 @@ private:
 
 SLevelEditorBuildAndSubmit::~SLevelEditorBuildAndSubmit()
 {
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 
 	ISourceControlModule::Get().GetProvider().UnregisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
 }
@@ -275,7 +276,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 
 	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
 
-	UPackage::PackageDirtyStateUpdatedEvent.AddRaw(this, &SLevelEditorBuildAndSubmit::OnEditorPackageModified);
+	UPackage::PackageDirtyStateChangedEvent.AddRaw(this, &SLevelEditorBuildAndSubmit::OnEditorPackageModified);
 }
 
 void SLevelEditorBuildAndSubmit::OnEditorPackageModified(UPackage* Package)

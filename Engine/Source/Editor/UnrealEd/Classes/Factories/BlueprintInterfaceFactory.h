@@ -12,13 +12,14 @@ class UBlueprintInterfaceFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UFactory Interface
-	virtual FText GetDisplayName() const OVERRIDE;
-	virtual FName GetNewAssetThumbnailOverride() const OVERRIDE;
-	virtual uint32 GetMenuCategories() const OVERRIDE;
-	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) OVERRIDE;
-	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) OVERRIDE;
-	// Begin UFactory Interface
+	// UFactory interface
+	virtual FText GetDisplayName() const override;
+	virtual FName GetNewAssetThumbnailOverride() const override;
+	virtual uint32 GetMenuCategories() const override;
+	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
+	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
+	virtual FString GetDefaultNewAssetName() const override;
+	// End of UFactory interface
 };
 
 

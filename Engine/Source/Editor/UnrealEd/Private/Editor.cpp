@@ -2,6 +2,12 @@
 
 
 #include "UnrealEd.h"
+#include "Matinee/MatineeActor.h"
+#include "Engine/InteractiveFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
+#include "Engine/WorldComposition.h"
+#include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BSPOps.h"
 
@@ -36,10 +42,15 @@
 #include "AnimationUtils.h"
 #include "AudioDecompress.h"
 #include "LevelEditor.h"
+#include "SCreateAssetFromActor.h"
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Editor/LevelEditor/Public/ILevelViewport.h"
+
+#include "ComponentReregisterContext.h"
+#include "EngineModule.h"
 
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE
@@ -67,6 +78,9 @@
 #include "MRUFavoritesList.h"
 #include "EditorStyle.h"
 #include "EngineBuildSettings.h"
+
+// AIMdule
+#include "BehaviorTree/BehaviorTreeManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -442,7 +456,7 @@ bool UEditorEngine::ShouldDrawBrushWireframe( AActor* InActor )
 {
 	bool bResult = true;
 
-	bResult = GEditorModeTools().ShouldDrawBrushWireframe( InActor );
+	bResult = GLevelEditorModeTools().ShouldDrawBrushWireframe( InActor );
 	
 	return bResult;
 }
@@ -528,6 +542,12 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
+		FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
+
+		if (!IsRunningCommandlet())
+		{
+			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
+		}
 
 		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
 		{
@@ -554,11 +574,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
-		bool bSkillSystemEditorEnabled = false;
-		GConfig->GetBool(TEXT("SkillSystemEd"), TEXT("SKillSystemEditorEnabled"), bSkillSystemEditorEnabled, GEngineIni);
-		if (bSkillSystemEditorEnabled)
+		bool bGameplayAbilitiesEnabled = false;
+		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+		if (bGameplayAbilitiesEnabled)
 		{
-			FModuleManager::Get().LoadModule(TEXT("SkillSystemEditor"));
+			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 		}
 	}
 
@@ -1101,18 +1121,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				continue;
 			}
 
-			// HACK
-			/*
-			FSlatePlayInEditorInfo * SlateInfoPtr = SlatePlayInEditorMap.Find(PieContext.ContextHandle);
-			if ( SlateInfoPtr )
-			{
-				if (SlateInfoPtr->SlatePlayInEditorWindowViewport->IsForegroundWindow())
-				{
-					FSlateApplication::Get().SetKeyboardFocus( SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EKeyboardFocusCause::SetDirectly );
-				}
-			}
-			*/
-
 			GPlayInEditorID = PieContext.PIEInstance;
 
 			PlayWorld = PieContext.World();
@@ -1298,43 +1306,48 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	/////////////////////////////
 	// Redraw viewports.
 
-	// Render view parents, then view children.
-	bool bEditorFrameNonRealtimeViewportDrawn = false;
-	if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
+	// Do not redraw if the application is hidden
+	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
+	if( !bAllWindowsHidden )
 	{
-		bool bAllowNonRealtimeViewports = true;
-		bool bWasNonRealtimeViewportDraw = UpdateSingleViewportClient(GCurrentLevelEditingViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports );
-		if (GCurrentLevelEditingViewportClient->IsLevelEditorClient())
+		// Render view parents, then view children.
+		bool bEditorFrameNonRealtimeViewportDrawn = false;
+		if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
 		{
-			bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDraw;
-		}
-	}
-	for(int32 bRenderingChildren = 0;bRenderingChildren < 2;bRenderingChildren++)
-	{
-		for(int32 ViewportIndex=0; ViewportIndex<AllViewportClients.Num(); ViewportIndex++ )
-		{
-			FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
-			if (ViewportClient == GCurrentLevelEditingViewportClient)
+			bool bAllowNonRealtimeViewports = true;
+			bool bWasNonRealtimeViewportDraw = UpdateSingleViewportClient(GCurrentLevelEditingViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports);
+			if (GCurrentLevelEditingViewportClient->IsLevelEditorClient())
 			{
-				//already given this window a chance to update
-				continue;
+				bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDraw;
 			}
-
-			if( !ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible() )
+		}
+		for (int32 bRenderingChildren = 0; bRenderingChildren < 2; bRenderingChildren++)
+		{
+			for (int32 ViewportIndex = 0; ViewportIndex < AllViewportClients.Num(); ViewportIndex++)
 			{
-				// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
-				bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
-				
-				const bool bIsViewParent = ViewportClient->ViewState.GetReference()->IsViewParent();
-				if(	(bRenderingChildren && !bIsViewParent) ||
-					(!bRenderingChildren && bIsViewParent) || bUpdateLinkedOrthoViewports )
+				FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
+				if (ViewportClient == GCurrentLevelEditingViewportClient)
 				{
-					//if we haven't drawn a non-realtime viewport OR not one of the main viewports
-					bool bAllowNonRealtimeViewports = (!bEditorFrameNonRealtimeViewportDrawn) || !(ViewportClient->IsLevelEditorClient());
-					bool bWasNonRealtimeViewportDrawn = UpdateSingleViewportClient(ViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports );
-					if (ViewportClient->IsLevelEditorClient())
+					//already given this window a chance to update
+					continue;
+				}
+
+				if (!ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible())
+				{
+					// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
+					bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
+
+					const bool bIsViewParent = ViewportClient->ViewState.GetReference()->IsViewParent();
+					if ((bRenderingChildren && !bIsViewParent) ||
+						(!bRenderingChildren && bIsViewParent) || bUpdateLinkedOrthoViewports)
 					{
-						bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDrawn;
+						//if we haven't drawn a non-realtime viewport OR not one of the main viewports
+						bool bAllowNonRealtimeViewports = (!bEditorFrameNonRealtimeViewportDrawn) || !(ViewportClient->IsLevelEditorClient());
+						bool bWasNonRealtimeViewportDrawn = UpdateSingleViewportClient(ViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports);
+						if (ViewportClient->IsLevelEditorClient())
+						{
+							bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDrawn;
+						}
 					}
 				}
 			}
@@ -1437,26 +1450,40 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 {
-	const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
-	if( SuperMaxTickRate != 0.0f )
-	{
-		return SuperMaxTickRate;
-	}
-
 	float MaxTickRate = 0.0f;
-
-	// Clamp editor frame rate, even if smoothing is disabled
-	if( !bSmoothFrameRate && GIsEditor && !GIsPlayInEditorWorld )
+	if( !ShouldThrottleCPUUsage() )
 	{
-		MaxTickRate = 1.0f / DeltaTime;
-		if (SmoothedFrameRateRange.HasLowerBound())
+		const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
+		if( SuperMaxTickRate != 0.0f )
 		{
-			MaxTickRate = FMath::Max(MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue());
+			return SuperMaxTickRate;
 		}
-		if (SmoothedFrameRateRange.HasUpperBound())
+
+		// Clamp editor frame rate, even if smoothing is disabled
+		if( !bSmoothFrameRate && GIsEditor && !GIsPlayInEditorWorld )
 		{
-			MaxTickRate = FMath::Min(MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue());
+			MaxTickRate = 1.0f / DeltaTime;
+			if (SmoothedFrameRateRange.HasLowerBound())
+			{
+				MaxTickRate = FMath::Max(MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue());
+			}
+			if (SmoothedFrameRateRange.HasUpperBound())
+			{
+				MaxTickRate = FMath::Min(MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue());
+			}
 		}
+
+		// Laptops should throttle to 60 hz in editor to reduce battery drain
+		static const auto CVarDontLimitOnBattery = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DontLimitOnBattery"));
+		const bool bLimitOnBattery = (FPlatformMisc::IsRunningOnBattery() && CVarDontLimitOnBattery->GetValueOnGameThread() == 0);
+		if( bLimitOnBattery )
+		{
+			MaxTickRate = 60.0f;
+		}
+	}
+	else
+	{
+		MaxTickRate = 3.0f;
 	}
 
 	return MaxTickRate;
@@ -1684,8 +1711,23 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			RedrawLevelEditingViewports();
 		}
 
+		// Attempt to unload any loaded redirectors. Redirectors should not be referenced in memory and are only used to forward references at load time
+		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
+		{
+			RedirIt->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		}
+
 		// Collect garbage.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+		// Remaining redirectors are probably referenced by editor tools. Keep them in memory for now.
+		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
+		{
+			if ( RedirIt->IsAsset() )
+			{
+				RedirIt->SetFlags(RF_Standalone);
+			}
+		}
 	}
 }
 
@@ -2047,6 +2089,8 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		}
 	}
 
+	FNavigationLockContext LockNavigationUpdates;
+
 	bool bTranslationOnly = true;
 
 	///////////////////
@@ -2105,9 +2149,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 			if ( bDelta )
 			{
 				FVector NewActorLocation = InActor->GetActorLocation();
-				NewActorLocation -= GEditorModeTools().PivotLocation;
+				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
 				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
-				NewActorLocation += GEditorModeTools().PivotLocation;
+				NewActorLocation += GLevelEditorModeTools().PivotLocation;
 				NewActorLocation -= InActor->GetActorLocation();
 				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
 			}
@@ -2211,9 +2255,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
 						{
 							FVector Wk = BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
-							Wk -= GEditorModeTools().PivotLocation;
+							Wk -= GLevelEditorModeTools().PivotLocation;
 							Wk += matrix.TransformPosition( Wk );
-							Wk += GEditorModeTools().PivotLocation;
+							Wk += GLevelEditorModeTools().PivotLocation;
 							Poly->Vertices[vertex] = BrushActorToWorld.InverseTransformPosition( Wk );
 						}
 
@@ -2224,9 +2268,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						}
 
 						FVector Wk = BrushActorToWorld.TransformPosition( Poly->Base );
-						Wk -= GEditorModeTools().PivotLocation;
+						Wk -= GLevelEditorModeTools().PivotLocation;
 						Wk += matrix.TransformPosition( Wk );
-						Wk += GEditorModeTools().PivotLocation;
+						Wk += GLevelEditorModeTools().PivotLocation;
 						Poly->Base = BrushActorToWorld.InverseTransformPosition( Wk );
 
 						// Scale the texture vectors
@@ -2277,7 +2321,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 
 					InActor->EditorApplyScale( 
 						ModifiedScale,
-												&GEditorModeTools().PivotLocation,
+												&GLevelEditorModeTools().PivotLocation,
 												bAltDown,
 												bShiftDown,
 						bControlDown
@@ -2647,8 +2691,10 @@ void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFi
 		return;
 	}
 
+	TMultiMap<uint32, UFactory*> DummyFilterIndexToFactory;
+
 	// Generate the file types and extensions represented by the selected factories
-	ObjectTools::GenerateFactoryFileExtensions( Factories, FileTypes, AllExtensions );
+	ObjectTools::GenerateFactoryFileExtensions( Factories, FileTypes, AllExtensions, DummyFilterIndexToFactory );
 
 	FileTypes = FString::Printf(TEXT("All Files (%s)|%s|%s"),*AllExtensions,*AllExtensions,*FileTypes);
 
@@ -3197,7 +3243,7 @@ void UEditorEngine::SelectAllActorsWithClass( bool bArchetype )
 			++SelectedActorIter;
 		}
 		// Check all the other selected actors
-		for ( SelectedActorIter; SelectedActorIter && bAllSameClassAndArchetype; ++SelectedActorIter )
+		for ( ; SelectedActorIter && bAllSameClassAndArchetype; ++SelectedActorIter )
 		{
 			AActor* CurActor = *SelectedActorIter;
 			if ( CurActor->GetClass() != FirstClass || CurActor->GetArchetype() != FirstArchetype )
@@ -3311,9 +3357,6 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 				NewVolume->PostEditChange();
 				NewVolume->PostEditMove( true );
 				NewVolume->Modify();
-
-				// Send notification about actors that may have changed
-				GEngine->BroadcastLevelActorAdded(NewVolume);		
 
 				// Destroy the old actor.
 				GEditor->Layers->DisassociateActorFromLayers( CurBrushActor );
@@ -3775,7 +3818,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 	}
 
 	// Make sure we can't open the same action twice in Matinee.
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MatineeActionAlreadyOpen", "An UnrealMatinee sequence is currently open in an editor.  Please close it before proceeding.") );
 		return false;
@@ -3809,14 +3852,14 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 	}
 
 	// If already in Matinee mode, exit out before going back in with new Interpolation.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
-	GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_InterpEdit );
+	GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_InterpEdit );
 
-	FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 	InterpEditMode->InitInterpMode( MatineeActor );
 
@@ -4029,7 +4072,26 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 		return false;
 	}
 
-	if(ChildRoot->Mobility == EComponentMobility::Static && ParentRoot->Mobility != EComponentMobility::Static )
+	{
+		FText Reason;
+		if (!ChildActor->EditorCanAttachTo(ParentActor, Reason))
+		{
+			if (ReasonText)
+			{
+				if (Reason.IsEmpty())
+				{
+					*ReasonText = FText::Format(NSLOCTEXT("ActorAttachmentError", "CannotBeAttached_ActorAttachmentError", "{0} cannot be attached to {1}"), FText::FromString(ChildActor->GetActorLabel()), FText::FromString(ParentActor->GetActorLabel()));
+				}
+				else
+				{
+					*ReasonText = MoveTemp(Reason);
+				}
+			}
+			return false;
+		}
+	}
+
+	if (ChildRoot->Mobility == EComponentMobility::Static && ParentRoot->Mobility != EComponentMobility::Static)
 	{
 		if (ReasonText)
 		{
@@ -4415,16 +4477,15 @@ void UEditorEngine::CloseEntryPopupWindow()
 	}
 }
 
-EAppReturnType::Type UEditorEngine::OnModalMessageDialog( const FText& InText, EAppMsgType::Type InMessage )
+EAppReturnType::Type UEditorEngine::OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle)
 {
-	const FText MessageTitle = NSLOCTEXT("UnrealEd", "GenericDialog_WindowTitle", "Message");
 	if( FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
 	{
-		return OpenMsgDlgInt(InMessage, InText, MessageTitle);
+		return OpenMsgDlgInt(InMessage, InText, InTitle);
 	}
 	else
 	{
-		return FPlatformMisc::MessageBoxExt( InMessage, *InText.ToString(), *MessageTitle.ToString() );
+		return FPlatformMisc::MessageBoxExt(InMessage, *InText.ToString(), *InTitle.ToString());
 	}
 }
 
@@ -4440,6 +4501,12 @@ TSharedPtr<SViewport> UEditorEngine::GetGameViewportWidget() const
 		if (It.Value().SlatePlayInEditorWindowViewport.IsValid())
 		{
 			return It.Value().SlatePlayInEditorWindowViewport->GetViewportWidget().Pin();
+		}
+
+		TSharedPtr<ILevelViewport> DestinationLevelViewport = It.Value().DestinationSlateViewport.Pin();
+		if (DestinationLevelViewport.IsValid())
+		{
+			return DestinationLevelViewport->GetViewportWidget().Pin();
 		}
 	}
 
@@ -5474,16 +5541,15 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 	}
 }
 
-AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FText& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation)
+AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FString& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation)
 {
 	AActor* NewActor(NULL);
 
-	FString PackageName = InStaticMeshPackageName.ToString();
-
-	FName ObjName = *FPackageName::GetLongPackageAssetName(PackageName);
+	FName ObjName = *FPackageName::GetLongPackageAssetName(InStaticMeshPackageName);
 
 
-	UPackage* Pkg = CreatePackage(NULL, *PackageName);
+	UPackage* Pkg = CreatePackage(NULL, *InStaticMeshPackageName);
+	check(Pkg != nullptr);
 
 	FVector Location(0.0f, 0.0f, 0.0f);
 	FRotator Rotation(0.0f, 0.0f, 0.0f);
@@ -5553,14 +5619,9 @@ struct TConvertData
 
 namespace ConvertHelpers
 {
-	void OnBrushToStaticMeshNameCommitted(const FText& InSettingsPackageName, ETextCommit::Type CommitInfo, TConvertData InConvertData)
+	void OnBrushToStaticMeshNameCommitted(const FString& InSettingsPackageName, TConvertData InConvertData)
 	{
-		if (CommitInfo == ETextCommit::OnEnter)
-		{
-			GEditor->DoConvertActors(InConvertData.ActorsToConvert, InConvertData.ConvertToClass, InConvertData.ComponentsToConsider, InConvertData.bUseSpecialCases, InSettingsPackageName);
-		}
-
-		GEditor->CloseEntryPopupWindow();
+		GEditor->DoConvertActors(InConvertData.ActorsToConvert, InConvertData.ConvertToClass, InConvertData.ComponentsToConsider, InConvertData.bUseSpecialCases, InSettingsPackageName);
 	}
 
 	void GetBrushList(const TArray<AActor*>& InActorsToConvert, UClass* InConvertToClass, TArray<ABrush*>& OutBrushList, int32& OutBrushIndexForReattachment)
@@ -5597,34 +5658,34 @@ void UEditorEngine::ConvertActors( const TArray<AActor*>& ActorsToConvert, UClas
 
 	if( BrushList.Num() )
 	{
-		const FString PackageName = TEXT("/Game/Unsorted/MyMesh");
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-
 		TConvertData ConvertData(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases);
 
-		TSharedRef<STextEntryPopup> TextEntry = 
-			SNew(STextEntryPopup)
-			.Label( LOCTEXT("ConvertActorsPopUpMsg", "New Actor Path (Convert Brush to Static Mesh)") )
-			.DefaultText( FText::FromString(*PackageName) )
-			.OnTextCommitted(FOnTextCommitted::CreateStatic(ConvertHelpers::OnBrushToStaticMeshNameCommitted, ConvertData))
-			.ClearKeyboardFocusOnCommit( false );
+		TSharedPtr<SWindow> CreateAssetFromActorWindow =
+			SNew(SWindow)
+			.Title(LOCTEXT("SelectPath", "Select Path"))
+			.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the static mesh will be created"))
+			.ClientSize(FVector2D(400, 400));
 
-		PopupWindow = FSlateApplication::Get().PushMenu(
-			MainFrameModule.GetParentWindow().ToSharedRef(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
+		TSharedPtr<SCreateAssetFromActor> CreateAssetFromActorWidget;
+		CreateAssetFromActorWindow->SetContent
+			(
+			SAssignNew(CreateAssetFromActorWidget, SCreateAssetFromActor, CreateAssetFromActorWindow)
+			.AssetFilenameSuffix(TEXT("StaticMesh"))
+			.HeadingText(LOCTEXT("ConvertBrushesToStaticMesh_Heading", "Static Mesh Name:"))
+			.CreateButtonText(LOCTEXT("ConvertBrushesToStaticMesh_ButtonLabel", "Create Static Mesh"))
+			.OnCreateAssetAction(FOnPathChosen::CreateStatic(ConvertHelpers::OnBrushToStaticMeshNameCommitted, ConvertData))
 			);
 
-		TextEntry->FocusDefaultWidget();
+		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+		FSlateApplication::Get().AddWindowAsNativeChild(CreateAssetFromActorWindow.ToSharedRef(), RootWindow.ToSharedRef());
 	}
 	else
 	{
-		DoConvertActors(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases, FText::FromString(TEXT("")));
+		DoConvertActors(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases, TEXT(""));
 	}
 }
 
-void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FText& InStaticMeshPackageName )
+void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FString& InStaticMeshPackageName )
 {
 	// Early out if actor deletion is currently forbidden
 	if (GEditor->ShouldAbortActorDeletion())
@@ -5924,7 +5985,43 @@ bool UEditorEngine::IsAnyViewportRealtime()
 	return false;
 }
 
+bool UEditorEngine::ShouldThrottleCPUUsage() const
+{
+	bool bShouldThrottle = false;
 
+	bool bIsForeground = FPlatformProcess::IsThisApplicationForeground();
+
+	if( !bIsForeground )
+	{
+		const UEditorUserSettings* Settings = GetDefault<UEditorUserSettings>();
+		bShouldThrottle = Settings->bThrottleWhenNotForeground;
+
+		// Check if we should throttle due to all windows being minimized
+		if ( !bShouldThrottle )
+		{
+			return bShouldThrottle = AreAllWindowsHidden();
+		}
+	}
+
+	return bShouldThrottle;
+}
+
+bool UEditorEngine::AreAllWindowsHidden() const
+{
+	const TArray< TSharedRef<SWindow> > AllWindows = FSlateApplication::Get().GetInteractiveTopLevelWindows();
+
+	bool bAllHidden = true;
+	for( const TSharedRef<SWindow>& Window : AllWindows )
+	{
+		if( !Window->IsWindowMinimized() && Window->IsVisible() )
+		{
+			bAllHidden = false;
+			break;
+		}
+	}
+
+	return bAllHidden;
+}
 
 AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent, EObjectFlags ObjectFlags)
 {
@@ -5991,11 +6088,6 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 		if( Actor )
 		{
 			SelectActor( Actor, 1, 0 );
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush && Brush->BrushComponent )
-			{
-				FBSPOps::csgCopyBrush( Brush, Class->GetDefaultObject<ABrush>(), 0, RF_NoFlags, 1, true );
-			}
 			Actor->InvalidateLightingCache();
 			Actor->PostEditMove( true );
 		}

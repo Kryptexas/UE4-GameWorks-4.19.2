@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Scalability.h"
 #include "EditorGameAgnosticSettings.generated.h"
 
 UCLASS(config=EditorGameAgnostic)
@@ -36,7 +37,13 @@ class UEditorGameAgnosticSettings : public UObject
 	UPROPERTY(config)
 	TArray<FGuid> InProgressSurveys;
 
+	/** Engine scalability benchmark results */
+	Scalability::FQualityLevels EngineBenchmarkResult;
+
+	/** Load the engine scalability benchmark results. Performs a benchmark if not yet valid. */
+	void LoadScalabilityBenchmark();
+
 	// Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 };

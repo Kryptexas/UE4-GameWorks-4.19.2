@@ -575,9 +575,29 @@ class TSubobjectPtrConstructor
 };
 
 /**
- * TSubobjectPtr - Subobject pointer.
- * Prevents anything C++ from overwriting the subobject pointer.
- * It can only be assigned to with PCIP.CreateDefaultSubobject (via TSubobjectPtrConstructor).
+ * TSubobjectPtr - Sub-object smart pointer, owns a reference to instanced objects (sub-objects / components).
+ * Prevents anything in C++ from overwriting the sub-object pointer.
+ * Can (and should) be declared as a UPROPERTY():
+ *
+ *   UPROPERTY()
+ *   TSubobjectPtr<UActorComponent> MyComponent;
+ *
+ * It can only be assigned to with PCIP.CreateDefaultSubobject (via TSubobjectPtrConstructor) in the owning object's constructor.
+ *
+ *   MyComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
+ *
+ * Initialized with InvalidPtrValue by default because it always needs to be initialized (either with NULL or a pointer to sub-object in the constructor
+ * of the owner object).
+ * Usually used with Actor components to specify that the actor-derived class is the owner of the component and prevent other derived classes from
+ * overwriting it in any other way than through PCIP object.
+ *
+ * Implements a structure dereference operator for convenience
+ *
+ *   MyComponent->AttachTo(Owner);
+ *
+ * Can be reset to NULL, although this functionality is mostly for internal use:
+ *
+ *   MyComponent.Reset();
  */
 template <class SubobjectType>
 class TSubobjectPtr : public FSubobjectPtr
@@ -593,23 +613,23 @@ public:
 	TSubobjectPtr()
 		: FSubobjectPtr((UObject*)FSubobjectPtr::InvalidPtrValue)
 	{
-		checkAtCompileTime(sizeof(TSubobjectPtr) == sizeof(UObject*), TSuobjectPtr_Equals_Pointer_Size_Assumption_Failed);
+		static_assert(sizeof(TSubobjectPtr) == sizeof(UObject*), "TSuobjectPtr should equal pointer size.");
 	}
 	/** Copy constructor */
 	template <class DerivedSubobjectType>
 	TSubobjectPtr(TSubobjectPtr<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
 	/** Initialization constructor. Can only be used with PCIP.CreateDefaultSubobject(). */
 	template <class DerivedSubobjectType>
 	TSubobjectPtr(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
-	/** Gets the subobject pointer. */
+	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* Get() const
 	{
 		return (SubobjectType*)Object;
@@ -618,16 +638,16 @@ public:
 	template <class DerivedSubobjectType>
 	FORCEINLINE TSubobjectPtr& operator=(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 		Set(Other.Object);
 		return *this;
 	}
-	/** Gets the subobject pointer. */
+	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* operator->() const
 	{
 		return (SubobjectType*)Object;
 	}
-	/** Gets the subobject pointer. */
+	/** Gets the sub-object pointer. */
 	FORCEINLINE operator SubobjectType*() const
 	{
 		return (SubobjectType*)Object;
@@ -668,6 +688,19 @@ public:
 	{
 		return ObjectArchetype;
 	}
+
+	/**
+	* Return the object that is being constructed
+	**/
+	FORCEINLINE UObject* GetObject() const
+	{
+		return Obj;
+	}
+
+	/**
+	* Return the class of the object that is being constructed
+	**/
+	UClass* GetClass() const;
 
 	/**
 	 * Create a component or subobject
@@ -807,6 +840,11 @@ public:
 	**/
 	bool IslegalOverride(FName InComponentName, class UClass *DerivedComponentClass, class UClass *BaseComponentClass) const;
 
+	/**
+	 * Asserts with the specified message if code is executed inside UObject constructor
+	 **/
+	static void AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage);
+
 private:
 
 	friend class UObject; 
@@ -939,6 +977,8 @@ private:
 	mutable FOverrides ComponentOverrides;
 	/**  List of component classes to intialize after the C++ constructors **/
 	mutable FSubobjectsToInit ComponentInits;
+	/**  Previously constructed object in the callstack */
+	UObject* LastConstructedObject;
 };
 
 /**
@@ -973,7 +1013,8 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
 template< class T >
 T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::StaticClass() )
 {
-       return ConstructObject<T>(Class,Outer);
+	FPostConstructInitializeProperties::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use PCIP.CreateDefaultSuobject<> instead."));
+	return ConstructObject<T>(Class,Outer);
 }
 
 /**
@@ -1365,9 +1406,9 @@ public:
 	virtual void FindReferences(UObject* Object);	
 
 	// FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) OVERRIDE;
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE { return bShouldIgnoreArchetype; }
-	virtual bool IsIgnoringTransient() const OVERRIDE { return bShouldIgnoreTransient; }
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) override;
+	virtual bool IsIgnoringArchetypeRef() const override { return bShouldIgnoreArchetype; }
+	virtual bool IsIgnoringTransient() const override { return bShouldIgnoreTransient; }
 
 protected:
 

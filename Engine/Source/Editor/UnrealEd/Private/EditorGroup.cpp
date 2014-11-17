@@ -5,6 +5,7 @@
 #include "ScopedTransaction.h"
 #include "MainFrame.h"
 #include "Dialogs/SMeshProxyDialog.h"
+#include "Dialogs/SMeshMergingDialog.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "MeshUtilities.h"
 #include "AssetRegistryModule.h"
@@ -206,8 +207,7 @@ void UUnrealEdEngine::edactRemoveFromGroup()
 void UUnrealEdEngine::edactMergeActors()
 {
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-	if (MeshReduction && MeshReduction->IsSupported())
+	if (MeshUtilities.GetMeshMergingInterface() != nullptr)
 	{
 		TSharedPtr<IMeshProxyDialog> MeshProxyControls;
 		if(MeshProxyControls.IsValid() && MeshProxyControls->GetParentWindow().IsValid())
@@ -252,118 +252,25 @@ void UUnrealEdEngine::edactMergeActors()
 				FSlateApplication::Get().AddWindow(MeshProxyDialog);
 			}
 		}
+		
 		MeshProxyControls->GetParentWindow()->ShowWindow();
 		MeshProxyControls->MarkDirty();
-
 	}
 }
 
 void UUnrealEdEngine::edactMergeActorsByMaterials()
 {
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	USelection* SelectedActors = GetSelectedActors();
-	TArray<AActor*> Actors;
-	TArray<ULevel*> UniqueLevels;
-	for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
-	{
-		AActor* Actor = Cast<AActor>(*Iter);
-		if (Actor)
-		{
-			Actors.Add(Actor);
-			UniqueLevels.AddUnique(Actor->GetLevel());
-		}
-	}
+	/** Create the window to host mesh megin widget */
+	TSharedRef<SWindow> MergeActorsWindow = SNew(SWindow)
+											.Title(FText::FromString("Merge actors"))
+											.ClientSize(FVector2D(400, 200));
 
-	// This restriction is only for replacement of selected actors with merged mesh actor
-	// Should be optional
-	if (UniqueLevels.Num() > 1)
-	{
-		FText Message = NSLOCTEXT("UnrealEd", "FailedToMergeActorsSublevels_Msg", "The selected actors should be in the same level");
-		OpenMsgDlgInt( EAppMsgType::Ok, Message, NSLOCTEXT("UnrealEd", "FailedToMergeActors_Title", "Unable to merge actors") );
-		return;
-	}
+	/** Set the content of the window to our package dialog widget */
+	TSharedRef<SMeshMergingDialog> MergingDialog = SNew(SMeshMergingDialog)
+													.ParentWindow(MergeActorsWindow);
 
-	FString PackageName;
+	MergeActorsWindow->SetContent(MergingDialog);
 
-	// TODO: optional
-	// Bring a dialog to choose destination package name
-	{
-		// Use this static mesh path as destination package name for a merged mesh
-		for (AActor* Actor : Actors)
-		{
-			TArray<UStaticMeshComponent*> SMComponets; 
-			Actor->GetComponents<UStaticMeshComponent>(SMComponets);
-			for (UStaticMeshComponent* Component : SMComponets)
-			{
-				if (Component->StaticMesh)
-				{
-					PackageName = FPackageName::GetLongPackagePath(Component->StaticMesh->GetOutermost()->GetName());
-					PackageName+= FString(TEXT("/MergedMesh_")) + Component->StaticMesh->GetName();
-					break;
-				}
-			}
-
-			if (!PackageName.IsEmpty())
-			{
-				break;
-			}
-		}
-
-		if (PackageName.IsEmpty())
-		{
-			PackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("MergedMesh"));
-		}
-	
-		TSharedRef<SDlgPickAssetPath> AssetPathDlg = 
-			SNew(SDlgPickAssetPath)
-			.Title(NSLOCTEXT("UnrealEd", "SelectDestinationPath", "Select destination path"))
-			.DefaultAssetPath(FText::FromString(PackageName));
-
-		if (AssetPathDlg->ShowModal() == EAppReturnType::Cancel)
-		{
-			return;
-		}
-
-		PackageName = AssetPathDlg->GetFullAssetPath().ToString();
-	}
-			
-	FVector MergedActorLocation;
-	TArray<UObject*> AssetsToSync;
-	MeshUtilities.MergeActors(Actors, PackageName, AssetsToSync, MergedActorLocation);
-		
-	if (AssetsToSync.Num())
-	{
-		FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		int32 AssetCount = AssetsToSync.Num();
-		for(int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++ )
-		{
-			AssetRegistry.AssetCreated(AssetsToSync[AssetIndex]);
-			GEditor->BroadcastObjectReimported(AssetsToSync[AssetIndex]);
-		}
-
-		//Also notify the content browser that the new assets exists
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().SyncBrowserToAssets( AssetsToSync, true );
-
-		// Place new mesh in the world
-		{
-			UWorld* World = UniqueLevels[0]->OwningWorld;
-			FActorSpawnParameters Params;
-			Params.OverrideLevel = UniqueLevels[0];
-			FRotator MergedActorRotation(ForceInit);
-
-			AStaticMeshActor* MergedActor = World->SpawnActor<AStaticMeshActor>(MergedActorLocation, MergedActorRotation, Params);
-			MergedActor->StaticMeshComponent->StaticMesh = Cast<UStaticMesh>(AssetsToSync[0]);
-			MergedActor->SetActorLabel(AssetsToSync[0]->GetName());
-
-			// Add source actors as children to merged actor and hide them
-			for (AActor* Actor : Actors)
-			{
-				Actor->AttachRootComponentToActor(MergedActor, NAME_None, EAttachLocation::KeepWorldPosition);
-				Actor->SetActorHiddenInGame(true);
-				Actor->SetIsTemporarilyHiddenInEditor(true);
-				Actor->GetRootComponent()->SetVisibility(false, true);
-			}
-		}
-	}
+	/** Show the package dialog window as a modal window */
+	GEditor->EditorAddModalWindow(MergeActorsWindow);
 }

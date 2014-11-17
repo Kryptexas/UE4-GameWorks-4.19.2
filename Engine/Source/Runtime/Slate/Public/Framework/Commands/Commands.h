@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "Framework/Commands/UICommandInfo.h"
+#include "InputBindingManager.h"
+
 //
 // COMMAND DECLARATION
 //

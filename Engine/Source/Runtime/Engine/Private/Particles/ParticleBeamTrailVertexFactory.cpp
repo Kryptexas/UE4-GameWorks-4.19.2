@@ -3,9 +3,10 @@
 /*=============================================================================
 	ParticleBeamTrailVertexFactory.cpp: Particle vertex factory implementation.
 =============================================================================*/
+
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleBeamTrailUniformParameters,TEXT("BeamTrailVF"));
 
@@ -15,18 +16,18 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleBeamTrailUniformParameters,TEXT("BeamTr
 class FParticleBeamTrailVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
-	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		FParticleBeamTrailVertexFactory* BeamTrailVF = (FParticleBeamTrailVertexFactory*)VertexFactory;
-		SetUniformBufferParameter( Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FParticleBeamTrailUniformParameters>(), BeamTrailVF->GetBeamTrailUniformBuffer() );
+		SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FParticleBeamTrailUniformParameters>(), BeamTrailVF->GetBeamTrailUniformBuffer() );
 	}
 };
 
@@ -44,24 +45,25 @@ public:
 
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
 	{
+		uint16 Stride = sizeof(FParticleBeamTrailVertex);
 		/** The stream to read the vertex position from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,0));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 0, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex old position from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float3,1));
+		Elements.Add(FVertexElement(0, Offset, VET_Float3, 1, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex size/rot/subimage from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,2));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 2, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the color from.					*/
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,4));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 4, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the texture coordinates from.	*/
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,3));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 3, Stride));
 		Offset += sizeof(float) * 4;
 		
 		/** Dynamic parameters come from a second stream */
-		Elements.Add(FVertexElement(1,0,VET_Float4,5));
+		Elements.Add(FVertexElement(1, 0, VET_Float4, 5, sizeof(FVector4)));
 	}
 
 	virtual void InitDynamicRHI()

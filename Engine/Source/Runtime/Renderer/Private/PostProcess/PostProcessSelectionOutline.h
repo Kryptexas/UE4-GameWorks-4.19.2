@@ -14,9 +14,9 @@ class FRCPassPostProcessSelectionOutlineColor : public TRenderingCompositePassBa
 {
 public:
 	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context) OVERRIDE;
-	virtual void Release() OVERRIDE { delete this; }
-	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const OVERRIDE;
+	virtual void Process(FRenderingCompositePassContext& Context) override;
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
@@ -26,7 +26,7 @@ class FRCPassPostProcessSelectionOutline : public TRenderingCompositePassBase<2,
 {
 public:
 	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context) OVERRIDE;
-	virtual void Release() OVERRIDE { delete this; }
-	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const OVERRIDE;
+	virtual void Process(FRenderingCompositePassContext& Context) override;
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 };

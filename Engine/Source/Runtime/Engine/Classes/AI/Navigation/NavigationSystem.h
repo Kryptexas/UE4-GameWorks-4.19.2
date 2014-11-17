@@ -2,31 +2,21 @@
 
 #pragma once
 
-#include "NavigationTypes.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "GenericOctreePublic.h"
+#include "AI/Navigation/NavigationData.h"
 #include "NavigationSystem.generated.h"
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)
-/** Whether to compile in navigation data generation - should be compiled at least when WITH_EDITOR is true */
-#define WITH_NAVIGATION_GENERATOR (WITH_RECAST || WITH_EDITOR)
+
 // if we'll be rebuilding navigation at runtime
 #define WITH_RUNTIME_NAVIGATION_BUILDING (1 && WITH_NAVIGATION_GENERATOR)
 
 #define NAVOCTREE_CONTAINS_COLLISION_DATA (1 && WITH_RECAST)
 
-#define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
-#define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 100.f
-
-UENUM()
-namespace ENavigationQueryResult
-{
-	enum Type
-	{
-		Invalid,
-		Error,
-		Fail,
-		Success
-	};
-}
+#define NAV_USE_MAIN_NAVIGATION_DATA NULL
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
@@ -39,271 +29,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, class ANavigat
 namespace NavigationDebugDrawing
 {
 	extern const ENGINE_API float PathLineThickness;
-	extern const ENGINE_API FVector PathOffeset;
+	extern const ENGINE_API FVector PathOffset;
 	extern const ENGINE_API FVector PathNodeBoxExtent;
 }
 
-namespace NavMeshMemory
+namespace FNavigationSystem
 {
-#if STATS
-	// @todo could be made a more generic solution
-	class FNavigationMemoryStat : public FDefaultAllocator
-	{
-	public:
-		typedef FDefaultAllocator Super;
-
-		class ForAnyElementType : public FDefaultAllocator::ForAnyElementType
-		{
-		public:
-			typedef FDefaultAllocator::ForAnyElementType Super;
-		private:
-			int32 AllocatedSize;
-		public:
-
-			ForAnyElementType()
-			: AllocatedSize(0)
-			{
-
-			}
-
-			/** Destructor. */
-			~ForAnyElementType()
-			{
-				if (AllocatedSize)
-				{
-					DEC_DWORD_STAT_BY( STAT_NavigationMemory, AllocatedSize );
-				}
-			}
-
-			void ResizeAllocation(int32 PreviousNumElements,int32 NumElements,int32 NumBytesPerElement)
-			{
-				const int32 NewSize = NumElements * NumBytesPerElement;
-				INC_DWORD_STAT_BY( STAT_NavigationMemory, NewSize - AllocatedSize );
-				AllocatedSize = NewSize;
-
-				Super::ResizeAllocation(PreviousNumElements, NumElements, NumBytesPerElement);
-			}
-
-		private:
-			ForAnyElementType(const ForAnyElementType&);
-			ForAnyElementType& operator=(const ForAnyElementType&);
-		};
-	};
-
-	typedef FNavigationMemoryStat FNavAllocator;
-#else
-	typedef FDefaultAllocator FNavAllocator;
-#endif
-}
-
-#if STATS
-
-template <>
-struct TAllocatorTraits<NavMeshMemory::FNavigationMemoryStat> : TAllocatorTraits<NavMeshMemory::FNavigationMemoryStat::Super>
-{
-};
-
-#endif
-
-template<typename InElementType>
-class TNavStatArray : public TArray<InElementType, NavMeshMemory::FNavAllocator>
-{
-public:
-	typedef TArray<InElementType, NavMeshMemory::FNavAllocator> Super;
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-	TNavStatArray() = default;
-	TNavStatArray(const TNavStatArray&) = default;
-	TNavStatArray& operator=(const TNavStatArray&) = default;
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TNavStatArray(TNavStatArray&&) = default;
-		TNavStatArray& operator=(TNavStatArray&&) = default;
-
-	#endif
-
-#else
-
-	FORCEINLINE TNavStatArray()
-	{
-	}
-
-	FORCEINLINE TNavStatArray(const TNavStatArray& Other)
-		: Super((const Super&)Other)
-	{
-	}
-
-	FORCEINLINE TNavStatArray& operator=(const TNavStatArray& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE TNavStatArray(TNavStatArray&& Other)
-			: Super((Super&&)Other)
-		{
-		}
-
-		FORCEINLINE TNavStatArray& operator=(TNavStatArray&& Other)
-		{
-			(Super&)*this = (Super&&)Other;
-			return *this;
-		}
-
-	#endif
-
-#endif
-};
-
-template<typename InElementType>
-struct TContainerTraits<TNavStatArray<InElementType> > : public TContainerTraitsBase<TNavStatArray<InElementType> >
-{
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer };
-};
-
-struct FNavigationPortalEdge
-{
-	FVector Left;
-	FVector Right;
-	NavNodeRef ToRef;
-	
-	FNavigationPortalEdge() : Left(0.f), Right(0.f)
-	{}
-
-	FNavigationPortalEdge(const FVector& InLeft, const FVector& InRight, NavNodeRef InToRef) 
-		: Left(InLeft), Right(InRight), ToRef(InToRef)
-	{}
-
-	FORCEINLINE FVector GetPoint(const int32 Index) const
-	{
-		check(Index >= 0 && Index < 2);
-		return ((FVector*)&Left)[Index];
-	}
-
-	FORCEINLINE float GetLength() const { return FVector::Dist(Left, Right); }
-
-	FORCEINLINE FVector GetMiddlePoint() const { return Left + (Right - Left) / 2; }
-};
-
-/** 
- *	Delegate used to communicate that path finding query has been finished. 
- *	@param uint32 unique Query ID of given query 
- *	@param ENavigationQueryResult enum expressed query result. 
- *	@param FNavPathSharedPtr resulting path. Valid only for ENavigationQueryResult == ENavigationQueryResult::Fail 
- *		(may contain path leading as close to destination as possible) 
- *		and ENavigationQueryResult == ENavigationQueryResult::Success
- */
-DECLARE_DELEGATE_ThreeParams( FNavPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr );
-
-struct FPathFindingResult
-{
-	FNavPathSharedPtr Path;
-	ENavigationQueryResult::Type Result;
-
-	FPathFindingResult(ENavigationQueryResult::Type InResult = ENavigationQueryResult::Invalid) : Result(InResult)
-	{}
-
-	FORCEINLINE bool IsSuccessful() const { return Result == ENavigationQueryResult::Success; }
-	FORCEINLINE bool IsPartial() const { return Result == ENavigationQueryResult::Fail && Path.IsValid() && Path->IsPartial(); }
-};
-
-namespace EPathFindingMode
-{
-	enum Type
-	{
-		Regular,
-		Hierarchical,
-	};
-};
-
-USTRUCT()
-struct FMovementProperties
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanCrouch:1;    // if true, this pawn is capable of crouching
-
-	// movement capabilities - used by AI for reachability tests
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanJump:1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanWalk:1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanSwim:1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanFly:1;
-
-	FMovementProperties()
-		: bCanCrouch(false)
-		, bCanJump(false)
-		, bCanWalk(false)
-		, bCanSwim(false)
-		, bCanFly(false)
-	{
-	}
-};
-
-USTRUCT()
-struct FNavAgentProperties : public FMovementProperties
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	float AgentRadius;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	float AgentHeight;
-
-	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
-		: AgentRadius(Radius)
-		, AgentHeight(Height)
-	{
-	}
-
-	void UpdateWithCollisionComponent(class UShapeComponent* CollisionComponent);
-
-	FORCEINLINE bool IsValid() const { return AgentRadius >= 0 && AgentHeight >= 0; }
-
-	FORCEINLINE bool IsEquivalent(const FNavAgentProperties& Other, float Precision = 5.f) const 
-	{
-		return FGenericPlatformMath::Abs(AgentRadius - Other.AgentRadius) < Precision && FGenericPlatformMath::Abs(AgentHeight - Other.AgentHeight) < Precision;
-	}
-
-	bool operator==(const FNavAgentProperties& Other) const
-	{
-		return IsEquivalent(Other);
-	}
-
-	FVector GetExtent() const
-	{
-		return FVector(AgentRadius,AgentRadius,AgentHeight/2);
-	}
-};
-
-inline uint32 GetTypeHash( const FNavAgentProperties& A )
-{
-	return (int16(A.AgentRadius) << 16) | int16(A.AgentHeight);
-}
-
-namespace NavigationSystem
-{
-	enum ECreateIfEmpty 
-	{
-		Invalid = -1,
-		DontCreate = 0,
-		Create = 1,
-	};
-
 	enum EMode
 	{
 		InvalidMode = -1,
@@ -312,198 +43,15 @@ namespace NavigationSystem
 		SimulationMode,
 		PIEMode,
 	};
-
-	/** used as a fallback value for navigation agent radius, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentRadius;
-
-	/** used as a fallback value for navigation agent height, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentHeight;
-
-	static const FBox InvalidBoundingBox(0);
 }
 
-USTRUCT()
-struct ENGINE_API FNavDataConfig : public FNavAgentProperties
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
-	FName Name;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
-	FColor Color;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Querying, config)
-	FVector DefaultQueryExtent;
-
-	FNavDataConfig(float Radius = NavigationSystem::FallbackAgentRadius, float Height = NavigationSystem::FallbackAgentHeight)
-		: FNavAgentProperties(Radius, Height)
-		, Name(TEXT("Default"))
-		, Color(140,255,0,164)
-		, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
-	{
-	}	
-};
-
-namespace NavigationSystem
+namespace FNavigationSystem
 {
 	/** 
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
 	 */
 	typedef class ANavigationData* (*FNavigationDataInstanceCreator)(class UWorld*, const FNavDataConfig&);
 }
-
-class INavigationQueryFilterInterface
-{
-public:
-	virtual ~INavigationQueryFilterInterface(){}
-
-	virtual void Reset() = 0;
-
-	virtual void SetAreaCost(uint8 AreaType, float Cost) = 0;
-	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) = 0;
-	virtual void SetExcludedArea(uint8 AreaType) = 0;
-	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) = 0;
-	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const = 0;
-	virtual void SetBacktrackingEnabled(const bool bBacktracking) = 0;
-	virtual bool IsBacktrackingEnabled() const = 0;
-	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const = 0;
-	virtual void SetIncludeFlags(uint16 Flags) = 0;
-	virtual uint16 GetIncludeFlags() const = 0;
-	virtual void SetExcludeFlags(uint16 Flags) = 0;
-	virtual uint16 GetExcludeFlags() const = 0;
-
-	virtual class INavigationQueryFilterInterface* CreateCopy() const = 0;
-};
-
-struct ENGINE_API FNavigationQueryFilter : public TSharedFromThis<FNavigationQueryFilter>
-{
-	FNavigationQueryFilter() : QueryFilterImpl(NULL), MaxSearchNodes(DefaultMaxSearchNodes) {}
-private:
-	FNavigationQueryFilter(const FNavigationQueryFilter& Source);
-	FNavigationQueryFilter(const FNavigationQueryFilter* Source);
-	FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source);
-	FNavigationQueryFilter& operator=(const FNavigationQueryFilter& Source);
-public:
-
-	/** set travel cost for area */
-	void SetAreaCost(uint8 AreaType, float Cost);
-
-	/** set entering cost for area */
-	void SetFixedAreaEnteringCost(uint8 AreaType, float Cost);
-
-	/** mark area as excluded from path finding */
-	void SetExcludedArea(uint8 AreaType);
-
-	/** set travel cost for all areas */
-	void SetAllAreaCosts(const TArray<float>& CostArray);
-	void SetAllAreaCosts(const float* CostArray, const int32 Count);
-
-	/** get travel & entering costs for all areas */
-	void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const;
-
-	/** set required flags of navigation nodes */
-	void SetIncludeFlags(uint16 Flags);
-
-	/** get required flags of navigation nodes */
-	uint16 GetIncludeFlags() const;
-
-	/** set forbidden flags of navigation nodes */
-	void SetExcludeFlags(uint16 Flags);
-
-	/** get forbidden flags of navigation nodes */
-	uint16 GetExcludeFlags() const;
-
-	/** set node limit for A* loop */
-	void SetMaxSearchNodes(const uint32 MaxNodes) { MaxSearchNodes = MaxNodes; }
-
-	/** get node limit for A* loop */
-	FORCEINLINE uint32 GetMaxSearchNodes() const { return MaxSearchNodes; }
-
-	/** mark filter as backtracking - parse directional links in opposite direction
-	 *  (find path from End to Start, but all links works like on path from Start to End) */
-	void SetBacktrackingEnabled(const bool bBacktracking) {	QueryFilterImpl->SetBacktrackingEnabled(bBacktracking);	}
-	
-	/** get backtracking status */
-	bool IsBacktrackingEnabled() const { return QueryFilterImpl->IsBacktrackingEnabled(); }
-
-	template<typename FilterType>
-	void SetFilterType()
-	{
-		QueryFilterImpl = MakeShareable(new FilterType());
-	}
-
-	FORCEINLINE_DEBUGGABLE void SetFilterImplementation(const class INavigationQueryFilterInterface* InQueryFilterImpl)
-	{
-		QueryFilterImpl = MakeShareable(InQueryFilterImpl->CreateCopy());
-	}
-
-	FORCEINLINE const INavigationQueryFilterInterface* GetImplementation() const { return QueryFilterImpl.Get(); }
-	FORCEINLINE INavigationQueryFilterInterface* GetImplementation() { return QueryFilterImpl.Get(); }
-	void Reset() { GetImplementation()->Reset(); }
-
-	TSharedPtr<FNavigationQueryFilter> GetCopy() const;
-
-	FORCEINLINE bool operator==(const FNavigationQueryFilter& Other) const
-	{
-		const INavigationQueryFilterInterface* Impl0 = GetImplementation();
-		const INavigationQueryFilterInterface* Impl1 = Other.GetImplementation();
-		return Impl0 && Impl1 && Impl0->IsEqual(Impl1);
-	}
-
-	static const uint32 DefaultMaxSearchNodes;
-	
-protected:
-	void Assign(const FNavigationQueryFilter& Source);
-
-	TSharedPtr<INavigationQueryFilterInterface, ESPMode::ThreadSafe> QueryFilterImpl;
-	uint32 MaxSearchNodes;
-};
-
-struct ENGINE_API FPathFindingQuery
-{
-	TWeakObjectPtr<const class ANavigationData> NavData;
-	TWeakObjectPtr<const UObject> Owner;
-	FVector StartLocation;
-	FVector EndLocation;
-	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
-
-	FPathFindingQuery()
-		: NavData(NULL)
-		, Owner(NULL)
-		, StartLocation(FVector::ZeroVector)
-		, EndLocation(FVector::ZeroVector)
-	{
-	}
-
-	FPathFindingQuery(const FPathFindingQuery& Source);
-
-	FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL);
-};
-
-struct FAsyncPathFindingQuery : public FPathFindingQuery
-{
-	const uint32 QueryID;
-	const FNavPathQueryDelegate OnDoneDelegate;
-	const TEnumAsByte<EPathFindingMode::Type> Mode;
-	FPathFindingResult Result;
-
-	FAsyncPathFindingQuery()
-		: QueryID(INVALID_NAVQUERYID)
-	{
-	}
-
-	FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
-	FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode);
-	
-protected:
-	FORCEINLINE static uint32 GetUniqueID() 
-	{
-		return ++LastPathFindingUniqueID;
-	}
-
-	static uint32 LastPathFindingUniqueID;
-};
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
 {
@@ -512,8 +60,23 @@ struct FNavigationSystemExec: public FSelfRegisteringExec
 	}
 
 	// Begin FExec Interface
-	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
+};
+
+class ENGINE_API FNavigationLockContext
+{
+public:
+	FNavigationLockContext() : MyWorld(NULL), bSingleWorld(false) { LockUpdates(); }
+	FNavigationLockContext(UWorld* InWorld) : MyWorld(InWorld), bSingleWorld(true) { LockUpdates(); }
+	~FNavigationLockContext() { UnlockUpdates(); }
+
+private:
+	UWorld* MyWorld;
+	bool bSingleWorld;
+
+	void LockUpdates();
+	void UnlockUpdates();
 };
 
 UCLASS(Within=World, config=Engine, defaultconfig)
@@ -546,7 +109,9 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	 *	bounds volumes (like ANavMeshBoundsVolume). Set to false means navigation should be generated
 	 *	everywhere.
 	 */
-	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
+	// @todo removing it from edition since it's currently broken and I'm not sure we want that at all
+	// since I'm not sure we can make it efficient in a generic case
+	//UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bWholeWorldNavigable:1;
 
 	/** If set to true (default) generation seeds will include locations of all player controlled pawns */
@@ -577,6 +142,8 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
 
 private:
+	TWeakObjectPtr<class UCrowdManager> CrowdManager;
+
 	// required navigation data 
 	UPROPERTY(config)
 	TArray<FStringClassReference> RequiredNavigationDataClassNames;
@@ -610,17 +177,17 @@ public:
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToActor(AController* Controller, const AActor* Goal);
+	static void SimpleMoveToActor(class AController* Controller, const AActor* Goal);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToLocation(AController* Controller, const FVector& Goal);
+	static void SimpleMoveToLocation(class AController* Controller, const FVector& Goal);
 
 	/** Performs navigation raycast on NavigationData appropriate for given Querier.
 	 *	@param Querier if not passed default navigation data will be used
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ))
-	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL, class AAIController* Querier = NULL);
+	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL, class AController* Querier = NULL);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);
@@ -645,13 +212,18 @@ public:
 	};
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
 	virtual void Tick(float DeltaSeconds);
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
+
+	class UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
+
+	/** spawn new crowd manager */
+	virtual void CreateCrowdManager();
 
 	//----------------------------------------------------------------------//
 	// Public querying interface                                                                
@@ -723,7 +295,7 @@ public:
 	// @todo document
 	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const FNavAgentProperties* AgentProperties = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL)
 	{
-		return ProjectPointToNavigation(Point, OutLocation, Extent, AgentProperties != NULL ? GetNavDataForProps(*AgentProperties) : GetMainNavData(NavigationSystem::DontCreate), QueryFilter);
+		return ProjectPointToNavigation(Point, OutLocation, Extent, AgentProperties != NULL ? GetNavDataForProps(*AgentProperties) : GetMainNavData(FNavigationSystem::DontCreate), QueryFilter);
 	}
 
 	// @todo document
@@ -740,9 +312,11 @@ public:
 	const class ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties) const;
 
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
-	class ANavigationData* GetMainNavData(NavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
+	class ANavigationData* GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
 	const class ANavigationData* GetMainNavData() const { return MainNavData; }
+
+	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
 	 *	guarantee its existence */
@@ -821,19 +395,16 @@ public:
 	void FindElementsInNavOctree(const FBox& QueryBox, const struct FNavigationOctreeFilter& Filter, TArray<struct FNavigationOctreeElement>& Elements);
 
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
-	void RegisterSmartLink(class USmartNavLinkComponent* LinkComp);
-	void UnregisterSmartLink(class USmartNavLinkComponent* LinkComp);
+	void RegisterCustomLink(class INavLinkCustomInterface* CustomLink);
+	void UnregisterCustomLink(class INavLinkCustomInterface* CustomLink);
 	
-	/** find first available smart link ID */
-	uint32 FindFreeSmartLinkId() const;
+	/** find custom link by unique ID */
+	class INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
 
-	/** find smart link by link ID */
-	class USmartNavLinkComponent* GetSmartLink(uint32 SmartLinkId) const;
-
-	/** updates smart link for all active navigation data instances */
-	void UpdateSmartLink(class USmartNavLinkComponent* LinkComp);
+	/** updates custom link for all active navigation data instances */
+	void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Areas
@@ -898,7 +469,7 @@ public:
 	virtual void OnInitializeActors();
 
 	/** */
-	virtual void OnWorldInitDone(NavigationSystem::EMode Mode);
+	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
 
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
@@ -927,10 +498,15 @@ public:
 	static UNavigationSystem* GetCurrent(class UObject* WorldContextObject);
 
 	/** try to create and setup navigation system */
-	static void InitializeForWorld(class UWorld* World, NavigationSystem::EMode Mode);
+	static void InitializeForWorld(class UWorld* World, FNavigationSystem::EMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
+
+	static FORCEINLINE bool ShouldUpdateNavOctreeOnPrimitiveComponentChange()
+	{
+		return bUpdateNavOctreeOnPrimitiveComponentChange;
+	}
 
 	/** 
 	 * Exec command handlers
@@ -948,7 +524,7 @@ protected:
 	bool bFakeComponentChangesBeingApplied;
 #endif
 
-	NavigationSystem::EMode OperationMode;
+	FNavigationSystem::EMode OperationMode;
 
 	class FNavigationOctree* NavOctree;
 
@@ -961,7 +537,7 @@ protected:
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
 
 	/** Map of all custom navigation links, that are relevant for path following */
-	TMap<uint32, class USmartNavLinkComponent*> SmartLinksMap;
+	TMap<uint32, class INavLinkCustomInterface*> CustomLinksMap;
 
 	/** List of actors relevant to generation of navigation data */
 	TArray<TWeakObjectPtr<AActor> > GenerationSeeds;
@@ -998,6 +574,8 @@ protected:
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
+
+	static bool bUpdateNavOctreeOnPrimitiveComponentChange;
 
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;
@@ -1036,6 +614,8 @@ protected:
 
 	void AddActorElementToNavOctree(class AActor* Actor, const FNavigationDirtyElement& DirtyElement);
 	void AddComponentElementToNavOctree(class UActorComponent* ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds);
+
+	void SetCrowdManager(class UCrowdManager* NewCrowdManager); 
 
 #if WITH_NAVIGATION_GENERATOR
 

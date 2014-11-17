@@ -12,7 +12,7 @@
 
 class FEdModeLandscape* FLandscapeEditorDetailCustomization_Base::GetEditorMode()
 {
-	return (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
 bool FLandscapeEditorDetailCustomization_Base::IsToolActive(FName ToolSetName)
@@ -80,5 +80,5 @@ void FLandscapeEditorDetailCustomization_Base::OnValueCommitted(int32 NewValue, 
 
 class FEdModeLandscape* FLandscapeEditorStructCustomization_Base::GetEditorMode()
 {
-	return (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }

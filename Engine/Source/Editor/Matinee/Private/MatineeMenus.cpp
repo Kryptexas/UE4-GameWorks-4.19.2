@@ -1,10 +1,30 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InterpEditorMenus.cpp: Interpolation editing menus
-=============================================================================*/
-
 #include "MatineeModule.h"
+
+#include "Matinee/InterpTrackInst.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackColorProp.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackParticleReplay.h"
+#include "Matinee/InterpTrackVectorMaterialParam.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/InterpTrackAudioMaster.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInstDirector.h"
+#include "Matinee/InterpFilter_Custom.h"
+
 #include "Matinee.h"
 #include "MatineeDelegates.h"
 
@@ -12,6 +32,7 @@
 #include "DesktopPlatformModule.h"
 #include "PackageTools.h"
 #include "SoundDefinitions.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "WorkspaceMenuStructureModule.h"
 
@@ -20,6 +41,7 @@
 
 #include "IDocumentation.h"
 #include "MainFrame.h"
+
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"
 
@@ -4152,16 +4174,16 @@ void FMatinee::OnMenuReduceKeys()
 /** Toggles interting of the panning the interp editor left and right */
 void FMatinee::OnToggleInvertPan()
 {
-	bool bInvertPan = GEditorModeTools().GetInterpPanInvert();
+	bool bInvertPan = GLevelEditorModeTools().GetInterpPanInvert();
 
 	bInvertPan = !bInvertPan;
 
-	GEditorModeTools().SetInterpPanInvert(bInvertPan);
+	GLevelEditorModeTools().SetInterpPanInvert(bInvertPan);
 }
 
 bool FMatinee::IsInvertPanToggled()
 {
-	return GEditorModeTools().GetInterpPanInvert();	
+	return GLevelEditorModeTools().GetInterpPanInvert();	
 }
 
 /** Called when split translation and rotation is selected from a movement track context menu */

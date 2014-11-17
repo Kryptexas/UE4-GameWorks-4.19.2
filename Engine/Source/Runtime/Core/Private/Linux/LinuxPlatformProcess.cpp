@@ -16,6 +16,10 @@ void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check( Filename );
 	void *Handle = dlopen( TCHAR_TO_ANSI(Filename), RTLD_LAZY | RTLD_LOCAL );
+	if (!Handle)
+	{
+		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
+	}
 	return Handle;
 }
 
@@ -30,6 +34,27 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 	check(DllHandle);
 	check(ProcName);
 	return dlsym( DllHandle, TCHAR_TO_ANSI(ProcName) );
+}
+
+int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
+{
+	check(Filename);
+	return MODULE_API_VERSION;
+}
+
+const TCHAR* FLinuxPlatformProcess::GetModulePrefix()
+{
+	return TEXT("lib");
+}
+
+const TCHAR* FLinuxPlatformProcess::GetModuleExtension()
+{
+	return TEXT("so");
+}
+
+const TCHAR* FLinuxPlatformProcess::GetBinariesSubdirectory()
+{
+	return TEXT("Linux");
 }
 
 namespace PlatformProcessLimits

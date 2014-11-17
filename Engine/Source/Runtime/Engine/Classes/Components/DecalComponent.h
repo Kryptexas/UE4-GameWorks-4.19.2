@@ -4,7 +4,7 @@
 #pragma once
 #include "DecalComponent.generated.h"
 
-	// -> will be exported to EngineDecalClasses.h
+class FDeferredDecalProxy;
 
 /** 
  * A material that is rendered onto the surface of a mesh. A kind of 'bumper sticker' for a model.
@@ -76,13 +76,13 @@ public:
 	}
 	
 	// Begin UActorComponent Interface
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
 	// End UActorComponent Interface
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End USceneComponent Interface
 };
 

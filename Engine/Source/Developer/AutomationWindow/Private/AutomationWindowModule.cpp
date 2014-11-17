@@ -15,41 +15,37 @@ class FAutomationWindowModule
 {
 public:
 
-	// Begin IAutomationWindowModule interface
+	// IAutomationWindowModule interface
 
-	virtual TSharedRef<class SWidget> CreateAutomationWindow( const IAutomationControllerManagerRef& AutomationController, const ISessionManagerRef& SessionManager ) OVERRIDE
+	virtual TSharedRef<class SWidget> CreateAutomationWindow( const IAutomationControllerManagerRef& AutomationController, const ISessionManagerRef& SessionManager ) override
 	{
 		return SNew(SAutomationWindow, AutomationController, SessionManager);
 	}
 
-	virtual TWeakPtr<class SDockTab> GetAutomationWindowTab( ) OVERRIDE
+	virtual TWeakPtr<class SDockTab> GetAutomationWindowTab( ) override
 	{
 		return AutomationWindowTabPtr;
 	}
 
-	virtual FOnAutomationWindowModuleShutdown& OnShutdown( ) OVERRIDE
+	virtual FOnAutomationWindowModuleShutdown& OnShutdown( ) override
 	{
 		return ShutdownDelegate;
 	}
 
-	virtual void SetAutomationWindowTab(TWeakPtr<class SDockTab> AutomationWindowTab) OVERRIDE { AutomationWindowTabPtr = AutomationWindowTab; }
-
-	// End IAutomationWindowModule interface
+	virtual void SetAutomationWindowTab(TWeakPtr<class SDockTab> AutomationWindowTab) override { AutomationWindowTabPtr = AutomationWindowTab; }
 
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		ShutdownDelegate.ExecuteIfBound();	
 	}
-
-	// End IModuleInterface interface
 
 private:
 

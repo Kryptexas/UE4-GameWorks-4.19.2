@@ -24,7 +24,7 @@ public:
 	/**
 	 * Initialize the commands
 	 */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND( CreateEmptyLayer, "Create Empty Layer", "Creates a new empty Layer", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( AddSelectedActorsToNewLayer, "Add Selected Actors to New Layer", "Adds the actors currently selected in the active viewport to a new layer", EUserInterfaceActionType::Button, FInputGesture() );

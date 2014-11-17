@@ -5,6 +5,7 @@
 
 #if WITH_EDITOR
 	#include "MainFrame.h"
+	#include "Settings.h"
 #endif
 
 #include <signal.h>
@@ -89,22 +90,29 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 }
 #endif
 
-- (IBAction)OnQuitRequest:(id)Sender
+- (IBAction)requestQuit:(id)Sender
 {
 	if (GEngine)
 	{
 		if (GIsEditor)
 		{
-			GEngine->DeferredCommands.Add( TEXT("CLOSE_SLATE_MAINFRAME") );
+			if (IsRunningCommandlet())
+			{
+				GIsRequestingExit = true;
+			}
+			else
+			{
+				GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
+			}
 		}
 		else
 		{
-			GEngine->DeferredCommands.Add( TEXT("EXIT") );
+			GEngine->DeferredCommands.Add(TEXT("EXIT"));
 		}
 	}
 }
 
-- (IBAction)OnShowAboutWindow:(id)Sender
+- (IBAction)showAboutWindow:(id)Sender
 {
 #if WITH_EDITOR
 	if (FModuleManager::Get().IsModuleLoaded(TEXT("MainFrame")))
@@ -112,14 +120,24 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
 	}
 #else
-	[NSApp orderFrontStandardAboutPanel: Sender];
+	[NSApp orderFrontStandardAboutPanel:Sender];
 #endif
 }
+
+#if WITH_EDITOR
+- (IBAction)showPreferencesWindow:(id)Sender
+{
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("Settings")))
+	{
+		FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(FName("Editor"), FName("General"), FName("Appearance"));
+	}
+}
+#endif
 
 //handler for the quit apple event used by the Dock menu
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
-    [self OnQuitRequest:self];
+    [self requestQuit:self];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -224,5 +242,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		GSavedCommandLine += Argument;
 	}
 
-	return NSApplicationMain(ArgC, (const char **)ArgV);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[UE4AppDelegate new]];
+	[NSApp run];
+	return 0;
 }

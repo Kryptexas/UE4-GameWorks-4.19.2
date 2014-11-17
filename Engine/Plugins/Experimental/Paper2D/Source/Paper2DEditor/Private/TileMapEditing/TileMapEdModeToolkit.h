@@ -11,17 +11,17 @@ class FTileMapEdModeToolkit : public FModeToolkit
 {
 public:
 	// IToolkit interface
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual class FEdMode* GetEditorMode() const OVERRIDE;
-	virtual TSharedPtr<class SWidget> GetInlineContent() const OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual class FEdMode* GetEditorMode() const override;
+	virtual TSharedPtr<class SWidget> GetInlineContent() const override;
 	// End of IToolkit interface
 
 	// FModeToolkit interface
-	virtual void Init(const TSharedPtr<class IToolkitHost>& InitToolkitHost) OVERRIDE;
+	virtual void Init(const TSharedPtr<class IToolkitHost>& InitToolkitHost) override;
 	// End of FModeToolkit interface
 
 protected:

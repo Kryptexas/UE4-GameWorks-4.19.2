@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeGroupControl.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSoundNodeGroupControl, Log, All);
 

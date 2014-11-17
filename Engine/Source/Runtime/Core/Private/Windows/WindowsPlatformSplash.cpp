@@ -326,18 +326,37 @@ HBITMAP LoadSplashBitmap()
 		}
 
 		// Image Extraction failed, clear allocated memory
-		if (FAILED(hr))
+		if (FAILED(hr) && hDIBBitmap)
 		{
 			DeleteObject(hDIBBitmap);
 			hDIBBitmap = NULL;
 		}
 	}
 
-	DeleteObject(OriginalBitmapSource);
-	DeleteObject(ToRenderBitmapSource);
-	DeleteObject(Decoder);
-	DeleteObject(Frame);
-	DeleteObject(Factory);
+	if ( OriginalBitmapSource )
+	{
+		DeleteObject( OriginalBitmapSource );
+	}
+
+	if ( ToRenderBitmapSource )
+	{
+		DeleteObject( ToRenderBitmapSource );
+	}
+
+	if ( Decoder )
+	{
+		DeleteObject( Decoder );
+	}
+
+	if ( Frame )
+	{
+		DeleteObject( Frame );
+	}
+
+	if ( Factory )
+	{
+		DeleteObject( Factory );
+	}
 
 	return hDIBBitmap;
 }
@@ -524,6 +543,7 @@ uint32 WINAPI StartSplashScreenThread( LPVOID unused )
 				}
 
 				// Update window opacity
+				CA_SUPPRESS(6239)
 				if( bAllowFading && CurrentOpacityByte < 255 )
 				{
 					// Set window to fully transparent to start out

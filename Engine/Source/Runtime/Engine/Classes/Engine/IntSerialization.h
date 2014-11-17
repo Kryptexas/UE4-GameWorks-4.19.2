@@ -12,7 +12,7 @@ class ENGINE_API UIntSerialization	: public UObject
 public:
 //	ENGINE_API UIntSerialization(const class FPostConstructInitializeProperties& PCIP, uint8 InUnsignedInt8Variable, uint16 InUnsignedInt16Variable, uint32 InUnsignedInt32Variable, uint64 InUnsignedInt64Variable, int8 InSignedInt8Variable, int16 InSignedInt16Variable, int InSignedInt32Variable, int64 InSignedInt64Variable);
 
-//	virtual void Serialize (FArchive& Ar) OVERRIDE;
+//	virtual void Serialize (FArchive& Ar) override;
 	/**
 	 * Serializes the given int Int Serilization Test test from or into the specified archive.
 	 *

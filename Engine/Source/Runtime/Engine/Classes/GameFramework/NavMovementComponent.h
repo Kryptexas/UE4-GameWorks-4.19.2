@@ -5,10 +5,16 @@
  */
 
 #pragma once
+
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/PrimitiveComponent.h"
 #include "AI/Navigation/NavAgentInterface.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "GameFramework/MovementComponent.h"
+
 #include "NavMovementComponent.generated.h"
 
-UCLASS(abstract, dependson=(UNavigationSystem, UPrimitiveComponent, INavAgentInterface))
+UCLASS(abstract)
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -34,6 +40,8 @@ public:
 	void UpdateNavAgent(class AActor* Owner);
 	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
 
+	/** @returns location of controlled actor - meaning center of collision bounding box */
+	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector(FLT_MAX); }
 	/** @returns location of controlled actor's "feet" meaning center of bottom of collision bounding box */
 	FORCEINLINE FVector GetActorFeetLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }
 	/** @returns based location of controlled actor */

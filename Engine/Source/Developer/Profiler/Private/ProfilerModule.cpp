@@ -13,7 +13,7 @@ class FProfilerModule
 	: public IProfilerModule
 {
 public:
-	virtual TSharedRef<SWidget> CreateProfilerWindow( const ISessionManagerRef& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) OVERRIDE
+	virtual TSharedRef<SWidget> CreateProfilerWindow( const ISessionManagerRef& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) override
 	{
 		ProfilerManager = FProfilerManager::Initialize( InSessionManager );
 		TSharedRef<SProfilerWindow> ProfilerWindow = SNew(SProfilerWindow);
@@ -24,10 +24,10 @@ public:
 		return ProfilerWindow;
 	}
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if( FProfilerManager::Get().IsValid() )
 		{
@@ -35,12 +35,12 @@ public:
 		}
 	}
 
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}
 
-	virtual TWeakPtr<class IProfilerManager> GetProfilerManager() OVERRIDE
+	virtual TWeakPtr<class IProfilerManager> GetProfilerManager() override
 	{
 		return ProfilerManager;
 	}

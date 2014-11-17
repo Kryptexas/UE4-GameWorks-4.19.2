@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceManagerModel.h: Declares the FDeviceManagerModel class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FDeviceManagerModel.
- */
+/** Type definition for shared pointers to instances of FDeviceManagerModel. */
 typedef TSharedPtr<class FDeviceManagerModel> FDeviceManagerModelPtr;
 
-/**
- * Type definition for shared references to instances of FDeviceManagerModel.
- */
+/** Type definition for shared references to instances of FDeviceManagerModel. */
 typedef TSharedRef<class FDeviceManagerModel> FDeviceManagerModelRef;
 
 
@@ -38,7 +30,7 @@ public:
 	/**
 	 * Selects the specified device service (or none if nullptr).
 	 *
-	 * @param DeviceService - The device service to select.
+	 * @param DeviceService The device service to select.
 	 */
 	void SelectDeviceService( const ITargetDeviceServicePtr& DeviceService )
 	{

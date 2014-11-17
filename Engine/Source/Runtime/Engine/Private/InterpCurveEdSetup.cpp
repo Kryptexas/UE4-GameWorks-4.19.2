@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Matinee/InterpTrack.h"
 
 
 void UInterpCurveEdSetup::PostLoad()

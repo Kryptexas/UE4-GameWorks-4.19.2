@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "EditorLevelUtils.h"
 
 #include "BusyCursor.h"
@@ -15,6 +16,9 @@
 #include "ScopedTransaction.h"
 #include "ActorEditorUtils.h"
 #include "Editor/Levels/Public/LevelEdMode.h"
+#include "ContentStreaming.h"
+
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 
@@ -317,13 +321,13 @@ namespace EditorLevelUtils
 	bool RemoveLevelFromWorld(ULevel* InLevel)
 	{
 		// If we're removing a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( LevelMode )
 		{
 			ULevelStreaming* LevelStream = FLevelUtils::FindStreamingLevel( InLevel ); 
 			if( LevelMode->IsEditing( LevelStream ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 		}
 
@@ -331,18 +335,26 @@ namespace EditorLevelUtils
 
 		GEditor->CloseEditedWorldAssets(CastChecked<UWorld>(InLevel->GetOuter()));
 
+		// Need to clean refs to a removed level 
+		GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
+				
+		UWorld* OwningWorld = InLevel->OwningWorld;
+		const FName LevelPackageName		= InLevel->GetOutermost()->GetFName();
 		const bool bRemovingCurrentLevel	= InLevel && InLevel->IsCurrentLevel();
 		const bool bRemoveSuccessful		= PrivateRemoveLevelFromWorld( InLevel );
 		if ( bRemoveSuccessful )
 		{
-			// remove all group actors from GEditor in the level we are removing
-			// otherwise, this will cause group actors to not be garbage collected
-			for (int32 GroupIndex = GEditor->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
+			if ( OwningWorld )
 			{
-				AGroupActor* GroupActor = GEditor->ActiveGroupActors[GroupIndex];
-				if (GroupActor && GroupActor->IsInLevel(InLevel))
+				// remove all group actors from the world in the level we are removing
+				// otherwise, this will cause group actors to not be garbage collected
+				for (int32 GroupIndex = OwningWorld->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
 				{
-					GEditor->ActiveGroupActors.RemoveAt(GroupIndex);
+					AGroupActor* GroupActor = Cast<AGroupActor>(OwningWorld->ActiveGroupActors[GroupIndex]);
+					if (GroupActor && GroupActor->IsInLevel(InLevel))
+					{
+						OwningWorld->ActiveGroupActors.RemoveAt(GroupIndex);
+					}
 				}
 			}
 
@@ -362,6 +374,17 @@ namespace EditorLevelUtils
 
 			// Collect garbage to clear out the destroyed level
 			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+			// Ensure that level package were removed
+			UPackage* LevelPackage = FindObjectFast<UPackage>(NULL, LevelPackageName);
+			if (LevelPackage != nullptr)
+			{
+				StaticExec(NULL, *FString::Printf(TEXT("OBJ REFS CLASS=%s NAME=%s shortest"),*LevelPackage->GetClass()->GetName(), *LevelPackage->GetPathName()));
+				TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( LevelPackage, true, GARBAGE_COLLECTION_KEEPFLAGS );
+				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, LevelPackage );
+			
+				UE_LOG(LogStreaming, Fatal, TEXT("%s didn't get garbage collected!") LINE_TERMINATOR TEXT("%s"), *LevelPackage->GetFullName(), *ErrorString );
+			}
 		}
 		return bRemoveSuccessful;
 	}
@@ -458,6 +481,11 @@ namespace EditorLevelUtils
 		InLevel->GetOuter()->MarkPendingKill();
 		InLevel->MarkPendingKill();		
 		InLevel->GetOuter()->ClearFlags(RF_Public|RF_Standalone);
+		if (InLevel->GetOutermost()->MetaData)
+		{
+			InLevel->GetOutermost()->MetaData->MarkPendingKill();
+		}
+
 		World->MarkPackageDirty();
 		World->BroadcastLevelsChanged();
 
@@ -467,23 +495,44 @@ namespace EditorLevelUtils
 	ULevel* CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, UClass* LevelStreamingClass, const FString& DefaultFilename )
 	{
 		// Editor modes cannot be active when any level saving occurs.
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().ActivateDefaultMode();
 
-		// Create a new world - so we can 'borrow' its level
-		UWorld* NewGWorld = UWorld::CreateWorld(EWorldType::None, false );
-		check(NewGWorld);
+		UWorld* NewWorld = nullptr;
+		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			// Create a new world
+			UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
+			Factory->WorldType = EWorldType::Inactive;
+			UPackage* Pkg = CreatePackage(NULL, NULL);
+			FName WorldName(TEXT("NewWorld"));
+			EObjectFlags Flags = RF_Public | RF_Standalone;
+			NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, WorldName, Flags, NULL, GWarn));
+			if ( NewWorld )
+			{
+				FAssetRegistryModule::AssetCreated(NewWorld);
+			}
+		}
+		else
+		{
+			// Create a new world - so we can 'borrow' its level
+			NewWorld = UWorld::CreateWorld(EWorldType::None, false );
+			check(NewWorld);
+		}
 
 		// Save the new world to disk.
-		const bool bNewWorldSaved = FEditorFileUtils::SaveLevel( NewGWorld->PersistentLevel, DefaultFilename );
+		const bool bNewWorldSaved = FEditorFileUtils::SaveLevel( NewWorld->PersistentLevel, DefaultFilename );
 		FString NewPackageName;
 		if ( bNewWorldSaved )
 		{
-			NewPackageName = NewGWorld->GetOutermost()->GetName();
+			NewPackageName = NewWorld->GetOutermost()->GetName();
 		}
 
-		// Destroy the new world we created and collect the garbage
-		NewGWorld->DestroyWorld( false );
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		if (!FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			// Destroy the new world we created and collect the garbage
+			NewWorld->DestroyWorld( false );
+			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		}
 
 		// If the new world was saved successfully, import it as a streaming level.
 		ULevel* NewLevel = NULL;
@@ -595,10 +644,10 @@ namespace EditorLevelUtils
 			}
 
 			// If were hiding a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-			FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));
+			FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));
 			if( LevelMode && LevelMode->IsEditing( StreamingLevel ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 
 			//create a transaction so we can undo the visibilty toggle

@@ -17,10 +17,15 @@ public class Slate : ModuleRules
 			}
 		);
 
-        if (!UEBuildConfiguration.bBuildDedicatedServer)
+        if (!UEBuildConfiguration.bBuildDedicatedServer && UEBuildConfiguration.bCompileFreeType)
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
-        }
+			Definitions.Add("WITH_FREETYPE=1");
+		}
+		else
+		{
+			Definitions.Add("WITH_FREETYPE=0");
+		}
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

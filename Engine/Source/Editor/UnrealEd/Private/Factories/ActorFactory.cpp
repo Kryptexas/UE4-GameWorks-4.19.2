@@ -7,14 +7,24 @@ ActorFactory.cpp:
 #include "UnrealEd.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "StaticMeshResources.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "AssetData.h"
 #include "ScopedTransaction.h"
 #include "BSPOps.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpData.h"
+#include "Engine/InteractiveFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 #include "AssetRegistryModule.h"
+
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
@@ -875,7 +885,7 @@ void UActorFactorySkeletalMesh::PostSpawnActor( UObject* Asset, AActor* NewActor
 	NewSMActor->SkeletalMeshComponent->RegisterComponent();
 	if( AnimBlueprint )
 	{
-		NewSMActor->SkeletalMeshComponent->SetAnimClass(AnimBlueprint->GeneratedClass);
+		NewSMActor->SkeletalMeshComponent->SetAnimInstanceClass(AnimBlueprint->GeneratedClass);
 	}
 }
 

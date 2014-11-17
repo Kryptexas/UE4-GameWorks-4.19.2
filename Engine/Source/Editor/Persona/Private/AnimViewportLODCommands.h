@@ -41,7 +41,7 @@ public:
 
 public:
 	/** Registers our commands with the binding system */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 
 

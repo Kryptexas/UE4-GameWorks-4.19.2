@@ -17,7 +17,7 @@ public:
 	/**
 	 * A delegate for when a property of a specific UProperty class is changed.  
 	 */
-	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass ) = 0;
+	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) = 0;
 
 	/**
 	 * A delegate for when object changes should be propagated to/from puppet actors

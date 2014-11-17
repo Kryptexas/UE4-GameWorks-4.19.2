@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "PhysicsPublic.h"
 #include "PhATEdSkeletalMeshComponent.generated.h"
 
 
@@ -47,7 +47,7 @@ class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent
 
 
 	/** UPrimitiveComponent interface */
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	
 	/** Renders non-hitproxy elements for the viewport, this function is called in the Game Thread */
 	virtual void Render(const FSceneView* View, class FPrimitiveDrawInterface* PDI);

@@ -1,15 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformProcess.cpp: Generic implementations of Process platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
+#include "../../Public/Modules/ModuleVersion.h"
+
 
 #if PLATFORM_HAS_BSD_TIME 
-#include <unistd.h> // for usleep
-#include <sched.h>  // for sched_yield
+	#include <unistd.h> // for usleep
+	#include <sched.h>  // for sched_yield
 #endif
+
 
 void* FGenericPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -28,10 +27,10 @@ void* FGenericPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 	return NULL;
 }
 
-FBinaryFileVersion FGenericPlatformProcess::GetBinaryFileVersion( const TCHAR* Filename )
+int32 FGenericPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FPlatformProcess::GetBinaryFileVersion not implemented on this platform"));
-	return FBinaryFileVersion(0, 0, 0, 0);
+	return MODULE_API_VERSION;
 }
 
 uint32 FGenericPlatformProcess::GetCurrentProcessId()
@@ -127,9 +126,15 @@ FString FGenericPlatformProcess::GenerateApplicationPath( const FString& AppName
 	return FString();
 }
 
+const TCHAR* FGenericPlatformProcess::GetModulePrefix()
+{
+	return TEXT("");
+}
+
 const TCHAR* FGenericPlatformProcess::GetModuleExtension()
 {
-	return TEXT("dll");
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::GetModuleExtension not implemented on this platform"));
+	return TEXT("");
 }
 
 const TCHAR* FGenericPlatformProcess::GetBinariesSubdirectory()
@@ -255,10 +260,10 @@ void FGenericPlatformProcess::SleepInfinite()
 
 DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_CPUStalls);
 
-bool FPThreadEvent::Wait(uint32 WaitTime)
+bool FPThreadEvent::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EventWait);
-	FThreadIdleStats::FScopeIdle Scope;
+	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 
 	check(bInitialized);
 
@@ -395,11 +400,6 @@ bool FGenericPlatformProcess::SupportsMultithreading()
 {
 	static bool bSupportsMultithreading = !FParse::Param(FCommandLine::Get(), TEXT("nothreading"));
 	return bSupportsMultithreading;
-}
-
-void FBinaryFileVersion::ToString(FString& OutString) const
-{
-	OutString = FString::Printf(TEXT("%d %d %d %d"), A, B, C, D);
 }
 
 FGenericPlatformProcess::FSemaphore::FSemaphore(const FString & InName)

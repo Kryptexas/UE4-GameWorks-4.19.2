@@ -82,6 +82,8 @@ struct FSelectedActorInfo
 	uint32 bAllSelectedStaticMeshesHaveCollisionModels:1;
 	/** true if a brush is in the selection */
 	uint32 bHaveBrush:1;
+	/** true if a volume brush is in the selection */
+	uint32 bHaveVolume:1;
 	/** true if a builder brush is in the selection */
 	uint32 bHaveBuilderBrush:1;
 	/** true if an actor in the selection has a static mesh component */
@@ -102,6 +104,10 @@ struct FSelectedActorInfo
 	uint32 bHaveHidden:1;
 	/** true if a landscape is in the selection */
 	uint32 bHaveLandscape:1;
+	/** true if an experimental actor (or actor containing such a component) is selected */
+	uint32 bHaveExperimentalClass:1;
+	/** true if an early access actor (or actor containing such a component) is selected */
+	uint32 bHaveEarlyAccessClass:1;
 
 	FSelectedActorInfo()
 		: SelectionClass(NULL)
@@ -109,11 +115,11 @@ struct FSelectedActorInfo
 		, SharedWorld(NULL)
 		, NumSelected(0)
 		, NumNavPoints(0)
+		, NumSelectedUngroupedActors(0)
+		, NumSimulationChanges(0)
 		, bHaveAttachedActor(false)
 		, bAllSelectedActorsOfSameType(true)
 		, bAllSelectedAreBrushes(false)
-		, NumSelectedUngroupedActors(0)
-		, NumSimulationChanges(0)
 		, bHaveSelectedLockedGroup(false)
 		, bHaveSelectedUnlockedGroup(false)
 		, bHaveSelectedSubGroup(false)
@@ -122,6 +128,7 @@ struct FSelectedActorInfo
 		, bAllSelectedActorsBelongToSameWorld(true)
 		, bAllSelectedStaticMeshesHaveCollisionModels(true)
 		, bHaveBrush(false)
+		, bHaveVolume(false)
 		, bHaveBuilderBrush(false)
 		, bHaveStaticMeshComponent(false)
 		, bHaveStaticMesh(false)
@@ -132,6 +139,8 @@ struct FSelectedActorInfo
 		, bHaveMatinee(false)
 		, bHaveHidden(false)
 		, bHaveLandscape(false)
+		, bHaveExperimentalClass(false)
+		, bHaveEarlyAccessClass(false)
 	{
 	}
 
@@ -140,7 +149,7 @@ struct FSelectedActorInfo
 	 */
 	bool HasConvertableAsset() const
 	{
-		return NumSelected && !bHaveBuilderBrush && !bHaveBrush;
+		return NumSelected && !bHaveBuilderBrush;
 	}
 
 };

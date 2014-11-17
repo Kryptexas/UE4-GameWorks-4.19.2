@@ -131,12 +131,19 @@ void UObjectBaseUtility::MarkPackageDirty() const
 			// It is against policy to dirty a map or package during load in the Editor, to enforce this policy
 			// we explicitly disable the ability to dirty a package or map during load.  Commandlets can still
 			// set the dirty state on load.
-			// We also prevent needless re-dirtying as this can be an expensive operation.
-			if( !Package->IsDirty() &&
-				(!GIsEditor || IsRunningCommandlet() || 
+			if( (!GIsEditor || IsRunningCommandlet() || 
 				(GIsEditor && !GIsEditorLoadingPackage)))
 			{
-				Package->SetDirtyFlag(true);
+				const bool bIsDirty = Package->IsDirty();
+
+				// We prevent needless re-dirtying as this can be an expensive operation.
+				if( !bIsDirty )
+				{
+					Package->SetDirtyFlag(true);
+				}
+
+				// Always call PackageMarkedDirtyEvent, even when the package is already dirty
+				Package->PackageMarkedDirtyEvent.Broadcast(Package, bIsDirty);
 			}
 		}
 	}

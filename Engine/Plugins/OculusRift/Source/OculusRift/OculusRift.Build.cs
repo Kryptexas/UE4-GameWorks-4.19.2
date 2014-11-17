@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -9,6 +9,9 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"OculusRift/Private",
+ 					"../../../Source/Runtime/Renderer/Private",
+// 					"../../../Runtime/Windows/D3D11RHI/Private",
+// 					"Runtime/OpenGLDrv/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -18,16 +21,25 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-                    "InputCore",
 					"Engine",
-					"HeadMountedDisplay"
+					"RHI",
+					"RenderCore",
+					"Renderer",
+					"ShaderCore",
+					"HeadMountedDisplay",
 				}
 				);
 
-            // Currently, the Rift is only supported on windows platforms
+            // Currently, the Rift is only supported on windows and mac platforms
             if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
             {
-				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVR" });
+				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVR", "OpenGLDrv" });
+
+                // Add direct rendering dependencies on a per-platform basis
+                if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+                {
+                    PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });
+                }
             }
 		}
 	}

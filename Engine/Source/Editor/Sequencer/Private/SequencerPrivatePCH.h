@@ -13,12 +13,14 @@
 #include "SequencerNodeTree.h"
 #include "SequencerDisplayNode.h"
 #include "ISectionLayoutBuilder.h"
+#include "SelectedKey.h"
 #include "ITimeSlider.h"
-#include "ISequencerInternals.h"
 #include "SSequencer.h"
 #include "SSection.h"
 #include "SSequencerTrackViewPanel.h"
 #include "SAnimationOutlinerView.h"
 #include "MovieSceneInstance.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogSequencer, Log, All);
 
 #endif // __SequencerPrivatePCH_h__

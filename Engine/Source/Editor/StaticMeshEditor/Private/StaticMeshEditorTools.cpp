@@ -358,6 +358,25 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<float>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0.0f)
+			.MaxValue(100.0f)
+			.Value(this, &FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged)
+		];
+	}
 		
 	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
@@ -425,6 +444,11 @@ TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleZ() const
 	return BuildSettings.BuildScale3D.Z;
 }
 
+float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
+{
+	return BuildSettings.DistanceFieldResolutionScale;
+}
+
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
 {
 	BuildSettings.bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
@@ -467,6 +491,11 @@ void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommi
 	{
 		BuildSettings.BuildScale3D.Z = NewScaleZ;
 	}
+}
+
+void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged(float NewValue)
+{
+	BuildSettings.DistanceFieldResolutionScale = NewValue;
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
@@ -803,6 +832,13 @@ void FMeshSectionSettingsLayout::GetMaterials(IMaterialListBuilder& ListBuilder)
 void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
+	UProperty* ChangedProperty = NULL;
+	ChangedProperty = FindField<UProperty>( UStaticMesh::StaticClass(), "Materials" );
+	check(ChangedProperty);
+	StaticMesh.PreEditChange(ChangedProperty);
+	
 	check(StaticMesh.RenderData);
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SlotIndex);
 	if (LODIndex == 0)
@@ -826,7 +862,7 @@ void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMateri
 			StaticMesh.Materials[Info.MaterialIndex] = NewMaterial;
 		}
 	}
-	CallPostEditChange();
+	CallPostEditChange(ChangedProperty);
 }
 
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
@@ -952,11 +988,19 @@ void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshSectionSettingsLayout::CallPostEditChange()
+void FMeshSectionSettingsLayout::CallPostEditChange(UProperty* PropertyChanged/*=nullptr*/)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
-	StaticMesh.Modify();
-	StaticMesh.PostEditChange();
+	if( PropertyChanged )
+	{
+		FPropertyChangedEvent PropertyUpdateStruct(PropertyChanged);
+		StaticMesh.PostEditChangeProperty(PropertyUpdateStruct);
+	}
+	else
+	{
+		StaticMesh.Modify();
+		StaticMesh.PostEditChange();
+	}
 	if(StaticMesh.BodySetup)
 	{
 		StaticMesh.BodySetup->CreatePhysicsMeshes();

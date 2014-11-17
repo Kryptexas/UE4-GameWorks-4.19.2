@@ -2,6 +2,12 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/IToolkitHost.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpGroupCamera.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackInst.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/MatineeActorCameraAnim.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCameraAnim, Log, All);
 

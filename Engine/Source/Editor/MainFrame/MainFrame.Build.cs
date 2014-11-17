@@ -20,6 +20,7 @@ public class MainFrame : ModuleRules
 				"CoreUObject",
 				"CrashTracker",
 				"Engine",
+				"EngineSettings",
                 "InputCore",
 				"RHI",
 				"ShaderCore",
@@ -29,11 +30,13 @@ public class MainFrame : ModuleRules
 				"SourceControl",
 				"SourceControlWindows",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"UnrealEd",
 				"WorkspaceMenuStructure",
 				"MessageLog",
 //				"SearchUI",
-				"TranslationEditor"
+				"TranslationEditor",
+				"Projects",
 			}
 		);
 
@@ -42,6 +45,7 @@ public class MainFrame : ModuleRules
 				"AssetTools",
 				"DesktopPlatform",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"LevelEditor",
 				"OutputLog",
 				"Settings",
@@ -63,10 +67,12 @@ public class MainFrame : ModuleRules
 				"DesktopPlatform",
                 "Documentation",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"LevelEditor",
 				"OutputLog",
                 "TranslationEditor",
 				"SourceCodeAccess",
+				"EditorLiveStreaming"
 			}
 		);
 	}

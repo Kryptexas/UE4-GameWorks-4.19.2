@@ -14,9 +14,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Android settings.
 		/// </summary>
+		[XmlConfig]
 		public static string AndroidArchitecture = "-armv7";
+		[XmlConfig]
 		public static string AndroidNdkApiTarget = "latest";
+		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
+
+        // this is to make sure we don't check the sdk all the time
+        static int HasSDK = -1;
+
 
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
@@ -30,25 +37,70 @@ namespace UnrealBuildTool
             return false;
         }
 
+        public override bool PlatformSupportsSDKSwitching()
+        {
+            return true;
+        }
+
+        public override string GetSDKTargetPlatformName()
+        {
+            return "Android";
+        }
+
+        public override string GetRequiredSDKString()
+        {
+            return "-19";
+        }
+
+        public override String GetRequiredScriptVersionString()
+        {
+            return "1.1";
+        }
+
+        /// <summary>
+        /// checks if the sdk is installed or has been synced
+        /// </summary>
+        /// <returns></returns>
+        private bool HasAnySDK()
+        {
+            if (base.HasRequiredSDKsInstalled() == SDKStatus.Valid)
+            {
+                return true;
+            }
+
+            string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+
+            // we don't have an NDKROOT specified
+            if (String.IsNullOrEmpty(NDKPath))
+            {
+                return false;
+            }
+
+            NDKPath = NDKPath.Replace("\"", "");
+
+            // can't find llvm-3.3 or llvm-3.1 in the toolchains
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+            {
+                return false;
+            }
+            return true;
+        }
+
+
 		public override SDKStatus HasRequiredSDKsInstalled()
 		{
-			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-
-			// we don't have an NDKROOT specified
-			if (String.IsNullOrEmpty(NDKPath))
-			{
-				return SDKStatus.Invalid;
-			}
-
-			NDKPath = NDKPath.Replace("\"", "");
-
-			// can't find llvm-3.3 or llvm-3.1 in the toolchains
-			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
-			{
-				return SDKStatus.Invalid;
-			}
-
-			return SDKStatus.Valid;
+            if (HasSDK == -1)
+            {
+                if (HasAnySDK())
+                {
+                    HasSDK = 1;
+                }
+                else
+                {
+                    HasSDK = 0;
+                }
+            }
+            return HasSDK == 1 ? SDKStatus.Valid : SDKStatus.Invalid;
 		}
 
 		public override void RegisterBuildPlatform()
@@ -95,11 +147,15 @@ namespace UnrealBuildTool
 					return ".so";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return "";
 		}
@@ -121,7 +177,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bBuildEditor = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileNetworkProfiler = false;
 
 			UEBuildConfiguration.bCompileRecast = true;
 
@@ -245,7 +300,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
-			if (InBuildTarget.GlobalCompileEnvironment.Config.TargetArchitecture == "-armv7")
+			if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-armv7")
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
 				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
@@ -262,6 +317,9 @@ namespace UnrealBuildTool
 			// link with Android libraries.
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/stlport/libs/armeabi-v7a");
 
+            // Add path to statically compiled version of cxa_demangle
+            InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("stdc++");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
@@ -273,6 +331,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("EGL");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("OpenSLES");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("android");
+			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("cxa_demangle");
 
 			UEBuildConfiguration.bCompileSimplygon = false;
 			BuildConfiguration.bDeployAfterCompile = true;
@@ -339,7 +398,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// generate the .apk!
 			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };

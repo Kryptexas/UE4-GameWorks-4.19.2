@@ -18,16 +18,20 @@
 	#include "RecastNavMeshGenerator.h"
 #endif // WITH_NAVIGATION_GENERATOR
 
+#include "AI/Navigation/NavLinkCustomInterface.h"
+#include "VisualLog.h"
+
+
 //----------------------------------------------------------------------//
 // bunch of compile-time checks to assure types used by Recast and our
 // mid-layer are the same size
 //----------------------------------------------------------------------//
-checkAtCompileTime(sizeof(NavNodeRef) == sizeof(dtPolyRef), NavNodeRef_and_dtPolyRef_should_be_same_size);
-checkAtCompileTime(RECAST_MAX_AREAS <= DT_MAX_AREAS, Number_of_allowed_areas_cannot_exceed_DT_MAX_AREAS);
-checkAtCompileTime(RECAST_STRAIGHTPATH_OFFMESH_CONNECTION == DT_STRAIGHTPATH_OFFMESH_CONNECTION, Path_flags_values_differ);
+static_assert(sizeof(NavNodeRef) == sizeof(dtPolyRef), "NavNodeRef and dtPolyRef should be the same size.");
+static_assert(RECAST_MAX_AREAS <= DT_MAX_AREAS, "Number of allowed areas cannot exceed DT_MAX_AREAS.");
+static_assert(RECAST_STRAIGHTPATH_OFFMESH_CONNECTION == DT_STRAIGHTPATH_OFFMESH_CONNECTION, "Path flags values differ.");
 // @todo ps4 compile issue: FLT_MAX constexpr issue
 #if !PLATFORM_PS4
-checkAtCompileTime(RECAST_UNWALKABLE_POLY_COST == DT_UNWALKABLE_POLY_COST, Unwalkable_poly_cost_differ);
+static_assert(RECAST_UNWALKABLE_POLY_COST == DT_UNWALKABLE_POLY_COST, "Unwalkable poly cost differ.");
 #endif
 
 /// Helper for accessing navigation query from different threads
@@ -119,6 +123,12 @@ ENavigationQueryResult::Type DTStatusToNavQueryResult(dtStatus Status)
 //----------------------------------------------------------------------//
 // FRecastQueryFilter();
 //----------------------------------------------------------------------//
+
+INavigationQueryFilterInterface* FRecastQueryFilter::CreateCopy() const 
+{
+	return new FRecastQueryFilter(*this);
+}
+
 void FRecastQueryFilter::Reset()
 {
 	dtQueryFilter* Filter = static_cast<dtQueryFilter*>(this);
@@ -205,8 +215,8 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 
 bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 {
-	USmartNavLinkComponent* LinkComp = NavSys ? NavSys->GetSmartLink(UserId) : NULL;
-	return LinkComp ? LinkComp->IsPathfindingAllowed(SearchOwner) : true;
+	INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
+	return CustomLink ? CustomLink->IsLinkPathfindingAllowed(SearchOwner) : true;
 }
 
 
@@ -619,6 +629,11 @@ void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh, bool bOwnData)
 
 	bOwnsNavMeshData = bOwnData;
 	DetourNavMesh = NavMesh;
+
+	if (NavMeshOwner)
+	{
+		NavMeshOwner->UpdateNavObject();
+	}
 }
 
 void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
@@ -903,9 +918,9 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	if (StartPoly == INVALID_NAVNODEREF)
 	{
 		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::InitPathfinding start point not on navmesh"));
-		UE_VLOG_SEGMENT(NavMeshOwner, UnrealStart, UnrealEnd, FColor::Red, TEXT("Failed path"));
-		UE_VLOG_LOCATION(NavMeshOwner, UnrealStart, 15, FColor::Red, TEXT("Start failed"));
-		UE_VLOG_BOX(NavMeshOwner, FBox(UnrealStart - NavExtent, UnrealStart + NavExtent), FColor::Red, TEXT_EMPTY);
+		UE_VLOG_SEGMENT(NavMeshOwner, LogNavigation, Warning, UnrealStart, UnrealEnd, FColor::Red, TEXT("Failed path"));
+		UE_VLOG_LOCATION(NavMeshOwner, LogNavigation, Warning, UnrealStart, 15, FColor::Red, TEXT("Start failed"));
+		UE_VLOG_BOX(NavMeshOwner, LogNavigation, Warning, FBox(UnrealStart - NavExtent, UnrealStart + NavExtent), FColor::Red, TEXT_EMPTY);
 
 		return false;
 	}
@@ -915,9 +930,9 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	if (EndPoly == INVALID_NAVNODEREF)
 	{
 		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::InitPathfinding end point not on navmesh"));
-		UE_VLOG_SEGMENT(NavMeshOwner, UnrealEnd, UnrealEnd, FColor::Red, TEXT("Failed path"));
-		UE_VLOG_LOCATION(NavMeshOwner, UnrealEnd, 15, FColor::Red, TEXT("End failed"));
-		UE_VLOG_BOX(NavMeshOwner, FBox(UnrealEnd - NavExtent, UnrealEnd + NavExtent), FColor::Red, TEXT_EMPTY);
+		UE_VLOG_SEGMENT(NavMeshOwner, LogNavigation, Warning, UnrealEnd, UnrealEnd, FColor::Red, TEXT("Failed path"));
+		UE_VLOG_LOCATION(NavMeshOwner, LogNavigation, Warning, UnrealEnd, 15, FColor::Red, TEXT("End failed"));
+		UE_VLOG_BOX(NavMeshOwner, LogNavigation, Warning, FBox(UnrealEnd - NavExtent, UnrealEnd + NavExtent), FColor::Red, TEXT_EMPTY);
 
 		return false;
 	}
@@ -1046,9 +1061,9 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 					if (CurNodeFlags.PathFlags & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
 					{
 						const dtOffMeshConnection* OffMeshCon = DetourNavMesh->getOffMeshConnectionByRef(CurVert->NodeRef);
-						if (OffMeshCon && OffMeshCon->userId)
+						if (OffMeshCon)
 						{
-							CurVert->SmartLink = NavSys->GetSmartLink(OffMeshCon->userId);
+							CurVert->CustomLinkId = OffMeshCon->userId;
 						}
 					}
 
@@ -1590,6 +1605,71 @@ uint32 FPImplRecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	return AreaID;
 }
 
+bool FPImplRecastNavMesh::GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const
+{
+	if (DetourNavMesh)
+	{
+		// get poly data from recast
+		dtPoly const* Poly;
+		dtMeshTile const* Tile;
+		dtStatus Status = DetourNavMesh->getTileAndPolyByRef((dtPolyRef)PolyID, &Tile, &Poly);
+		if (dtStatusSucceed(Status))
+		{
+			Flags = Poly->flags;
+			AreaType = Poly->getArea();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
+{
+	if (DetourNavMesh && PolyID)
+	{
+		uint32 SaltIdx = 0;
+		DetourNavMesh->decodePolyId(PolyID, SaltIdx, TileIndex, PolyIndex);
+		return true;
+	}
+
+	return false;
+}
+
+uint32 FPImplRecastNavMesh::GetLinkUserId(NavNodeRef LinkPolyID) const
+{
+	uint32 UserID = 0;
+	if (DetourNavMesh)
+	{
+		const dtOffMeshConnection* offmeshCon = DetourNavMesh->getOffMeshConnectionByRef(LinkPolyID);
+		if (offmeshCon)
+		{
+			UserID = offmeshCon->userId;
+		}
+	}
+
+	return UserID;
+}
+
+bool FPImplRecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const
+{
+	if (DetourNavMesh)
+	{
+		float RcPointA[3] = { 0 };
+		float RcPointB[3] = { 0 };
+		
+		dtStatus status = DetourNavMesh->getOffMeshConnectionPolyEndPoints(0, LinkPolyID, 0, RcPointA, RcPointB);
+		if (dtStatusSucceed(status))
+		{
+			PointA = Recast2UnrealPoint(RcPointA);
+			PointB = Recast2UnrealPoint(RcPointB);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const
 {
 	if (DetourNavMesh == NULL || !ClusterRef)
@@ -1647,7 +1727,7 @@ bool FPImplRecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBound
 	return NumPolys > 0;
 }
 
-FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const
+FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const
 {
 	const int32 CorridorLenght = PathCorridor->Num();
 
@@ -1663,7 +1743,7 @@ FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(TArray<NavNode
 	}
 }
 
-void FPImplRecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
+void FPImplRecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
 {
 	// sanity check
 	if (DetourNavMesh == NULL)

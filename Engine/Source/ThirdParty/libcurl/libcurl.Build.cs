@@ -9,18 +9,18 @@ public class libcurl : ModuleRules
 		Type = ModuleType.External;
 
 		Definitions.Add("WITH_LIBCURL=1");
-		string LibCurlPath = UEBuildConfiguration.UEThirdPartyDirectory + "libcurl/";
+		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";
 		if (Target.Platform == UnrealTargetPlatform.Linux)
         {
 			PublicIncludePaths.Add(LibCurlPath + "include");
-			PublicLibraryPaths.Add(LibCurlPath + "lib/Linux");
+			PublicLibraryPaths.Add(LibCurlPath + "lib/Linux/" + Target.Architecture);
             PublicAdditionalLibraries.Add("curl");
             PublicAdditionalLibraries.Add("crypto");
             PublicAdditionalLibraries.Add("ssl");
             PublicAdditionalLibraries.Add("dl");
         }
 		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
-				 Target.Platform == UnrealTargetPlatform.Win64)
+				 Target.Platform == UnrealTargetPlatform.Win64 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
 			PublicIncludePaths.Add(LibCurlPath + "include/Windows");
 

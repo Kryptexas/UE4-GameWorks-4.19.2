@@ -2,9 +2,9 @@
 
 
 #include "EnginePrivate.h"
-
-#include "SoundDefinitions.h"
 #include "AudioDecompress.h"
+#include "AudioDevice.h"
+#include "Sound/SoundWave.h"
 
 #if WITH_OGGVORBIS
 
@@ -178,8 +178,18 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 		vorbis_info* vi = ov_info( &VFWrapper->vf, -1 );
 		QualityInfo->SampleRate = vi->rate;
 		QualityInfo->NumChannels = vi->channels;
-		QualityInfo->SampleDataSize = ov_pcm_total( &VFWrapper->vf, -1 ) * QualityInfo->NumChannels * sizeof( int16 );
-		QualityInfo->Duration = ( float )ov_time_total( &VFWrapper->vf, -1 );
+		ogg_int64_t PCMTotal = ov_pcm_total( &VFWrapper->vf, -1 );
+		if (PCMTotal >= 0)
+		{
+			QualityInfo->SampleDataSize = PCMTotal * QualityInfo->NumChannels * sizeof( int16 );
+			QualityInfo->Duration = ( float )ov_time_total( &VFWrapper->vf, -1 );
+		}
+		else if (PCMTotal == OV_EINVAL)
+		{
+			// indicates an error or that the bitstream is non-seekable
+			QualityInfo->SampleDataSize = 0;
+			QualityInfo->Duration = 0.0f;
+		}
 	}
 
 	return( true );
@@ -191,7 +201,7 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
  */
 void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityInfo )
 {
-	uint32		BytesRead, TotalBytesRead, BytesToRead;
+	uint32		TotalBytesRead, BytesToRead;
 
 	check( VFWrapper != NULL );
 	check( DstBuffer );
@@ -204,7 +214,14 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
 	char* Destination = ( char* )DstBuffer;
 	while( TotalBytesRead < BytesToRead )
 	{
-		BytesRead = ov_read( &VFWrapper->vf, Destination, BytesToRead - TotalBytesRead, 0, 2, 1, NULL );
+		long BytesRead = ov_read( &VFWrapper->vf, Destination, BytesToRead - TotalBytesRead, 0, 2, 1, NULL );
+
+		if (BytesRead < 0)
+		{
+			// indicates an error - fill remainder of buffer with zero
+			FMemory::Memzero(Destination, BytesToRead - TotalBytesRead);
+			return;
+		}
 
 		TotalBytesRead += BytesRead;
 		Destination += BytesRead;
@@ -225,7 +242,7 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
 bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, uint32 BufferSize )
 {
 	bool		bLooped;
-	uint32		BytesRead, TotalBytesRead;
+	uint32		TotalBytesRead;
 
 	SCOPE_CYCLE_COUNTER( STAT_VorbisDecompressTime );
 
@@ -239,14 +256,20 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 
 	while( TotalBytesRead < BufferSize )
 	{
-		BytesRead = ov_read( &VFWrapper->vf, Destination, BufferSize - TotalBytesRead, 0, 2, 1, NULL );
+		long BytesRead = ov_read( &VFWrapper->vf, Destination, BufferSize - TotalBytesRead, 0, 2, 1, NULL );
 		if( !BytesRead )
 		{
 			// We've reached the end
 			bLooped = true;
 			if( bLooping )
 			{
-				ov_pcm_seek_page( &VFWrapper->vf, 0 );
+				int Result = ov_pcm_seek_page( &VFWrapper->vf, 0 );
+				if (Result < 0)
+				{
+					// indicates an error - fill remainder of buffer with zero
+					FMemory::Memzero(Destination, BufferSize - TotalBytesRead);
+					return true;
+				}
 			}
 			else
 			{
@@ -255,6 +278,12 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 
 				BytesRead += BufferSize - TotalBytesRead;
 			}
+		}
+		else if (BytesRead < 0)
+		{
+			// indicates an error - fill remainder of buffer with zero
+			FMemory::Memzero(Destination, BufferSize - TotalBytesRead);
+			return false;
 		}
 
 		TotalBytesRead += BytesRead;
@@ -393,7 +422,15 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 	SrcBufferOffset = 0;
 	CurrentSampleCount = 0;
 
-	// Read True Sample Count, Number of channels and Frames to Encode first
+	// Read Identifier, True Sample Count, Number of channels and Frames to Encode first
+	if (FCStringAnsi::Strcmp((char*)InSrcBufferData, OPUS_ID_STRING) != 0)
+	{
+		return false;
+	}
+	else
+	{
+		SrcBufferOffset += FCStringAnsi::Strlen(OPUS_ID_STRING) + 1;
+	}
 	Read(&TrueSampleCount, sizeof(uint32));
 	Read(&NumChannels, sizeof(uint8));
 	uint16 SerializedFrames = 0;
@@ -539,50 +576,60 @@ void FOpusAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qual
 /**
  * Worker for decompression on a separate thread
  */
+FAsyncAudioDecompressWorker::FAsyncAudioDecompressWorker(USoundWave* InWave)
+	: Wave(InWave)
+	, AudioInfo(NULL)
+{
+	if (GEngine && GEngine->GetAudioDevice())
+	{
+		AudioInfo = GEngine->GetAudioDevice()->CreateCompressedAudioInfo(Wave);
+	}
+}
+
 void FAsyncAudioDecompressWorker::DoWork( void )
 {
-	check(GEngine);
-	check(GEngine->GetAudioDevice());
-	ICompressedAudioInfo* AudioInfo = GEngine->GetAudioDevice()->CreateCompressedAudioInfo(Wave);
-	FSoundQualityInfo	QualityInfo = { 0 };
-
-	// Parse the audio header for the relevant information
-	if (AudioInfo->ReadCompressedInfo(Wave->ResourceData, Wave->ResourceSize, &QualityInfo))
+	if (AudioInfo)
 	{
+		FSoundQualityInfo	QualityInfo = { 0 };
+
+		// Parse the audio header for the relevant information
+		if (AudioInfo->ReadCompressedInfo(Wave->ResourceData, Wave->ResourceSize, &QualityInfo))
+		{
 
 #if PLATFORM_ANDROID
-		// Handle resampling
-		if (QualityInfo.SampleRate > 48000)
-		{
-			UE_LOG( LogAudio, Warning, TEXT("Resampling file %s from %d"), *(Wave->GetName()), QualityInfo.SampleRate);
-			UE_LOG( LogAudio, Warning, TEXT("  Size %d"), QualityInfo.SampleDataSize);
-			uint32 SampleCount = QualityInfo.SampleDataSize / (QualityInfo.NumChannels * sizeof(uint16));
-			QualityInfo.SampleRate = QualityInfo.SampleRate / 2;
-			SampleCount /= 2;
-			QualityInfo.SampleDataSize = SampleCount * QualityInfo.NumChannels * sizeof(uint16);
-			AudioInfo->EnableHalfRate(true);
-		}
+			// Handle resampling
+			if (QualityInfo.SampleRate > 48000)
+			{
+				UE_LOG( LogAudio, Warning, TEXT("Resampling file %s from %d"), *(Wave->GetName()), QualityInfo.SampleRate);
+				UE_LOG( LogAudio, Warning, TEXT("  Size %d"), QualityInfo.SampleDataSize);
+				uint32 SampleCount = QualityInfo.SampleDataSize / (QualityInfo.NumChannels * sizeof(uint16));
+				QualityInfo.SampleRate = QualityInfo.SampleRate / 2;
+				SampleCount /= 2;
+				QualityInfo.SampleDataSize = SampleCount * QualityInfo.NumChannels * sizeof(uint16);
+				AudioInfo->EnableHalfRate(true);
+			}
 #endif
-		// Extract the data
-		Wave->SampleRate = QualityInfo.SampleRate;
-		Wave->NumChannels = QualityInfo.NumChannels;
-		Wave->Duration = QualityInfo.Duration;
+			// Extract the data
+			Wave->SampleRate = QualityInfo.SampleRate;
+			Wave->NumChannels = QualityInfo.NumChannels;
+			Wave->Duration = QualityInfo.Duration;
 
-		Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
-		Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
+			Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
+			Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
 
-		// Decompress all the sample data into preallocated memory
-		AudioInfo->ExpandFile(Wave->RawPCMData, &QualityInfo);
+			// Decompress all the sample data into preallocated memory
+			AudioInfo->ExpandFile(Wave->RawPCMData, &QualityInfo);
 
-		const SIZE_T ResSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
-		INC_DWORD_STAT_BY( STAT_AudioMemorySize, ResSize );
-		INC_DWORD_STAT_BY( STAT_AudioMemory, ResSize );
+			const SIZE_T ResSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
+			INC_DWORD_STAT_BY( STAT_AudioMemorySize, ResSize );
+			INC_DWORD_STAT_BY( STAT_AudioMemory, ResSize );
+		}
+
+		// Delete the compressed data
+		Wave->RemoveAudioResource();
+
+		delete AudioInfo;
 	}
-
-	// Delete the compressed data
-	Wave->RemoveAudioResource();
-
-	delete AudioInfo;
 }
 
 // end

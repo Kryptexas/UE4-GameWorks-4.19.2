@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserContextMenu.h: Declares the SDeviceBrowserContextMenu class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,8 +22,8 @@ public:
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InUICommandList - The UI command list to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InUICommandList The UI command list to use.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedPtr<FUICommandList>& InUICommandList )
 	{

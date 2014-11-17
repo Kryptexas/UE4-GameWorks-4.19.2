@@ -10,6 +10,8 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
 
@@ -116,7 +118,7 @@ public:
 	/** 
 	 * @return ptr to the resource memory which has been preallocated
 	 */
-	virtual const void* GetResourceBulkData() const OVERRIDE
+	virtual const void* GetResourceBulkData() const override
 	{
 		check(BulkData != NULL);
 		return BulkData;
@@ -125,7 +127,7 @@ public:
 	/** 
 	 * @return size of resource memory
 	 */
-	virtual uint32 GetResourceBulkDataSize() const OVERRIDE
+	virtual uint32 GetResourceBulkDataSize() const override
 	{
 		check(BulkDataSize > 0);
 		return BulkDataSize;
@@ -134,7 +136,7 @@ public:
 	/**
 	 * Free memory after it has been used to initialize RHI resource 
 	 */
-	virtual void Discard() OVERRIDE
+	virtual void Discard() override
 	{
 	}
 
@@ -178,17 +180,18 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if (VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
+			FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 			VolumeTextureRHI = RHICreateTexture3D(
 				SizeX, SizeY, SizeZ, PF_FloatRGBA,
 				/*NumMips=*/ 1,
 				/*Flags=*/ TexCreate_ShaderResource,
-				/*BulkData=*/ &BulkDataInterface );
+				/*BulkData=*/ CreateInfo );
 			FMemory::Free(VolumeData);
 			VolumeData = NULL;
 		}
@@ -346,7 +349,7 @@ public:
 	 *	This function allows for generating renderer-side resources.
 	 *	Called in the rendering thread.
 	 */
-	virtual void CreateRenderThreadResources() OVERRIDE
+	virtual void CreateRenderThreadResources() override
 	{
 		VisualizationVertexFactory.InitResource();
 	}
@@ -354,7 +357,7 @@ public:
 	/**
 	 * Draws the bounding box for the vector field.
 	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{	
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_DrawDynamicElements );
 
@@ -370,7 +373,7 @@ public:
 	/**
 	 * Computes view relevance for this scene proxy.
 	 */
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View); 
@@ -382,7 +385,7 @@ public:
 	/**
 	 * Computes the memory footprint of this scene proxy.
 	 */
-	virtual uint32 GetMemoryFootprint() const OVERRIDE
+	virtual uint32 GetMemoryFootprint() const override
 	{
 		return sizeof(*this) + GetAllocatedSize();
 	}
@@ -601,7 +604,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << AtlasTexture;
@@ -620,38 +623,39 @@ public:
 	 * @param NoiseVolumeTextureRHI - The volume texture to use to add noise to the vector field.
 	 */
 	void SetParameters(
+		FRHICommandList& RHICmdList, 
 		const FCompositeAnimatedVectorFieldUniformBufferRef& UniformBuffer,
 		FTextureRHIParamRef AtlasTextureRHI,
 		FTextureRHIParamRef NoiseVolumeTextureRHI )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FCompositeAnimatedVectorFieldUniformParameters>(), UniformBuffer );
-		SetTextureParameter( ComputeShaderRHI, AtlasTexture, AtlasTextureSampler, SamplerStateLinear, AtlasTextureRHI );
-		SetTextureParameter( ComputeShaderRHI, NoiseVolumeTexture, NoiseVolumeTextureSampler, SamplerStateLinear, NoiseVolumeTextureRHI );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FCompositeAnimatedVectorFieldUniformParameters>(), UniformBuffer );
+		SetTextureParameter(RHICmdList, ComputeShaderRHI, AtlasTexture, AtlasTextureSampler, SamplerStateLinear, AtlasTextureRHI );
+		SetTextureParameter(RHICmdList, ComputeShaderRHI, NoiseVolumeTexture, NoiseVolumeTextureSampler, SamplerStateLinear, NoiseVolumeTextureRHI );
 	}
 
 	/**
 	 * Set output buffer for this shader.
 	 */
-	void SetOutput( FUnorderedAccessViewRHIParamRef VolumeTextureUAV )
+	void SetOutput(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef VolumeTextureUAV)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( OutVolumeTexture.IsBound() )
 		{
-			RHISetUAVParameter( ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), VolumeTextureUAV );
+			RHICmdList.SetUAVParameter(ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), VolumeTextureUAV);
 		}
 	}
 
 	/**
 	 * Unbinds any buffers that have been bound.
 	 */
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( OutVolumeTexture.IsBound() )
 		{
-			RHISetUAVParameter( ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter(ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
 		}
 	}
 
@@ -708,7 +712,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
@@ -723,12 +727,13 @@ public:
 				TexCreateFlags = TexCreate_ShaderResource | TexCreate_UAV;
 			}
 
+			FRHIResourceCreateInfo CreateInfo;
 			VolumeTextureRHI = RHICreateTexture3D(
 				SizeX, SizeY, SizeZ,
 				PF_FloatRGBA,
 				/*NumMips=*/ 1,
 				TexCreateFlags,
-				/*BulkData=*/ NULL );
+				CreateInfo);
 
 			if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
 			{
@@ -740,7 +745,7 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VolumeTextureUAV.SafeRelease();
 		FVectorFieldResource::ReleaseRHI();
@@ -750,7 +755,7 @@ public:
 	 * Updates the vector field.
 	 * @param DeltaSeconds - Elapsed time since the last update.
 	 */
-	virtual void Update(float DeltaSeconds)
+	virtual void Update(FRHICommandListImmediate& RHICmdList, float DeltaSeconds) override
 	{
 		check(IsInRenderingThread());
 
@@ -797,7 +802,7 @@ public:
 			Parameters.Op = (uint32)AnimatedVectorField->ConstructionOp;
 
 			FCompositeAnimatedVectorFieldUniformBufferRef UniformBuffer = 
-				FCompositeAnimatedVectorFieldUniformBufferRef::CreateUniformBufferImmediate(Parameters, UniformBuffer_SingleUse);
+				FCompositeAnimatedVectorFieldUniformBufferRef::CreateUniformBufferImmediate(Parameters, UniformBuffer_SingleDraw);
 
 			TShaderMapRef<FCompositeAnimatedVectorFieldCS> CompositeCS(GetGlobalShaderMap());
 			FTextureRHIParamRef NoiseVolumeTextureRHI = GBlackVolumeTexture->TextureRHI;
@@ -806,25 +811,28 @@ public:
 				NoiseVolumeTextureRHI = AnimatedVectorField->NoiseField->Resource->VolumeTextureRHI;
 			}
 
-			RHISetComputeShader(CompositeCS->GetComputeShader());
-			CompositeCS->SetOutput(VolumeTextureUAV);
+			RHICmdList.SetComputeShader(CompositeCS->GetComputeShader());
+			CompositeCS->SetOutput(RHICmdList, VolumeTextureUAV);
+			/// ?
 			CompositeCS->SetParameters(
+				RHICmdList,
 				UniformBuffer,
 				AnimatedVectorField->Texture->Resource->TextureRHI,
 				NoiseVolumeTextureRHI );
 			DispatchComputeShader(
+				RHICmdList,
 				*CompositeCS,
 				SizeX / THREADS_PER_AXIS,
 				SizeY / THREADS_PER_AXIS,
 				SizeZ / THREADS_PER_AXIS );
-			CompositeCS->UnbindBuffers();
+			CompositeCS->UnbindBuffers(RHICmdList);
 		}
 	}
 
 	/**
 	 * Resets the vector field simulation.
 	 */
-	virtual void ResetVectorField() OVERRIDE
+	virtual void ResetVectorField() override
 	{
 		FrameTime = 0.0f;
 	}

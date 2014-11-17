@@ -93,8 +93,7 @@ public:
 	{
 		return Text.Get();
 	}
-
-
+	
 	/**
 	 * Sets the text for this text block
 	 *
@@ -135,35 +134,70 @@ public:
 	 *
 	 * @param	InFont	The new font to use
 	 */
-	void SetFont( const TAttribute< FSlateFontInfo >& InFont )
-	{
-		Font = InFont;
-		bRequestCache = true;
-	}
+	void SetFont(const TAttribute< FSlateFontInfo >& InFont);
 
-	/** Set the color and opacity of the text */
-	void SetForegroundColor( const TAttribute<FSlateColor>& InSlateColor );
+	DEPRECATED(4.3, "SetForegroundColor is deprecated use SetColorAndOpacity instead.")
+	void SetForegroundColor(const TAttribute<FSlateColor>& InColorAndOpacity) { SetColorAndOpacity(InColorAndOpacity); }
+
+	/** See ColorAndOpacity attribute */
+	void SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity);
+
+	/** See TextStyle argument */
+	void SetTextStyle(const FTextBlockStyle* InTextStyle);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See ShadowOffset attribute */
+	void SetShadowOffset(const TAttribute<FVector2D>& InShadowOffset);
+
+	/** See ShadowColorAndOpacity attribute */
+	void SetShadowColorAndOpacity(const TAttribute<FLinearColor>& InShadowColorAndOpacity);
 
 	// SWidget interface
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual void CacheDesiredSize() OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual void CacheDesiredSize() override;
+	virtual FVector2D ComputeDesiredSize() const override;
 	// End of SWidget interface
 
 private:
 	/** Caches string size to avoid remeasuring if possible */
 	void CacheStringSizeIfNeeded();
 
+	/** Gets the current foreground color */
+	FSlateColor GetColorAndOpacity() const;
+
+	/** Gets the current font */
+	FSlateFontInfo GetFont() const;
+
+	/** Gets the current shadow offset */
+	FVector2D GetShadowOffset() const;
+
+	/** Gets the current shadow color and opacity */
+	FLinearColor GetShadowColorAndOpacity() const;
+
+	/** Gets the current highlight color */
+	FLinearColor GetHighlightColor() const;
+
+	/** Gets the current highlight shape */
+	const FSlateBrush* GetHighlightShape() const;
+
 private:
 	/** The text displayed in this text block */
 	TAttribute< FString > Text;
+
+	/** The style for the text block */
+	const FTextBlockStyle* TextStyle;
 
 	/** Sets the font used to draw the text */
 	TAttribute< FSlateFontInfo > Font;
 
 	/** Text color and opacity */
-	TAttribute<FSlateColor> ForegroundColor;
+	TAttribute<FSlateColor> ColorAndOpacity;
 
 	/** Drop shadow offset in pixels */
 	TAttribute< FVector2D > ShadowOffset;

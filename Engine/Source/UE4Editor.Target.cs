@@ -31,7 +31,7 @@ public class UE4EditorTarget : TargetRules
 			}
 			OutExtraModuleNames.Add("OnlineSubsystemFacebook");
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			OutExtraModuleNames.Add("OnlineSubsystemNull");
 			if (UEBuildConfiguration.bCompileSteamOSS == true)
@@ -74,7 +74,7 @@ public class UE4EditorTarget : TargetRules
         }
 
         NonCodeProjectNames.Add("ElementalDemo", DesktopPlats);
-        NonCodeProjectNames.Add("InfiltratorDemo", DesktopPlats);
+        //NonCodeProjectNames.Add("InfiltratorDemo", DesktopPlats);
         NonCodeProjectNames.Add("HoverShip", DesktopPlats);
         NonCodeProjectNames.Add("BlueprintOffice", DesktopPlats);
         NonCodeProjectNames.Add("ReflectionsSubway", DesktopPlats);
@@ -101,16 +101,18 @@ public class UE4EditorTarget : TargetRules
         }
         else
         {
-            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android };
+            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS };
         }
 
         NonCodeProjectNames.Add("BlackJack", MobilePlats);
         NonCodeProjectNames.Add("MemoryGame", MobilePlats);
-        NonCodeProjectNames.Add("TappyChicken", MobilePlats);
+		NonCodeProjectNames.Add("TappyChicken", MobilePlats);
         NonCodeProjectNames.Add("SwingNinja", MobilePlats);
         NonCodeProjectNames.Add("MobileTemple", MobilePlats);
+        NonCodeProjectNames.Add("AnimStarterPack", MobilePlats);
 
         NonCodeProjectNames.Add("StarterContent", MobilePlats);
+		NonCodeProjectNames.Add("TP_2DSideScrollerBP", MobilePlats);
         NonCodeProjectNames.Add("TP_FirstPersonBP", MobilePlats);
         NonCodeProjectNames.Add("TP_FlyingBP", MobilePlats);
         NonCodeProjectNames.Add("TP_RollingBP", MobilePlats);
@@ -121,16 +123,16 @@ public class UE4EditorTarget : TargetRules
 
         return NonCodeProjectNames;
     }
-    public override Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
+    public override Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
     {
-        var NonCodeProjectNames = new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
-        NonCodeProjectNames.Add("TappyChicken", 
-            new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>
+        var NonCodeProjectNames = new Dictionary<string, List<GUBPFormalBuild>>();
+        NonCodeProjectNames.Add("TappyChicken",
+            new List<GUBPFormalBuild>
             {
-                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping),
-                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test),
-                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Shipping),
-                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test)
+                    new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Shipping, true),
+                    new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test, true),                    
+                    new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping, true),
+                    new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, true),
             }
         );
         return NonCodeProjectNames;

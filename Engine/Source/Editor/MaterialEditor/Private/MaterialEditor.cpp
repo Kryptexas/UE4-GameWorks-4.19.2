@@ -1,9 +1,36 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
+
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Materials/MaterialExpressionFunctionInput.h"
+#include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionParticleSubUV.h"
+#include "Materials/MaterialExpressionRotateAboutAxis.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionTextureObject.h"
+#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
+#include "Materials/MaterialExpressionTextureSampleParameterCube.h"
+#include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
+#include "Materials/MaterialExpressionTransformPosition.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialFunction.h"
+
 #include "MaterialEditorActions.h"
 #include "MaterialExpressionClasses.h"
 #include "MaterialCompiler.h"
+#include "EditorSupportDelegates.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/EditorWidgets/Public/EditorWidgets.h"
 #include "AssetRegistryModule.h"
@@ -33,6 +60,7 @@
 #include "FindInMaterial.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -204,7 +232,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 		// Hack: serialize the new material with an archive that does nothing so that its material resources are created
 		Material->Serialize(DummyArchive);
 	}
-	Material->SetLightingModel(MLM_Unlit);
+	Material->SetShadingModel(MSM_Unlit);
 
 	// Propagate all object flags except for RF_Standalone, otherwise the preview material function won't GC once
 	// the material editor releases the reference.
@@ -1313,15 +1341,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	// Handle propagation of the material being edited
 	else
 	{
-		// we will unregister and register components to update materials so we have to notify NavigationSystem that this is "fake" operation and we don't have to update NavMesh
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->BeginFakeComponentChanges();
-			}
-		}
+		FNavigationLockContext NavUpdateLock;
 
 		// Create a material update context so we can safely update materials.
 		{
@@ -1396,14 +1416,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			// Leaving this scope will update all dependent material instances.
 		}
 		RebuildMaterialInstanceEditors(NULL);
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->EndFakeComponentChanges();
-			}
-		}
 	}
 
 	GWarn->EndSlowTask();
@@ -2443,7 +2455,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 {
 	UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(NewPreviewExpression);
 
-	if( PreviewExpression == NewPreviewExpression )
+	if( PreviewExpression == NewPreviewExpression || NULL == NewPreviewExpression )
 	{
 		if (FunctionOutput)
 		{
@@ -2537,12 +2549,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			check(!NewExpression->bIsParameterExpression);
 		}
 
-		// If the new expression is created connected to an input tab, offset it by this amount.
-		int32 NewConnectionOffset = 0;
-
 		// Set the expression location.
-		NewExpression->MaterialExpressionEditorX = NodePos.X + NewConnectionOffset;
-		NewExpression->MaterialExpressionEditorY = NodePos.Y + NewConnectionOffset;
+		NewExpression->MaterialExpressionEditorX = NodePos.X;
+		NewExpression->MaterialExpressionEditorY = NodePos.Y;
 
 		if (bAutoAssignResource)
 		{
@@ -2551,7 +2560,10 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			if( METextureBase )
 			{
 				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				METextureBase->Texture = GEditor->GetSelectedObjects()->GetTop<UTexture>();
+				if( UTexture* SelectedTexture = GEditor->GetSelectedObjects()->GetTop<UTexture>() )
+				{
+					METextureBase->Texture = SelectedTexture;
+				}
 				METextureBase->AutoSetSampleType();
 			}
 
@@ -2587,7 +2599,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		NewExpression->UpdateParameterGuid(true, true);
 
 		UMaterialExpressionTextureSampleParameter* TextureParameterExpression = Cast<UMaterialExpressionTextureSampleParameter>( NewExpression );
-		if( TextureParameterExpression )
+		if( (TextureParameterExpression != nullptr) && TextureParameterExpression->CanRenameNode() )
 		{
 			// Change the parameter's name on creation to mirror the object's name; this avoids issues of having colliding parameter
 			// names and having the name left as "None"
@@ -2619,7 +2631,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			Material->Expressions.Add( WorldPositionExpression );
 			WorldPositionExpression->Material = Material;
 			RotateAboutAxisExpression->Position.Expression = WorldPositionExpression;
-			WorldPositionExpression->MaterialExpressionEditorX = RotateAboutAxisExpression->MaterialExpressionEditorX + 250;
+			WorldPositionExpression->MaterialExpressionEditorX = RotateAboutAxisExpression->MaterialExpressionEditorX - 250;
 			WorldPositionExpression->MaterialExpressionEditorY = RotateAboutAxisExpression->MaterialExpressionEditorY + 73;
 			Material->MaterialGraph->AddExpression(WorldPositionExpression);
 			if ( bAutoSelect )
@@ -3116,13 +3128,6 @@ void FMaterialEditor::UndoGraphAction()
 	{
 		Material->BuildEditorParameterList();
 	}
-
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
 }
 
 void FMaterialEditor::RedoGraphAction()
@@ -3138,26 +3143,23 @@ void FMaterialEditor::RedoGraphAction()
 		Material->BuildEditorParameterList();
 	}
 
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
 }
 
 void FMaterialEditor::PostUndo(bool bSuccess)
 {
-	GraphEditor->ClearSelectionSet();
+	if (bSuccess)
+	{	
+		GraphEditor->ClearSelectionSet();
+		
+		Material->BuildEditorParameterList();
 
-	Material->BuildEditorParameterList();
+		// Update the current preview material.
+		UpdatePreviewMaterial();
 
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
+		RefreshExpressionPreviews();
+		GraphEditor->NotifyGraphChanged();
+		SetMaterialDirty();
+	}
 }
 
 void FMaterialEditor::NotifyPreChange(UProperty* PropertyAboutToChange)
@@ -3506,7 +3508,7 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		.Appearance(AppearanceInfo)
 		.GraphToEdit(Material->MaterialGraph)
 		.GraphEvents(InEvents)
-		.ShowPIENotification(false);
+		.ShowGraphStateOverlay(false);
 }
 
 void FMaterialEditor::CleanUnusedExpressions()
@@ -3530,6 +3532,11 @@ void FMaterialEditor::CleanUnusedExpressions()
 				UMaterialExpression* MaterialExpression = GraphNode->MaterialExpression;
 
 				FBlueprintEditorUtils::RemoveNode(NULL, GraphNode, true);
+
+				if (PreviewExpression == MaterialExpression)
+				{
+					SetPreviewExpression(NULL);
+				}
 
 				MaterialExpression->Modify();
 				Material->Expressions.Remove(MaterialExpression);

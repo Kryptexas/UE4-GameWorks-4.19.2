@@ -10,7 +10,7 @@ namespace FActorEditorUtils
 #if WITH_EDITOR
 		if ( InActor && InActor->GetWorld() && !InActor->HasAnyFlags(RF_ClassDefaultObject) )
 		{
-			return InActor->GetLevel()->GetBrush() == InActor;
+			return InActor->GetLevel()->GetDefaultBrush() == InActor;
 		}
 #endif
 		return false;

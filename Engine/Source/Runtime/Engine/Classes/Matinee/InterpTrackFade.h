@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Matinee/InterpTrackFloatBase.h"
 #include "InterpTrackFade.generated.h"
 
 UCLASS(meta=( DisplayName = "Fade Track" ) )
@@ -20,11 +21,11 @@ class UInterpTrackFade : public UInterpTrackFloatBase
 
 
 	// Begin UInterpTrack interface.
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
+	virtual class UTexture2D* GetTrackIcon() const override;
 	// End UInterpTrack interface.
 
 	/** @return the amount of fading we want at the given time. */

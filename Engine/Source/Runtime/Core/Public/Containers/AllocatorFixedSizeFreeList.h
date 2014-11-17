@@ -41,7 +41,7 @@ public:
 		,NumLive(0)
 	{
 		// need enough memory to store pointers for the free list
-		checkAtCompileTime(AllocationSize >= sizeof(FreeListNode), AllocationSizeMustBeLargeEnoughToHoldPointer); 
+		static_assert(AllocationSize >= sizeof(FreeListNode), "Allocation size must be large enough to hold pointer.");
 
 		// warm the cache
 		Grow(InitialBlockSize);

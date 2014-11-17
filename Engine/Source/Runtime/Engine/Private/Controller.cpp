@@ -7,7 +7,13 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
-#include "NavigationPathBuilder.h"
+#include "NetworkingDistanceConstants.h"
+#include "VisualLog.h"
+#include "GameFramework/Character.h"
+
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "Navigation/PathFollowingComponent.h"
+#include "Navigation/NavigationComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
 
@@ -144,7 +150,7 @@ void AController::GetPlayerViewPoint( FVector& out_Location, FRotator& out_Rotat
 	GetActorEyesViewPoint( out_Location, out_Rotation);
 }
 
-bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks)
+bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks) const
 {
 	if( !Other )
 	{
@@ -536,6 +542,11 @@ void AController::GetMoveGoalReachTest(class AActor* MovingActor, const FVector&
 	{
 		Pawn->GetMoveGoalReachTest(MovingActor, MoveOffset, GoalOffset, GoalRadius, GoalHalfHeight); 
 	}
+}
+
+bool AController::ShouldPostponePathUpdates() const
+{
+	return Pawn ? Pawn->ShouldPostponePathUpdates() : false;
 }
 
 void AController::UpdateNavigationComponents()

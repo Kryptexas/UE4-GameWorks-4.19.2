@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_CallFunction.h"
 #include "K2Node_CallParentFunction.generated.h"
 
 UCLASS(MinimalAPI)
@@ -10,13 +11,12 @@ class UK2Node_CallParentFunction : public UK2Node_CallFunction
 	GENERATED_UCLASS_BODY()
 
 	// Begin EdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual void PostPlacedNewNode() override;
 	// End EdGraphNode interface
 
-	virtual void SetFromFunction(const UFunction* Function) OVERRIDE;
+	virtual void SetFromFunction(const UFunction* Function) override;
 };
 

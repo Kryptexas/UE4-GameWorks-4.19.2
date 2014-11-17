@@ -117,7 +117,7 @@ struct FAsyncPackage : public FGCObject
 	 * 
 	 * @param Ar The archive to serialize with
 	 */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Linker );
 	}

@@ -29,8 +29,8 @@ public:
 	const struct FAtmospherePrecomputeParameters* PrecomputeParams;
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI();
-	virtual void ReleaseDynamicRHI();
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// Final result
 	TRefCountPtr<IPooledRenderTarget> AtmosphereTransmittance;

@@ -307,6 +307,7 @@ namespace DeploymentServer
                     ReportIF.Warning(String.Format("Device '{0}' is a {1} model, which does not support OpenGL ES2.0.  The installation is likely to fail.", DeviceName, GetPrettyDeviceType(DeviceType)));
                 }
 
+				Console.WriteLine("Device '{0}' with id {1} is being checked against {2}.", Device.DeviceName, Device.DeviceId, DeviceId);
 				if (String.IsNullOrEmpty(DeviceId) || Device.DeviceId == DeviceId)
 				{
 					ReportIF.Log(String.Format("Transferring IPA to device '{0}' ... ", DeviceName));

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageDeserializeTask.h: Declares the FMessageDeserializeTask class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,6 +14,7 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * InMessageTypeInfo The message's type information (may be nullptr if the type information hasn't been discovered yet).
+	 *
 	 * @param InSerializer The serializer to use.
 	 * @param InThread The name of the thread to deserialize the message on.
 	 */

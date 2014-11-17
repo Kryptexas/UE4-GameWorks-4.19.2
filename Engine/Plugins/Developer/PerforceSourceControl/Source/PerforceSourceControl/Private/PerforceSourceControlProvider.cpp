@@ -178,11 +178,7 @@ ECommandResult::Type FPerforceSourceControlProvider::GetState( const TArray<FStr
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	if(InStateCacheUsage == EStateCacheUsage::ForceUpdate)
 	{
@@ -226,11 +222,7 @@ ECommandResult::Type FPerforceSourceControlProvider::Execute( const TSharedRef<I
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	// Query to see if the we allow this operation
 	TSharedPtr<IPerforceSourceControlWorker, ESPMode::ThreadSafe> Worker = CreateWorker(InOperation->GetName());
@@ -410,10 +402,12 @@ TArray< TSharedRef<ISourceControlLabel> > FPerforceSourceControlProvider::GetLab
 	return Labels;
 }
 
+#if SOURCE_CONTROL_WITH_SLATE
 TSharedRef<class SWidget> FPerforceSourceControlProvider::MakeSettingsWidget() const
 {
 	return SNew(SPerforceSourceControlSettings);
 }
+#endif
 
 TSharedPtr<IPerforceSourceControlWorker, ESPMode::ThreadSafe> FPerforceSourceControlProvider::CreateWorker(const FName& InOperationName) const
 {

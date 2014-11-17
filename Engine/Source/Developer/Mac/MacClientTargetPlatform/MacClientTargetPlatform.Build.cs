@@ -9,7 +9,8 @@ public class MacClientTargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

@@ -31,17 +31,17 @@ public:
 	/** 
 	 * Malloc
 	 */
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE;
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override;
 	
 	/** 
 	 * Realloc
 	 */
-	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE;
+	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override;
 	
 	/** 
 	 * Free
 	 */
-	virtual void Free( void* Ptr ) OVERRIDE;
+	virtual void Free( void* Ptr ) override;
 
 	/**
 	 * If possible determine the size of the memory allocated at the given address
@@ -50,17 +50,17 @@ public:
 	 * @param SizeOut - If possible, this value is set to the size of the passed in pointer
 	 * @return true if succeeded
 	 */
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE;
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override;
 
 	/**
 	 * Returns if the allocator is guaranteed to be thread-safe and therefore
 	 * doesn't need a unnecessary thread-safety wrapper around it.
 	 */
-	virtual bool IsInternallyThreadSafe() const OVERRIDE
+	virtual bool IsInternallyThreadSafe() const override
 	{ 
 		return true;
 	}
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("TBB"); }
+	virtual const TCHAR * GetDescriptiveName() override { return TEXT("TBB"); }
 };
 

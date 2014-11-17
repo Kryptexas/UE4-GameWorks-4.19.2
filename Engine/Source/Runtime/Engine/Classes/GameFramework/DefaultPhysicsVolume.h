@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/PhysicsVolume.h"
 #include "DefaultPhysicsVolume.generated.h"
 
 UCLASS(notplaceable, transient, MinimalAPI)
@@ -14,7 +15,7 @@ class ADefaultPhysicsVolume : public APhysicsVolume
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor interface
-	virtual void Destroyed() OVERRIDE;
+	virtual void Destroyed() override;
 	// End AActor interface
 };
 

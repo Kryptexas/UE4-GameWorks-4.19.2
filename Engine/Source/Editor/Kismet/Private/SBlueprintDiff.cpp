@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
-#include "UnrealEd.h"
 #include "BlueprintUtilities.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "BlueprintEditorCommands.h"
 #include "BlueprintEditor.h"
 #include "SBlueprintDiff.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "AssetRegistryModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "GraphEditor.h"
 #include "SGraphTitleBar.h"
 #include "GraphDiffControl.h"
@@ -129,7 +124,7 @@ public:
 	TSharedPtr<FUICommandInfo> Next;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 
 void FDiffListCommands::RegisterCommands()
@@ -271,7 +266,7 @@ FText FListItemGraphToDiff::GetToolTip()
 void FListItemGraphToDiff::BuildDiffSourceArray()
 {
 	TArray<FDiffSingleResult> FoundDiffs;
-	FGraphDiffControl::DiffGraphs(GraphNew, GraphOld, FoundDiffs);
+	FGraphDiffControl::DiffGraphs(GraphOld, GraphNew, FoundDiffs);
 
 	DiffListSource.Empty();
 	for (auto DiffIt(FoundDiffs.CreateIterator()); DiffIt; ++DiffIt)
@@ -333,7 +328,7 @@ void FListItemGraphToDiff::KeyWasPressed( const FKeyboardEvent& InKeyboardEvent 
 }
 
 
-SBlueprintDiff::FDiffPanel::FDiffPanel()
+FDiffPanel::FDiffPanel()
 {
 	Blueprint = NULL;
 }
@@ -397,14 +392,6 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 			CreateGraphEntry(NULL,GraphNew);
 		}
 	}
-	auto DefaultEmptyPanel = SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
-		];
 
 	this->ChildSlot
 		[	
@@ -481,24 +468,7 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 								+SSplitter::Slot()
 								.Value(0.7f)
 								[
-									SNew(SVerticalBox)
-									+SVerticalBox::Slot()
-									.AutoHeight()
-									[
-										//open in p4dif tool
-										SNew(SButton)
-										.OnClicked(this, &SBlueprintDiff::OnOpenInDefaults)
-										.Content()
-										[
-											SNew(STextBlock)
-											.Text(LOCTEXT("DifBlueprintDefaultsToolTip", "Diff Blueprint Defaults"))
-										]
-									]
-									+SVerticalBox::Slot()
-									.FillHeight(1.f)
-									[
-										SAssignNew(DiffListBorder, SBorder)
-									]
+									GenerateToolbar()
 								]
 							]
 						]
@@ -509,28 +479,8 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 							+SHorizontalBox::Slot()
 							.FillWidth(1.f)
 							[
-								//dif window
-								SNew(SSplitter)
-								+SSplitter::Slot()
-								.Value(0.5f)
-								[
-									//left blueprint
-									SAssignNew(PanelOld.GraphEditorBorder, SBorder)
-									.VAlign(VAlign_Fill)
-									[
-										DefaultEmptyPanel
-									]
-								]
-								+SSplitter::Slot()
-								.Value(0.5f)
-								[
-									//right blueprint
-									SAssignNew(PanelNew.GraphEditorBorder, SBorder)
-									.VAlign(VAlign_Fill)
-									[
-										DefaultEmptyPanel
-									]
-								]
+								//diff window
+								GenerateDiffWindow()
 							]
 						]
 					]
@@ -577,8 +527,7 @@ void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
 	DisablePinDiffFocus();
-	PanelOld.GeneratePanel(GraphOld,GraphNew);
-	PanelNew.GeneratePanel(GraphNew, GraphOld);
+	HandleGraphChanged( GraphOld->GetName() );
 
 	ResetGraphEditors();
 
@@ -648,13 +597,13 @@ void SBlueprintDiff::ResetGraphEditors()
 		}
 		else
 		{
-			PanelOld.GraphEditor.Pin()->LockToGraphEditor(TWeakPtr<SGraphEditor>());
-			PanelNew.GraphEditor.Pin()->LockToGraphEditor(TWeakPtr<SGraphEditor>());
+			PanelOld.GraphEditor.Pin()->UnlockFromGraphEditor(PanelNew.GraphEditor);
+			PanelNew.GraphEditor.Pin()->UnlockFromGraphEditor(PanelOld.GraphEditor);
 		}	
 	}
 }
 
-void SBlueprintDiff::FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
+void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
 {
 	TSharedPtr<SWidget> Widget = SNew(SBorder)
 								.HAlign(HAlign_Center)
@@ -699,7 +648,7 @@ void SBlueprintDiff::FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphT
 	GraphEditorBorder->SetContent(Widget.ToSharedRef());
 }
 
-FGraphPanelSelectionSet SBlueprintDiff::FDiffPanel::GetSelectedNodes() const
+FGraphPanelSelectionSet FDiffPanel::GetSelectedNodes() const
 {
 	FGraphPanelSelectionSet CurrentSelection;
 	TSharedPtr<SGraphEditor> FocusedGraphEd = GraphEditor.Pin();
@@ -710,7 +659,7 @@ FGraphPanelSelectionSet SBlueprintDiff::FDiffPanel::GetSelectedNodes() const
 	return CurrentSelection;
 }
 
-void SBlueprintDiff::FDiffPanel::CopySelectedNodes()
+void FDiffPanel::CopySelectedNodes()
 {
 	// Export the selected nodes and place the text on the clipboard
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
@@ -721,7 +670,7 @@ void SBlueprintDiff::FDiffPanel::CopySelectedNodes()
 }
 
 
-FString SBlueprintDiff::FDiffPanel::GetTitle() const
+FString FDiffPanel::GetTitle() const
 {
 	FString Title = LOCTEXT("CurrentRevision", "Current Revision").ToString();
 
@@ -753,7 +702,7 @@ FString SBlueprintDiff::FDiffPanel::GetTitle() const
 	return Title;
 }
 
-bool SBlueprintDiff::FDiffPanel::CanCopyNodes() const
+bool FDiffPanel::CanCopyNodes() const
 {
 	// If any of the nodes can be duplicated then we should allow copying
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
@@ -786,6 +735,86 @@ SGraphEditor* SBlueprintDiff::GetGraphEditorForGraph( UEdGraph* Graph ) const
 	}
 	checkNoEntry();
 	return NULL;
+}
+
+TSharedRef<SWidget> SBlueprintDiff::DefaultEmptyPanel()
+{
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
+		];
+}
+
+TSharedRef<SWidget> SBlueprintDiff::GenerateDiffWindow()
+{
+	return SNew(SSplitter)
+		+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			//left blueprint
+			SAssignNew(PanelOld.GraphEditorBorder, SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				DefaultEmptyPanel()
+			]
+		]
+	+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			//right blueprint
+			SAssignNew(PanelNew.GraphEditorBorder, SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				DefaultEmptyPanel()
+			]
+		];
+}
+
+TSharedRef<SWidget> SBlueprintDiff::GenerateToolbar()
+{
+	return SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			//open in p4dif tool
+			SNew(SButton)
+			.OnClicked(this, &SBlueprintDiff::OnOpenInDefaults)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("DifBlueprintDefaultsToolTip", "Diff Blueprint Defaults"))
+			]
+		]
+		+SVerticalBox::Slot()
+		.FillHeight(1.f)
+		[
+			SAssignNew(DiffListBorder, SBorder)
+		];
+}
+
+void SBlueprintDiff::HandleGraphChanged( const FString& GraphName )
+{
+	TArray<UEdGraph*> GraphsOld, GraphsNew;
+	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
+	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
+
+	UEdGraph* GraphOld = NULL;
+	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchName(GraphName)) )
+	{
+		GraphOld = *Iter;
+	}
+	UEdGraph* GraphNew = NULL;
+	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchName(GraphName)))
+	{
+		GraphNew = *Iter;
+	}
+
+	PanelOld.GeneratePanel(GraphOld, GraphNew);
+	PanelNew.GeneratePanel(GraphNew, GraphOld);
 }
 
 FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) 

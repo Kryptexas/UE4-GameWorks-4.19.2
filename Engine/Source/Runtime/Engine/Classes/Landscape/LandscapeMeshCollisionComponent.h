@@ -2,7 +2,17 @@
 
 
 #pragma once
+
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMeshCollisionComponent.generated.h"
+
+#if WITH_PHYSX
+namespace physx
+{
+	class PxMaterial;
+	class PxTriangleMesh;
+}
+#endif // WITH_PHYSX
 
 UCLASS()
 class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent
@@ -21,10 +31,10 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 
 #if WITH_PHYSX
 		/** List of PxMaterials used on this landscape */
-		TArray<class physx::PxMaterial*>	UsedPhysicalMaterialArray;
-		class physx::PxTriangleMesh*		RBTriangleMesh;
+		TArray<physx::PxMaterial*>	UsedPhysicalMaterialArray;
+		physx::PxTriangleMesh*		RBTriangleMesh;
 #if WITH_EDITOR
-		class physx::PxTriangleMesh*		RBTriangleMeshEd; // Used only by landscape editor, does not have holes in it
+		physx::PxTriangleMesh*		RBTriangleMeshEd; // Used only by landscape editor, does not have holes in it
 #endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 
@@ -56,32 +66,32 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	TRefCountPtr<struct FPhysXMeshRef>			MeshRef;
 
 	// Begin UActorComponent interface.
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void CreatePhysicsState() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void DestroyComponent() OVERRIDE;
+	virtual void DestroyComponent() override;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	//End UPrimitiveComponent interface
 
 	// Begin UObject Interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
 #if WITH_EDITOR
-	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
-	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 
-	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const OVERRIDE;
+	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const override;
 #endif
 	// End UObject Interface.
 
 	// Begin ULandscapeHeightfieldCollisionComponent Interface
-	virtual void CreateCollisionObject() OVERRIDE;
-	virtual void RecreateCollision(bool bUpdateAddCollision = true) OVERRIDE;
+	virtual void CreateCollisionObject() override;
+	virtual void RecreateCollision(bool bUpdateAddCollision = true) override;
 	// End ULandscapeHeightfieldCollisionComponent Interface
 };
 

@@ -291,17 +291,16 @@ bool FAssetDeleteModel::GoToNextReferenceInLevel() const
 
 	UWorld* RepresentingWorld = NULL;
 
-	const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-	for ( int32 WorldIndex=0; WorldIndex < WorldContexts.Num(); ++WorldIndex )
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
-		if ( WorldContexts[WorldIndex].WorldType == EWorldType::PIE )
+		if ( Context.WorldType == EWorldType::PIE )
 		{
-			RepresentingWorld = WorldContexts[WorldIndex].World();
+			RepresentingWorld = Context.World();
 			break;
 		}
-		else if ( WorldContexts[WorldIndex].WorldType == EWorldType::Editor )
+		else if ( Context.WorldType == EWorldType::Editor )
 		{
-			RepresentingWorld = WorldContexts[WorldIndex].World();
+			RepresentingWorld = Context.World();
 		}
 	}
 
@@ -412,12 +411,12 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 //-----------------------------------------------------------------
 
 FPendingDelete::FPendingDelete(UObject* InObject)
-	: Object(InObject)
+	: RemainingDiskReferences(0)
+	, RemainingMemoryReferences(0)
+	, Object(InObject)
 	, bReferencesChecked(false)
 	, bIsReferencedInMemory(false)
 	, bIsReferencedInMemoryByUndo(false)
-	, RemainingDiskReferences(0)
-	, RemainingMemoryReferences(0)
 	, bIsInternal(false)
 {
 	// Blueprints actually contain 3 assets, the UBlueprint, GeneratedClass and SkeletonGeneratedClass

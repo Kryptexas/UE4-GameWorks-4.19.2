@@ -2,6 +2,10 @@
 
 
 #include "LevelEditor.h"
+#include "Matinee/MatineeActor.h"
+#include "Engine/LevelScriptBlueprint.h"
+#include "LightingBuildOptions.h"
+#include "EditorSupportDelegates.h"
 #include "SLevelEditor.h"
 #include "LevelEditorActions.h"
 #include "SLevelViewport.h"
@@ -38,6 +42,7 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "ReferenceViewer.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
@@ -165,7 +170,7 @@ void FLevelEditorActionCallbacks::NewLevel()
 
 bool FLevelEditorActionCallbacks::NewLevel_CanExecute()
 {
-	return FSlateApplication::Get().IsNormalExecution() && !GEditorModeTools().IsTracking();
+	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
 }
 
 void FLevelEditorActionCallbacks::OpenLevel()
@@ -175,7 +180,92 @@ void FLevelEditorActionCallbacks::OpenLevel()
 
 bool FLevelEditorActionCallbacks::OpenLevel_CanExecute()
 {
-	return FSlateApplication::Get().IsNormalExecution() && !GEditorModeTools().IsTracking();
+	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
+}
+
+FAssetPickerConfig FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig()
+{
+	FAssetPickerConfig AssetPickerConfig;
+	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+	AssetPickerConfig.bAllowDragging = false;
+	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
+	if (CurrentWorld)
+	{
+		AssetPickerConfig.InitialAssetSelection = FAssetData(CurrentWorld);
+	}
+
+	return AssetPickerConfig;
+}
+
+void FLevelEditorActionCallbacks::OpenLevelPickingDialog()
+{
+	const FVector2D AssetPickerSize(600.0f, 586.0f);
+
+	FMenuBuilder MenuBuilder(false, NULL);
+
+	// Create the contents of the popup
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+	FAssetPickerConfig AssetPickerConfig = CreateLevelAssetPickerConfig();
+	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
+	TSharedRef<SWidget> ActualWidget = 
+		SNew(SBox)
+		.HeightOverride(AssetPickerSize.X)
+		.WidthOverride(AssetPickerSize.Y)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+
+	// Wrap the picker widget in a multibox-style menu body
+	MenuBuilder.BeginSection("AssetPickerOpenLevel", NSLOCTEXT("OpenLevelDialog", "WindowTitle", "Open Level"));
+	{
+		const bool bNoIndent = true;
+		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), bNoIndent);
+	}
+	MenuBuilder.EndSection();
+
+	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
+
+	// Determine where the pop-up should open
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
+	if (ParentWindow.IsValid())
+	{
+		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
+		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
+		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
+
+		// Open the pop-up
+		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
+		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
+	}
+}
+
+void FLevelEditorActionCallbacks::OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
+{
+	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
+	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
+	{
+		const FAssetData& AssetData = SelectedAssets[0];
+		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
+		{
+			// Close the menu that we were picking from
+			FSlateApplication::Get().DismissAllMenus();
+
+			// If there are any unsaved changes to the current level, see if the user wants to save those first.
+			bool bPromptUserToSave = true;
+			bool bSaveMapPackages = true;
+			bool bSaveContentPackages = true;
+			if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
+			{
+				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
+				const bool bLoadAsTemplate = false;
+				const bool bShowProgress = true;
+				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
+			}
+		}
+	}
 }
 
 void FLevelEditorActionCallbacks::DeltaTransform()
@@ -445,7 +535,14 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// Here be dragons...
+	// try iterating over all worlds here
+	for (TObjectIterator<UWorld> It; It; ++It)
+	{
+		UWorld* World = *It;
+		World->ChangeFeatureLevel(InPreviewFeatureLevel);
+	}
+	
+	UWorld::ForceFeatureLevelUpdate(InPreviewFeatureLevel);
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -859,12 +956,12 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
 	// Ask the module manager for a list of currently-loaded gameplay modules
-	TArray< FModuleManager::FModuleStatus > ModuleStatuses;
+	TArray< FModuleStatus > ModuleStatuses;
 	FModuleManager::Get().QueryModules( ModuleStatuses );
 
 	for( auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt )
 	{
-		const FModuleManager::FModuleStatus& ModuleStatus = *ModuleStatusIt;
+		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
 
 		// We only care about game modules that are currently loaded
 		if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
@@ -895,12 +992,12 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 		TArray< FString > GameModuleNames;
 		{
 			// Ask the module manager for a list of currently-loaded gameplay modules
-			TArray< FModuleManager::FModuleStatus > ModuleStatuses;
+			TArray< FModuleStatus > ModuleStatuses;
 			FModuleManager::Get().QueryModules( ModuleStatuses );
 
-			for( TArray< FModuleManager::FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
+			for( TArray< FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
 			{
-				const FModuleManager::FModuleStatus& ModuleStatus = *ModuleStatusIt;
+				const FModuleStatus& ModuleStatus = *ModuleStatusIt;
 
 				// We only care about game modules that are currently loaded
 				if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
@@ -973,6 +1070,38 @@ void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 void FLevelEditorActionCallbacks::FindInContentBrowser_Clicked()
 {
 	GEditor->SyncToContentBrowser();
+}
+
+void FLevelEditorActionCallbacks::ViewReferences_Execute()
+{
+	if( GEditor->GetSelectedActorCount() > 0 )
+	{
+		TArray< UObject* > ReferencedAssets;
+		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets );
+
+		if (ReferencedAssets.Num() > 0)
+		{
+			TArray< FName > ViewableObjects;
+			for( auto ObjectIter = ReferencedAssets.CreateConstIterator(); ObjectIter; ++ObjectIter )
+			{
+				// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
+				const auto EditingObject = *ObjectIter;
+				if( EditingObject != NULL && EditingObject->IsAsset() )
+				{
+					ViewableObjects.Add( EditingObject->GetOuter()->GetFName());
+				}
+			}
+
+			IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableObjects);
+		}
+	}
+}
+
+bool FLevelEditorActionCallbacks::CanViewReferences()
+{
+	TArray< UObject* > ReferencedAssets;
+	GEditor->GetReferencedAssetsForEditorSelection(ReferencedAssets);
+	return ReferencedAssets.Num() > 0;
 }
 
 void FLevelEditorActionCallbacks::EditAsset_Clicked( const EToolkitMode::Type ToolkitMode, TWeakPtr< SLevelEditor > LevelEditor, bool bConfirmMultiple )
@@ -1085,9 +1214,14 @@ void FLevelEditorActionCallbacks::AddActor_Clicked( UActorFactory* ActorFactory,
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.FocusViewport();
 
+		// Make sure we're in actor placement mode
+		GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Placement);
+
 		TArray<UObject*> AssetsToPlace;
 		AssetsToPlace.Add(Object);
-		IPlacementModeModule::Get().GetPlacementMode()->StartPlacing(AssetsToPlace, ActorFactory);
+
+		auto* PlacementMode = GLevelEditorModeTools().GetActiveModeTyped<IPlacementMode>(FBuiltinEditorModes::EM_Placement);
+		PlacementMode->StartPlacing(AssetsToPlace, ActorFactory);
 	}
 	else
 	{
@@ -1222,7 +1356,7 @@ void FLevelEditorActionCallbacks::ReplaceActorsFromClass_Clicked( UClass* ActorC
 bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDuplicate();
@@ -1241,7 +1375,7 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 bool FLevelEditorActionCallbacks::Delete_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDelete();
@@ -1274,7 +1408,7 @@ bool FLevelEditorActionCallbacks::Rename_CanExecute()
 bool FLevelEditorActionCallbacks::Cut_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditCut();
@@ -1293,7 +1427,7 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 bool FLevelEditorActionCallbacks::Copy_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditCopy();
@@ -1312,7 +1446,7 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 bool FLevelEditorActionCallbacks::Paste_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditPaste();
@@ -1358,9 +1492,9 @@ void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToS
 
 void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor * Actor )
 {
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 		if ( InterpEditMode && InterpEditMode->MatineeActor )
 		{
@@ -1873,13 +2007,13 @@ void FLevelEditorActionCallbacks::OnShowOnlySelectedActors()
 
 void FLevelEditorActionCallbacks::OnToggleTransformWidgetVisibility()
 {
-	GEditorModeTools().SetShowWidget( !GEditorModeTools().GetShowWidget() );
+	GLevelEditorModeTools().SetShowWidget( !GLevelEditorModeTools().GetShowWidget() );
 	GUnrealEd->RedrawAllViewports();
 }
 
 bool FLevelEditorActionCallbacks::OnGetTransformWidgetVisibility()
 {
-	return GEditorModeTools().GetShowWidget();
+	return GLevelEditorModeTools().GetShowWidget();
 }
 
 void FLevelEditorActionCallbacks::OnAllowTranslucentSelection()
@@ -1935,6 +2069,7 @@ void FLevelEditorActionCallbacks::OnToggleOnlyLoadVisibleInPIE()
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->bOnlyLoadVisibleLevelsInPIE = !PlaySettings->bOnlyLoadVisibleLevelsInPIE;
 	PlaySettings->PostEditChange();
+	PlaySettings->SaveConfig();
 }
 
 bool FLevelEditorActionCallbacks::OnIsOnlyLoadVisibleInPIEEnabled()
@@ -2107,17 +2242,17 @@ void FLevelEditorActionCallbacks::SetActorSnapSetting(float Distance)
 
 void FLevelEditorActionCallbacks::OnToggleHideViewportUI()
 {
-	GEditorModeTools().SetHideViewportUI( !GEditorModeTools().IsViewportUIHidden() );
+	GLevelEditorModeTools().SetHideViewportUI( !GLevelEditorModeTools().IsViewportUIHidden() );
 }
 
 bool FLevelEditorActionCallbacks::IsViewportUIHidden()
 {
-	return GEditorModeTools().IsViewportUIHidden();
+	return GLevelEditorModeTools().IsViewportUIHidden();
 }
 
 bool FLevelEditorActionCallbacks::IsEditorModeActive( FEditorModeID EditorMode )
 {
-	return GEditorModeTools().IsModeActive( EditorMode );
+	return GLevelEditorModeTools().IsModeActive( EditorMode );
 }
 
 void FLevelEditorActionCallbacks::OnAddVolume( UClass* VolumeClass )
@@ -2174,21 +2309,21 @@ void FLevelEditorActionCallbacks::SelectActorsInLayers()
 
 void FLevelEditorActionCallbacks::SetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	if( !GEditorModeTools().IsTracking() )
+	if( !GLevelEditorModeTools().IsTracking() )
 	{
-		GEditorModeTools().SetWidgetMode( WidgetMode );
+		GLevelEditorModeTools().SetWidgetMode( WidgetMode );
 		GEditor->RedrawAllViewports();
 	}
 }
 
 bool FLevelEditorActionCallbacks::IsWidgetModeActive( FWidget::EWidgetMode WidgetMode )
 {
-	return GEditorModeTools().GetWidgetMode() == WidgetMode;
+	return GLevelEditorModeTools().GetWidgetMode() == WidgetMode;
 }
 
 bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	return GEditorModeTools().GetShowWidget() == true;
+	return GLevelEditorModeTools().GetShowWidget() == true;
 }
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
@@ -2198,12 +2333,12 @@ bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
 
 void FLevelEditorActionCallbacks::SetCoordinateSystem( ECoordSystem CoordinateSystem )
 {
-	GEditorModeTools().SetCoordSystem( CoordinateSystem );
+	GLevelEditorModeTools().SetCoordSystem( CoordinateSystem );
 }
 
 bool FLevelEditorActionCallbacks::IsCoordinateSystemActive( ECoordSystem CoordinateSystem )
 {
-	return GEditorModeTools().GetCoordSystem() == CoordinateSystem;
+	return GLevelEditorModeTools().GetCoordSystem() == CoordinateSystem;
 }
 
 void FLevelEditorActionCallbacks::MoveActorToGrid_Clicked( bool InAlign, bool bInPerActor )
@@ -2393,63 +2528,66 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 	}
 	
 	check(World)
-	
-	// Now get the builder brush.
-	UModel* builderModel = World->GetBrush()->Brush;
-
-	// Need the transform between builder brush space and static mesh actor space.
-	const FMatrix BrushL2W = World->GetBrush()->ActorToWorld().ToMatrixWithScale();
-	const FMatrix MeshW2L = MeshToWorld.Inverse();
-	const FMatrix SMToBB = BrushL2W * MeshW2L;
-	const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
-
-	// Copy the current builder brush into a temp model.
-	// We keep no reference to this, so it will be GC'd at some point.
-	UModel* TempModel = new UModel(FPostConstructInitializeProperties(),NULL,1);
-	TempModel->Polys->Element.AssignButKeepOwner(builderModel->Polys->Element);
-
-	// Now transform each poly into local space for the selected static mesh.
-	for(int32 i=0; i<TempModel->Polys->Element.Num(); i++)
+	ABrush* BuildBrush = World->GetDefaultBrush();
+	if(BuildBrush != nullptr)
 	{
-		FPoly* Poly = &TempModel->Polys->Element[i];
+		// Now get the builder brush.
+		UModel* BuilderModel = BuildBrush->Brush;
 
-		for(int32 j=0; j<Poly->Vertices.Num(); j++ )
+		// Need the transform between builder brush space and static mesh actor space.
+		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
+		const FMatrix MeshW2L = MeshToWorld.Inverse();
+		const FMatrix SMToBB = BrushL2W * MeshW2L;
+		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
+
+		// Copy the current builder brush into a temp model.
+		// We keep no reference to this, so it will be GC'd at some point.
+		UModel* TempModel = new UModel(FPostConstructInitializeProperties(), NULL, 1);
+		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
+
+		// Now transform each poly into local space for the selected static mesh.
+		for (int32 i = 0; i < TempModel->Polys->Element.Num(); i++)
 		{
-			Poly->Vertices[j]  = SMToBB.TransformPosition(Poly->Vertices[j]);
+			FPoly* Poly = &TempModel->Polys->Element[i];
+
+			for (int32 j = 0; j < Poly->Vertices.Num(); j++)
+			{
+				Poly->Vertices[j] = SMToBB.TransformPosition(Poly->Vertices[j]);
+			}
+
+			Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
+			Poly->Normal.Normalize(); // SmToBB might have scaling in it.
 		}
 
-		Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
-		Poly->Normal.Normalize(); // SmToBB might have scaling in it.
+		// Build bounding box.
+		TempModel->BuildBound();
+
+		// Build BSP for the brush.
+		FBSPOps::bspBuild(TempModel, FBSPOps::BSP_Good, 15, 70, 1, 0);
+		FBSPOps::bspRefresh(TempModel, 1);
+		FBSPOps::bspBuildBounds(TempModel);
+
+
+		// Now - use this as the Rigid Body collision for this static mesh as well.
+
+		// Make sure rendering is done - so we are not changing data being used by collision drawing.
+		FlushRenderingCommands();
+
+		// If we already have a BodySetup - clear it.
+		if (StaticMesh->BodySetup)
+		{
+			StaticMesh->BodySetup->RemoveSimpleCollision();
+		}
+		// If we don't already have physics props, construct them here.
+		else
+		{
+			StaticMesh->CreateBodySetup();
+		}
+
+		// Convert collision model into a collection of convex hulls.
+		// NB: This removes any convex hulls that were already part of the collision data.
+		StaticMesh->BodySetup->CreateFromModel(TempModel, true);
 	}
-
-	// Build bounding box.
-	TempModel->BuildBound();
-
-	// Build BSP for the brush.
-	FBSPOps::bspBuild(TempModel,FBSPOps::BSP_Good,15,70,1,0);
-	FBSPOps::bspRefresh(TempModel,1);
-	FBSPOps::bspBuildBounds(TempModel);
-
-	// Now - use this as the Rigid Body collision for this static mesh as well.
-
-	// Make sure rendering is done - so we are not changing data being used by collision drawing.
-	FlushRenderingCommands();
-
-	// If we already have a BodySetup - clear it.
-	if( StaticMesh->BodySetup )
-	{
-		StaticMesh->BodySetup->RemoveSimpleCollision();
-	}
-	// If we don't already have physics props, construct them here.
-	else
-	{
-		StaticMesh->CreateBodySetup();
-	}
-
-	// Convert collision model into a collection of convex hulls.
-	// NB: This removes any convex hulls that were already part of the collision data.
-	StaticMesh->BodySetup->CreateFromModel(TempModel, true);
-
 	// refresh collision change back to staticmesh components
 	RefreshCollisionChange(StaticMesh);
 
@@ -2482,7 +2620,15 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::N ) );
-	UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	{
+		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
+		UI_COMMAND( LegacyOpenLevel, "Open Other Level...", "Loads an existing level using the file explorer", EUserInterfaceActionType::Button, FInputGesture() );
+	}
+	else
+	{
+		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
+	}
 	UI_COMMAND( Save, "Save", "Saves the current level to disk", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SaveAs, "Save As...", "Save the current level as...", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift|EModifierKey::Control, EKeys::S ) );
 	UI_COMMAND( SaveAllLevels, "Save All Levels", "Saves all unsaved levels to disk", EUserInterfaceActionType::Button, FInputGesture() );
@@ -2641,7 +2787,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LockGroup, "Lock", "Locks the selected groups", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( UnlockGroup, "Unlock", "Unlocks the selected groups", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( MergeActors, "Create Mesh Proxy...", "Harvest geometry from selected actors and merge them into single mesh", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( MergeActorsByMaterials, "Merge Actors", "Harvest geometry from selected actors and merge grouping them by materials", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( MergeActorsByMaterials, "Merge Actors...", "Harvest geometry from selected actors and merge grouping them by materials", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::H ) );
 	UI_COMMAND( ShowSelectedOnly, "Show Only Selected", "Shows only the selected actors", EUserInterfaceActionType::Button, FInputGesture() );

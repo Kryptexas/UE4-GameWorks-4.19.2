@@ -400,6 +400,38 @@ public:
 		return *this;
 	}
 
+	FORCEINLINE FString& Append(const FString& Text)
+	{
+		*this += Text;
+		return *this;
+	}
+
+	FString& Append(const TCHAR* Text, int32 Count)
+	{
+		CheckInvariants();
+
+		if (Count != 0)
+		{
+			// position to insert the character.  
+			// At the end of the string if we have existing characters, otherwise at the 0 position
+			int32 InsertIndex = (Data.Num() > 0) ? Data.Num() - 1 : 0;
+
+			// number of characters to add.  If we don't have any existing characters, 
+			// we'll need to append the terminating zero as well.
+			int32 FinalCount = (Data.Num() > 0) ? Count : Count + 1;
+
+			Data.AddUninitialized(FinalCount);
+
+			for (int32 Index = 0; Index < Count; Index++)
+			{
+				Data[InsertIndex + Index] = Text[Index];
+			}
+
+			Data[Data.Num() - 1] = 0;
+		}
+		return *this;
+	}
+
 	/**
 	 * Removes characters within the string.
 	 *
@@ -410,6 +442,30 @@ public:
 	FORCEINLINE void RemoveAt(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
 	{
 		Data.RemoveAt(Index, Count, bAllowShrinking);
+	}
+
+	FORCEINLINE void InsertAt(int32 Index, TCHAR Character)
+	{
+		if (Data.Num() == 0)
+		{
+			*this += Character;
+		}
+		else
+		{
+			Data.Insert(Character, Index);
+		}
+	}
+
+	FORCEINLINE void InsertAt(int32 Index, const FString& Characters)
+	{
+		if (Data.Num() == 0)
+		{
+			*this += Characters;
+		}
+		else
+		{
+			Data.Insert(Characters.Data, Index);
+		}
 	}
 
 	/**
@@ -1033,7 +1089,14 @@ public:
 	/** @return true if the string only contains numeric characters */
 	bool IsNumeric() const;
 	
-	//@todo document
+	/**
+	 * Constructs FString object similarly to how classic sprintf works.
+	 *
+	 * @param Format	Format string that specifies how FString should be built optionally using additional args. Refer to standard printf format.
+	 * @param ...		Depending on format function may require additional arguments to build output object.
+	 *
+	 * @returns FString object that was constructed using format and additional parameters.
+	 */
 	VARARG_DECL( static FString, static FString, return, Printf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
 
 	// @return string with Ch character
@@ -1357,6 +1420,59 @@ inline FString BytesToHex(const uint8* In, int32 Count)
 	return Result;
 }
 
+/**
+ * Checks if the TChar is a valid hex character
+ * @param Char		The character
+ * @return	True if in 0-9 and A-F ranges
+ */
+inline const bool CheckTCharIsHex( const TCHAR Char )
+{
+	return ( Char >= TEXT('0') && Char <= TEXT('9') ) || ( Char >= TEXT('A') && Char <= TEXT('F') ) || ( Char >= TEXT('a') && Char <= TEXT('f') );
+}
+
+/**
+ * Convert a TChar to equivalent hex value as a uint8
+ * @param Char		The character
+ * @return	The uint8 value of a hex character
+ */
+inline const uint8 TCharToNibble( const TCHAR Char )
+{
+	check( CheckTCharIsHex( Char ) );
+	if( Char >= TEXT('0') && Char <= TEXT('9') )
+	{
+		return Char - TEXT('0');
+	}
+	else if( Char >= TEXT('A') && Char <= TEXT('F') )
+	{
+		return ( Char - TEXT('A') ) + 10;
+	}
+	return ( Char - TEXT('a') ) + 10;
+}
+
+/** 
+ * Convert FString of Hex digits into the byte array.
+ * @param HexString		The FString of Hex values
+ * @param OutBytes		Ptr to memory must be preallocated large enough
+ * @return	The number of bytes copied
+ */
+inline int32 HexToBytes( const FString& HexString, uint8* OutBytes )
+{
+	int32 NumBytes = 0;
+	const bool bPaddNibble = ( HexString.Len() % 2 ) == 1;
+	const TCHAR* CharPos = *HexString;
+	if( bPaddNibble )
+	{
+		OutBytes[ NumBytes++ ] = TCharToNibble( *CharPos++ );
+	}
+	while( *CharPos )
+	{
+		OutBytes[ NumBytes ] = TCharToNibble( *CharPos++ ) << 4;
+		OutBytes[ NumBytes ] += TCharToNibble( *CharPos++ );
+		++NumBytes;
+	}
+	return NumBytes - 1;
+}
+
 /** A little helper to avoid trying to compile a printf with types that are not accepted by printf **/
 
 template<typename T, bool TIsNumeric>
@@ -1534,7 +1650,7 @@ public:
 	{
 		bAutoEmitLineTerminator = false;
 	}
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		*this += (TCHAR*)InData;
 		if(bAutoEmitLineTerminator)
@@ -1604,7 +1720,7 @@ public:
 	,	LineCount(0)
 	{}
 
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		Super::Serialize(InData, Verbosity, Category);
 		int32 TermLength = FCString::Strlen(LINE_TERMINATOR);
@@ -1675,4 +1791,3 @@ public:
 
 #endif
 };
-

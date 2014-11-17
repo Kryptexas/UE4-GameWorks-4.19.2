@@ -4,6 +4,10 @@
 #include "EnginePrivate.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeRender.h"
+#include "Landscape/LandscapeGizmoActiveActor.h"
+#include "Landscape/LandscapeGizmoRenderComponent.h"
+#include "Landscape/Landscape.h"
+#include "DynamicMeshBuilder.h"
 
 namespace
 {

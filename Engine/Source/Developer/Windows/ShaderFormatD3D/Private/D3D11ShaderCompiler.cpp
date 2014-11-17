@@ -2,6 +2,8 @@
 
 #include "ShaderFormatD3D.h"
 #include "ShaderPreprocessor.h"
+#include "ShaderCompilerCommon.h"
+#include "D3D11ShaderResources.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 
@@ -202,29 +204,22 @@ static FString D3D11CreateShaderCompileCommandLine(
 }
 
 /** Creates a batch file string to call the AMD shader analyzer. */
-static FString CreateAMDShaderAnalyzerCommandLine(
+static FString CreateAMDCodeXLCommandLine(
 	const FString& ShaderPath, 
 	const TCHAR* EntryFunction, 
-	const TCHAR* ShaderProfile
+	const TCHAR* ShaderProfile,
+	uint32 DXFlags
 	)
 {
 	// Hardcoded to the default install path since there's no Env variable or addition to PATH
-	FString CommandlineBegin = FString(TEXT("\"C:\\Program Files (x86)\\AMD\\GPU ShaderAnalyzer\\GPUShaderAnalyzer.exe\" ")) 
-		+ ShaderPath
-		+ TEXT(" -Function ")
-		+ EntryFunction;
-
-	FString CommandlineEnd = FString(TEXT(" -Profile "))
-		+ ShaderProfile
-		// Latest version of GPUShaderAnalyzer (1.59) doesn't support 7970 yet =(
-		+ TEXT(" -ASIC HD6970\r\n");
-
-	FString Commandline;
-
-	// Call GPUShaderAnalyzer to generate microcode
-	Commandline += CommandlineBegin + TEXT(" -Disassemble") + CommandlineEnd;
-	// Call GPUShaderAnalyzer to analyze 
-	Commandline += CommandlineBegin + TEXT(" -Analyze") + CommandlineEnd;
+	FString Commandline = FString(TEXT("\"C:\\Program Files (x86)\\AMD\\CodeXL\\CodeXLAnalyzer.exe\" -c Pitcairn")) 
+		+ TEXT(" -f ") + EntryFunction
+		+ TEXT(" -s HLSL")
+		+ TEXT(" -p ") + ShaderProfile
+		+ TEXT(" -a AnalyzerStats.csv")
+		+ TEXT(" --isa ISA.txt")
+		+ *FString::Printf(TEXT(" --DXFlags %u "), DXFlags)
+		+ ShaderPath;
 
 	// add a pause on a newline
 	Commandline += FString(TEXT(" \r\n pause"));
@@ -460,7 +455,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
 
-			const FString BatchFileContents2 = CreateAMDShaderAnalyzerCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile);
+			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
 		}
 
@@ -470,13 +465,8 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		{
 			Output.bSucceeded = true;
 
-			uint32 NumShaderBytes = Shader->GetBufferSize();
-			Output.Code.Empty(NumShaderBytes);
-			Output.Code.AddUninitialized(NumShaderBytes);
-			FMemory::Memcpy(Output.Code.GetTypedData(),Shader->GetBufferPointer(),NumShaderBytes);
-
 			ID3D11ShaderReflection* Reflector = NULL;
-			Result = D3DReflect(Output.Code.GetData(),Output.Code.Num(),IID_ID3D11ShaderReflection, (void**) &Reflector);
+			Result = D3DReflect( Shader->GetBufferPointer(), Shader->GetBufferSize(), IID_ID3D11ShaderReflection, (void**) &Reflector );
 			if(FAILED(Result))
 			{
 				UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DReflect failed: Result=%08x"),Result);
@@ -488,6 +478,9 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 			bool bGlobalUniformBufferUsed = false;
 			uint32 NumSamplers = 0;
+
+			TBitArray<> UsedUniformBufferSlots;
+			UsedUniformBufferSlots.Init(false,32);
 
 			if (Input.Target.Frequency == SF_Vertex)
 			{
@@ -515,14 +508,10 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 					ID3D11ShaderReflectionConstantBuffer* ConstantBuffer = Reflector->GetConstantBufferByName(BindDesc.Name);
 					D3D11_SHADER_BUFFER_DESC CBDesc;
 					ConstantBuffer->GetDesc(&CBDesc);
+					bool bGlobalCB = (FCStringAnsi::Strcmp(CBDesc.Name, "$Globals") == 0);
 
-#if 0
-					if (CBDesc.Size > GConstantBufferSizes[CBIndex])
+					if (bGlobalCB)
 					{
-						UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("Set GConstantBufferSizes[%d] to >= %d"), CBIndex, CBDesc.Size);
-					}
-#endif
-
 					// Track all of the variables in this constant buffer.
 					for (uint32 ConstantIndex = 0; ConstantIndex < CBDesc.Variables; ConstantIndex++)
 					{
@@ -531,10 +520,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 						Variable->GetDesc(&VariableDesc);
 						if (VariableDesc.uFlags & D3D10_SVF_USED)
 						{
-							if (FCStringAnsi::Strcmp(CBDesc.Name, "$Globals") == 0)
-							{
 								bGlobalUniformBufferUsed = true;
-							}
 
 							Output.ParameterMap.AddParameterAllocation(
 								ANSI_TO_TCHAR(VariableDesc.Name),
@@ -542,7 +528,20 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 								VariableDesc.StartOffset,
 								VariableDesc.Size
 								);
+								UsedUniformBufferSlots[CBIndex] = true;
 						}
+					}
+				}
+					else
+					{
+						// Track just the constant buffer itself.
+						Output.ParameterMap.AddParameterAllocation(
+							ANSI_TO_TCHAR(CBDesc.Name),
+							CBIndex,
+							0,
+							0
+							);
+						UsedUniformBufferSlots[CBIndex] = true;
 					}
 				}
 				else if (BindDesc.Type == D3D10_SIT_TEXTURE || BindDesc.Type == D3D10_SIT_SAMPLER)
@@ -604,9 +603,6 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 						 BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
 						 BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
 				{
-					// in D3D11 UAVs for PS are bound with the SetRenderTarget call, so we don't want error messages that the shader is not setting those
-					if(Input.Target.Frequency == SF_Compute)
-					{
 						TCHAR OfficialName[1024];
 						FCString::Strcpy(OfficialName, ANSI_TO_TCHAR(BindDesc.Name));
 
@@ -617,7 +613,6 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 							1
 							);
 					}
-				}
 				else if (BindDesc.Type == D3D11_SIT_STRUCTURED || BindDesc.Type == D3D11_SIT_BYTEADDRESS)
 				{
 					TCHAR OfficialName[1024];
@@ -635,10 +630,10 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			// Strip shader reflection
 			D3D_SHADER_DATA ShaderData;
 			ShaderData.pBytecode = Shader->GetBufferPointer();
-			ShaderData.BytecodeLength = NumShaderBytes;
+			ShaderData.BytecodeLength = Shader->GetBufferSize();
 			TRefCountPtr<ID3DBlob> CompressedData;
 			Result = D3DStripShader(Shader->GetBufferPointer(),
-				NumShaderBytes,
+				Shader->GetBufferSize(),
 				D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO | D3DCOMPILER_STRIP_TEST_BLOBS,
 				CompressedData.GetInitReference());
 
@@ -647,16 +642,34 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DStripShader failed: Result=%08x"),Result);
 			}
 
-			// Copy stripped data
-			NumShaderBytes = CompressedData->GetBufferSize();
-			Output.Code.Empty(NumShaderBytes + 1);
+			// Build the SRT for this shader.
+			FD3D11ShaderResourceTable SRT;
+			{
+				// Build the generic SRT for this shader.
+				FShaderResourceTable GenericSRT;
+				BuildResourceTableMapping(Input.Environment.ResourceTableMap, Input.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, Output.ParameterMap, GenericSRT);
 
-			// Allocate room for the bytecode and bGlobalUniformBufferUsed
-			Output.Code.AddUninitialized(NumShaderBytes + 1);
-			FMemory::Memcpy(Output.Code.GetTypedData(), CompressedData->GetBufferPointer(), NumShaderBytes);
+				// At runtime textures are just SRVs, so combine them for the purposes of building token streams.
+				GenericSRT.ShaderResourceViewMap.Append(GenericSRT.TextureMap);
+
+				// Copy over the bits indicating which resource tables are active.
+				SRT.ResourceTableBits = GenericSRT.ResourceTableBits;
+
+				SRT.ResourceTableLayoutHashes = GenericSRT.ResourceTableLayoutHashes;
+
+				// Now build our token streams.
+				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
+				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
+				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
+
+			}
+
+			FMemoryWriter Ar( Output.Code, true );
+			Ar << SRT;
+			Ar.Serialize( CompressedData->GetBufferPointer(), CompressedData->GetBufferSize() );
 
 			// Pack bGlobalUniformBufferUsed in the last byte
-			Output.Code[NumShaderBytes] = bGlobalUniformBufferUsed;
+			Output.Code.Add( bGlobalUniformBufferUsed );
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;

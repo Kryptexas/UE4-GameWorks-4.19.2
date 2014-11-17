@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherWorker.h: Declares the FLauncherWorker class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Implements the launcher's worker thread.
@@ -31,25 +28,24 @@ public:
 
 public:
 
-	virtual bool Init( ) OVERRIDE;
+	virtual bool Init( ) override;
 
-	virtual uint32 Run( ) OVERRIDE;
+	virtual uint32 Run( ) override;
 
-	virtual void Stop( ) OVERRIDE;
+	virtual void Stop( ) override;
 
-	virtual void Exit( ) OVERRIDE { }
-
+	virtual void Exit( ) override { }
 
 public:
 
-	virtual void Cancel( ) OVERRIDE;
+	virtual void Cancel( ) override;
 
-	virtual ELauncherWorkerStatus::Type GetStatus( ) const  OVERRIDE
+	virtual ELauncherWorkerStatus::Type GetStatus( ) const  override
 	{
 		return Status;
 	}
 
-	virtual int32 GetTasks( TArray<ILauncherTaskPtr>& OutTasks ) const OVERRIDE;
+	virtual int32 GetTasks( TArray<ILauncherTaskPtr>& OutTasks ) const override;
 
 	virtual FOutputMessageReceivedDelegate& OnOutputReceived()
 	{
@@ -108,6 +104,9 @@ private:
 	// holds the read and write pipes
 	void* ReadPipe;
 	void* WritePipe;
+
+	double StageStartTime;
+	double LaunchStartTime;
 
 	// message delegate
 	FOutputMessageReceivedDelegate OutputMessageReceived;

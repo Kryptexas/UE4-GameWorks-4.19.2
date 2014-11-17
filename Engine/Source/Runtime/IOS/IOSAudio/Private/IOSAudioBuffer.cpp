@@ -59,7 +59,7 @@ FIOSAudioSoundBuffer* FIOSAudioSoundBuffer::CreateNativeBuffer(FIOSAudioDevice* 
 {
 	FWaveModInfo WaveInfo;
 
-	InWave->InitAudioResource(IOSAudioDevice->GetRuntimeFormat());
+	InWave->InitAudioResource(IOSAudioDevice->GetRuntimeFormat(InWave));
 	if (!InWave->ResourceData || InWave->ResourceSize <= 0 || !WaveInfo.ReadWaveInfo(InWave->ResourceData, InWave->ResourceSize))
 	{
 		InWave->RemoveAudioResource();

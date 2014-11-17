@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 
 #include "BlueprintGraphDefinitions.h"
+#include "GraphEditorSettings.h"
 
 #include "VectorVM.h"
 
@@ -124,7 +125,6 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		UNiagaraNodeGetAttr* GetAttrNode = NewObject<UNiagaraNodeGetAttr>(ContextMenuBuilder.OwnerOfTemporaries);
 		GetAttrNode->AttrName = AttrName;
 		GetAttrAction->NodeTemplate = GetAttrNode;
-		GetAttrAction->SearchTitle = GetAttrAction->NodeTemplate->GetNodeSearchTitle();
 	}
 
 	// Then get ops.
@@ -139,7 +139,6 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries);
 			OpNode->OpIndex = OpIdx;
 			AddOpAction->NodeTemplate = OpNode;
-			AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }
@@ -189,14 +188,14 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinType) const
 {
 	const FString& TypeString = PinType.PinCategory;
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	if (TypeString == PC_Float)
 	{
-		return Options.FloatPinTypeColor;
+		return Settings->FloatPinTypeColor;
 	}
 
-	return Options.DefaultPinTypeColor;
+	return Settings->DefaultPinTypeColor;
 }
 
 bool UEdGraphSchema_Niagara::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const

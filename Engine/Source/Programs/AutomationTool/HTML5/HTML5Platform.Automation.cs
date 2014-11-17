@@ -18,7 +18,13 @@ public class HTML5Platform : Platform
 	{
 		Log("Package {0}", Params.RawProjectPath);
 
-		string FinalDataLocation = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.ProjectGameExeFilename)), Params.ProjectBinariesFolder, Params.ShortProjectName) +".data";
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		if (!Directory.Exists(PackagePath))
+		{
+			Directory.CreateDirectory(PackagePath);
+		}
+		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) +".data";
+
 
 		// we need to operate in the root
 		using (new PushedDirectory(Path.Combine(Params.BaseStageDirectory, "HTML5")))
@@ -28,23 +34,69 @@ public class HTML5Platform : Platform
 			if (Utils.IsRunningOnMono) 
 			{
 				string PackagerPath = BaseSDKPath + "/tools/file_packager.py";
-				string CmdLine = string.Format ("-c \" python {0} {1} --preload . --pre-run --js-output={1}.js \" ", PackagerPath, FinalDataLocation);
+				string CmdLine = string.Format ("-c \" python {0} '{1}' --preload . --js-output='{1}.js' \" ", PackagerPath, FinalDataLocation);
 				RunAndLog (CmdEnv, "/bin/bash", CmdLine);	
 			} else 
 			{ 
 				string PackagerPath = "\"" + BaseSDKPath + "\\tools\\file_packager.py\"";
-				string CmdLine = string.Format ("/c {0} {1} --preload . --pre-run --js-output={1}.js", PackagerPath, FinalDataLocation);
+				string CmdLine = string.Format ("/c python {0} \"{1}\" --preload . --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation);
 				RunAndLog (CmdEnv, CommandUtils.CombinePaths (Environment.SystemDirectory, "cmd.exe"), CmdLine);	
 			}
 		}
-		// put the HTML file to the binaries directory
+
+		// copy the "Executable" to the package directory
+		string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
+		{
+			GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
+		}
+		GameExe += ".js";
+		if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))
+		{
+			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe), Path.Combine(PackagePath, GameExe), true);
+			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem", true);
+		}
+		File.SetAttributes(Path.Combine(PackagePath, GameExe), FileAttributes.Normal);
+		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
+		
+		// put the HTML file to the package directory
 		string TemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "Game.html.template");
-		string OutputFile = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.ProjectGameExeFilename)), Params.ProjectBinariesFolder, Params.ShortProjectName) + ".html";
-    	GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject);
+		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
+    	
+		// find Heap Size.
+		ulong HeapSize;
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath),CombinePaths(CmdEnv.LocalRoot, "Engine")); 
+
+		int ConfigHeapSize; 
+		if (!ConfigCache.GetInt32 ("BuildSettings","HeapSize"+Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
+		{ 	 
+			// we couldn't find a per config heap size, look for a common one.
+			if(!ConfigCache.GetInt32 ("BuildSettings","HeapSize", out ConfigHeapSize))
+				{
+					ConfigHeapSize = Params.IsCodeBasedProject ? 1024 : 512;
+					Log ("Could not find Heap Size setting in .ini for Client config {0}" ,Params.ClientConfigsToBuild[0].ToString()); 
+				}
+		}
+
+		HeapSize = (ulong)ConfigHeapSize * 1024L * 1024L; // convert to bytes. 
+		Log ("Setting Heap size to {0} Mb ", ConfigHeapSize); 
+
+
+		GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject, HeapSize);
+
+		// copy the jstorage files to the binaries directory
+		string JSDir = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5");
+		string OutDir = PackagePath;
+		File.Copy(JSDir + "/json2.js", OutDir + "/json2.js", true);
+		File.SetAttributes(OutDir + "/json2.js", FileAttributes.Normal);
+		File.Copy(JSDir + "/jstorage.js", OutDir + "/jstorage.js", true);
+		File.SetAttributes(OutDir + "/jstorage.js", FileAttributes.Normal);
+		File.Copy(JSDir + "/moz_binarystring.js", OutDir + "/moz_binarystring.js", true);
+		File.SetAttributes(OutDir + "/moz_binarystring.js", FileAttributes.Normal);
 		PrintRunTime();
 	}
 
-	protected void GenerateFileFromTemplate(string InTemplateFile, string InOutputFile, string InGameName, string InGameConfiguration, string InArguments, bool IsContentOnly)
+	protected void GenerateFileFromTemplate(string InTemplateFile, string InOutputFile, string InGameName, string InGameConfiguration, string InArguments, bool IsContentOnly, ulong HeapSize)
 	{
 		StringBuilder outputContents = new StringBuilder();
 		using (StreamReader reader = new StreamReader(InTemplateFile))
@@ -58,10 +110,15 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("%GAME%", InGameName);
 				}
 
+				if (LineStr.Contains ("%HEAPSIZE%")) 
+				{
+					LineStr = LineStr.Replace ("%HEAPSIZE%", HeapSize.ToString ());
+				}
+
 				if (LineStr.Contains("%CONFIG%"))
 				{
-                    if (IsContentOnly)
-                        InGameName = "UE4Game";
+					if (IsContentOnly)
+						InGameName = "UE4Game";
 					LineStr = LineStr.Replace("%CONFIG%", (InGameConfiguration != "Development" ? (InGameName + "-HTML5-" + InGameConfiguration) : InGameName));
 				}
 
@@ -109,6 +166,37 @@ public class HTML5Platform : Platform
 	{
 	}
 
+	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
+	{
+		if (SC.StageTargetConfigurations.Count != 1)
+		{
+			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+		}
+
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
+
+		// copy the "Executable" to the archive directory
+		string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
+		{
+			GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
+		}
+		GameExe += ".js";
+
+		// put the HTML file to the package directory
+		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
+
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation+".js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe+".mem"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("jstorage.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
+	}
+
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		// look for firefox
@@ -147,7 +235,7 @@ public class HTML5Platform : Platform
         if  ( !File.Exists(HTMLPath) )  // its probably a content only game - then it exists in the UE4 directory and not in the game directory. 
             HTMLPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Binaries", "HTML5", Path.GetFileName(HTMLPath)); 
 
-		ProcessResult ClientProcess = Run(FirefoxPath, FirefoxProfileCommand + HTMLPath , null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		ProcessResult ClientProcess = Run(FirefoxPath, FirefoxProfileCommand + "\"" + HTMLPath + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
 
 		return ClientProcess;
 	}

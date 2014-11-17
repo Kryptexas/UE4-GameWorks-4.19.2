@@ -40,7 +40,6 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTestImage.h"
-#include "PostProcessSceneColorFringe.h"
 #include "PostProcessSubsurface.h"
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
@@ -61,6 +60,33 @@ static TAutoConsoleVariable<int32> CVarRenderTargetSwitchWorkaround(
 	TEXT("We want this enabled (1) on all 32 bit iOS devices (implemented through DeviceProfiles)."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarUpsampleQuality(
+	TEXT("r.UpsampleQuality"),
+	3,
+	TEXT(" 0: Nearest filtering\n")
+	TEXT(" 1: Simple Bilinear\n")
+	TEXT(" 2: 4 tap bilinear\n")
+	TEXT(" 3: Directional blur with unsharp mask upsample. (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
+	TEXT("r.MotionBlurSoftEdgeSize"),
+	1.0f,
+	TEXT("Defines how lange object motion blur is blurred (percent of screen width) to allow soft edge motion blur.\n")
+	TEXT("This scales linearly with the size (up to a maximum of 32 samples, 2.5 is about 18 samples) and with screen resolution\n")
+	TEXT("Smaller values are better for performance and provide more accurate motion vectors but the blurring outside the object is reduced.\n")
+	TEXT("If needed this can be exposed like the other motionblur settings.\n")
+	TEXT(" 0:off (not free and does never completely disable), >0, 1.0 (default)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSSSSS(
+	TEXT("r.SSSSS"),
+	0.0f,
+	TEXT("Very experimental screen space subsurface scattering on non unlit/lit materials\n")
+	TEXT("0: off\n")
+	TEXT("x: SSS radius in world space e.g. 10"),
+	ECVF_RenderThreadSafe);
+
 IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
 
 // -------------------------------------------------------
@@ -71,7 +97,6 @@ FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGra
 {
 	SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GetSceneColor()));
 	SceneDepth = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.SceneDepthZ));
-	GBufferA = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GBufferA));
 
 	FinalOutput = FRenderingCompositeOutputRef(SceneColor);
 }
@@ -181,15 +206,6 @@ static void AddPostProcessAA(FPostprocessContext& Context)
 	uint32 Quality = FMath::Clamp(CVar->GetValueOnRenderThread(), 1, 6);
 
 	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAA(Quality));
-
-	Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-
-	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-}
-
-static void AddSceneColorFringe(FPostprocessContext& Context)
-{
-	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSceneColorFringe());
 
 	Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
@@ -362,7 +378,7 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 	{
 		static const TCHAR* PassLabels[] =
 			{NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4")};
-		checkAtCompileTime(ARRAY_COUNT(PassLabels) == DownSampleStages, PassLabel_count_must_equal_DownSampleStages);
+		static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
 		FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, EPostProcessRectSource::GBS_ViewRect, PassLabels[i]));
 		Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
 		PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
@@ -517,7 +533,23 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 	{
 		FPostProcessMaterialNode* Data = PPNodes[i];
 
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(Data->MID));
+		UMaterialInterface* MaterialInterface = Data->MID;
+
+		FMaterialRenderProxy* Proxy = MaterialInterface->GetRenderProxy(false);
+
+		check(Proxy);
+
+		const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
+
+		check(Material);
+
+		if(Material->NeedsGBuffer())
+		{
+			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+			GSceneRenderTargets.AdjustGBufferRefCount(1);
+		}
+
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface));
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 		// We are binding separate translucency here because the post process SceneTexture node can reference 
@@ -590,12 +622,21 @@ static void AddGBufferVisualization(FPostprocessContext& Context, FRenderingComp
 			// Loop over materials, creating stages for generation and downsampling of the tiles.			
 			for (TArray<UMaterialInterface*>::TConstIterator It = Context.View.FinalPostProcessSettings.BufferVisualizationOverviewMaterials.CreateConstIterator(); It; ++It)
 			{
-				if (*It)
+				auto MaterialInterface = *It;
+				if (MaterialInterface)
 				{
 					// Apply requested material
-					FRenderingCompositePass* MaterialPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(*It));
+					FRenderingCompositePass* MaterialPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface));
 					MaterialPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(IncomingStage));
 					MaterialPass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(SeparateTranslucencyInput));
+
+					auto Proxy = MaterialInterface->GetRenderProxy(false);
+					const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
+					if (Material->NeedsGBuffer())
+					{
+						// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+						GSceneRenderTargets.AdjustGBufferRefCount(1);
+					}
 
 					if (BaseFilename.Len())
 					{
@@ -641,6 +682,12 @@ static void AddGBufferVisualization(FPostprocessContext& Context, FRenderingComp
 			MaterialPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			MaterialPass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(SeparateTranslucencyInput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(MaterialPass);
+
+			if (Material->GetMaterialResource(Context.View.GetFeatureLevel())->NeedsGBuffer())
+			{
+				// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+				GSceneRenderTargets.AdjustGBufferRefCount(1);
+			}
 		}
 	}
 }
@@ -701,7 +748,7 @@ void OverrideRenderTarget(FRenderingCompositeOutputRef It, TRefCountPtr<IPooledR
 	}
 }
 
-void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_PostProcessing_Process );
 
@@ -724,7 +771,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 		
@@ -761,8 +808,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		{
 			// Screen Space Subsurface Scattering
 			{
-				static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SSSSS"));
-				float Radius = ICVar->GetValueOnRenderThread();
+				float Radius = CVarSSSSS.GetValueOnRenderThread();
 
 				if(Radius > 0 && !bSimpleDynamicLighting)
 				{
@@ -876,12 +922,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 					SoftEdgeVelocity = FRenderingCompositeOutputRef(QuarterResVelocity);
 
-					float MotionBlurSoftEdgeSize;
-					{
-						static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.MotionBlurSoftEdgeSize"));
-
-						MotionBlurSoftEdgeSize = ICVar->GetValueOnRenderThread();
-					}
+					float MotionBlurSoftEdgeSize = CVarMotionBlurSoftEdgeSize.GetValueOnRenderThread();
 
 					if(MotionBlurSoftEdgeSize > 0.01f)
 					{
@@ -934,6 +975,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				bool bHistogramNeeded = View.Family->EngineShowFlags.VisualizeHDR;
 
 				if(View.Family->EngineShowFlags.EyeAdaptation
+					&& View.FinalPostProcessSettings.AutoExposureMinBrightness < View.FinalPostProcessSettings.AutoExposureMaxBrightness
 					&& !View.bIsSceneCapture) // Eye adaption is not available for scene captures.
 				{
 					bHistogramNeeded = true;
@@ -978,25 +1020,11 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				AddTonemapper(Context, BloomOutputCombined, EyeAdaptation, CombinedLUT);
 			}
 
-			if(AntiAliasingMethod == AAM_FXAA || (AntiAliasingMethod == AAM_TemporalAA && View.bCameraCut))
+			if(AntiAliasingMethod == AAM_FXAA)
 			{
 				AddPostProcessAA(Context);
 			}
 			
-			{
-				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
-
-				int32 FringeQuality = CVar->GetValueOnRenderThread();
-
-				if(View.Family->EngineShowFlags.SceneColorFringe
-					&& View.Family->EngineShowFlags.CameraImperfections
-					&& View.FinalPostProcessSettings.SceneFringeIntensity > 0.01f
-					&& FringeQuality > 0)
-				{
-					AddSceneColorFringe(Context);
-				}
-			}
-
 			if(bDepthOfField && Context.View.Family->EngineShowFlags.VisualizeDOF)
 			{
 				FRenderingCompositePass* VisualizeNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeDOF());
@@ -1108,7 +1136,8 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 		AddHighResScreenshotMask(Context, SeparateTranslucency);
 
-		if(View.UnscaledViewRect != View.ViewRect && !bStereoRenderingAndHMD)
+		// Do not use upscale if SeparateRenderTarget is in use!
+		if (View.UnscaledViewRect != View.ViewRect && (!View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UpsampleQuality")); 
 			int32 UpsampleMethod = CVar->GetValueOnRenderThread();
@@ -1119,8 +1148,18 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
-		// The graph setup should be finished before this line ----------------------------------------
+		// After the graph is built but before the graph is processed.
+		// If a postprocess material is using a GBuffer it adds the refcount int FRCPassPostProcessMaterial::Process()
+		// and when it gets processed it removes the refcount
+		// We only release the GBuffers after the last view was processed (SplitScreen)
+		if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
+		{
+			// Generally we no longer need the GBuffers, anyone that wants to keep the GBuffers for longer should have called AdjustGBufferRefCount(1) to keep it for longer
+			// and call AdjustGBufferRefCount(-1) once it's consumed. This needs to happen each frame. PostProcessMaterial do that automatically
+			GSceneRenderTargets.AdjustGBufferRefCount(-1);
+		}
 
+		// The graph setup should be finished before this line ----------------------------------------
 		{
 			// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 			TRefCountPtr<IPooledRenderTarget> Temp;
@@ -1130,7 +1169,9 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 			FPooledRenderTargetDesc Desc;
 
-			Desc.Extent = View.Family->RenderTarget->GetSizeXY();
+			// Texture could be bigger than viewport
+			Desc.Extent.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
+			Desc.Extent.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;
@@ -1148,17 +1189,10 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
-
-	// todo: We should move this to after lighting, but we also have to fix lookups in post process materials reading from it.
-	// We only release the GBuffers after the last view was processed (SplitScreen)
-	if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
-	{
-		GSceneRenderTargets.FreeGBufferTargets();
-	}
 }
 
 
-void FPostProcessing::ProcessES2( const FViewInfo& View, bool bUsedFramebufferFetch )
+void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bUsedFramebufferFetch)
 {
 	check(IsInRenderingThread());
 
@@ -1173,7 +1207,7 @@ void FPostProcessing::ProcessES2( const FViewInfo& View, bool bUsedFramebufferFe
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 		FRenderingCompositeOutputRef BloomOutput;

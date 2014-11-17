@@ -17,7 +17,9 @@ public:
 		Text = FStatsCustomColumn::GetPropertyAsText( PropertyHandle );
 	}
 
-	virtual TSharedRef< class SWidget > ConstructDisplayWidget() OVERRIDE
+	virtual ~FNumericStatCellPresenter() {}
+
+	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override
 	{
 		return 
 			SNew( SHorizontalBox )

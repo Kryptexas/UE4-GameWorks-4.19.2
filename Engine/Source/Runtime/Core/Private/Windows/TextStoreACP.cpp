@@ -70,7 +70,7 @@ STDAPI_(ULONG) FTextStoreACP::Release()
 	return LocalReferenceCount;
 }
 
-STDAPI FTextStoreACP::AdviseSink(REFIID riid, IUnknown *punk, DWORD dwMask)
+STDAPI FTextStoreACP::AdviseSink(__RPC__in REFIID riid, __RPC__in_opt IUnknown *punk, DWORD dwMask)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("AdviseSink"));
 
@@ -128,7 +128,7 @@ STDAPI FTextStoreACP::AdviseSink(REFIID riid, IUnknown *punk, DWORD dwMask)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::UnadviseSink(IUnknown *punk)
+STDAPI FTextStoreACP::UnadviseSink(__RPC__in_opt IUnknown *punk)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("UnadviseSink"));
 
@@ -232,7 +232,7 @@ STDAPI FTextStoreACP::RequestLock(DWORD dwLockFlags, HRESULT *phrSession)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetStatus(TS_STATUS *pdcs)
+STDAPI FTextStoreACP::GetStatus(__RPC__out TS_STATUS *pdcs)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetStatus"));
 
@@ -248,7 +248,7 @@ STDAPI FTextStoreACP::GetStatus(TS_STATUS *pdcs)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetEndACP(LONG *pacp)
+STDAPI FTextStoreACP::GetEndACP(__RPC__out LONG *pacp)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetEndACP"));
 
@@ -262,7 +262,7 @@ STDAPI FTextStoreACP::GetEndACP(LONG *pacp)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetSelection(ULONG ulIndex, ULONG ulCount, TS_SELECTION_ACP *pSelection, ULONG *pcFetched)
+STDAPI FTextStoreACP::GetSelection(ULONG ulIndex, ULONG ulCount, __RPC__out_ecount_part(ulCount, *pcFetched) TS_SELECTION_ACP *pSelection, __RPC__out ULONG *pcFetched)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetSelection"));
 
@@ -303,7 +303,7 @@ STDAPI FTextStoreACP::GetSelection(ULONG ulIndex, ULONG ulCount, TS_SELECTION_AC
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::SetSelection(ULONG ulCount, const TS_SELECTION_ACP *pSelection)
+STDAPI FTextStoreACP::SetSelection(ULONG ulCount, __RPC__in_ecount_full(ulCount) const TS_SELECTION_ACP *pSelection)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("SetSelection - From %d to %d"), pSelection->acpStart, pSelection->acpEnd);
 
@@ -338,7 +338,7 @@ STDAPI FTextStoreACP::SetSelection(ULONG ulCount, const TS_SELECTION_ACP *pSelec
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::RequestSupportedAttrs(DWORD dwFlags, ULONG cFilterAttrs, const TS_ATTRID *paFilterAttrs)
+STDAPI FTextStoreACP::RequestSupportedAttrs(DWORD dwFlags, ULONG cFilterAttrs, __RPC__in_ecount_full_opt(cFilterAttrs) const TS_ATTRID *paFilterAttrs)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("RequestSupportedAttrs"));
 
@@ -359,7 +359,7 @@ STDAPI FTextStoreACP::RequestSupportedAttrs(DWORD dwFlags, ULONG cFilterAttrs, c
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::RequestAttrsAtPosition(LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID *paFilterAttrs, DWORD dwFlags)
+STDAPI FTextStoreACP::RequestAttrsAtPosition(LONG acpPos, ULONG cFilterAttrs, __RPC__in_ecount_full_opt(cFilterAttrs) const TS_ATTRID *paFilterAttrs, DWORD dwFlags)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("RequestAttrsAtPosition"));
 
@@ -380,19 +380,20 @@ STDAPI FTextStoreACP::RequestAttrsAtPosition(LONG acpPos, ULONG cFilterAttrs, co
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::RequestAttrsTransitioningAtPosition(LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID *paFilterAttrs, DWORD dwFlags)
+STDAPI FTextStoreACP::RequestAttrsTransitioningAtPosition(LONG acpPos, ULONG cFilterAttrs, __RPC__in_ecount_full_opt(cFilterAttrs) const TS_ATTRID *paFilterAttrs, DWORD dwFlags)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("RequestAttrsTransitioningAtPosition"));
 	return E_NOTIMPL; // TODO: No meaningful documentation to this method, not implemented.
 }
 
-STDAPI FTextStoreACP::FindNextAttrTransition(LONG acpStart, LONG acpHalt, ULONG cFilterAttrs, const TS_ATTRID *paFilterAttrs, DWORD dwFlags, LONG *pacpNext, BOOL *pfFound, LONG *plFoundOffset)
+STDAPI FTextStoreACP::FindNextAttrTransition(LONG acpStart, LONG acpHalt, ULONG cFilterAttrs, __RPC__in_ecount_full_opt(cFilterAttrs) const TS_ATTRID *paFilterAttrs, DWORD dwFlags, __RPC__out LONG *pacpNext, __RPC__out BOOL *pfFound, __RPC__out LONG *plFoundOffset)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("FindNextAttrTransition"));
 	return E_NOTIMPL; // TODO: No meaningful documentation to this method, not implemented.
 }
 
-STDAPI FTextStoreACP::RetrieveRequestedAttrs(ULONG ulCount, TS_ATTRVAL *paAttrVals, ULONG *pcFetched)
+CA_SUPPRESS(6101)
+STDAPI FTextStoreACP::RetrieveRequestedAttrs(ULONG ulCount, __RPC__out_ecount_part(ulCount, *pcFetched) TS_ATTRVAL *paAttrVals, __RPC__out ULONG *pcFetched)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("RetrieveRequestedAttrs"));
 
@@ -403,6 +404,7 @@ STDAPI FTextStoreACP::RetrieveRequestedAttrs(ULONG ulCount, TS_ATTRVAL *paAttrVa
 		if(SupportedAttributes[i].WantsDefault)
 		{
 			paAttrVals[i].idAttr = *(SupportedAttributes[i].Id);
+			CA_SUPPRESS(6031)
 			VariantCopy(&(paAttrVals[*pcFetched].varValue), &(SupportedAttributes[i].DefaultValue));
 			paAttrVals[i].dwOverlapId = 0;
 		}
@@ -413,7 +415,7 @@ STDAPI FTextStoreACP::RetrieveRequestedAttrs(ULONG ulCount, TS_ATTRVAL *paAttrVa
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetActiveView(TsViewCookie *pvcView)
+STDAPI FTextStoreACP::GetActiveView(__RPC__out TsViewCookie *pvcView)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetActiveView"));
 	*pvcView = 0;
@@ -421,7 +423,7 @@ STDAPI FTextStoreACP::GetActiveView(TsViewCookie *pvcView)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetACPFromPoint(TsViewCookie vcView, const POINT *pt, DWORD dwFlags, LONG *pacp)
+STDAPI FTextStoreACP::GetACPFromPoint(TsViewCookie vcView, __RPC__in const POINT *pt, DWORD dwFlags, __RPC__out LONG *pacp)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetACPFromPoint - At (%d, %d)"), pt->x, pt->y);
 
@@ -438,7 +440,7 @@ STDAPI FTextStoreACP::GetACPFromPoint(TsViewCookie vcView, const POINT *pt, DWOR
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd, RECT *prc, BOOL *pfClipped)
+STDAPI FTextStoreACP::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd, __RPC__out RECT *prc, __RPC__out BOOL *pfClipped)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetTextExt - From %d to %d"), acpStart, acpEnd);
 
@@ -472,7 +474,7 @@ STDAPI FTextStoreACP::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetScreenExt(TsViewCookie vcView, RECT *prc)
+STDAPI FTextStoreACP::GetScreenExt(TsViewCookie vcView, __RPC__out RECT *prc)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetScreenExt"));
 
@@ -493,7 +495,9 @@ STDAPI FTextStoreACP::GetScreenExt(TsViewCookie vcView, RECT *prc)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetWnd(TsViewCookie vcView, HWND *phwnd)
+CA_SUPPRESS(28196)
+CA_SUPPRESS(6387)
+STDAPI FTextStoreACP::GetWnd(TsViewCookie vcView, __RPC__deref_out_opt HWND *phwnd)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetWnd"));
 
@@ -503,7 +507,7 @@ STDAPI FTextStoreACP::GetWnd(TsViewCookie vcView, HWND *phwnd)
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetText(LONG acpStart, LONG acpEnd, __out_ecount(cchPlainReq) WCHAR *pchPlain, ULONG cchPlainReq, ULONG *pcchPlainOut, TS_RUNINFO *prgRunInfo, ULONG ulRunInfoReq, ULONG *pulRunInfoOut, LONG *pacpNext)
+STDAPI FTextStoreACP::GetText(LONG acpStart, LONG acpEnd, __RPC__out_ecount_part(cchPlainReq, *pcchPlainOut) WCHAR *pchPlain, ULONG cchPlainReq, __RPC__out ULONG *pcchPlainOut, __RPC__out_ecount_part(ulRunInfoReq, *pulRunInfoOut) TS_RUNINFO *prgRunInfo, ULONG ulRunInfoReq, __RPC__out ULONG *pulRunInfoOut, __RPC__out LONG *pacpNext)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetText - From %d to %d"), acpStart, acpEnd);
 
@@ -552,7 +556,7 @@ STDAPI FTextStoreACP::GetText(LONG acpStart, LONG acpEnd, __out_ecount(cchPlainR
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::QueryInsert(LONG acpInsertStart, LONG acpInsertEnd, ULONG cch, LONG *pacpResultStart, LONG *pacpResultEnd)
+STDAPI FTextStoreACP::QueryInsert(LONG acpInsertStart, LONG acpInsertEnd, ULONG cch, __RPC__out LONG *pacpResultStart, __RPC__out LONG *pacpResultEnd)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("QueryInsert"));
 
@@ -576,7 +580,8 @@ STDAPI FTextStoreACP::QueryInsert(LONG acpInsertStart, LONG acpInsertEnd, ULONG 
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::InsertTextAtSelection(DWORD dwFlags, __in_ecount(cch) const WCHAR *pchText, ULONG cch, LONG *pacpStart, LONG *pacpEnd, TS_TEXTCHANGE *pChange)
+CA_SUPPRESS(6101)
+STDAPI FTextStoreACP::InsertTextAtSelection(DWORD dwFlags, __RPC__in_ecount_full(cch) const WCHAR *pchText, ULONG cch, __RPC__out LONG *pacpStart, __RPC__out LONG *pacpEnd, __RPC__out TS_TEXTCHANGE *pChange)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("InsertTextAtSelection - %s"), pchText);
 
@@ -651,7 +656,8 @@ STDAPI FTextStoreACP::InsertTextAtSelection(DWORD dwFlags, __in_ecount(cch) cons
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd, __in_ecount(cch) const WCHAR *pchText, ULONG cch, TS_TEXTCHANGE *pChange)
+CA_SUPPRESS(6103)
+STDAPI FTextStoreACP::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd, __RPC__in_ecount_full(cch) const WCHAR *pchText, ULONG cch, __RPC__out TS_TEXTCHANGE *pChange)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("SetText - From %d to %d, set %s"), acpStart, acpEnd, pchText);
 
@@ -682,7 +688,7 @@ STDAPI FTextStoreACP::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd, __in_ec
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::GetEmbedded(LONG acpPos, REFGUID rguidService, REFIID riid, IUnknown **ppunk)
+STDAPI FTextStoreACP::GetEmbedded(LONG acpPos, __RPC__in REFGUID rguidService, __RPC__in REFIID riid, __RPC__deref_out_opt IUnknown **ppunk)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetEmbedded"));
 
@@ -694,7 +700,7 @@ STDAPI FTextStoreACP::GetEmbedded(LONG acpPos, REFGUID rguidService, REFIID riid
 	return E_NOTIMPL;
 }
 
-STDAPI FTextStoreACP::GetFormattedText(LONG acpStart, LONG acpEnd, IDataObject **ppDataObject)
+STDAPI FTextStoreACP::GetFormattedText(LONG acpStart, LONG acpEnd, __RPC__deref_out_opt IDataObject **ppDataObject)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("GetFormattedText"));
 
@@ -706,14 +712,14 @@ STDAPI FTextStoreACP::GetFormattedText(LONG acpStart, LONG acpEnd, IDataObject *
 	return E_NOTIMPL;
 }
 
-STDAPI FTextStoreACP::QueryInsertEmbedded(const GUID *pguidService, const FORMATETC *pFormatEtc, BOOL *pfInsertable)
+STDAPI FTextStoreACP::QueryInsertEmbedded(__RPC__in const GUID *pguidService, __RPC__in const FORMATETC *pFormatEtc, __RPC__out BOOL *pfInsertable)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("QueryInsertEmbedded"));
 
 	return E_NOTIMPL;
 }
 
-STDAPI FTextStoreACP::InsertEmbedded(DWORD dwFlags, LONG acpStart, LONG acpEnd, IDataObject *pDataObject, TS_TEXTCHANGE *pChange)
+STDAPI FTextStoreACP::InsertEmbedded(DWORD dwFlags, LONG acpStart, LONG acpEnd, __RPC__in_opt IDataObject *pDataObject, __RPC__out TS_TEXTCHANGE *pChange)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("InsertEmbedded"));
 
@@ -725,7 +731,7 @@ STDAPI FTextStoreACP::InsertEmbedded(DWORD dwFlags, LONG acpStart, LONG acpEnd, 
 	return E_NOTIMPL;
 }
 
-STDAPI FTextStoreACP::InsertEmbeddedAtSelection(DWORD dwFlags, IDataObject *pDataObject, LONG *pacpStart, LONG *pacpEnd, TS_TEXTCHANGE *pChange)
+STDAPI FTextStoreACP::InsertEmbeddedAtSelection(DWORD dwFlags, __RPC__in_opt IDataObject *pDataObject, __RPC__out LONG *pacpStart, __RPC__out LONG *pacpEnd, __RPC__out TS_TEXTCHANGE *pChange)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("InsertEmbeddedAtSelection"));
 
@@ -737,7 +743,7 @@ STDAPI FTextStoreACP::InsertEmbeddedAtSelection(DWORD dwFlags, IDataObject *pDat
 	return E_NOTIMPL;
 }
 
-STDAPI FTextStoreACP::OnStartComposition(ITfCompositionView *pComposition, BOOL *pfOk)
+STDAPI FTextStoreACP::OnStartComposition(__RPC__in_opt ITfCompositionView *pComposition, __RPC__out BOOL *pfOk)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnStartComposition"));
 
@@ -758,7 +764,7 @@ STDAPI FTextStoreACP::OnStartComposition(ITfCompositionView *pComposition, BOOL 
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::OnUpdateComposition(ITfCompositionView *pComposition, ITfRange *pRangeNew)
+STDAPI FTextStoreACP::OnUpdateComposition(__RPC__in_opt ITfCompositionView *pComposition, __RPC__in_opt ITfRange *pRangeNew)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnUpdateComposition"));
 
@@ -781,7 +787,12 @@ STDAPI FTextStoreACP::OnUpdateComposition(ITfCompositionView *pComposition, ITfR
 
 		LONG BeginIndex;
 		LONG Length;
-		RangeACP->GetExtent(&(BeginIndex), &(Length));
+		const auto Result = RangeACP->GetExtent(&(BeginIndex), &(Length));
+
+		if(FAILED(Result))
+		{
+			return E_FAIL;
+		}
 
 		UE_LOG(LogTextStoreACP, Verbose, TEXT("OnUpdateComposition - From %d to %d"), BeginIndex, BeginIndex + Length);
 
@@ -791,7 +802,7 @@ STDAPI FTextStoreACP::OnUpdateComposition(ITfCompositionView *pComposition, ITfR
 	return S_OK;
 }
 
-STDAPI FTextStoreACP::OnEndComposition(ITfCompositionView *pComposition)
+STDAPI FTextStoreACP::OnEndComposition(__RPC__in_opt ITfCompositionView *pComposition)
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnEndComposition"));
 

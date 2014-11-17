@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformFile.cpp: Generic implementations of platform file I/O functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "ModuleManager.h"
+
 
 int64 IFileHandle::Size()
 {

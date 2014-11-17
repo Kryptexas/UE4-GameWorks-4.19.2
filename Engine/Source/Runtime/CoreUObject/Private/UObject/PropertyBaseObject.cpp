@@ -459,6 +459,6 @@ bool UObjectPropertyBase::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UObjectPropertyBase, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UObjectProperty, PropertyClass ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UObjectProperty, PropertyClass), TEXT("PropertyClass"));
 	}
 );

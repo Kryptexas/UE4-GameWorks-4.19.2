@@ -32,6 +32,7 @@ public:
 	class FUObjectCreateListener
 	{
 	public:
+		virtual ~FUObjectCreateListener() {}
 		/**
 		* Provides notification that a UObjectBase has been added to the uobject array
 		 *
@@ -47,6 +48,8 @@ public:
 	class FUObjectDeleteListener
 	{
 	public:
+		virtual ~FUObjectDeleteListener() {}
+
 		/**
 		 * Provides notification that a UObjectBase has been removed from the uobject array
 		 *

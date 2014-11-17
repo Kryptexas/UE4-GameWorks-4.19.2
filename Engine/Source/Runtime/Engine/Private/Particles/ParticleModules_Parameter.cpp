@@ -5,8 +5,16 @@
 	Parameter-related particle module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Materials/MaterialExpressionDynamicParameter.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Parameter/ParticleModuleParameterBase.h"
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
+#include "Particles/Parameter/ParticleModuleParameterDynamic_Seeded.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
 
 UParticleModuleParameterBase::UParticleModuleParameterBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

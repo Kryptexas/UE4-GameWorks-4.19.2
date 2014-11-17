@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Landscape.h: Static lighting Landscape mesh/mapping definitions.
-=============================================================================*/
-
 #pragma once
 
 #define LANDSCAPE_ZSCALE	(1.0f/128.0f)

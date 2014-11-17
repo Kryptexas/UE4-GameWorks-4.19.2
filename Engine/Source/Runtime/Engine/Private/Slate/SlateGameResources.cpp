@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Slate.h"
+#include "Slate/SlateBrushAsset.h"
 #include "AssetRegistryModule.h"
 #include "SlateGameResources.h"
 #include "MessageLog.h"
@@ -46,7 +47,7 @@ const FSlateBrush* FSlateGameResources::GetBrush( const FName PropertyName, cons
 	if(Resource)
 	{
 		const USlateBrushAsset* BrushAsset = Cast<USlateBrushAsset>(*Resource);
-		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), PropertyName);
+		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *PropertyName.ToString());
 		return BrushAsset ? &BrushAsset->Brush : GetDefaultBrush();
 	}
 	return FSlateStyleSet::GetBrush(PropertyName, Specifier);
@@ -59,7 +60,7 @@ const FSlateBrush* FSlateGameResources::GetOptionalBrush(const FName PropertyNam
 	if(Resource)
 	{
 		const USlateBrushAsset* BrushAsset = Cast<USlateBrushAsset>(*Resource);
-		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), PropertyName);
+		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *PropertyName.ToString());
 		return BrushAsset ? &BrushAsset->Brush : DefaultBrush;
 	}
 	return FSlateStyleSet::GetOptionalBrush(PropertyName, Specifier, DefaultBrush);
@@ -146,23 +147,29 @@ void FSlateGameResources::Log( ISlateStyle::EStyleMessageSeverity Severity, cons
 	case ISlateStyle::EStyleMessageSeverity::Info: EngineMessageSeverity = EMessageSeverity::Info; break;
 	}
 
-	FMessageLog SlateStyleLog( "SlateStyleLog" );
-	SlateStyleLog.AddMessage( FTokenizedMessage::Create( EngineMessageSeverity, Message ) );
-
-	if ( EngineMessageSeverity <= EMessageSeverity::Warning )
+	if( GIsEditor )
 	{
-		SlateStyleLog.Open();
+		FMessageLog SlateStyleLog("SlateStyleLog");
+		SlateStyleLog.AddMessage(FTokenizedMessage::Create(EngineMessageSeverity, Message));
+
+		if (EngineMessageSeverity <= EMessageSeverity::Warning)
+		{
+			SlateStyleLog.Open();
+		}
 	}
 }
 
 void FSlateGameResources::Log( const TSharedRef< class FTokenizedMessage >& Message ) const
 {
-	FMessageLog SlateStyleLog( "SlateStyleLog" );
-	SlateStyleLog.AddMessage( Message );
-
-	if ( Message->GetSeverity() <= EMessageSeverity::Warning )
+	if (GIsEditor)
 	{
-		SlateStyleLog.Open();
+		FMessageLog SlateStyleLog("SlateStyleLog");
+		SlateStyleLog.AddMessage(Message);
+
+		if (Message->GetSeverity() <= EMessageSeverity::Warning)
+		{
+			SlateStyleLog.Open();
+		}
 	}
 }
 
@@ -173,7 +180,7 @@ void FSlateGameResources::Initialize( const FString& ScopeToDirectory, const FSt
 	BasePath = InBasePath;
 
 	TArray<UObject*> LoadedObjects;
-	if ( EngineUtils::FindOrLoadAssetsByPath( ContentRootDir, LoadedObjects ) )
+	if (EngineUtils::FindOrLoadAssetsByPath(ContentRootDir, LoadedObjects, EngineUtils::ATL_Regular))
 	{
 		for( auto ObjectIter = LoadedObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
 		{

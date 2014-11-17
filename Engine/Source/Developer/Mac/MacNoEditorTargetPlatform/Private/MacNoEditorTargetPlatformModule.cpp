@@ -4,16 +4,6 @@
 	MacNoEditorTargetPlatformModule.cpp: Implements the FMacNoEditorTargetPlatformModule class.
 =============================================================================*/
 
-#if PLATFORM_MAC
-#define FVector FVectorWorkaround
-#ifdef __OBJC__
-#import <Cocoa/Cocoa.h>
-#endif
-#undef check
-#undef verify
-#undef FVector
-#endif
-
 #include "MacNoEditorTargetPlatformPrivatePCH.h"
 
 
@@ -36,7 +26,7 @@ public:
 		Singleton = NULL;
 	}
 
-	virtual ITargetPlatform* GetTargetPlatform( ) OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform( ) override
 	{
 		if (Singleton == NULL)
 		{

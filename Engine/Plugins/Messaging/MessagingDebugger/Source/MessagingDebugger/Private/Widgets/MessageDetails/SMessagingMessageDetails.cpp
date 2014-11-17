@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingMessageDetails.cpp: Implements the SMessagingMessageDetails class.
-=============================================================================*/
-
 #include "MessagingDebuggerPrivatePCH.h"
 
 

@@ -2,6 +2,9 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSpriteEmitter.h"
 #include "ParticleModuleRequired.generated.h"
 
 UENUM()
@@ -57,7 +60,7 @@ class UParticleModuleRequired : public UParticleModule
 	 *	PSA_TypeSpecific	- Use the alignment method indicated int he type data module.
 	 */
 	UPROPERTY(EditAnywhere, Category=Emitter)
-	TEnumAsByte<enum EParticleScreenAlignment> ScreenAlignment;
+	TEnumAsByte<EParticleScreenAlignment> ScreenAlignment;
 
 	/** If true, update the emitter in local space										*/
 	UPROPERTY(EditAnywhere, Category=Emitter)
@@ -144,7 +147,7 @@ class UParticleModuleRequired : public UParticleModule
 	//
 	/** The method to utilize when burst-emitting particles						*/
 	UPROPERTY()
-	TEnumAsByte<enum EParticleBurstMethod> ParticleBurstMethod;
+	TEnumAsByte<EParticleBurstMethod> ParticleBurstMethod;
 
 	/** The array of burst entries.												*/
 	UPROPERTY(export, noclear)
@@ -197,7 +200,7 @@ class UParticleModuleRequired : public UParticleModule
 	 *						  and the next 
 	 */
 	UPROPERTY(EditAnywhere, Category=SubUV)
-	TEnumAsByte<enum EParticleSubUVInterpMethod> InterpolationMethod;
+	TEnumAsByte<EParticleSubUVInterpMethod> InterpolationMethod;
 
 	/** The number of sub-images horizontally in the texture							*/
 	UPROPERTY(EditAnywhere, Category=SubUV)
@@ -279,23 +282,23 @@ class UParticleModuleRequired : public UParticleModule
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) override;
 #endif // WITH_EDITOR
-	virtual void	PostLoad() OVERRIDE;
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostLoad() override;
+	virtual void	PostInitProperties() override;
+	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
-	virtual	bool AddModuleCurvesToEditor(UInterpCurveEdSetup* EdSetup, TArray<const FCurveEdEntry*>& OutCurveEntries) OVERRIDE
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
+	virtual	bool AddModuleCurvesToEditor(UInterpCurveEdSetup* EdSetup, TArray<const FCurveEdEntry*>& OutCurveEntries) override
 	{
 		// Overide the base implementation to prevent old SpawnRate from being added...
 		return true;
 	}
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Required;	}
-	virtual bool	GenerateLODModuleValues(UParticleModule* SourceModule, float Percentage, UParticleLODLevel* LODLevel) OVERRIDE;
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Required;	}
+	virtual bool	GenerateLODModuleValues(UParticleModule* SourceModule, float Percentage, UParticleLODLevel* LODLevel) override;
 	// End UParticleModule Interface
 
 protected:

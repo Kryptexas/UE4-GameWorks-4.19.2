@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/TouchInterface.h"
+#include "Slate.h"
 
 UTouchInterface::UTouchInterface(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

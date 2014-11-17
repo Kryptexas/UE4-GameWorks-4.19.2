@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightingMesh.cpp: Static lighting mesh implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Importer.h"
 #include "MonteCarlo.h"

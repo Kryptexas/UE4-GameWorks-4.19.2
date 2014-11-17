@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleEventBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Event"))
@@ -11,7 +12,7 @@ class UParticleModuleEventBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Event;	}
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Event;	}
 	// End UParticleModule Interface
 };
 

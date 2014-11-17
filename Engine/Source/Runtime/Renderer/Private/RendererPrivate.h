@@ -7,10 +7,12 @@
 #ifndef __RendererPrivate_h__
 #define __RendererPrivate_h__
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ShaderCore.h"
 #include "RHI.h"
+#include "RHIStaticStates.h"
 #include "ScenePrivate.h"
+#include "RendererInterface.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRenderer, Log, All);
 
@@ -18,26 +20,42 @@ DECLARE_LOG_CATEGORY_EXTERN(LogRenderer, Log, All);
 class FRendererModule : public IRendererModule
 {
 public:
-	virtual bool SupportsDynamicReloading() OVERRIDE { return true; }
+	virtual bool SupportsDynamicReloading() override { return true; }
 
-	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) OVERRIDE;
-	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) OVERRIDE;
-	virtual void RemoveScene(FSceneInterface* Scene) OVERRIDE;
-	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials) OVERRIDE;
-	virtual FSceneViewStateInterface* AllocateViewState() OVERRIDE;
-	virtual uint32 GetNumDynamicLightsAffectingPrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo,const FLightCacheInterface* LCI) OVERRIDE;
-	virtual void ReallocateSceneRenderTargets() OVERRIDE;
-	virtual void SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY) OVERRIDE;
-	virtual void DrawTileMesh(const FSceneView& View, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId) OVERRIDE;
-	virtual void RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) OVERRIDE;
-	virtual void TickRenderTargetPool() OVERRIDE;
-	virtual void DebugLogOnCrash() OVERRIDE;
-	virtual void GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkScale, bool bDebugOut) OVERRIDE;
-	virtual void QueryVisualizeTexture(FQueryVisualizeTexureInfo& Out) OVERRIDE;
-	virtual void ExecVisualizeTextureCmd(const FString& Cmd) OVERRIDE;
-	virtual void UpdateMapNeedsLightingFullyRebuiltState(UWorld* World) OVERRIDE;
+	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) override;
+	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) override;
+	virtual void RemoveScene(FSceneInterface* Scene) override;
+	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials) override;
+	virtual FSceneViewStateInterface* AllocateViewState() override;
+	virtual uint32 GetNumDynamicLightsAffectingPrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo,const FLightCacheInterface* LCI) override;
+	virtual void ReallocateSceneRenderTargets() override;
+	virtual void SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY) override;
+	virtual void DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId) override;
+	virtual void RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) override;
+	virtual void TickRenderTargetPool() override;
+	virtual void DebugLogOnCrash() override;
+	virtual void GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkScale, bool bDebugOut) override;
+	virtual void QueryVisualizeTexture(FQueryVisualizeTexureInfo& Out) override;
+	virtual void ExecVisualizeTextureCmd(const FString& Cmd) override;
+	virtual void UpdateMapNeedsLightingFullyRebuiltState(UWorld* World) override;
+	virtual void DrawRectangle(
+		FRHICommandList& RHICmdList,
+		float X,
+		float Y,
+		float SizeX,
+		float SizeY,
+		float U,
+		float V,
+		float SizeU,
+		float SizeV,
+		FIntPoint TargetSize,
+		FIntPoint TextureSize,
+		class FShader* VertexShader,
+		EDrawRectangleFlags Flags = EDRF_Default
+		) override;
+	virtual TGlobalResource<FFilterVertexDeclaration>& GetFilterVertexDeclaration() override;
 
-	virtual const TSet<FSceneInterface*>& GetAllocatedScenes() OVERRIDE
+	virtual const TSet<FSceneInterface*>& GetAllocatedScenes() override
 	{
 		return AllocatedScenes;
 	}

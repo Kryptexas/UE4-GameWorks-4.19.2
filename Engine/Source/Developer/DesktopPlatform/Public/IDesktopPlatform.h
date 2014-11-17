@@ -74,6 +74,21 @@ public:
 	virtual bool OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames) = 0;
 
 	/** 
+	 * Opens the "open file" dialog for the platform
+	 *
+	 * @param ParentWindowHandle		The native handle to the parent window for this dialog
+	 * @param DialogTitle				The text for the title of the dialog window
+	 * @param DefaultPath				The path where the file dialog will open initially
+	 * @param DefaultFile				The file that the dialog will select initially
+	 * @param Flags						Details about the dialog. See EFileDialogFlags.
+	 * @param FileTypes					The type filters to show in the dialog. This string should be a "|" delimited list of (Description|Extensionlist) pairs. Extensionlists are ";" delimited.
+	 * @param OutFilenames				The filenames that were selected in the dialog
+	 * @param OutFilterIndex			The type that was selected in the dialog
+	 * @return true if files were successfully selected
+	 */
+	virtual bool OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& outFilterIndex ) = 0;
+
+	/** 
 	 * Opens the "save file" dialog for the platform
 	 *
 	 * @param ParentWindowHandle		The native handle to the parent window for this dialog
@@ -118,6 +133,13 @@ public:
 	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) = 0;
 
 	/**
+	* Returns a description for the engine with the given identifier.
+	*
+	* @return	Description for the engine identifier. Empty string if it's unknown.
+	*/
+	virtual FString GetEngineDescription(const FString& Identifier) = 0;
+
+	/**
 	* Gets the identifier for the currently executing engine installation
 	*
 	* @return	Identifier for the current engine installation. Empty string if it isn't registered.
@@ -154,6 +176,13 @@ public:
 	* @param	OutInstallations	Array of sample installation paths.
 	*/
 	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) = 0;
+
+	/**
+	* Enumerates all the sample projects installed by the launcher.
+	*
+	* @param	OutFileNames		Array of sample project filenames.
+	*/
+	virtual void EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames) = 0;
 
 	/**
 	* Returns the identifier for the engine with the given root directory.
@@ -258,6 +287,14 @@ public:
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
 
 	/**
+	* Opens the given project with the appropriate editor. Tries to use the shell association.
+	*
+	* @param ProjectFileName	Filename of the project to update
+	* @return true if the project was opened successfully.
+	*/
+	virtual bool OpenProject(const FString& ProjectFileName) = 0;
+
+	/**
 	* Cleans a game project. Removes the intermediate folder and binary build products.
 	*
 	* @param ProjectDirName		Directory for the project
@@ -302,4 +339,35 @@ public:
 	* @return FFeedbackContext for the native GUI.
 	*/
 	virtual FFeedbackContext* GetNativeFeedbackContext() = 0;
+
+	/**
+	* Finds all the projects which the engine (given by an identifier) has a record of. This includes all the recently opened projects, projects in the default project directory, and so on.
+	* 
+	* @param Identifier		Identifier for the engine 
+	* @param bIncludeNat
+	* @return Path to the folder
+	*/
+	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) = 0;
+
+	/**
+	* Gets the default folder for creating new projects.
+	* 
+	* @return Path to the folder
+	*/
+	virtual FString GetDefaultProjectCreationPath() = 0;
+
+	/** 
+	 * Get (or create) the unique ID used to identify this computer
+	 */
+	virtual FGuid GetMachineId() = 0;
+
+	/**
+	 * Get the Epic account ID for the user who last used the Launcher
+	 */
+	virtual FString GetEpicAccountId() = 0;
+
+	/**
+	 * Set the Epic account ID for the user who last used the Launcher
+	 */
+	virtual void SetEpicAccountId(const FString& AccountId) = 0;
 };

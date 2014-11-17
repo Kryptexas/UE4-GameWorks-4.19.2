@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ControlChannel.h"
 
 static const int32 MAX_BUNCH_SIZE = 1024 * 1024; 
 
@@ -101,9 +102,10 @@ FOutBunch::FOutBunch( UChannel* InChannel, bool bInClose )
 ,	bDormant	( 0 )
 ,	bReliable	( 0 )
 ,	bPartial	( 0 )
-,	bPartialInitial ( 0 )
-,	bPartialFinal	( 0 )
-,	bHasGUIDs ( 0 )
+,	bPartialInitial			( 0 )
+,	bPartialFinal			( 0 )
+,	bHasGUIDs				( 0 )
+,	bHasMustBeMappedGUIDs	( 0 )
 {
 	checkSlow(!Channel->Closing);
 	checkSlow(Channel->Connection->Channels[Channel->ChIndex]==Channel);
@@ -135,7 +137,8 @@ FOutBunch::FOutBunch( UPackageMap *InPackageMap, int64 MaxBits )
 ,	bPartial	( 0 )
 ,	bPartialInitial ( 0 )
 ,	bPartialFinal	( 0 )
-,	bHasGUIDs ( 0 )
+,	bHasGUIDs				( 0 )
+,	bHasMustBeMappedGUIDs	( 0 )
 {
 }
 

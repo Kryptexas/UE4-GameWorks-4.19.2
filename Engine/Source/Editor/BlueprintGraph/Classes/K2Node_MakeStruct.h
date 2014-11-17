@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "K2Node_StructMemberSet.h"
 #include "K2Node_MakeStruct.generated.h"
 
 // Pure kismet node that creates a struct with specified values for each member
@@ -13,20 +14,19 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	static bool CanBeExposed(const UProperty* Property);
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.MakeStruct_16x"); }
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.MakeStruct_16x"); }
 	// End  UEdGraphNode interface
 
 	// Begin K2Node interface
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual bool DrawNodeAsVariable() const OVERRIDE { return false; }
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const OVERRIDE;
+	virtual bool IsNodePure() const override { return true; }
+	virtual bool DrawNodeAsVariable() const override { return false; }
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const override;
 	// End K2Node interface
 
 protected:
@@ -36,7 +36,7 @@ protected:
 	public:
 		FMakeStructPinManager(const uint8* InSampleStructMemory);
 	protected:
-		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE;
-		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const OVERRIDE;
+		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
+		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override;
 	};
 };

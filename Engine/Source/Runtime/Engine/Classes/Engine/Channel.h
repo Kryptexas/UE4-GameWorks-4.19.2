@@ -61,7 +61,7 @@ class UChannel : public UObject
 	// Begin UObject Interface
 
 
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 
 
 	// End UObject Interface

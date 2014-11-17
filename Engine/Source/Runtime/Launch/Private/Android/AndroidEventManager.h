@@ -43,6 +43,7 @@ public:
 	
 	void Tick();
 	void EnqueueAppEvent(EAppEventState InState, void* InData = NULL);
+	void SetEventHandlerEvent(FEvent* InEventHandlerEvent);
 	void HandleWindowCreated(void* InWindow);
 	bool IsGamePaused();
 
@@ -65,6 +66,8 @@ private:
 	TQueue<FAppEventData, EQueueMode::Mpsc> Queue;
 	
 	pthread_mutex_t MainMutex;
+
+	FEvent* EventHandlerEvent;			// triggered every time the event handler thread fires off an event
 
 	//states
 	bool FirstInitialized;

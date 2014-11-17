@@ -9,7 +9,8 @@ public class WindowsServerTargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

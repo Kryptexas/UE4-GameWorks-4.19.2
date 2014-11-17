@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ScenePrivate.h"
 #include "FXSystem.h"
 #include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
@@ -46,6 +46,12 @@ static FAutoConsoleVariableRef CVarMinScreenRadiusForCSMDepth(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarTemporalAASamples(
+	TEXT("r.TemporalAASamples"),
+	8,
+	TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
+	ECVF_RenderThreadSafe);
+
 #if PLATFORM_MAC // @todo: disabled until rendering problems with HZB occlusion in OpenGL are solved
 static int32 GHZBOcclusion = 0;
 #else
@@ -74,6 +80,12 @@ static TAutoConsoleVariable<int32> CVarLightShaftQuality(
 	TEXT("Defines the light shaft quality.\n")
 	TEXT("  0: off\n")
 	TEXT("  1: on (default)\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
+	TEXT("r.StaticMeshLODDistanceScale"),
+	1.0f,
+	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Distance fade cvars */
@@ -127,7 +139,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 
 				FDistanceCullFadeUniformShaderParameters Uniforms;
 				Uniforms.FadeTimeScaleBias = FadingState.FadeTimeScaleBias;
-				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiUse );
+				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiFrame );
 			}
 			else
 			{
@@ -151,7 +163,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 
 				FDistanceCullFadeUniformShaderParameters Uniforms;
 				Uniforms.FadeTimeScaleBias = FadingState.FadeTimeScaleBias;
-				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiUse );
+				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiFrame );
 			}
 		}
 	}
@@ -309,7 +321,7 @@ static void UpdatePrimitiveFading(const FScene* Scene, FViewInfo& View)
 /**
  * Cull occluded primitives in the view.
  */
-static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
+static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* Scene, FViewInfo& View)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OcclusionCull);
 
@@ -360,7 +372,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_MapHZBResults);
 				check(!ViewState->HZBOcclusionTests.IsValidFrame(View.FrameNumber));
-				ViewState->HZBOcclusionTests.MapResults();
+				ViewState->HZBOcclusionTests.MapResults(RHICmdList);
 			}
 
 			FViewElementPDI OcclusionPDI(&View, NULL);
@@ -427,7 +439,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 							if (IsValidRef(PastQuery))
 							{
 								// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
-								if ( RHIGetRenderQueryResult(PastQuery,NumSamples,true) )
+								if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
 								{
 									// we render occlusion without MSAA
 									uint32 NumPixels = (uint32)NumSamples;
@@ -487,7 +499,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 
 					if (bClearQueries)
 					{
-						ViewState->OcclusionQueryPool.ReleaseQuery( PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber) );
+						ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber));
 					}
 				}
 
@@ -584,7 +596,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_HZBUnmapResults);
 
-				ViewState->HZBOcclusionTests.UnmapResults();
+				ViewState->HZBOcclusionTests.UnmapResults(RHICmdList);
 
 				if( bSubmitQueries )
 				{
@@ -626,6 +638,7 @@ typedef TArray<uint8, SceneRenderingAllocator> FPrimitivePreRenderViewMasks;
  *                                callback for this view will have ViewBit set.
  */
 static void ComputeRelevanceForView(
+	FRHICommandListImmediate& RHICmdList,
 	const FScene* Scene,
 	FViewInfo& View,
 	uint8 ViewBit,
@@ -737,7 +750,7 @@ static void ComputeRelevanceForView(
 			PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
 		}
 
-		PrimitiveSceneInfo->ConditionalUpdateStaticMeshes();
+		PrimitiveSceneInfo->ConditionalUpdateStaticMeshes(RHICmdList);
 	}
 }
 
@@ -775,9 +788,8 @@ static void MarkRelevantStaticMeshesForView(
 	// outside of the loop to be more efficient
 	int32 ForcedLODLevel = (View.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 	
-	static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
-	check(StaticMeshLODDistanceScale);
-	const float InvLODScale = 1.0f / StaticMeshLODDistanceScale->GetValueOnRenderThread();
+	const float LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread();
+	const float InvLODScale = 1.0f / LODScale;
 
 	const float MinScreenRadiusForCSMDepthSquared = GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth;
 	const float MinScreenRadiusForDepthPrepassSquared = GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass;
@@ -795,14 +807,10 @@ static void MarkRelevantStaticMeshesForView(
 		const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
 		const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 		
-		static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
-		check(StaticMeshLODDistanceScale);
-		const float LODScale = StaticMeshLODDistanceScale->GetValueOnRenderThread();
-
 		int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ForcedLODLevel, LODScale);
 
 		float DistanceSquared = (Bounds.Origin - ViewOrigin).SizeSquared();
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * (1.0f / LODScale));
+		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * InvLODScale);
 		const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
 		const bool bDrawDepthOnly = bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 		
@@ -911,8 +919,11 @@ float Halton( int32 Index, int32 Base )
 	return Result;
 }
 
-void FSceneRenderer::PreVisibilityFrameSetup()
+void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList)
 {
+	// Notify the RHI we are beginning to render a scene.
+	RHICmdList.BeginScene();
+
 	// Notify the FX system that the scene is about to perform visibility checks.
 	if (Scene->FXSystem)
 	{
@@ -978,17 +989,14 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 			View.ViewRect.Width() * View.ViewRect.Height();
 		View.OneOverNumPossiblePixels = NumPossiblePixels > 0.0 ? 1.0f / NumPossiblePixels : 0.0f;
 
-
-		// Subpixel jitter for temporal AA
-		static const auto CVarTemporalAASamples = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT("r.TemporalAASamples") );
-
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
 		View.TemporalJitterPixelsX = 0.0f;
 		View.TemporalJitterPixelsY = 0.0f;
 
 		if( View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 		{
-			int32 TemporalAASamples = CVarTemporalAASamples->GetValueOnRenderThread();
+			// Subpixel jitter for temporal AA
+			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();
 		
 			if( TemporalAASamples > 1 )
 			{
@@ -1185,7 +1193,7 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 	}
 }
 
-void FSceneRenderer::ComputeViewVisibility()
+void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime);
 
@@ -1327,7 +1335,7 @@ void FSceneRenderer::ComputeViewVisibility()
 			}
 		}
 
-		if (View.bIsReflectionCapture)
+		if (View.bStaticSceneOnly)
 		{
 			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 			{
@@ -1356,7 +1364,7 @@ void FSceneRenderer::ComputeViewVisibility()
 		// Occlusion cull for all primitives in the view frustum, but not in wireframe.
 		if (!View.Family->EngineShowFlags.Wireframe)
 		{
-			int32 NumOccludedPrimitivesInView = OcclusionCull(Scene, View);
+			int32 NumOccludedPrimitivesInView = OcclusionCull(RHICmdList, Scene, View);
 			STAT(NumOccludedPrimitives += NumOccludedPrimitivesInView);
 		}
 
@@ -1365,7 +1373,7 @@ void FSceneRenderer::ComputeViewVisibility()
 
 		// Compute view relevance for all visible primitives.
 		RelevantStaticPrimitives.Reset();
-		ComputeRelevanceForView(Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks);
+		ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks);
 		MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1503,14 +1511,14 @@ uint32 GetShadowQuality();
  * Initialize scene's views.
  * Check visibility, sort translucent items, etc.
  */
-void FDeferredShadingSceneRenderer::InitViews()
+void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(InitViews, DEC_SCENE_ITEMS);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
-	PreVisibilityFrameSetup();
-	ComputeViewVisibility();
+	PreVisibilityFrameSetup(RHICmdList);
+	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup();
 
 	FVector AverageViewPosition(0);
@@ -1528,7 +1536,7 @@ void FDeferredShadingSceneRenderer::InitViews()
 	if (bDynamicShadows && !IsSimpleDynamicLightingEnabled())
 	{
 		// Setup dynamic shadows.
-		InitDynamicShadows();
+		InitDynamicShadows(RHICmdList);
 	}
 
 	if(ViewFamily.EngineShowFlags.MotionBlur && GRenderingRealtimeClock.GetGamePaused())

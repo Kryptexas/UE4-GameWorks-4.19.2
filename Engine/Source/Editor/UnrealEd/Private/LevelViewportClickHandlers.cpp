@@ -328,7 +328,7 @@ namespace ClickHandlers
 			const FVector Delta = Snapped - World;
 			GEditor->SetPivot( Snapped, false, false );
 
-			if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Default ))
+			if( GLevelEditorModeTools().IsDefaultModeActive() )
 			{		
 				// All selected actors need to move by the delta.
 				for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
@@ -400,7 +400,7 @@ namespace ClickHandlers
 		else if( Click.GetKey() == EKeys::LeftMouseButton )
 		{
 			// This should only happen in geometry mode
-			FEdMode* Mode = GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
+			FEdMode* Mode = GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 			if( Mode )
 			{
 				if( ( InHitProxy != NULL) && ( InHitProxy->GeomObject != NULL ) && (InHitProxy->GeomObject->PolyPool.IsValidIndex( InHitProxy->PolyIndex ) == true ) )					
@@ -484,7 +484,7 @@ namespace ClickHandlers
 		}
 		else if( Click.GetKey() == EKeys::LeftMouseButton )
 		{
-			FEdMode* Mode = GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
+			FEdMode* Mode = GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 
 			if( Mode )
 			{ 
@@ -532,12 +532,12 @@ namespace ClickHandlers
 
 	bool ClickGeomVertex(FLevelEditorViewportClient* ViewportClient,HGeomVertexProxy* InHitProxy,const FViewportClick& Click)
 	{
-		if( !GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
+		if( !GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
 		{
 			return false;
 		}
 
-		FEdModeGeometry* Mode = static_cast<FEdModeGeometry*>( GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
+		FEdModeGeometry* Mode = static_cast<FEdModeGeometry*>( GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
 
 		// Note: The expected behavior is that right clicking on a vertex will snap the vertex that was
 		// right-clicked on to the nearest grid point, then move all SELECTED verts by the appropriate

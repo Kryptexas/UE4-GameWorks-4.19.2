@@ -9,6 +9,9 @@
 #include "audiodefs.h"
 #include "dsound.h"
 
+class IVoiceCapture;
+class FVoiceCaptureWindows;
+
 /** Number of notification events distributed throughout the capture buffer */
 #define NUM_EVENTS 5
 /** The last notificatione event is reserved for the stop capturing event */
@@ -26,7 +29,7 @@ private:
     /** One instance of the direct sound API */
 	static FVoiceCaptureDeviceWindows* Singleton;
 	/** All outstanding voice capture objects */
-	TArray<class IVoiceCapture*> ActiveVoiceCaptures;
+	TArray<IVoiceCapture*> ActiveVoiceCaptures;
 	/** Is DirectSound setup correctly */
 	bool bInitialized;
 
@@ -52,16 +55,12 @@ PACKAGE_SCOPE:
 	 *
 	 * @param VoiceCaptureObj voice capture object to free
 	 */
-	void FreeVoiceCaptureObject(class IVoiceCapture* VoiceCaptureObj);
+	void FreeVoiceCaptureObject(IVoiceCapture* VoiceCaptureObj);
 
 public:
 
 	/** DirectSound8 Interface */
 	LPDIRECTSOUND8 DirectSound;
-	/** Voice capture device */
-	LPDIRECTSOUNDCAPTURE8 VoiceCaptureDev;
-	/** Voice capture device caps */
-	DSCCAPS VoiceCaptureDevCaps;
 
 	/** Constructors */
 	FVoiceCaptureDeviceWindows();
@@ -72,7 +71,7 @@ public:
 	 *
 	 * @return class capable of recording voice on a given device
 	 */
-	class FVoiceCaptureWindows* CreateVoiceCaptureObject();
+	FVoiceCaptureWindows* CreateVoiceCaptureObject();
 
 	/**
 	 * Singleton accessor
@@ -93,19 +92,23 @@ public:
 	~FVoiceCaptureWindows();
 
 	// IVoiceCapture
-	virtual bool Init(int32 SampleRate, int32 NumChannels) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual bool Start() OVERRIDE;
-	virtual void Stop() OVERRIDE;
-	virtual bool IsCapturing() OVERRIDE;
-	virtual EVoiceCaptureState::Type GetCaptureState(uint32& OutAvailableVoiceData) const OVERRIDE;
-	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) OVERRIDE;
+	virtual bool Init(int32 SampleRate, int32 NumChannels) override;
+	virtual void Shutdown() override;
+	virtual bool Start() override;
+	virtual void Stop() override;
+	virtual bool IsCapturing() override;
+	virtual EVoiceCaptureState::Type GetCaptureState(uint32& OutAvailableVoiceData) const override;
+	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) override;
 
 	// FTickerObjectBase
-	virtual bool Tick(float DeltaTime) OVERRIDE;
+	virtual bool Tick(float DeltaTime) override;
 
 private:
 
+	/** Voice capture device */
+	LPDIRECTSOUNDCAPTURE8 VoiceCaptureDev;
+	/** Voice capture device caps */
+	DSCCAPS VoiceCaptureDevCaps;
 	/** State of capture device */
 	EVoiceCaptureState::Type VoiceCaptureState;
 	/** Voice capture buffer */

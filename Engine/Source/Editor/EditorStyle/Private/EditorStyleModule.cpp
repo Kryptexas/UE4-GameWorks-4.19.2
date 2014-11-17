@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorStyleModule.cpp: Implements the FEditorStyleModule class.
-=============================================================================*/
-
 #include "EditorStylePrivatePCH.h"
-
 
 
 /**
@@ -16,19 +11,19 @@ class FEditorStyleModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IEditorStyleModule interface
 
-	virtual void StartupModule( )
+	virtual void StartupModule( ) override
 	{
 		FSlateEditorStyle::Initialize();
 	}
 
-	virtual void ShutdownModule( )
+	virtual void ShutdownModule( ) override
 	{
 		FSlateEditorStyle::Shutdown();
 	}
 
-	virtual TSharedRef<class FSlateStyleSet> CreateEditorStyleInstance( ) const OVERRIDE
+	virtual TSharedRef<class FSlateStyleSet> CreateEditorStyleInstance( ) const override
 	{
 		return FSlateEditorStyle::Create(FSlateEditorStyle::Settings);
 	}

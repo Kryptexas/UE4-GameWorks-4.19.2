@@ -46,4 +46,9 @@ void FComponentVisualizersModule::RegisterComponentVisualizer(FName ComponentCla
 	}
 
 	RegisteredComponentClassNames.Add(ComponentClassName);
+
+	if (Visualizer.IsValid())
+	{
+		Visualizer->OnRegister();
+	}
 }

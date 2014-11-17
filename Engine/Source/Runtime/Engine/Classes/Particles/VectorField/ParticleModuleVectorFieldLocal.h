@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/VectorField/ParticleModuleVectorFieldBase.h"
 #include "ParticleModuleVectorFieldLocal.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Local Vector Field"))
@@ -51,7 +51,7 @@ class UParticleModuleVectorFieldLocal : public UParticleModuleVectorFieldBase
 	uint32 bTileZ:1;
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// Begin UParticleModule Interface
 };
 

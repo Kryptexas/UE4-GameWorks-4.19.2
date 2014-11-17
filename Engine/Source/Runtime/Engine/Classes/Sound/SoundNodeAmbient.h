@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include "SoundNodeAttenuation.h"
+#include "Sound/SoundNodeDeprecated.h"
+
 #include "SoundNodeAmbient.generated.h"
 
 USTRUCT()
@@ -38,7 +42,7 @@ struct FAmbientSoundSlot
 		}
 };
 
-UCLASS(dependson=USoundNodeAttenuation, editinlinenew, MinimalAPI)
+UCLASS(editinlinenew, MinimalAPI)
 class UDEPRECATED_SoundNodeAmbient : public UDEPRECATED_SoundNodeDeprecated
 {
 	GENERATED_UCLASS_BODY()

@@ -5,6 +5,7 @@
  */
 
 #include "UnrealEd.h"
+#include "UnrealExporter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffAssetsCommandlet, Log, All);
 

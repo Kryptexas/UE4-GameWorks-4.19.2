@@ -241,7 +241,7 @@ namespace iPhonePackager
 			foreach (FileInfo SourceFileInfo in SourceFolderInfo.GetFiles())
 			{
 				string DestFileName = DestFolder + "/" + SourceFileInfo.Name;
-				FilesToUpload.Add(SourceFileInfo.FullName + " " + DestFileName);
+				FilesToUpload.Add(SourceFileInfo.FullName + ";" + DestFileName);
 			}
 
 			// recurse into subdirectories

@@ -8,7 +8,8 @@
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: CheckerboardTexture(NULL)
+	: FEditorViewportClient(GLevelEditorModeTools())
+	, CheckerboardTexture(NULL)
 {
 	ZoomPos = FVector2D::ZeroVector;
 	ZoomAmount = 1.0f;

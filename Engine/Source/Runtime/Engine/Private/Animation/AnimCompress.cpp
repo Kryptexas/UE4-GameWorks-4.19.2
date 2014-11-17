@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimCompress.h"
 #include "AnimationCompression.h"
 #include "AnimationUtils.h"
 #include "FloatPacker.h"

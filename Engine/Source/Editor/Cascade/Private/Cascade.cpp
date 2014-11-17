@@ -13,11 +13,24 @@
 #include "SCascadeEmitterCanvas.h"
 #include "CascadeActions.h"
 #include "Cascade.h"
+#include "PhysicsPublic.h"
 
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");

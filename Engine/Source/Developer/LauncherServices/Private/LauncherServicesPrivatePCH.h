@@ -1,13 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherServicesPrivatePCH.h: Pre-compiled header file for the LauncherServices module.
-=============================================================================*/
-
 #pragma once
 
-
-#include "../Public/LauncherServices.h"
+#include "LauncherServices.h"
 
 
 /* Dependencies
@@ -25,9 +20,7 @@
 /* Private includes
  *****************************************************************************/
 
-/**
- * Defines the launcher profile file version.
- */
+/** Defines the launcher profile file version. */
 #define LAUNCHERSERVICES_PROFILEVERSION 8
 
 
@@ -49,5 +42,4 @@
 #include "LauncherPackageCommands.h"
 #include "LauncherVerifyProfileTask.h"
 #include "LauncherWorker.h"
-
 #include "Launcher.h"

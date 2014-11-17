@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeDeprecated.h"
 #include "SoundNodeWave.generated.h"
 
 UCLASS(deprecated, PerObjectConfig, hidecategories=Object, editinlinenew, MinimalAPI)
@@ -107,7 +108,7 @@ public:
 	FByteBulkData				RawData;
 
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End UObject interface. 
 
 };

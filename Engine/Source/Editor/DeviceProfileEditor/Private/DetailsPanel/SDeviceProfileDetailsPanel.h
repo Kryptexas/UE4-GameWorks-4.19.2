@@ -9,6 +9,8 @@
 
 #include "PropertyEditing.h"
 
+class UDeviceProfile;
+
 #define LOCTEXT_NAMESPACE "DeviceProfileDetailsPanel"
 
 

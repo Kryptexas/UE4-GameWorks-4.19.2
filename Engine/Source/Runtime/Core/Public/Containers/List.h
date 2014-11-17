@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	List.h: Dynamic list definitions.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Encapsulates a link in a single linked list with constant access time.
@@ -108,7 +105,7 @@ public:
 	/**
 	 * Adds this element to a list, before the given element.
 	 *
-	 * @param Before	The link to insert this element before.
+	 * @param Before The link to insert this element before.
 	 */
 	void Link(TLinkedList*& Before)
 	{
@@ -157,6 +154,7 @@ private:
 	TLinkedList* NextLink;
 	TLinkedList** PrevLink;
 };
+
 
 /**
  * Double linked list.
@@ -518,6 +516,7 @@ private:
 	TDoubleLinkedList& operator=(const TDoubleLinkedList&);
 };
 
+
 /*----------------------------------------------------------------------------
 	TList.
 ----------------------------------------------------------------------------*/
@@ -540,4 +539,3 @@ public:
 		Next = InNext;
 	}
 };
-

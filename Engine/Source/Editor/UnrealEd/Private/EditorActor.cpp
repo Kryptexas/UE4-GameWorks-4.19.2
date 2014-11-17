@@ -13,6 +13,11 @@
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "ActorEditorUtils.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -450,7 +455,7 @@ void UUnrealEdEngine::edactDuplicateSelected( ULevel* InLevel, bool bOffsetLocat
 	}
 	
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
@@ -566,7 +571,15 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		FBlueprintEditorUtils::FindActorsThatReferenceActor( Actor, ClassTypesToIgnore, ReferencingActors );
 
 		bool bReferencedByLevelScript = (NULL != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
-		bool bReferencedByActor = ( ReferencingActors.Num() > 0 );
+		bool bReferencedByActor = false;
+		for (AActor* ReferencingActor : ReferencingActors)
+		{
+			if (ReferencingActor->ParentComponentActor.Get() != Actor)
+			{
+				bReferencedByActor = true;
+				break;
+			}
+		}
 
 		if ( bReferencedByLevelScript || bReferencedByActor )
 		{
@@ -709,7 +722,7 @@ bool UUnrealEdEngine::ShouldAbortActorDeletion() const
 
 	// Can't delete actors if Matinee is open.
 	const FText ErrorMsg = NSLOCTEXT("UnrealEd", "Error_WrongModeForActorDeletion", "Cannot delete actor while Matinee is open" );
-	if ( !GEditorModeTools().EnsureNotInMode( FBuiltinEditorModes::EM_InterpEdit, ErrorMsg, true ) )
+	if ( !GLevelEditorModeTools().EnsureNotInMode( FBuiltinEditorModes::EM_InterpEdit, ErrorMsg, true ) )
 	{
 		bResult = true;
 	}
@@ -738,7 +751,7 @@ bool UUnrealEdEngine::ShouldAbortActorDeletion() const
 void UUnrealEdEngine::edactReplaceSelectedBrush( UWorld* InWorld )
 {
 	// Make a list of brush actors to replace.
-	ABrush* DefaultBrush = InWorld->GetBrush();
+	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
 
 	TArray<ABrush*> BrushesToReplace;
 	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
@@ -2061,7 +2074,7 @@ void UUnrealEdEngine::edactAlignOrigin()
 			Brush->SetActorLocation(BrushLocation, false);
 
 			//Update EditorMode locations to match the new brush location
-			FEditorModeTools& Tools = GEditorModeTools();
+			FEditorModeTools& Tools = GLevelEditorModeTools();
 			Tools.SetPivotLocation( Brush->GetActorLocation(), true );
 
 			Brush->Brush->BuildBound();
@@ -2135,12 +2148,12 @@ void UUnrealEdEngine::edactAlignVertices()
 					}
 
 					// Determine if we are in geometry edit mode.
-					if ( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+					if ( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 					{
 						// If we are in geometry mode, go through the list of geometry objects
 						// and find our current brush and update its source data as it might have changed 
 						// in RecomputePoly
-						FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+						FEdModeGeometry* GeomMode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 						FEdModeGeometry::TGeomObjectIterator GeomModeIt = GeomMode->GeomObjectItor();
 						for( ; GeomModeIt; ++GeomModeIt )
 						{

@@ -17,6 +17,11 @@
    public *;
 }
 
+# Needed...
+-keep class com.epicgames.ue4.GameActivity$JavaAchievement {
+   public *;
+}
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
@@ -43,3 +48,12 @@
 }
 
 # End Google Play services requirements
+
+# Google Play Admob
+-keep public class com.google.android.gms.ads.** {
+   public *;
+}
+
+-keep public class com.google.ads.** {
+   public *;
+}

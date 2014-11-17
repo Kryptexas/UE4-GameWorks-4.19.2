@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightingMesh.h: Static lighting mesh definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "ImportExport.h"

@@ -1,4 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
 #include "Interface_PostProcessVolume.generated.h"
 
 /** Interface for general PostProcessVolume access **/

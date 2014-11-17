@@ -20,6 +20,7 @@ void SErrorText::Construct(const FArguments& InArgs)
 		[
 			SAssignNew( TextBlock, STextBlock )
 			.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
+			.Font(InArgs._Font)
 		]
 	);
 

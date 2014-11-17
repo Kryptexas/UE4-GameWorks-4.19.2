@@ -27,7 +27,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// SWidget interface
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize() const override;
 	// End of SWidget interface
 private:
 	EOrientation Orientation;

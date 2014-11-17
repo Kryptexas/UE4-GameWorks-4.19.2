@@ -25,6 +25,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "GPUSkinCache.h"
+#include "Animation/VertexAnim/VertexAnimBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalGPUSkinMesh, Warning, All);
 
@@ -52,7 +53,8 @@ void FMorphVertexBuffer::InitDynamicRHI()
 
 	// Create the buffer rendering resource
 	uint32 Size = LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
-	VertexBufferRHI = RHICreateVertexBuffer(Size,NULL,BUF_Dynamic);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Dynamic,CreateInfo);
 
 	// Lock the buffer.
 	FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*) RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
@@ -177,7 +179,7 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 		FDynamicSkelMeshObjectData*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(NewDynamicData);
+		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData);
 	}
 	);
 
@@ -189,7 +191,7 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMeshObjectData* InDynamicData)
+void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GPUSkinUpdateRTTime);
 	bool bMorphNeedsUpdate=false;
@@ -285,7 +287,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMesh
 			// Try to use the GPU skinning cache if possible
 			if (bGPUSkinCacheEnabled && ChunkIdx < MAX_GPUSKINCACHE_CHUNKS_PER_LOD && !bClothFactory && Chunk.MaxBoneInfluences > 0 && DynamicData->NumWeightedActiveVertexAnims <= 0)
 			{
-				int32 Key = GGPUSkinCache.StartCacheMesh(GPUSkinCacheKeys[ChunkIdx], &VertexFactoryData.VertexFactories[ChunkIdx], &VertexFactoryData.PassthroughVertexFactories[ChunkIdx], Chunk, this, Chunk.HasExtraBoneInfluences());
+				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, GPUSkinCacheKeys[ChunkIdx], &VertexFactoryData.VertexFactories[ChunkIdx], &VertexFactoryData.PassthroughVertexFactories[ChunkIdx], Chunk, this, Chunk.HasExtraBoneInfluences());
 				if(Key >= 0)
 				{
 					GPUSkinCacheKeys[ChunkIdx] = (int16)Key;
@@ -297,6 +299,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMesh
 			if( bClothFactory )
 			{				
 				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetClothShaderData();
+				ClothShaderData.ClothBlendWeight = DynamicData->ClothBlendWeight;
 				int16 ActorIdx = Chunk.CorrespondClothAssetIndex;
 				if( DynamicData->ClothSimulUpdateData.IsValidIndex(ActorIdx) )
 				{
@@ -362,7 +365,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 				// Allocate temp state
 				FVertexAnimEvalStateBase* AnimState = VertAnim.VertAnim->InitEval();
-
+				
 				// Get deltas
 				int32 NumDeltas;
 				FVertexAnimDelta* Deltas = VertAnim.VertAnim->GetDeltasAtTime(VertAnim.Time, LODIndex, AnimState, NumDeltas);
@@ -1039,6 +1042,7 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 	USkeletalMeshComponent * SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 	if(SkelMeshComponent)
 	{
+		ClothBlendWeight = SkelMeshComponent->ClothBlendWeight;
 		SkelMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData);
 		return true;
 	}

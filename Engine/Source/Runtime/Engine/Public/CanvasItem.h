@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "BatchedElements.h"
+
+class FMaterialRenderProxy;
+
 class FCanvasItem
 {
 public:
@@ -232,7 +236,7 @@ public:
 	 *
 	 * @param	InPosition		Draw position.
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -310,7 +314,7 @@ public:
 	 *
 	 * @param	InPosition		Draw position.
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -419,7 +423,7 @@ public:
 	 *
 	 * @param	InCanvas		Canvas on which to draw
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -556,7 +560,7 @@ public:
 	 *
 	 * @param	InCanvas		Canvas on which to draw
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 	
 	/* 
 	 * Draw line at the given coordinates.
@@ -564,7 +568,7 @@ public:
 	 * @param	InCanvas		Canvas on which to draw
 	 * @param	InPosition		Draw Start position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, const FVector2D& InPosition ) OVERRIDE
+	virtual void Draw( class FCanvas* InCanvas, const FVector2D& InPosition ) override
 	{
 		Origin.X = InPosition.X;
 		Origin.Y = InPosition.Y;
@@ -592,7 +596,7 @@ public:
 	 * @param	X				X Draw position 
 	 * @param	Y				Y Draw position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, float InX, float InY ) OVERRIDE
+	virtual void Draw( class FCanvas* InCanvas, float InX, float InY ) override
 	{
 		Origin.X = InX;
 		Origin.Y = InY;
@@ -656,7 +660,7 @@ public:
 		, Size( InSize )
 		, LineThickness( 0.0f )	{};
 
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -776,13 +780,13 @@ public:
 		TriangleList[0].V2_Pos = InPointC;
 	}
 
-	virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	virtual void Draw( class FCanvas* InCanvas ) override;
 		
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
 
 	/* Set the Color of the item. */
-	virtual void SetColor( const FLinearColor& InColor ) OVERRIDE;
+	virtual void SetColor( const FLinearColor& InColor ) override;
 
 	/* texture to use for triangle(s). */
 	const FTexture* Texture;
@@ -831,7 +835,7 @@ public:
 	 {
 		 delete TriListItem;
 	 }
-	 virtual void Draw( class FCanvas* InCanvas ) OVERRIDE;
+	 virtual void Draw( class FCanvas* InCanvas ) override;
 
 	 /* 	 
 	 * Regenerates the tri list for the object with a new central point and radius
@@ -864,7 +868,7 @@ public:
 	 }
 
 	 /* Set the Color of the item. */
-	 virtual void SetColor( const FLinearColor& InColor ) OVERRIDE;
+	 virtual void SetColor( const FLinearColor& InColor ) override;
 
 private:
 	

@@ -10,9 +10,10 @@
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogMatinee, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAnimNotify, Warning, All);
 
+#include "Animation/AnimSequence.h"
+
 // Forward declarations.
 class UAnimCompress;
-class UAnimSequence;
 class UAnimSet;
 class USkeletalMesh;
 struct FAnimSetMeshLinkup;

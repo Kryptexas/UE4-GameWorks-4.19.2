@@ -62,7 +62,7 @@ public:
 	void ClearDetailsView();
 
 	// FGCObject interface start
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// FGCObject interface end
 
 protected:

@@ -115,12 +115,12 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 
 	/** Get Unique Id defining the message type sent to the service */
 	int32 GetMsgType() const

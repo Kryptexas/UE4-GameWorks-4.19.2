@@ -127,7 +127,7 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 	// NULL out remaining entries.
 	for ( ; CurrentDepth<MaxDepth; CurrentDepth++ )
 	{
-		BackTrace[CurrentDepth] = NULL;
+		BackTrace[CurrentDepth] = 0;
 	}
 
 	return EXCEPTION_EXECUTE_HANDLER;
@@ -223,7 +223,7 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 			}
 			while ( NumFrames < MaxDepth )
 			{
-				BackTrace[ NumFrames++ ] = NULL;
+				BackTrace[ NumFrames++ ] = 0;
 			}
 		}
 #elif PLATFORM_64BITS
@@ -480,9 +480,9 @@ static void LoadProcessModules()
 		ANSICHAR ModuleName[1024];
 		ANSICHAR ImageName[1024];
 #if PLATFORM_64BITS
-		checkAtCompileTime(sizeof(ModuleInfo) == 24, broken_alignment_for_64bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 24, "Broken alignment for 64bit Windows include.");
 #else
-		checkAtCompileTime(sizeof(ModuleInfo) == 12, broken_alignment_for_32bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 12, "Broken alignment for 32bit Windows include.");
 #endif
 		FGetModuleInformation( ProcessHandle, ModuleHandleArray[ModuleIndex], &ModuleInfo,sizeof( ModuleInfo ) );
 		FGetModuleFileNameEx( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, 1024 );
@@ -491,9 +491,13 @@ static void LoadProcessModules()
 		// Set the search path to find PDBs in the same folder as the DLL.
 		ANSICHAR SearchPath[1024];
 		ANSICHAR* FileName = NULL;
-		GetFullPathNameA( ImageName, 1024, SearchPath, &FileName );
-		*FileName = 0;
-		SymSetSearchPath( GetCurrentProcess(), SearchPath );
+		const auto Result =	GetFullPathNameA( ImageName, ARRAY_COUNT( SearchPath ), SearchPath, &FileName );
+
+		if(Result != 0 && Result < ARRAY_COUNT(SearchPath))
+		{
+			*FileName = 0;
+			SymSetSearchPath(GetCurrentProcess(), SearchPath);
+		}
 
 		// Load module.
 		DWORD64 BaseAddress = SymLoadModule64( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, ModuleName, (DWORD64) ModuleInfo.lpBaseOfDll, (uint32) ModuleInfo.SizeOfImage );
@@ -590,9 +594,9 @@ int32 FWindowsPlatformStackWalk::GetProcessModuleSignatures(FStackWalkModuleInfo
 		ANSICHAR ModuleName[1024];
 		ANSICHAR ImageName[1024];
 #if PLATFORM_64BITS
-		checkAtCompileTime(sizeof(ModuleInfo) == 24, broken_alignment_for_64bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 24, "Broken alignment for 64bit Windows include.");
 #else
-		checkAtCompileTime(sizeof(ModuleInfo) == 12, broken_alignment_for_32bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 12, "Broken alignment for 32bit Windows include.");
 #endif
 		FGetModuleInformation( ProcessHandle, ModuleHandleArray[ModuleIndex], &ModuleInfo,sizeof( ModuleInfo ) );
 		FGetModuleFileNameEx( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, 1024 );
@@ -629,7 +633,7 @@ int32 FWindowsPlatformStackWalk::GetProcessModuleSignatures(FStackWalkModuleInfo
 /**
  * Callback from the modules system that the loaded modules have changed and we need to reload symbols.
  */ 
-static void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange )
+static void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange )
 {
 	GNeedToRefreshSymbols = true;
 }

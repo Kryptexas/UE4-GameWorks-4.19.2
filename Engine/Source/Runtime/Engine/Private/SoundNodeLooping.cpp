@@ -3,6 +3,8 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeLooping.h"
+#include "Sound/SoundNodeWavePlayer.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNodeLooping implementation.

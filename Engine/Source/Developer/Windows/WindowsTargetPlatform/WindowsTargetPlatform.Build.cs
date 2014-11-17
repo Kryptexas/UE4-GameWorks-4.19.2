@@ -10,7 +10,8 @@ public class WindowsTargetPlatform : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

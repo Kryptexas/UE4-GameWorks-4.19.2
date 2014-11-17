@@ -31,11 +31,11 @@ public:
 	static FStaticMeshLightingInfoStatsPage& Get();
 
 	/** Begin IStatsPage interface */
-	virtual void Generate( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const OVERRIDE;
-	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const OVERRIDE;
-	virtual TSharedPtr<SWidget> GetCustomWidget(TWeakPtr< class IStatsViewer > InParentStatsViewer) OVERRIDE;
-	virtual void OnShow( TWeakPtr< class IStatsViewer > InParentStatsViewer ) OVERRIDE;
-	virtual void OnHide() OVERRIDE;
+	virtual void Generate( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const override;
+	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const override;
+	virtual TSharedPtr<SWidget> GetCustomWidget(TWeakPtr< class IStatsViewer > InParentStatsViewer) override;
+	virtual void OnShow( TWeakPtr< class IStatsViewer > InParentStatsViewer ) override;
+	virtual void OnHide() override;
 	/** End IStatsPage interface */
 
 private:

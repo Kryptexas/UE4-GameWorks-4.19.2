@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Model.h"
 #include "LevelUtils.h"
 
 #include "DebuggingDefines.h"
@@ -37,11 +38,12 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if(NumVertices)
 		{
-			VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FModelWireVertex),NULL,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FModelWireVertex),BUF_Static, CreateInfo);
 
 			FModelWireVertex* DestVertex = (FModelWireVertex*)RHILockVertexBuffer(VertexBufferRHI,0,NumVertices * sizeof(FModelWireVertex),RLM_WriteOnly);
 			for(int32 PolyIndex = 0;PolyIndex < Polys.Num();PolyIndex++)
@@ -87,11 +89,12 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if(NumEdges)
 		{
-			IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),NumEdges * 2 * sizeof(uint16),NULL,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo;
+			IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),NumEdges * 2 * sizeof(uint16),BUF_Static, CreateInfo);
 
 			uint16* DestIndex = (uint16*)RHILockIndexBuffer(IndexBufferRHI,0,NumEdges * 2 * sizeof(uint16),RLM_WriteOnly);
 			uint16 BaseIndex = 0;
@@ -130,6 +133,7 @@ public:
 		bVolume(false),
 		bBuilder(false),
 		bSolidWhenSelected(false),
+		bInManipulation(false),
 		BrushColor(GEngine->C_BrushWire),
 		LevelColor(255,255,255),
 		PropertyColor(255,255,255),
@@ -151,6 +155,7 @@ public:
 			bBuilder = FActorEditorUtils::IsABuilderBrush( Owner );
 			BrushColor = Owner->GetWireColor();
 			bSolidWhenSelected = Owner->bSolidWhenSelected;
+			bInManipulation = Owner->bInManipulation;
 
 			// Builder brushes should be unaffected by level coloration, so if this is a builder brush, use
 			// the brush color as the level color.
@@ -382,6 +387,10 @@ public:
 		Result.bDrawRelevance = bVisible;
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);
+		if(bInManipulation)
+		{
+			Result.bEditorNoDepthTestPrimitiveRelevance = true;
+		}
 
 		// Don't render on top in 'collision view' modes
 		if(!bInCollisionView)
@@ -415,6 +424,7 @@ private:
 	uint32 bVolume : 1;
 	uint32 bBuilder : 1;	
 	uint32 bSolidWhenSelected : 1;
+	uint32 bInManipulation : 1;
 
 	FColor BrushColor;
 	FColor LevelColor;
@@ -500,9 +510,9 @@ FVector UBrushComponent::GetCustomLocation() const
 	return LocationNoPivot;
 }
 
-FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const
+FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
 {
-	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform);
+	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform, Parent);
 
 	const FVector LocationNoPivot = CompToWorld.GetLocation();
 	const FVector LocationWithPivot = LocationNoPivot + CompToWorld.TransformVector(-PrePivot);

@@ -12,41 +12,26 @@
  */
 struct FOrientedBox
 {
-	/**
-	 * Holds the center of the box.
-	 */
+	/** Holds the center of the box. */
 	FVector Center;
 
-	/**
-	 * Holds the x-axis vector of the box. Must be a unit vector.
-	 */
+	/** Holds the x-axis vector of the box. Must be a unit vector. */
 	FVector AxisX;
 	
-	/**
-	 * Holds the y-axis vector of the box. Must be a unit vector.
-	 */
+	/** Holds the y-axis vector of the box. Must be a unit vector. */
 	FVector AxisY;
 	
-	/**
-	 * Holds the z-axis vector of the box. Must be a unit vector.
-	 */
+	/** Holds the z-axis vector of the box. Must be a unit vector. */
 	FVector AxisZ;
 
-	/**
-	 * Holds the extent of the box along its x-axis.
-	 */
+	/** Holds the extent of the box along its x-axis. */
 	float ExtentX;
 	
-	/**
-	 * Holds the extent of the box along its y-axis.
-	 */
+	/** Holds the extent of the box along its y-axis. */
 	float ExtentY;
 
-	/**
-	 * Holds the extent of the box along its z-axis.
-	 */
+	/** Holds the extent of the box along its z-axis. */
 	float ExtentZ;
-
 
 public:
 
@@ -65,20 +50,19 @@ public:
 		, ExtentZ(1.0f)
 	{ }
 
-
 public:
 
 	/**
 	 * Fills in the Verts array with the eight vertices of the box.
 	 *
-	 * @param Verts		The array to fill in with the vertices.
+	 * @param Verts The array to fill in with the vertices.
 	 */
 	FORCEINLINE void CalcVertices (FVector* Verts) const;
 
 	/**
 	 * Finds the projection interval of the box when projected onto Axis.
 	 *
-	 * @param Axis	The unit vector defining the axis to project the box onto.
+	 * @param Axis The unit vector defining the axis to project the box onto.
 	 */
 	FORCEINLINE FInterval Project (const FVector& Axis) const;
 };
@@ -87,7 +71,7 @@ public:
 /* FOrientedBox inline functions
  *****************************************************************************/
 
-FORCEINLINE void FOrientedBox::CalcVertices (FVector* Verts) const
+FORCEINLINE void FOrientedBox::CalcVertices( FVector* Verts ) const
 {
 	static const float Signs[] = { -1.0f, 1.0f };
 
@@ -104,7 +88,7 @@ FORCEINLINE void FOrientedBox::CalcVertices (FVector* Verts) const
 }
 
 
-FORCEINLINE FInterval FOrientedBox::Project (const FVector& Axis) const
+FORCEINLINE FInterval FOrientedBox::Project( const FVector& Axis ) const
 {
 	static const float Signs[] = {-1.0f, 1.0f};
 

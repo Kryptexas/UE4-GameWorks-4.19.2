@@ -101,6 +101,7 @@ FUnorderedAccessViewRHIRef FD3D11DynamicRHI::RHICreateUnorderedAccessView(FVerte
 	if (bByteAccessBuffer)
 	{
 		UAVDesc.Buffer.Flags |= D3D11_BUFFER_UAV_FLAG_RAW;
+		UAVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 	}
 
 	TRefCountPtr<ID3D11UnorderedAccessView> UnorderedAccessView;

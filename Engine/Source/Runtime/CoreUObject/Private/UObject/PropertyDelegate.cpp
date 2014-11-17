@@ -108,6 +108,6 @@ bool UDelegateProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UDelegateProperty, SignatureFunction ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UDelegateProperty, SignatureFunction), TEXT("SignatureFunction"));
 	}
 );

@@ -8,9 +8,9 @@ public class MCPP : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "MCPP/mcpp-2.7.2/inc");
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/inc");
 
-		string LibPath = UEBuildConfiguration.UEThirdPartyDirectory + "MCPP/mcpp-2.7.2/lib/";
+		string LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/lib/";
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
         {
@@ -27,6 +27,12 @@ public class MCPP : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			PublicAdditionalLibraries.Add(LibPath + "Mac/libmcpp.a");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			LibPath += "Linux/" + Target.Architecture;
+			PublicLibraryPaths.Add(LibPath);
+			PublicAdditionalLibraries.Add("mcpp");
 		}
 	}
 }

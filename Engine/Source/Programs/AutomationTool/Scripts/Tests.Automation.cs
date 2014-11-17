@@ -35,10 +35,15 @@ class TestP4_Info : BuildCommand
 [Help("Dir=", "Directory of the Git repo.")]
 [Help("PR=", "PR # to shelve, can use a range PR=5-25")]
 [RequireP4]
+[DoesNotNeedP4CL]
 class GitPullRequest : BuildCommand
 {
 	/// URL to our UnrealEngine repository on GitHub
-	static readonly string GitRepositoryURL = "https://github.com/EpicGames/UnrealEngine.git";
+	static readonly string GitRepositoryURL_Engine = "https://github.com/EpicGames/UnrealEngine.git";
+    static readonly string GitRepositoryURL_UT = "https://github.com/EpicGames/UnrealTournament.git";
+    string GitRepositoryURL = null;
+
+    bool bDoingUT = false;
 
     string FindExeFromPath(string ExeName, string ExpectedPathSubstring = null)
     {
@@ -81,6 +86,123 @@ class GitPullRequest : BuildCommand
         return Result.Output.Trim();
     }
 
+    bool ScanForBranchAndCL_BaseVersion(string GitCommand, out string Depot, out int CL)
+    {
+        Depot = null;
+        CL = 0;
+        try
+        {
+            var Base = RunGit(GitCommand);
+
+            string BaseStart = "Engine source (";
+            string BaseEnd = ")";
+
+            if (Base.Contains(BaseStart) && Base.Contains(BaseEnd))
+            {
+                Base = Base.Substring(Base.IndexOf(BaseStart) + BaseStart.Length);
+                if (Base.StartsWith("4."))
+                {
+                    Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
+                }
+                else if (Base.StartsWith("Main"))
+                {
+                    Depot = "//depot/UE4";
+                }
+                else if (Base.StartsWith("UT"))
+                {
+                    Depot = "//depot/UE4-UT";
+                }
+                else
+                {
+                    throw new AutomationException("Unrecognized branch.");
+                }
+                Log("Depot {0}", Depot);
+
+                Base = Base.Substring(0, Base.IndexOf(BaseEnd));
+                if (!Base.Contains(" "))
+                {
+                    throw new AutomationException("Unrecognized commit3.");
+                }
+                Base = Base.Substring(Base.LastIndexOf(" "));
+                Log("CL String {0}", Base);
+                CL = int.Parse(Base);
+            }
+            Log("CL int {0}", CL);
+            if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
+            {
+                throw new AutomationException("Unrecognized commit3.");
+            }
+
+            return true;
+        }
+        catch (Exception)
+        {
+            CL = 0;
+            return false;
+        }
+    }
+    
+    bool ScanForBranchAndCL_LiveVersion(string GitCommand, out string Depot, out int CL)
+    {
+        Depot = null;
+        CL = 0;
+        try
+        {
+            var Base = RunGit(GitCommand);
+
+            string LiveStart = "[CL ";
+            string LiveEnd = " branch]";
+
+            if (Base.Contains(LiveStart) && Base.Contains(LiveEnd))
+            {
+                var CLStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length);
+                if (CLStuff.IndexOf(" ") <= 0)
+                {
+                    throw new AutomationException("Unrecognized commit5.");
+                }
+                CLStuff = CLStuff.Substring(0, CLStuff.IndexOf(" "));
+                Log("CL String {0}", CLStuff);
+                CL = int.Parse(CLStuff);
+
+                var BranchStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length, Base.IndexOf(LiveEnd) - Base.IndexOf(LiveStart) - LiveStart.Length);
+                if (BranchStuff.IndexOf(" ") <= 0)
+                {
+                    throw new AutomationException("Unrecognized commit6.");
+                }
+                BranchStuff = BranchStuff.Substring(BranchStuff.LastIndexOf(" ") + 1);
+                Log("Branch String {0}", BranchStuff);
+                if (BranchStuff.StartsWith("4."))
+                {
+                    Depot = "//depot/UE4-Releases/4." + BranchStuff.Substring(2, 1);
+                }
+                else if (BranchStuff.StartsWith("Main"))
+                {
+                    Depot = "//depot/UE4";
+                }
+                else if (BranchStuff.StartsWith("UT"))
+                {
+                    Depot = "//depot/UE4-UT";
+                }
+                else
+                {
+                    throw new AutomationException("Unrecognized branch2.");
+                }
+            }
+            Log("CL int {0}", CL);
+            if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
+            {
+                throw new AutomationException("Unrecognized commit3.");
+            }
+
+            return true;
+        }
+        catch (Exception)
+        {
+            CL = 0;
+            return false;
+        }
+    }
+
     void ExecuteInner(string Dir, int PR)
     {
         string PRNum = PR.ToString();
@@ -97,46 +219,38 @@ class GitPullRequest : BuildCommand
         RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
         RunGit(String.Format("checkout pr/{0} --", PRNum));
 
-		// after the fetch we do git log --Author... to figure out the P4 branch and CL
-		// the -1 limits it to the first one with the right author
-		var Base = RunGit(String.Format("log --author=TimSweeney --author=UnrealBot -1 pr/{0} --", PRNum));
-        string LookFor = "(";
-        if (!Base.Contains(LookFor))
+        int CLBase;
+        string DepotBase;
+        ScanForBranchAndCL_BaseVersion(String.Format("log --author=TimSweeney --author=UnrealBot -100 pr/{0} --", PRNum), out DepotBase, out CLBase);
+
+
+        int CLLive;
+        string DepotLive;
+        ScanForBranchAndCL_LiveVersion(String.Format("log -100 pr/{0} --", PRNum), out DepotLive, out CLLive);
+
+        if (CLLive == 0 && CLBase == 0)
         {
-            throw new AutomationException("Unrecognized commit.");
+            throw new AutomationException("Could not find a base change and branch using either method.");
         }
-        Base = Base.Substring(Base.IndexOf(LookFor) + LookFor.Length);
-        string Depot = null;
-        if (Base.StartsWith("4."))
+
+        int CL = 0;
+        string Depot = "";
+
+        if (CLBase > CLLive)
         {
-            Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
-        }
-        else if (Base.StartsWith("Main"))
-        {
-            Depot = "//depot/UE4";
+            CL = CLBase;
+            Depot = DepotBase;
         }
         else
         {
-            throw new AutomationException("Unrecognized branch.");
+            CL = CLLive;
+            Depot = DepotLive;
         }
-        Log("Depot {0}", Depot);
-        if (!Base.Contains(")"))
+        if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
         {
-            throw new AutomationException("Unrecognized commit2.");
+            throw new AutomationException("Could not find a base change and branch using either method.");
         }
-        Base = Base.Substring(0, Base.IndexOf(")"));
-        if (!Base.Contains(" "))
-        {
-            throw new AutomationException("Unrecognized commit3.");
-        }
-        Base = Base.Substring(Base.LastIndexOf(" "));
-        Log("CL String {0}", Base);
-        int CL = int.Parse(Base);
-        Log("CL int {0}", CL);
-        if (CL < 2000000)
-        {
-            throw new AutomationException("Unrecognized commit3.");
-        }
+
 
         P4ClientInfo NewClient = P4.GetClientInfo(P4Env.Client);
 
@@ -162,18 +276,28 @@ class GitPullRequest : BuildCommand
         P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
 
         var Change = P4Sub.CreateChange(null, String.Format("GitHub pull request #{0}", PRNum));
-        P4Sub.ReconcileNoDeletes(Change, CombinePaths(Dir, "Engine", "..."));
+        P4Sub.ReconcileNoDeletes(Change, CommandUtils.MakePathSafeToUseWithCommandLine(CombinePaths(Dir, bDoingUT ? "UnrealTournament" : "Engine", "...")));
         P4Sub.Shelve(Change);
         P4Sub.Revert(Change, "-k //...");
     }
 
     public override void ExecuteBuild()
     {
+        if (ParseParam("UT"))
+        {
+            bDoingUT = true;
+            GitRepositoryURL = GitRepositoryURL_UT;
+        }
+        else
+        {
+            bDoingUT = false;
+            GitRepositoryURL = GitRepositoryURL_Engine;
+        }
         var Dir = ParseParamValue("Dir");
         if (String.IsNullOrEmpty(Dir))
         {
 			// No Git repo directory was specified, so we'll choose a directory automatically
-			Dir = Path.GetFullPath( Path.Combine( CmdEnv.LocalRoot, "Engine", "Intermediate", "PullRequestGitRepo" ) );
+            Dir = Path.GetFullPath(Path.Combine(CmdEnv.LocalRoot, "Engine", "Intermediate", bDoingUT ? "PullRequestGitRepo_UT" : "PullRequestGitRepo"));
         }
 
         var PRNum = ParseParamValue("PR");
@@ -358,6 +482,9 @@ class TestTempStorage : BuildCommand
 	public override void ExecuteBuild()
 	{
 		Log("TestTempStorage********");
+
+        Log("Resolved Ocean to {0}", ResolveSharedBuildDirectory("Ocean"));
+
 		DeleteLocalTempStorageManifests(CmdEnv);
 		DeleteSharedTempStorageManifests(CmdEnv, "Test");
 		if (TempStorageExists(CmdEnv, "Test"))
@@ -1282,18 +1409,37 @@ public class TestWatchdogTimer : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("Starting the first timer (1s). This should not crash.");
+		Log("Starting 1st timer (1s). This should not crash.");
 		using (var SafeTimer = new WatchdogTimer(1))
 		{
 			// Wait 500ms
+			Log("Started {0}", SafeTimer.GetProcessName());
 			Thread.Sleep(500);
 		}
 		Log("First timer disposed successfully.");
 
-		Log("Starting the second timer (2s). This should crash after 2 seconds.");
+		Log("Starting 2nd timer (2s). This should throw an exception after 1 second.");
+		try
+		{
+			using (var CrashTimer = new WatchdogTimer(2))
+			{
+				// Wait 5s (this will trigger the watchdog timer)
+				Log("Started {0}", CrashTimer.GetProcessName());
+				Thread.Sleep(1000);
+				throw new Exception("Test exceptions under WatchdogTimer");
+			}
+		}
+		catch (Exception Ex)
+		{
+			Log("Triggered exception guarded by WatchdogTimer:");
+			Log(System.Diagnostics.TraceEventType.Information, Ex);
+		}
+
+		Log("Starting 3rd timer (2s). This should crash after 2 seconds.");
 		using (var CrashTimer = new WatchdogTimer(2))
 		{
 			// Wait 5s (this will trigger the watchdog timer)
+			Log("Started {0}", CrashTimer.GetProcessName());
 			Thread.Sleep(5000);
 		}
 	}
@@ -1743,16 +1889,29 @@ class TestChanges : BuildCommand
 {
     public override void ExecuteBuild()
     {
-        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2061085,2061287 //depot/UE4-LauncherReleases/*/Build/...@2061085,2061287");
-        
-        List<P4Connection.ChangeRecord> ChangeRecords;
-        if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2091742,2091950 //depot/UE4-LauncherReleases/*/Build/...@2091742,2091950");
+
         {
-            throw new AutomationException("failed");
+            List<P4Connection.ChangeRecord> ChangeRecords;
+            if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+            {
+                throw new AutomationException("failed");
+            }
+            foreach (var Record in ChangeRecords)
+            {
+                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            }
         }
-        foreach (var Record in ChangeRecords)
         {
-            Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            List<P4Connection.ChangeRecord> ChangeRecords;
+            if (!P4.Changes(out ChangeRecords, "-L " + CommandParam, true, true, LongComment: false))
+            {
+                throw new AutomationException("failed");
+            }
+            foreach (var Record in ChangeRecords)
+            {
+                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            }
         }
     }
 }
@@ -1772,6 +1931,19 @@ class TestKillAll : BuildCommand
 		Thread.Sleep(10000);
 	}
 }
+
+[Help("Tests CleanFormalBuilds.")]
+class TestCleanFormalBuilds : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        Log("*********************** TestCleanFormalBuilds");
+        var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
+        var CLString = ParseParamValue("CL", "2077154");
+        CleanFormalBuilds(Dir, CLString);
+    }
+}
+
 
 [Help("Spawns a process to test if it can be killed.")]
 class TestStopProcess : BuildCommand
@@ -1795,5 +1967,40 @@ class TestStopProcess : BuildCommand
 		Log("One final attempt to test KillAll");
 		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 		Thread.Sleep(10000);
+	}
+}
+
+
+[Help("Copies all files from source directory to destination directory using ThreadedCopyFiles")]
+[Help("Source", "Source path")]
+[Help("Dest", "Destination path")]
+[Help("Threads", "Number of threads used to copy files (64 by default)")]
+class TestThreadedCopyFiles : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		var SourcePath = ParseParamValue("Source=");
+		var DestPath = ParseParamValue("Dest=");
+		var Threads = ParseParamInt("Threads=", 64);
+
+		if (String.IsNullOrEmpty(SourcePath))
+		{
+			throw new AutomationException("Source path not specified, please use -source=Path");
+		}
+		if (String.IsNullOrEmpty(DestPath))
+		{
+			throw new AutomationException("Destination path not specified, please use -dest=Path");
+		}
+		if (!DirectoryExists(SourcePath))
+		{
+			throw new AutomationException("Source path {0} does not exist", SourcePath);
+		}
+
+		DeleteDirectory(DestPath);
+
+		using (var ScopedCopyTimer = new ScopedTimer("ThreadedCopyFiles"))
+		{
+			ThreadedCopyFiles(SourcePath, DestPath, Threads);
+		}
 	}
 }

@@ -31,7 +31,7 @@ public:
 	ENGINE_API bool ResolveSurface(const FSceneView* View,int32 X,int32 Y,uint32& OutSurfaceIndex) const;
 
 	// HHitProxy interface.
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Component );
 		Collector.AddReferencedObject( Model );

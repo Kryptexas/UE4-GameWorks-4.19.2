@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocation.h"
 #include "ParticleModuleLocationWorldOffset.generated.h"
 
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset"))
@@ -12,7 +13,7 @@ class UParticleModuleLocationWorldOffset : public UParticleModuleLocation
 
 protected:
 	//Begin UParticleModuleLocation Interface
-	virtual void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase) OVERRIDE;
+	virtual void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase) override;
 	//End UParticleModuleLocation Interface
 };
 

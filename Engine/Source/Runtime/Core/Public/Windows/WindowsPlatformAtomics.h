@@ -108,7 +108,7 @@ struct CORE_API FWindowsPlatformAtomics
 	 *	To determine whether the processor supports this operation, call the IsProcessorFeaturePresent function with PF_COMPARE64_EXCHANGE128.
 	 */
 #if	PLATFORM_HAS_128BIT_ATOMICS
-	static FORCEINLINE int64 InterlockedCompareExchange128( volatile FInt128* Dest, const FInt128& Exchange, FInt128* Comparand )
+	static FORCEINLINE bool InterlockedCompareExchange128( volatile FInt128* Dest, const FInt128& Exchange, FInt128* Comparand )
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (IsAligned(Dest,16) == false)
@@ -135,6 +135,15 @@ struct CORE_API FWindowsPlatformAtomics
 #endif
 
 		return ::InterlockedCompareExchangePointer(Dest, Exchange, Comparand);
+	}
+
+	/**
+	* @return true, if the processor we are running on can execute compare and exchange 128-bit operation.
+	* @see cmpxchg16b, early AMD64 processors don't support this operation.
+	*/
+	static FORCEINLINE bool CanUseCompareExchange128()
+	{
+		return !!IsProcessorFeaturePresent( PF_COMPARE_EXCHANGE128 );
 	}
 
 protected:

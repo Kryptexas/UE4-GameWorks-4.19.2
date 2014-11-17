@@ -68,7 +68,17 @@ TMap<FName, ULinkerLoad::FSubobjectRedirect> ULinkerLoad::SubobjectNameRedirects
  */
 void ULinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 {		
-	if( GConfig )
+	static bool bAlreadyInitialized_CreateActiveRedirectsMap = false;
+	if (bAlreadyInitialized_CreateActiveRedirectsMap)
+	{
+		return;
+	}
+	else
+	{
+		bAlreadyInitialized_CreateActiveRedirectsMap = true;
+	}
+
+	if (GConfig)
 	{
 		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIniName );
 		for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
@@ -657,12 +667,7 @@ void UpdateObjectLoadingStatusMessage()
  */
 ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 {
-	static bool bAlreadyInitialized_CreateActiveRedirectsMap = false;
-	if( bAlreadyInitialized_CreateActiveRedirectsMap == false )
-	{
-		CreateActiveRedirectsMap( GEngineIni );
-		bAlreadyInitialized_CreateActiveRedirectsMap = true;
-	}
+	CreateActiveRedirectsMap( GEngineIni );
 
 	if( !Loader )
 	{
@@ -2810,7 +2815,7 @@ void ULinkerLoad::Preload( UObject* Object )
 #endif
 
 				// It's ok now to call PostLoad on blueprint CDOs
-				if (Object->HasAnyFlags(RF_ClassDefaultObject) && Object->GetClass()->ClassGeneratedBy != NULL)
+				if (Object->HasAnyFlags(RF_ClassDefaultObject) && Object->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 				{
 					Object->SetFlags(RF_NeedPostLoad|RF_WasLoaded);
 					GObjLoaded.Add( Object );
@@ -3127,7 +3132,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 
 		// Create the export object, marking it with the appropriate flags to
 		// indicate that the object's data still needs to be loaded.
-		if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() != LoadClass))
+		if (ActualObjectWithTheName && !ActualObjectWithTheName->GetClass()->IsChildOf(LoadClass))
 		{
 			UE_LOG(LogLinker, Error, TEXT("Failed import: class '%s' name '%s' outer '%s'. There is another object (of '%s' class) at the path."),
 				*LoadClass->GetName(), *Export.ObjectName.ToString(), *ThisParent->GetName(), *ActualObjectWithTheName->GetClass()->GetName());
@@ -3262,6 +3267,12 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 			{
 				if( UClass*	FindClass = FindObjectFast<UClass>( ClassPackage, Import.ClassName, false, false ) )
 				{
+					// Make sure the class has been loaded and linked before creating a CDO.
+					// This is an edge case, but can happen if a blueprint package has not finished creating exports for a class
+					// during async loading, and another package creates the class via CreateImport while in cooked builds because
+					// we don't call preload immediately after creating a class in CreateExport like in non-cooked builds.
+					Preload( FindClass );
+
 					FindClass->GetDefaultObject(); // build the CDO if it isn't already built
 					UObject*	FindObject		= NULL;
 	
@@ -3636,6 +3647,7 @@ void ULinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 	const int32 FileSize = IFileManager::Get().FileSize(*PackageFilename);
 
 	// if we were compressed, the size we care about on the other end is the uncompressed size
+	CA_SUPPRESS(6326)
 	PrecacheInfo.PackageDataSize = UncompressedSize == -1 ? FileSize : UncompressedSize;
 	
 	// allocate enough space
@@ -3643,6 +3655,7 @@ void ULinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 
 	uint64 RequestId;
 	// kick off the async read (uncompressing if needed) of the whole file and make sure it worked
+	CA_SUPPRESS(6326)
 	if (UncompressedSize != -1)
 	{
 		PrecacheInfo.PackageDataSize = UncompressedSize;

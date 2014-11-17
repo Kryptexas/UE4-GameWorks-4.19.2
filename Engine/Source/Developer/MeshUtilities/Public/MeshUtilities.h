@@ -69,6 +69,40 @@ public:
 };
 
 /**
+ * Mesh merging settings
+ */
+struct FMeshMergingSettings
+{
+	/** */
+	bool bGnerateAtlasedLightmapUV;
+	
+	/** */
+	bool bImportVertexColors;
+
+	/** */
+	bool bImportAllUVChannels;
+
+	/** */
+	int32 TargetLightmapUVChannel;
+
+	/** */
+	bool bPivotPointAtZero;
+
+	
+	/** Default settings. */
+	FMeshMergingSettings()
+		: bGnerateAtlasedLightmapUV(true)
+		, bImportVertexColors(false)
+		, bImportAllUVChannels(false)
+		, TargetLightmapUVChannel(1)
+		, bPivotPointAtZero(false)
+	{
+	}
+};
+
+
+
+/**
  * Mesh reduction module interface.
  */
 class IMeshReductionModule : public IModuleInterface
@@ -98,6 +132,7 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
+		const TArray<UMaterialInterface*>& Materials,
 		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
 
@@ -197,12 +232,14 @@ public:
 	 * and merge into signle mesh grouping them by unique materials
 	 *
 	 * @param SourceActors				List of actors to merge
+	 * @param InSettings				Settings to use
 	 * @param PackageName				Destination package name for a generated assets
 	 * @param OutAssetsToSync			Merged mesh assets
 	 * @param OutMergedActorLocation	World position of merged mesh
 	 */
 	virtual void MergeActors(
-		const TArray<AActor*>& SourceActors, 
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
 		const FString& PackageName, 
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation) const = 0;
@@ -212,14 +249,16 @@ public:
 	 *
 	 *	@param	Actors					List of Actors to merge
 	 *	@param	InProxySettings			Merge settings
-	 *	@param	ProxyPackageName		Destination package name for a generated assets
+	 *	@param	InOuter					Package for a generated assets, if NULL new packages will be created for each asset
+	 *	@param	ProxyBasePackageName	Will be used for naming generated assets, in case InOuter is not specified ProxyBasePackageName will be used as long package name for creating new packages
 	 *	@param	OutAssetsToSync			Result assets - mesh, material
 	 *	@param	OutProxyLocation		Proxy mesh location in the world (bounding box origin of merged actors)
 	 */
 	virtual void CreateProxyMesh(
 		const TArray<AActor*>& Actors,
 		const struct FMeshProxySettings& InProxySettings,
-		const FString& ProxyPackageName,
+		UPackage* InOuter,
+		const FString& ProxyBasePackageName,
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutProxyLocation
 		) = 0;

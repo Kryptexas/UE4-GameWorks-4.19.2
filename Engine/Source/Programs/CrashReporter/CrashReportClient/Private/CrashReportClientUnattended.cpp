@@ -4,12 +4,13 @@
 
 #include "CrashReportClientUnattended.h"
 
-FCrashReportClientUnattended::FCrashReportClientUnattended(const FString& Directory)
-	: ReportDirectory(Directory)
-	, Uploader(GServerIP)
+FCrashReportClientUnattended::FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport)
+	: Uploader(GServerIP)
 {
-	// Using GetCleanFilename to actually get directory leaf name
-	Uploader.BeginUpload(FPaths::GetCleanFilename(ReportDirectory), FPlatformErrorReport(ReportDirectory));
+	Uploader.BeginUpload(ErrorReport);
+
+	// Prevent uploader waiting for a diagnosis file
+	Uploader.LocalDiagnosisSkipped();
 
 	StartTicker();
 }

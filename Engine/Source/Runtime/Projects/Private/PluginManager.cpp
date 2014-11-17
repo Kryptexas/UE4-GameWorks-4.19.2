@@ -2,7 +2,6 @@
 
 #include "ProjectsPrivatePCH.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC( LogPluginManager, Log, All );
 
 #define LOCTEXT_NAMESPACE "PluginManager"
@@ -10,10 +9,6 @@ DEFINE_LOG_CATEGORY_STATIC( LogPluginManager, Log, All );
 
 namespace PluginSystemDefs
 {
-	/** Latest supported version for plugin descriptor files.  We can still usually load older versions, but not newer version.
-	    NOTE: This constant exists in UnrealBuildTool code as well. */
-	static const int32 LatestPluginDescriptorFileVersion = 1;	// IMPORTANT: Remember to also update Plugins.cs (and Plugin system documentation) when this changes!
-		
 	/** File extension of plugin descriptor files.
 	    NOTE: This constant exists in UnrealBuildTool code as well. */
 	static const TCHAR PluginDescriptorFileExtension[] = TEXT( ".uplugin" );
@@ -23,11 +18,23 @@ namespace PluginSystemDefs
 
 }
 
+FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom::Type InLoadedFrom)
+	: Name(FPaths::GetBaseFilename(InFileName))
+	, FileName(InFileName)
+	, Descriptor(InDescriptor)
+	, LoadedFrom(InLoadedFrom)
+	, bEnabled(false)
+{
+}
+
+
+
+
+
 
 
 FPluginManager::FPluginManager()
 	: bEarliestPhaseProcessed(false)
-	, bRestartRequired(false)
 {
 	DiscoverAllPlugins();
 }
@@ -58,7 +65,7 @@ void FPluginManager::DiscoverAllPlugins()
 		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
 		 * @param	Plugins				The array to be filled in with new plugins including descriptors
 		 */
-		static void FindPluginsRecursively( const FString& PluginsDirectory, const FPluginInfo::ELoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPlugin> >& Plugins )
+		static void FindPluginsRecursively( const FString& PluginsDirectory, const EPluginLoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
 		{
 			// NOTE: The logic in this function generally matches that of the C# code for FindPluginsRecursively
 			//       in UnrealBuildTool.  These routines should be kept in sync.
@@ -79,7 +86,7 @@ void FPluginManager::DiscoverAllPlugins()
 					{
 					}
 
-					virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+					virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 					{
 						if( bIsDirectory )
 						{
@@ -124,7 +131,7 @@ void FPluginManager::DiscoverAllPlugins()
 								{
 								}
 
-								virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+								virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 								{
 									bool bShouldContinue = true;
 									if( !bIsDirectory )
@@ -159,15 +166,13 @@ void FPluginManager::DiscoverAllPlugins()
 				if( !PluginDescriptorFilename.IsEmpty() )
 				{
 					// Found a plugin directory!  No need to recurse any further.
+					FPluginDescriptor Descriptor;
 
-					// Load the descriptor file for this plugin into a new plugin info entry
-					TSharedRef< FPlugin > NewPlugin = MakeShareable( new FPlugin() );
-
+					// Load the descriptor
 					FText FailureReason;
-					const bool bLoadedSuccessfully = NewPlugin->LoadFromFile(PluginDescriptorFilename, FailureReason);
-					if( bLoadedSuccessfully )
+					if(Descriptor.Load(PluginDescriptorFilename, FailureReason))
 					{
-						NewPlugin->SetLoadedFrom(LoadedFrom);
+						TSharedRef< FPluginInstance > NewPlugin = MakeShareable( new FPluginInstance(PluginDescriptorFilename, Descriptor, LoadedFrom) );
 
 						if (FPaths::IsProjectFilePathSet())
 						{
@@ -175,7 +180,7 @@ void FPluginManager::DiscoverAllPlugins()
 							if (PluginDescriptorFilename.StartsWith(GameProjectFolder))
 							{
 								FString PluginBinariesFolder = FPaths::Combine(*FPaths::GetPath(PluginDescriptorFilename), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
-								FModuleManager::Get().AddBinariesDirectory(*PluginBinariesFolder, (LoadedFrom == FPluginInfo::ELoadedFrom::GameProject));
+								FModuleManager::Get().AddBinariesDirectory(*PluginBinariesFolder, (LoadedFrom == EPluginLoadedFrom::GameProject));
 							}
 						}
 
@@ -205,7 +210,7 @@ void FPluginManager::DiscoverAllPlugins()
 		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
 		 * @param	Plugins				The array to be filled in with loaded plugin descriptors
 		 */
-		static void FindPluginsIn( const FString& PluginsDirectory, const FPluginInfo::ELoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPlugin> >& Plugins )
+		static void FindPluginsIn( const FString& PluginsDirectory, const EPluginLoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
 		{
 			// Make sure the directory even exists
 			if( FPlatformFileManager::Get().GetPlatformFile().DirectoryExists( *PluginsDirectory ) )
@@ -217,16 +222,16 @@ void FPluginManager::DiscoverAllPlugins()
 
 
 	{
-		TArray< TSharedRef<FPlugin> > Plugins;
+		TArray< TSharedRef<FPluginInstance> > Plugins;
 
 #if (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
 		// Find "built-in" plugins.  That is, plugins situated right within the Engine directory.
-		Local::FindPluginsIn( FPaths::EnginePluginsDir(), FPluginInfo::ELoadedFrom::Engine, Plugins );
+		Local::FindPluginsIn( FPaths::EnginePluginsDir(), EPluginLoadedFrom::Engine, Plugins );
 
 		// Find plugins in the game project directory (<MyGameProject>/Plugins)
 		if( FApp::HasGameName() )
 		{
-			Local::FindPluginsIn( FPaths::GamePluginsDir(), FPluginInfo::ELoadedFrom::GameProject, Plugins );
+			Local::FindPluginsIn( FPaths::GamePluginsDir(), EPluginLoadedFrom::GameProject, Plugins );
 		}
 #endif		// (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
 
@@ -236,17 +241,16 @@ void FPluginManager::DiscoverAllPlugins()
 		AllPlugins = Plugins;
 		for( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
 		{
-			const TSharedRef<FPlugin>& Plugin = *PluginIt;
-			const FPluginInfo& PluginInfo = Plugin->GetPluginInfo();
+			const TSharedRef<FPluginInstance>& Plugin = *PluginIt;
 
 			// Add the plugin binaries directory
-			const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(PluginInfo.LoadedFromFile), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
-			FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, PluginInfo.LoadedFrom == FPluginInfo::ELoadedFrom::GameProject);
+			const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
+			FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
 
 			// Make sure to tell the module manager about any of our plugin's modules, so it will know where on disk to find them.
-			for( auto ModuleInfoIt( PluginInfo.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
+			for( auto ModuleInfoIt( Plugin->Descriptor.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
 			{
-				const FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleInfoIt;
+				const FModuleDescriptor& ModuleInfo = *ModuleInfoIt;
 
 				// @todo plugin: We're adding all modules always here, even editor modules which might not exist at runtime. Hope that's OK.
 				FModuleManager::Get().AddModule(ModuleInfo.Name);
@@ -261,29 +265,44 @@ void FPluginManager::DiscoverAllPlugins()
 void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 {
 	TArray< FString > EnabledPluginNames;
-	GetPluginsConfiguredToBeEnabled(EnabledPluginNames);
+#if IS_PROGRAM
+	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+#else
+	FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+#endif
 
 	TSet< FString > AllEnabledPlugins;
-	AllEnabledPlugins.Append( EnabledPluginNames );
+	AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
 
-	for( TArray< TSharedRef< FPlugin > >::TConstIterator PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	// Enable all the plugins by name
+	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
-		if ( AllEnabledPlugins.Contains(Plugin->GetPluginName()) )
+		if ( AllEnabledPlugins.Contains(Plugin->Name) )
 		{
-			Plugin->SetEnabled(true);
+			Plugin->bEnabled = true;
 		}
 	}
-}
 
-void FPluginManager::RegisterEnabledPluginMountPoints()
-{
-	for( TArray< TSharedRef< FPlugin > >::TConstIterator PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	// Build the list of content folders
+	ContentFolders.Empty();
+	for(const TSharedRef<FPluginInstance>& Plugin: AllPlugins)
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
-		if ( Plugin->IsEnabled() )
+		if(Plugin->bEnabled && Plugin->Descriptor.bCanContainContent)
 		{
-			Plugin->RegisterPluginMountPoints( RegisterMountPointDelegate );
+			FPluginContentFolder ContentFolder;
+			ContentFolder.Name = Plugin->Name;
+			ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
+			ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
+			ContentFolders.Emplace(ContentFolder);
+		}
+	}
+
+	// Mount all the plugin content folders
+	if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
+	{
+		for(const FPluginContentFolder& ContentFolder: ContentFolders)
+		{
+			RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
 		}
 	}
 }
@@ -293,19 +312,16 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 	if ( !bEarliestPhaseProcessed )
 	{
 		EnablePluginsThatAreConfiguredToBeEnabled();
-		RegisterEnabledPluginMountPoints();
 		bEarliestPhaseProcessed = true;
 	}
 
 	// Load plugins!
-	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
-
-		if ( Plugin->IsEnabled() )
+		if ( Plugin->bEnabled )
 		{
-			TMap<FName, ELoadModuleFailureReason::Type> ModuleLoadFailures;
-			Plugin->LoadModules( LoadingPhase, ModuleLoadFailures );
+			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
+			FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin->Descriptor.Modules, ModuleLoadFailures);
 
 			FText FailureMessage;
 			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
@@ -313,24 +329,24 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 				const auto ModuleNameThatFailedToLoad = FailureIt.Key();
 				const auto FailureReason = FailureIt.Value();
 
-				if( FailureReason != ELoadModuleFailureReason::Success )
+				if( FailureReason != EModuleLoadResult::Success )
 				{
-					const FText PluginNameText = FText::FromString(Plugin->GetPluginName());
+					const FText PluginNameText = FText::FromString(Plugin->Name);
 					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-					if ( FailureReason == ELoadModuleFailureReason::FileNotFound )
+					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  This plugin's functionality will not be available.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FileIncompatible )
+					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  This plugin's functionality will not be available.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::CouldNotBeLoadedByOS )
+					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  This plugin's functionality will not be available.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FailedToInitialize )
+					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded.  This plugin's functionality will not be available."), PluginNameText, TextModuleName );
 					}
@@ -368,14 +384,13 @@ bool FPluginManager::AreEnabledPluginModulesUpToDate()
 	if (!bEarliestPhaseProcessed)
 	{
 		EnablePluginsThatAreConfiguredToBeEnabled();
-		RegisterEnabledPluginMountPoints();
 		bEarliestPhaseProcessed = true;
 	}
 
-	for (TArray< TSharedRef< FPlugin > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
+	for (TArray< TSharedRef< FPluginInstance > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
-		const TSharedRef< FPlugin > &Plugin = *Iter;
-		if (Plugin->IsEnabled() && !Plugin->AreModulesUpToDate())
+		const TSharedRef< FPluginInstance > &Plugin = *Iter;
+		if (Plugin->bEnabled && !FModuleDescriptor::AreModulesUpToDate(Plugin->Descriptor.Modules))
 		{
 			return false;
 		}
@@ -383,49 +398,6 @@ bool FPluginManager::AreEnabledPluginModulesUpToDate()
 
 	return true;
 }
-
-void FPluginManager::GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginNames) const
-{
-#if !IS_PROGRAM
-	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), OutPluginNames, GEngineIni );
-#else
-	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), OutPluginNames, GEngineIni);
-#endif
-}
-
-void FPluginManager::ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled)
-{
-	TArray< FString > EnabledPluginNames;
-	GetPluginsConfiguredToBeEnabled(EnabledPluginNames);
-
-	bool bSaveEnabledPluginNames = false;
-	if ( bEnabled )
-	{
-		if ( !EnabledPluginNames.Contains(PluginName) )
-		{
-			EnabledPluginNames.Add(PluginName);
-			bSaveEnabledPluginNames = true;
-		}
-	}
-	else
-	{
-		int32 ExistingEnabledIdx = EnabledPluginNames.Find(PluginName);
-		if ( ExistingEnabledIdx != INDEX_NONE )
-		{
-			EnabledPluginNames.RemoveAt(ExistingEnabledIdx);
-			bSaveEnabledPluginNames = true;
-		}
-	}
-
-	bRestartRequired = true;
-
-	if ( bSaveEnabledPluginNames )
-	{
-		GConfig->SetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), EnabledPluginNames, GEngineIni );
-		GConfig->Flush(false);
-	}
-}
-
 
 IPluginManager& IPluginManager::Get()
 {
@@ -438,80 +410,17 @@ IPluginManager& IPluginManager::Get()
 	return *PluginManager;
 }
 
-
-
-FPlugin::FPlugin()
-	: bPluginEnabled( false )
-{
-}
-
-void FPlugin::RegisterPluginMountPoints( const IPluginManager::FRegisterMountPointDelegate& RegisterMountPointDelegate )
-{
-	// If this plugin has content, mount it before loading the first module it contains
-	// @todo plugin: Should we do this even if there is no Content directory?  Probably, so that we can add content in Content Browser!
-	if( PluginInfo.bCanContainContent )
-	{
-		if( ensure( RegisterMountPointDelegate.IsBound() ) )
-		{
-			// @todo plugin content: Consider prefixing path with "Plugins" or more specifically, either "EnginePlugins" or "GamePlugins", etc.
-			// @todo plugin content: We may need the full relative path to the plugin under the respective Plugins directory if we want to fully avoid collisions
-			const FString ContentRootPath( FString::Printf( TEXT( "/%s/" ), *PluginInfo.Name ) );
-			const FString PluginContentDirectory( FPaths::GetPath(PluginInfo.LoadedFromFile) / TEXT( "Content" ) );
-
-			RegisterMountPointDelegate.Execute( ContentRootPath, PluginContentDirectory );
-		}
-	}
-}
-
-
-const FString& FPlugin::GetPluginName() const
-{
-	return PluginInfo.Name;
-}
-
-
-void FPlugin::SetEnabled(bool bNewPluginEnabled)
-{
-	bPluginEnabled = bNewPluginEnabled;
-}
-
-
-bool FPlugin::IsEnabled() const
-{
-	return bPluginEnabled;
-}
-
-void FPlugin::SetLoadedFrom(FPluginInfo::ELoadedFrom::Type NewLoadedFrom)
-{
-	PluginInfo.LoadedFrom = NewLoadedFrom;
-}
-
-bool FPlugin::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject)
-{
-	ReadBoolFromJSON(FileObject, TEXT("CanContainContent"), PluginInfo.bCanContainContent);
-	ReadBoolFromJSON(FileObject, TEXT("IsBetaVersion"), PluginInfo.bIsBetaVersion);
-
-	return true;
-}
-
-void FPlugin::PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const
-{
-	Writer->WriteValue(TEXT("CanContainContent"), PluginInfo.bCanContainContent);
-	Writer->WriteValue(TEXT("IsBetaVersion"), PluginInfo.bIsBetaVersion);
-}
-
-
 TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 {
 	TArray< FPluginStatus > PluginStatuses;
 
 	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
 	{
-		const TSharedRef< FPlugin >& Plugin = *PluginIt;
-		const auto& PluginInfo = Plugin->GetPluginInfo();
+		const TSharedRef< FPluginInstance >& Plugin = *PluginIt;
+		const FPluginDescriptor& PluginInfo = Plugin->Descriptor;
 		
 		FPluginStatus PluginStatus;
-		PluginStatus.Name = PluginInfo.Name;
+		PluginStatus.Name = Plugin->Name;
 		PluginStatus.FriendlyName = PluginInfo.FriendlyName;
 		PluginStatus.Version = PluginInfo.Version;
 		PluginStatus.VersionName = PluginInfo.VersionName;
@@ -519,12 +428,14 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.CreatedBy = PluginInfo.CreatedBy;
 		PluginStatus.CreatedByURL = PluginInfo.CreatedByURL;
 		PluginStatus.CategoryPath = PluginInfo.Category;
-		PluginStatus.bIsEnabled = Plugin->IsEnabled();
-		PluginStatus.bIsBuiltIn = ( PluginInfo.LoadedFrom == FPluginInfo::ELoadedFrom::Engine );
+		PluginStatus.bIsEnabled = Plugin->bEnabled;
+		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );
+		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
 		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
+		PluginStatus.bHasContentFolder = PluginInfo.bCanContainContent;
 
 		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
-		const FString Icon128FilePath = FPaths::GetPath(PluginInfo.LoadedFromFile) / PluginSystemDefs::RelativeIcon128FilePath;
+		const FString Icon128FilePath = FPaths::GetPath(Plugin->FileName) / PluginSystemDefs::RelativeIcon128FilePath;
 		if( FPlatformFileManager::Get().GetPlatformFile().FileExists( *Icon128FilePath ) )
 		{
 			PluginStatus.Icon128FilePath = Icon128FilePath;
@@ -536,24 +447,9 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	return PluginStatuses;
 }
 
-void FPluginManager::SetPluginEnabled( const FString& PluginName, bool bEnabled )
+const TArray<FPluginContentFolder>& FPluginManager::GetPluginContentFolders() const
 {
-	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
-	{
-		const TSharedRef< FPlugin >& Plugin = *PluginIt;
-
-		if ( Plugin->GetPluginName() == PluginName )
-		{
-			Plugin->SetEnabled(bEnabled);
-			ConfigurePluginToBeEnabled(PluginName, bEnabled);
-			break;
-		}
-	}
-}
-
-bool FPluginManager::IsRestartRequired() const
-{
-	return bRestartRequired;
+	return ContentFolders;
 }
 
 #undef LOCTEXT_NAMESPACE

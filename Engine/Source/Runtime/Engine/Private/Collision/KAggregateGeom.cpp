@@ -36,7 +36,7 @@ float SelectMinScale(FVector Scale)
 	return Min;
 }
 
-FBox FKAggregateGeom::CalcAABB(const FTransform& Transform)
+FBox FKAggregateGeom::CalcAABB(const FTransform& Transform) const
 {
 	const FVector Scale3D = Transform.GetScale3D();
 	FTransform BoneTM = Transform;
@@ -81,7 +81,7 @@ FBox FKAggregateGeom::CalcAABB(const FTransform& Transform)
   * @param Output The output box-sphere bounds calculated for this set of aggregate geometry
   *	@param LocalToWorld Transform
   */
-void FKAggregateGeom::CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld)
+void FKAggregateGeom::CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld) const
 {
 	// Calculate the AABB
 	const FBox AABB = CalcAABB(LocalToWorld);
@@ -95,7 +95,7 @@ void FKAggregateGeom::CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTrans
 		float RadiusSquared = 0.0f;
 		for (int32 i = 0; i < ConvexElems.Num(); i++)
 		{
-			FKConvexElem& Elem = ConvexElems[i];
+			const FKConvexElem& Elem = ConvexElems[i];
 			for (int32 j = 0; j < Elem.VertexData.Num(); ++j)
 			{
 				const FVector Point = LocalToWorld.TransformPosition(Elem.VertexData[j]);
@@ -249,7 +249,7 @@ static bool EnsureHullIsValid(TArray<FVector>& InVerts)
 ///////////// FKSphereElem ////////////
 ///////////////////////////////////////
 
-FBox FKSphereElem::CalcAABB(const FTransform& BoneTM, float Scale)
+FBox FKSphereElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
 	FTransform ElemTM = GetTransform();
 	ElemTM.ScaleTranslation( FVector(Scale) );
@@ -262,13 +262,12 @@ FBox FKSphereElem::CalcAABB(const FTransform& BoneTM, float Scale)
 }
 
 
-
 ///////////////////////////////////////
 ////////////// FKBoxElem //////////////
 ///////////////////////////////////////
 
 
-FBox FKBoxElem::CalcAABB(const FTransform& BoneTM, float Scale)
+FBox FKBoxElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
 	FTransform ElemTM = GetTransform();
 	ElemTM.ScaleTranslation( FVector(Scale) );
@@ -285,7 +284,7 @@ FBox FKBoxElem::CalcAABB(const FTransform& BoneTM, float Scale)
 ////////////// FKSphylElem ////////////
 ///////////////////////////////////////
 
-FBox FKSphylElem::CalcAABB(const FTransform& BoneTM, float Scale)
+FBox FKSphylElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
 	FTransform ElemTM = GetTransform();
 	ElemTM.ScaleTranslation( FVector(Scale) );
@@ -321,10 +320,10 @@ void FKConvexElem::Reset()
 	ElemBox.Init();
 }
 
-FBox FKConvexElem::CalcAABB(const FTransform& BoneTM, const FVector& Scale3D)
+FBox FKConvexElem::CalcAABB(const FTransform& BoneTM, const FVector& Scale3D) const
 {
 	// Zero out rotation and location so we transform by scale along
-	const FTransform LocalToWorld = FTransform(FQuat::Identity, FVector::ZeroVector, Scale3D ) * BoneTM;
+	const FTransform LocalToWorld = FTransform(FQuat::Identity, FVector::ZeroVector, Scale3D) * BoneTM;
 
 	return ElemBox.TransformBy(LocalToWorld);
 }

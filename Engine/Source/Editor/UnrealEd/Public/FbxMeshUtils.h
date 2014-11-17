@@ -75,12 +75,4 @@ namespace FbxMeshUtils
 	 */
 	UNREALED_API void ImportMeshLODDialog( class UObject* Mesh, int32 LODLevel );
 
-	/**
-	 * Imports a temporary skeletal mesh into the destination skeletal mesh at the given LOD
-	 *
-	 * @param TempMesh			The temp skeletal mesh which will be used as a LOD
-	 * @param DestinationMesh	The skeletal mesh which will use the temp as a LOD
-	 * @param LODLevel			The level of the lod to import to
-	 */
-	UNREALED_API bool ConvertSkeletalMeshToLOD( class USkeletalMesh* TempMesh, class USkeletalMesh* DestinationMesh, int32 LODLevel );
 }  //end namespace ExportMeshUtils

@@ -2,6 +2,7 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
+#include "VisualLog.h"
 
 AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
@@ -10,7 +11,7 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	, TimesUpMessage( NSLOCTEXT("FunctionalTest", "DefaultTimesUpMessage", "Time's up!") )
 	, bIsEnabled(true)
 	, bIsRunning(false)
-	, TimeLeft(0.f)
+	, TotalTime(0.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -58,8 +59,8 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 		return;
 	}
 
-	TimeLeft -= DeltaSeconds;
-	if (TimeLimit > 0.f && TimeLeft <= 0.f)
+	TotalTime += DeltaSeconds;
+	if (TimeLimit > 0.f && TotalTime > TimeLimit)
 	{
 		FinishTest(TimesUpResult, TimesUpMessage.ToString());
 	}
@@ -69,17 +70,19 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 	}
 }
 
-bool AFunctionalTest::StartTest()
+bool AFunctionalTest::StartTest(const TArray<FString>& Params)
 {
 	FailureMessage = TEXT("");
 
+	TotalTime = 0.f;
 	if (TimeLimit > 0)
 	{
-		TimeLeft = TimeLimit;
 		SetActorTickEnabled(true);
 	}
 
 	bIsRunning = true;
+
+	GoToObservationPoint();
 	
 	OnTestStart.Broadcast();
 
@@ -90,6 +93,14 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 {
 	const static UEnum* FTestResultTypeEnum = FindObject<UEnum>( NULL, TEXT("FunctionalTesting.FunctionalTest.EFunctionalTestResult") );
 	
+	if (bIsRunning == false)
+	{
+		// ignore
+		return;
+	}
+
+	Result = TestResult;
+
 	bIsRunning = false;
 	SetActorTickEnabled(false);
 
@@ -107,43 +118,47 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 	}
 
 	const FText ResultText = FTestResultTypeEnum->GetEnumText( TestResult.GetValue() );
-	const FString OutMessage = FString::Printf(TEXT("%s> Result: %s> %s")
+	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\'")
 		, *GetActorLabel()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
-	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult);
+	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult) + FString::Printf(TEXT(", time %.2fs"), TotalTime);
 
 	AutoDestroyActors.Reset();
-
-	EMessageSeverity::Type MessageLogSeverity = EMessageSeverity::Info;
-	
+		
 	switch (TestResult.GetValue())
 	{
 		case EFunctionalTestResult::Invalid:
 		case EFunctionalTestResult::Error:
-			UE_VLOG(this, LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Error;
-			break;
-		case EFunctionalTestResult::Running:
-			UE_VLOG(this, LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Warning;
-			break;
 		case EFunctionalTestResult::Failed:
 			UE_VLOG(this, LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Error;
+			UFunctionalTestingManager::AddError(FText::FromString(OutMessage));
 			break;
+
+		case EFunctionalTestResult::Running:
+			UE_VLOG(this, LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
+			UFunctionalTestingManager::AddWarning(FText::FromString(OutMessage));
+			break;
+		
 		default:
 			UE_VLOG(this, LogFunctionalTest, Log, TEXT("%s"), *OutMessage);
+			UFunctionalTestingManager::AddLogItem(FText::FromString(OutMessage));
 			break;
 	}
-
-	FMessageLog("FunctionalTestingLog").Message(MessageLogSeverity, FText::FromString(GetActorLabel()))
-		->AddToken(FTextToken::Create(ResultText))
-		->AddToken(FTextToken::Create(FText::FromString(Message)))
-		->AddToken(FTextToken::Create(FText::FromString(AdditionalDetails)))
-		->AddToken(FTextToken::Create(FText::FromString(FailureMessage)));
+	
+	if (AdditionalDetails.IsEmpty() == false)
+	{
+		UFunctionalTestingManager::AddLogItem(FText::FromString(AdditionalDetails));
+	}
 
 	TestFinishedObserver.ExecuteIfBound(this);
+}
+
+void AFunctionalTest::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	TestFinishedObserver.Unbind();
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AFunctionalTest::CleanUp()
@@ -177,7 +192,7 @@ void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTes
 			, TEXT("%s> Trying to set test Result to \'Invalid\'. Falling back to \'Failed\'")
 			, *GetActorLabel());
 
-		InResult == EFunctionalTestResult::Failed;
+		InResult = EFunctionalTestResult::Failed;
 	}
 	TimesUpResult = InResult;
 }
@@ -221,3 +236,22 @@ void AFunctionalTest::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 }
 
 #endif // WITH_EDITOR
+
+void AFunctionalTest::GoToObservationPoint()
+{
+	if (ObservationPoint == NULL)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		APlayerController* PC = World->GetFirstPlayerController();
+		if (PC && PC->GetPawn())
+		{
+			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
+			PC->SetControlRotation(ObservationPoint->GetActorRotation());
+		}
+	}
+}

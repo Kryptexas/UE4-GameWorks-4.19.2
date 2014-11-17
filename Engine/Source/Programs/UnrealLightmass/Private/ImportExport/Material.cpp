@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Material.cpp: Material classes implementation.
-=============================================================================*/
 #include "stdafx.h"
 #include "Material.h"
 #include "Importer.h"

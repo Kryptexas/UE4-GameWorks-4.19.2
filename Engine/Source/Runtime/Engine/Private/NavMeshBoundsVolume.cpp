@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "AI/Navigation/NavMeshBoundsVolume.h"
 
 ANavMeshBoundsVolume::ANavMeshBoundsVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -13,8 +14,6 @@ ANavMeshBoundsVolume::ANavMeshBoundsVolume(const class FPostConstructInitializeP
 	BrushColor = FColor(200, 200, 200, 255);
 
 	bColored = true;
-
-	bWantsInitialize = true;
 }
 
 #if WITH_EDITOR

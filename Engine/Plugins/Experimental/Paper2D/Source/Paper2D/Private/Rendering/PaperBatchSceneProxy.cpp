@@ -61,6 +61,17 @@ struct FSortSpriteBatchesByTexture
 
 void FPaperBatchSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
+#if 0
+	// Not thread safe right now (not to mention use of GWorld...)
+
+	// Draw all the debug rendering for the 2D physics scene
+	if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
+	{
+		FPhysicsIntegration2D::DrawDebugPhysics(GWorld, PDI, View); //@TODO: GWorld is worse than the disease
+	}
+#endif
+
+
 #if TEST_BATCHING
 	// First sort by material
 	ManagedProxies.Sort(FSortSpriteProxiesByMaterial());

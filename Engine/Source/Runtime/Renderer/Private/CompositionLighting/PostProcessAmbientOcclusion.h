@@ -18,7 +18,7 @@ public:
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
@@ -43,7 +43,7 @@ public:
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
@@ -61,7 +61,7 @@ class FRCPassPostProcessBasePassAO : public TRenderingCompositePassBase<0, 1>
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
@@ -78,7 +78,7 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(const FSceneView& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
+	void Set(FRHICommandList& RHICmdList, const FSceneView& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
 	{
 		const FFinalPostProcessSettings& Settings = View.FinalPostProcessSettings;
 
@@ -138,7 +138,7 @@ public:
 		Value[3] = FVector4(0, 0, StaticFraction, InvTanHalfFov);
 		Value[4] = FVector4(InvFadeRadius, -(Settings.AmbientOcclusionFadeDistance - FadeRadius) * InvFadeRadius, 0, 0);
 
-		SetShaderValueArray(ShaderRHI, ScreenSpaceAOandSSRShaderParams, Value, 5);
+		SetShaderValueArray(RHICmdList, ShaderRHI, ScreenSpaceAOandSSRShaderParams, Value, 5);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FScreenSpaceAOandSSRShaderParameters& This);
@@ -154,7 +154,7 @@ public:
 
 	void Bind(const FShaderParameterMap& ParameterMap);
 
-	void Set(const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const;
+	void Set(FRHICommandList& RHICmdList, const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const;
 
 	friend FArchive& operator<<(FArchive& Ar, FCameraMotionParameters& This);
 

@@ -108,9 +108,10 @@ void APlayerState::PostInitializeComponents()
 		return;
 	}
 
-	if (Cast<AAIController>(GetOwner()) != NULL)
+	AController* OwningController = Cast<AController>(GetOwner());
+	if (OwningController != NULL)
 	{
-		bIsABot = true;
+		bIsABot = (Cast<APlayerController>(OwningController) == NULL);
 	}
 
 	if (World->GameState)

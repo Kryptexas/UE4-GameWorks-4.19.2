@@ -35,6 +35,7 @@ UAnimationGraphSchema::UAnimationGraphSchema(const class FPostConstructInitializ
 	NAME_PinShownByDefault = TEXT("PinShownByDefault");
 	NAME_AlwaysAsPin = TEXT("AlwaysAsPin");
 	NAME_OnEvaluate = TEXT("OnEvaluate");
+	NAME_CustomizeProperty = TEXT("CustomizeProperty");
 	DefaultEvaluationHandlerName = TEXT("EvaluateGraphExposedInputs");
 }
 
@@ -63,7 +64,6 @@ void UAnimationGraphSchema::GetStateMachineMenuItems(FGraphContextMenuBuilder& C
 
 			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, StateCategory, FText::FromString(Title), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 			Action->NodeTemplate = NodeTemplate;
-			Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }

@@ -10,3 +10,14 @@ bool FEngineBuildSettings::IsPerforceBuild()
 {
 	return FPaths::FileExists( FPaths::EngineDir() / TEXT("Build/PerforceBuild.txt") );
 }
+
+bool FEngineBuildSettings::IsSourceDistribution()
+{
+	return IsSourceDistribution( FPaths::RootDir() );
+}
+
+bool FEngineBuildSettings::IsSourceDistribution(const FString& RootDir)
+{
+	return FPaths::FileExists( RootDir / TEXT("Engine/Build/SourceDistribution.txt") );
+}
+

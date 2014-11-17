@@ -1,18 +1,39 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MatineeTools.cpp: Interpolation editing support tools
-=============================================================================*/
-
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeClasses.h"
+
+#include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpTrackInst.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackVectorBase.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackFade.h"
+#include "Matinee/InterpTrackSlomo.h"
+#include "Matinee/InterpTrackColorScale.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackParticleReplay.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInstDirector.h"
+#include "Matinee/InterpFilter.h"
 
 #include "MatineeConstants.h"
 #include "MatineeViewSaveData.h"
 #include "MatineeDelegates.h"
 
 #include "SoundDefinitions.h"
+#include "EditorSupportDelegates.h"
+
 
 ///// UTILS
 
@@ -1370,7 +1391,7 @@ void FMatinee::ViewEndOfTrack()
 	if( GetSelectedTrackCount() > 0 )
 	{
 		FSelectedTrackIterator TrackIt(GetSelectedTrackIterator());
-		for( TrackIt; TrackIt; ++TrackIt )
+		for( ; TrackIt; ++TrackIt )
 		{
 			UInterpTrack* Track = *TrackIt;
 			if (Track->GetTrackEndTime() > NewEndTime)
@@ -2096,7 +2117,7 @@ void FMatinee::AddKey()
 	{
 		// Populate the list of tracks that we need to add keys to.
 		FSelectedTrackIterator TrackIt(GetSelectedTrackIterator());
-		for( TrackIt; TrackIt; ++TrackIt )
+		for( ; TrackIt; ++TrackIt )
 		{
 			// Only allow keys to be added to multiple tracks at once if they are subtracks of a movement track.
 			if( (*TrackIt)->IsA( UInterpTrackMoveAxis::StaticClass() ) ) 
@@ -3862,11 +3883,8 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 
 		InViewportClient->bEditorCameraCut = false;
 	}
-	//@TODO: CAMERA: Unify this code path with the code in EditorViewportClient when viewing thru an actor that contains a camera component (e.g., SActorPreview)
 
-	// If viewing through a camera - PP settings of camera.
-	InViewportClient->SetPostprocessCameraActor(Cam);
-
+	// Set the actor lock.
 	InViewportClient->SetMatineeActorLock(InActor);
 
 	// If viewing through a camera - enforce aspect ratio.
@@ -3927,7 +3945,7 @@ void FMatinee::RestoreLevelViewports()
 			FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[ SavedData.ViewIndex ];
 			if ( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
 			{
-				LevelVC->SetPostprocessCameraActor(0);
+				LevelVC->SetMatineeActorLock( nullptr );
 				LevelVC->SetViewRotation( SavedData.ViewRotation );
 				LevelVC->SetViewLocation( SavedData.ViewLocation );				
 			}

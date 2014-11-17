@@ -2,6 +2,7 @@
 
 #include "CorePrivate.h"
 #include "AutomationTest.h"
+#include "ICUUtilities.h"
 
 // Disable optimization for TextTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
@@ -9,7 +10,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 
 #define LOCTEXT_NAMESPACE "Core.Tests.TextFormatTest"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_ApplicationMask)
 
 namespace
 {
@@ -49,6 +50,8 @@ namespace
 
 bool FTextTest::RunTest (const FString& Parameters)
 {
+	AddLogItem(TEXT("This test is destructive to existing culture invariant text! All culture invariant text will appear in LEET afterwards!"));
+
 	FInternationalization& I18N = FInternationalization::Get();
 	const bool OriginalEnableErrorCheckingValue = FText::GetEnableErrorCheckingResults();
 	const bool OriginalSuppressWarningsValue = FText::GetSuppressWarnings();
@@ -395,6 +398,192 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 		}
 	}
+
+	{
+		I18N.SetCurrentCulture(OriginalCulture);
+
+		TArray<uint8> FormattedHistoryAsEnglish;
+		TArray<uint8> FormattedHistoryAsFrenchCanadian;
+		TArray<uint8> InvariantFTextData;
+
+		FString InvariantString = TEXT("This is a culture invariant string.");
+		FString FormattedTestLayer2_OriginalLanguageSourceString;
+		FText FormattedTestLayer2;
+
+		// Scoping to allow all locals to leave scope after we serialize at the end
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("String1"), LOCTEXT("RebuildFTextTest1_Lorem", "Lorem"));
+			Args.Add(TEXT("String2"), LOCTEXT("RebuildFTextTest1_Ipsum", "Ipsum"));
+			FText FormattedTest1 = FText::Format(LOCTEXT("RebuildNamedText1", "{String1} \"Lorem Ipsum\" {String2}"), Args);
+
+			FFormatOrderedArguments ArgsOrdered;
+			ArgsOrdered.Add(LOCTEXT("RebuildFTextTest1_Lorem", "Lorem"));
+			ArgsOrdered.Add(LOCTEXT("RebuildFTextTest1_Ipsum", "Ipsum"));
+			FText FormattedTestOrdered1 = FText::Format(LOCTEXT("RebuildOrderedText1", "{0} \"Lorem Ipsum\" {1}"), ArgsOrdered);
+
+			// Will change to 5.542 due to default settings for numbers
+			FText AsNumberTest1 = FText::AsNumber(5.5421);
+
+			FText AsPercentTest1 = FText::AsPercent(0.925);
+			FText AsCurrencyTest1 = FText::AsCurrency(100.25);
+
+			FDateTime DateTimeInfo(2080, 8, 20, 9, 33, 22);
+			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo, EDateTimeStyle::Default, EDateTimeStyle::Default, TEXT("CST"));
+
+			// FormattedTestLayer2 must be updated when adding or removing from this block. Further, below, 
+			// verifying the LEET translated string must be changed to reflect what the new string looks like.
+			FFormatNamedArguments ArgsLayer2;
+			ArgsLayer2.Add("NamedLayer1", FormattedTest1);
+			ArgsLayer2.Add("OrderedLayer1", FormattedTestOrdered1);
+			ArgsLayer2.Add("FTextNumber", AsNumberTest1);
+			ArgsLayer2.Add("Number", 5010.89221);
+			ArgsLayer2.Add("DateTime", AsDateTimeTest1);
+			ArgsLayer2.Add("Percent", AsPercentTest1);
+			ArgsLayer2.Add("Currency", AsCurrencyTest1);
+			FormattedTestLayer2 = FText::Format(LOCTEXT("RebuildTextLayer2", "{NamedLayer1} | {OrderedLayer1} | {FTextNumber} | {Number} | {DateTime} | {Percent} | {Currency}"), ArgsLayer2);
+
+			{
+				// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
+				FMemoryWriter Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				Ar << FormattedTestLayer2;
+				Ar.Close();
+			}
+
+			// The original string in the native language.
+			FormattedTestLayer2_OriginalLanguageSourceString = FormattedTestLayer2.BuildSourceString();
+
+			{
+				// Swap to "LEET" culture to check if rebuilding works (verify the whole)
+				I18N.SetCurrentCulture("LEET");
+
+				// When changes are made to FormattedTestLayer2, please pull out the newly translated LEET string and update the below if-statement to keep the test passing!
+				FString LEETTranslatedString = FormattedTestLayer2.ToString();
+
+				FString DesiredOutput = FString(TEXT("\x2021") TEXT("\xAB") TEXT("\xAB") TEXT("L0r3m") TEXT("\xBB") TEXT(" \"L0r3m 1p$um\" ") TEXT("\xAB") TEXT("Ip$um") TEXT("\xBB") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("\xAB") TEXT("L0r3m") TEXT("\xBB") TEXT(" \"L0r3m 1p$um\" ") TEXT("\xAB") TEXT("Ip$um") TEXT("\xBB") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("5.5421") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("5010.89221") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("Jul 14, 1944, 10:05:06 PM") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("92%") TEXT("\xBB") TEXT(" | ") TEXT("\xAB") TEXT("\xA4") TEXT("\xA0") TEXT("100.25") TEXT("\xBB") TEXT("\x2021"));
+				// Convert the baked string into an FText, which will be leetified, then compare it to the rebuilt FText
+				if(LEETTranslatedString != DesiredOutput)
+				{
+					AddError( TEXT("FormattedTestLayer2 did not rebuild to correctly in LEET!") );
+					AddError( TEXT("Formatted Output=") + LEETTranslatedString );
+					AddError( TEXT("Desired Output=") + DesiredOutput );
+				}
+			}
+
+			// Swap to French-Canadian to check if rebuilding works (verify each numerical component)
+			{
+				I18N.SetCurrentCulture("fr-CA");
+
+				// Need the FText to be rebuilt in fr-CA.
+				FormattedTestLayer2.ToString();
+
+				if(AsNumberTest1.CompareTo(FText::AsNumber(5.5421)) != 0)
+				{
+					AddError( TEXT("AsNumberTest1 did not rebuild correctly in French-Canadian") );
+					AddError( TEXT("Number Output=") + AsNumberTest1.ToString() );
+				}
+
+				if(AsPercentTest1.CompareTo(FText::AsPercent(0.925)) != 0)
+				{
+					AddError( TEXT("AsPercentTest1 did not rebuild correctly in French-Canadian") );
+					AddError( TEXT("Percent Output=") + AsPercentTest1.ToString() );
+				}
+
+				if(AsCurrencyTest1.CompareTo(FText::AsCurrency(100.25)) != 0)
+				{
+					AddError( TEXT("AsCurrencyTest1 did not rebuild correctly in French-Canadian") );
+					AddError( TEXT("Currency Output=") + AsCurrencyTest1.ToString() );
+				}
+
+				if(AsDateTimeTest1.CompareTo(FText::AsDateTime(DateTimeInfo, EDateTimeStyle::Default, EDateTimeStyle::Default, TEXT("CST"))) != 0)
+				{
+					AddError( TEXT("AsDateTimeTest1 did not rebuild correctly in French-Canadian") );
+					AddError( TEXT("DateTime Output=") + AsDateTimeTest1.ToString() );
+				}
+
+				{
+					// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
+					// We don't care how this may be translated, we will be serializing this in as LEET.
+					FMemoryWriter Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+					Ar << FormattedTestLayer2;
+					Ar.Close();
+				}
+
+				{
+					FText InvariantFText = FText::FromString(InvariantString);
+
+					// Serialize an invariant FText
+					FMemoryWriter Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+					Ar << InvariantFText;
+					Ar.Close();
+				}
+			}
+		}
+
+		{
+			I18N.SetCurrentCulture("LEET");
+
+			FText FormattedEnglishTextHistoryAsLeet;
+			FText FormattedFrenchCanadianTextHistoryAsLeet;
+
+			{
+				FMemoryReader Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				Ar << FormattedEnglishTextHistoryAsLeet;
+				Ar.Close();
+			}
+			{
+				FMemoryReader Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+				Ar << FormattedFrenchCanadianTextHistoryAsLeet;
+				Ar.Close();
+			}
+
+			// Confirm the two FText's serialize in and get translated into the current (LEET) translation. One originated in English, the other in French-Canadian locales.
+			if(FormattedEnglishTextHistoryAsLeet.CompareTo(FormattedFrenchCanadianTextHistoryAsLeet) != 0)
+			{
+				AddError( TEXT("Serialization of text histories from source English and source French-Canadian to LEET did not produce the same results!") );
+				AddError( TEXT("English Output=") + FormattedEnglishTextHistoryAsLeet.ToString() );
+				AddError( TEXT("French-Canadian Output=") + FormattedFrenchCanadianTextHistoryAsLeet.ToString() );
+			}
+
+			// Confirm the two FText's source strings for the serialized FTexts are the same.
+			if(FormattedEnglishTextHistoryAsLeet.BuildSourceString() != FormattedFrenchCanadianTextHistoryAsLeet.BuildSourceString())
+			{
+				AddError( TEXT("Serialization of text histories from source English and source French-Canadian to LEET did not produce the same source results!") );
+				AddError( TEXT("English Output=") + FormattedEnglishTextHistoryAsLeet.BuildSourceString() );
+				AddError( TEXT("French-Canadian Output=") + FormattedFrenchCanadianTextHistoryAsLeet.BuildSourceString() );
+			}
+
+			// Rebuild in LEET so that when we build the source string the DisplayString is still in LEET. 
+			FormattedTestLayer2.ToString();
+
+			{
+				I18N.SetCurrentCulture(OriginalCulture);
+
+				FText InvariantFText;
+
+				FMemoryReader Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+				Ar << InvariantFText;
+				Ar.Close();
+
+				if(InvariantFText.ToString() != InvariantString)
+				{
+					AddError( TEXT("Invariant FText did not match the original FString after serialization!") );
+					AddError( TEXT("Invariant Output=") + InvariantFText.ToString() );
+				}
+
+
+				FString FormattedTestLayer2_SourceString = FormattedTestLayer2.BuildSourceString();
+
+				// Compare the source string of the LEETified version of FormattedTestLayer2 to ensure it is correct.
+				if(FormattedTestLayer2_OriginalLanguageSourceString != FormattedTestLayer2_SourceString)
+				{
+					AddError( TEXT("FormattedTestLayer2's source string was incorrect!") );
+					AddError( TEXT("Output=") + FormattedTestLayer2_SourceString );
+					AddError( TEXT("Desired Output=") + FormattedTestLayer2_OriginalLanguageSourceString );
+				}
+			}
+		}
+	}
 #else
 	AddWarning("ICU is disabled thus locale-aware string collation is disabled.");
 #endif
@@ -426,6 +615,80 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 	return true;
 }
+
+
+#if UE_ENABLE_ICU
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUTextTest, "Core.Misc.ICUText", EAutomationTestFlags::ATF_SmokeTest)
+
+bool FICUTextTest::RunTest (const FString& Parameters)
+{
+	// Test to make sure that ICUUtilities converts strings correctly
+
+	const FString SourceString(TEXT("This is a test"));
+	const FString SourceString2(TEXT("This is another test"));
+	icu::UnicodeString ICUString;
+	FString ConversionBackStr;
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::ConvertString(SourceString, ICUString);
+	if (SourceString.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
+	}
+
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString));
+	}
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::ConvertString(SourceString2, ICUString);
+	if (SourceString2.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString2.Len()));
+	}
+
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString2 != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString2));
+	}
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::ConvertString(SourceString, ICUString);
+	if (SourceString.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
+	}
+
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString));
+	}
+
+	return true;
+}
+
+#endif // #if UE_ENABLE_ICU
+
 
 #undef LOCTEXT_NAMESPACE 
 

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleAttractorBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Attraction"))

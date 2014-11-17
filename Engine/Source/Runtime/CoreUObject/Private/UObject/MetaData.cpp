@@ -387,6 +387,11 @@ bool UMetaData::NeedsLoadForServer() const
 	return false; 
 }
 
+bool UMetaData::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
 void UMetaData::InitializeRedirectMap()
 {
 	static bool bKeyRedirectMapInitialized = false;

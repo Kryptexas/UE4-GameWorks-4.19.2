@@ -99,6 +99,19 @@ namespace AutomationTool
 		{
 		}
 
+        /// <summary>
+        /// Get all connected device names for this platform
+        /// </summary>
+        /// <param name="Params"></param>
+        /// <param name="SC"></param>
+        public virtual void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
+        {
+            Devices = null;
+            Log(System.Diagnostics.TraceEventType.Warning, "{0} does not implement GetConnectedDevices", PlatformType);
+        }
+
+
+
 		/// <summary>
 		/// Deploy the application on the current platform
 		/// </summary>
@@ -286,6 +299,14 @@ namespace AutomationTool
         {
             return new List<string>();
         }
+
+		/// <summary>
+		/// Remaps movie directory for platforms that need a remap
+		/// </summary>
+		public virtual bool StageMovies
+		{
+			get { return true; }
+		}
 
 		/// <summary>
 		/// UnrealTargetPlatform type for this platform.

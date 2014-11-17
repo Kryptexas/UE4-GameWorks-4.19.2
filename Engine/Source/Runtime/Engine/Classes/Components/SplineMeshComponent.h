@@ -25,43 +25,43 @@ struct FSplineMeshParams
 	GENERATED_USTRUCT_BODY()
 
 	/** Start location of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartPos;
 
 	/** Start tangent of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartTangent;
 
 	/** X and Y scale applied to mesh at start of spline */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D StartScale;
 
 	/** Roll around spline applied at start */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float StartRoll;
 
 	/** Starting offset of the mesh from the spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D StartOffset;
 
 	/** End location of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndPos;
 
 	/** End tangent of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndTangent;
 
 	/** X and Y scale applied to mesh at end of spline */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndScale;
 
 	/** Roll around spline applied at end */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float EndRoll;
 
 	/** Ending offset of the mesh from the spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndOffset;
 
 
@@ -81,29 +81,29 @@ struct FSplineMeshParams
 
 };
 
-UCLASS(MinimalAPI)
-class USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
+UCLASS(ClassGroup=Rendering, hidecategories=(Physics), meta=(BlueprintSpawnableComponent))
+class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Spline that is used to deform mesh */
-	UPROPERTY()
-	struct FSplineMeshParams SplineParams;
+	UPROPERTY(EditAnywhere, Category=SplineMesh, meta=(ShowOnlyInnerProperties))
+	FSplineMeshParams SplineParams;
 
 	/** Axis (in component space) that is used to determine X axis for co-ordinates along spline */
-	UPROPERTY()
-	FVector SplineXDir;
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
+	FVector SplineUpDir;
 
 	/** If true, will use smooth interpolation (ease in/out) for Scale, Roll, and Offset along this section of spline. If false, uses linear */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	uint32 bSmoothInterpRollScale:1;
 
 	/** Chooses the forward axis for the spline mesh orientation */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	TEnumAsByte<ESplineMeshAxis::Type> ForwardAxis;
 
 	// Physics data.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, Category=Physics)
+	UPROPERTY()
 	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
@@ -116,25 +116,25 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 #endif
 
 	//Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual bool Modify(bool bAlwaysMarkDirty = true) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	//End UObject Interface
 
 	//Begin USceneComponent Interface
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	//End USceneComponent Interface
 
 	//Begin UPrimitiveComponent Interface
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
+	virtual void CreatePhysicsState() override;
+	virtual class UBodySetup* GetBodySetup() override;
 #if WITH_EDITOR
-	virtual bool ShouldRenderSelected() const OVERRIDE
+	virtual bool ShouldRenderSelected() const override
 	{
 		return Super::ShouldRenderSelected() || bSelected;
 	}
 #endif
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	//End UPrimitiveComponent Interface
 
 	//Begin UStaticMeshComponent Interface
@@ -142,10 +142,59 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	//End UStaticMeshComponent Interface
 
 	// Begin Interface_CollisionDataProvider Interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
-	virtual bool WantsNegXTriMesh() OVERRIDE { return false; }
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
+	virtual bool WantsNegXTriMesh() override { return false; }
 	// End Interface_CollisionDataProvider Interface
+
+	/** Called when spline params are changed, to notify render thread and possibly collision */
+	void MarkSplineParamsDirty();
+
+	/** Set the start position of spline in local space */
+	UFUNCTION(BlueprintCallable, Category=SplineMesh)
+	void SetStartPosition(FVector StartPos);
+
+	/** Set the start tangent vector of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartTangent(FVector StartTangent);
+
+	/** Set the end position of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndPosition(FVector EndPos);
+
+	/** Set the end tangent vector of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndTangent(FVector EndTangent);
+
+	/** Set the start and end, position and tangent, all in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent);
+
+	/** Set the start scaling */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartScale(FVector2D StartScale = FVector2D(1,1));
+
+	/** Set the start roll */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartRoll(float StartRoll);
+
+	/** Set the start offset */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartOffset(FVector2D StartOffset);
+
+	/** Set the end scaling */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndScale(FVector2D EndScale = FVector2D(1,1));
+
+	/** Set the end roll */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndRoll(float EndRoll);
+
+	/** Set the end offset */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndOffset(FVector2D EndOffset);
+
+
 
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();
@@ -158,7 +207,11 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	 * Calculates the spline transform, including roll, scale, and offset along the spline at a specified distance
 	 * @Note:  This is mirrored to Lightmass::CalcSliceTransform() and LocalVertexShader.usf.  If you update one of these, please update them all! 
 	 */
-	ENGINE_API FTransform CalcSliceTransform(const float DistanceAlong) const;
+	FTransform CalcSliceTransform(const float DistanceAlong) const;
+
+	static const float& GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis);
+	static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis);
+
 };
 
 

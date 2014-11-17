@@ -8,46 +8,60 @@
 
 namespace
 {
-	TSharedRef<const icu::Collator> CreateCollator( const icu::Locale& ICULocale )
+	TSharedRef<const icu::Collator, ESPMode::ThreadSafe> CreateCollator( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( icu::Collator::createInstance( ICULocale, ICUStatus ) );
+		TSharedPtr<const icu::Collator, ESPMode::ThreadSafe> Ptr = MakeShareable( icu::Collator::createInstance( ICULocale, ICUStatus ) );
+		checkf(Ptr.IsValid(), TEXT("Creating a collator object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DecimalFormat> CreateDecimalFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createInstance( ICULocale, ICUStatus )) );
+		TSharedPtr<const icu::DecimalFormat> Ptr = MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createInstance( ICULocale, ICUStatus )) );
+		checkf(Ptr.IsValid(), TEXT("Creating a decimal format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DecimalFormat> CreateCurrencyFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createCurrencyInstance( ICULocale, ICUStatus )) );
+		TSharedPtr<const icu::DecimalFormat> Ptr = MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createCurrencyInstance( ICULocale, ICUStatus )) );
+		checkf(Ptr.IsValid(), TEXT("Creating a currency format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DecimalFormat> CreatePercentFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createPercentInstance( ICULocale, ICUStatus )) );
+		TSharedPtr<const icu::DecimalFormat> Ptr = MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createPercentInstance( ICULocale, ICUStatus )) );
+		checkf(Ptr.IsValid(), TEXT("Creating a percent format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DateFormat> CreateDateFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( icu::DateFormat::createDateInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		checkf(Ptr.IsValid(), TEXT("Creating a date format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DateFormat> CreateTimeFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( icu::DateFormat::createTimeInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createTimeInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		checkf(Ptr.IsValid(), TEXT("Creating a time format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DateFormat> CreateDateTimeFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( icu::DateFormat::createDateTimeInstance( icu::DateFormat::EStyle::kDefault, icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateTimeInstance( icu::DateFormat::EStyle::kDefault, icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		checkf(Ptr.IsValid(), TEXT("Creating a date-time format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		return Ptr.ToSharedRef();
 	}
 }
 
@@ -68,18 +82,14 @@ FString FCulture::FICUCultureImplementation::GetDisplayName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 FString FCulture::FICUCultureImplementation::GetEnglishName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(icu::Locale("en"), ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 int FCulture::FICUCultureImplementation::GetKeyboardLayoutId() const
@@ -101,9 +111,7 @@ FString FCulture::FICUCultureImplementation::GetNativeName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(ICULocale, ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
@@ -111,12 +119,12 @@ FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
 	icu::UnicodeString ICUNativeLanguage;
 	ICULocale.getDisplayLanguage(ICULocale, ICUNativeLanguage);
 	FString NativeLanguage;
-	ICUUtilities::Convert(ICUNativeLanguage, NativeLanguage);
+	ICUUtilities::ConvertString(ICUNativeLanguage, NativeLanguage);
 
 	icu::UnicodeString ICUNativeScript;
 	ICULocale.getDisplayScript(ICULocale, ICUNativeScript);
 	FString NativeScript;
-	ICUUtilities::Convert(ICUNativeScript, NativeScript);
+	ICUUtilities::ConvertString(ICUNativeScript, NativeScript);
 
 	if ( !NativeScript.IsEmpty() )
 	{
@@ -130,12 +138,12 @@ FString FCulture::FICUCultureImplementation::GetNativeRegion() const
 	icu::UnicodeString ICUNativeCountry;
 	ICULocale.getDisplayCountry(ICULocale, ICUNativeCountry);
 	FString NativeCountry;
-	ICUUtilities::Convert(ICUNativeCountry, NativeCountry);
+	ICUUtilities::ConvertString(ICUNativeCountry, NativeCountry);
 
 	icu::UnicodeString ICUNativeVariant;
 	ICULocale.getDisplayVariant(ICULocale, ICUNativeVariant);
 	FString NativeVariant;
-	ICUUtilities::Convert(ICUNativeVariant, NativeVariant);
+	ICUUtilities::ConvertString(ICUNativeVariant, NativeVariant);
 
 	if ( !NativeVariant.IsEmpty() )
 	{
@@ -182,18 +190,18 @@ FString FCulture::FICUCultureImplementation::GetVariant() const
 	return ICULocale.getVariant();
 }
 
-TSharedRef<const icu::Collator> FCulture::FICUCultureImplementation::GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const
+TSharedRef<const icu::Collator, ESPMode::ThreadSafe> FCulture::FICUCultureImplementation::GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	const bool bIsDefault = (ComparisonLevel == ETextComparisonLevel::Default);
-	const TSharedRef<const icu::Collator> DefaultCollator( ICUCollator );
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> DefaultCollator( ICUCollator );
 	if(bIsDefault)
 	{
 		return DefaultCollator;
 	}
 	else
 	{
-		const TSharedRef<icu::Collator> Collator( DefaultCollator->clone() );
+		const TSharedRef<icu::Collator, ESPMode::ThreadSafe> Collator( DefaultCollator->clone() );
 		Collator->setAttribute(UColAttribute::UCOL_STRENGTH, UEToICU(ComparisonLevel), ICUStatus);
 		return Collator;
 	}
@@ -292,7 +300,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFo
 TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFormatter(const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const
 {
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUTimeFormat );
 
@@ -332,7 +340,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateTimeFormatter(const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const
 {
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateTimeFormat );
 

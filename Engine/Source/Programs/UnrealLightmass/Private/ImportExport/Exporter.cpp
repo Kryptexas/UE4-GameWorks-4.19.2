@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Exporter.cpp: Lightmass solver exporter class.
-=============================================================================*/
 #include "stdafx.h"
 #include "LightmassSwarm.h"
 #include "Exporter.h"
@@ -67,7 +64,7 @@ namespace Lightmass
 			for (TMap<FGuid,TArray<FVolumeLightingSample> >::TConstIterator It(VolumeSamples); It; ++It)
 			{
 				Swarm->Write(&It.Key(), sizeof(It.Key()));
-				checkAtCompileTime(sizeof(FVolumeLightingSample) == sizeof(FVolumeLightingSampleData), VolumeDerivedSizeMustMatch);
+				static_assert(sizeof(FVolumeLightingSample) == sizeof(FVolumeLightingSampleData), "Volume derived size must match.");
 				WriteArray(It.Value());
 			}
 			Swarm->CloseCurrentChannel();
@@ -79,20 +76,20 @@ namespace Lightmass
 	}
 
 	/** Exports dominant shadow information to Unreal. */
-	void FLightmassSolverExporter::ExportDominantShadowInfo(const FGuid& LightGuid, const FDominantLightShadowInfo& DominantLightShadowInfo) const
+	void FLightmassSolverExporter::ExportStaticShadowDepthMap(const FGuid& LightGuid, const FStaticShadowDepthMap& StaticShadowDepthMap) const
 	{
 		const FString ChannelName = CreateChannelName(LightGuid, LM_DOMINANTSHADOW_VERSION, LM_DOMINANTSHADOW_EXTENSION);
 		const int32 ErrorCode = Swarm->OpenChannel(*ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS, true);
 		if( ErrorCode >= 0 )
 		{
-			Swarm->Write(&DominantLightShadowInfo, sizeof(FDominantLightShadowInfoData));
-			checkAtCompileTime(sizeof(FDominantLightShadowSample) == sizeof(FDominantLightShadowSampleData), ShadowDerivedSizeMustMatch);
-			WriteArray(DominantLightShadowInfo.ShadowMap);
+			Swarm->Write(&StaticShadowDepthMap, sizeof(FStaticShadowDepthMapData));
+			static_assert(sizeof(FStaticShadowDepthMapSample) == sizeof(FStaticShadowDepthMapSampleData), "ShadowDerivedSizeMustMatch");
+			WriteArray(StaticShadowDepthMap.ShadowMap);
 			Swarm->CloseCurrentChannel();
 		}
 		else
 		{
-			UE_LOG(LogLightmass, Log, TEXT("Failed to open dominant shadow channel!"));
+			UE_LOG(LogLightmass, Log, TEXT("Failed to open static shadow depth map channel!"));
 		}
 	}
 

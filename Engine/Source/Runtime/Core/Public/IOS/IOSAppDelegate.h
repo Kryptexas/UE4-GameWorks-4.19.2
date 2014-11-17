@@ -6,7 +6,7 @@
 #import <AVFoundation/AVAudioSession.h>
 #import <GameKit/GKGameCenterViewController.h>
 
-@class EAGLView;
+@class FIOSView;
 @class IOSViewController;
 @class SlateOpenGLESViewController;
 @class IOSAppDelegate;
@@ -30,13 +30,13 @@ namespace FAppEntry
 	UIGestureRecognizerDelegate,
 #endif
 	GKGameCenterControllerDelegate,
-UITextFieldDelegate, AVAudioSessionDelegate>
+UITextFieldDelegate>
 
 /** Window object */
 @property (strong, retain, nonatomic) UIWindow *Window;
 
 /** Main GL View */
-@property (retain) EAGLView *GLView;
+@property (retain) FIOSView* IOSView;
 
 /** The controller to handle rotation of the view */
 @property (retain) IOSViewController* IOSController;
@@ -54,6 +54,8 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 @property (readonly) float OSVersion;
 
 @property bool bDeviceInPortraitMode;
+
+@property (retain) NSTimer* timer;
 
 #if !UE_BUILD_SHIPPING
 	/** Properties for managing the console */

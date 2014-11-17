@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessagingSettings.h: Declares the UUdpMessagingSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "UdpMessagingSettings.generated.h"
@@ -17,27 +13,19 @@ class UUdpMessagingSettings
 
 public:
 
-	/**
-	 * Whether the UDP transport channel is enabled.
-	 */
+	/** Whether the UDP transport channel is enabled. */
 	UPROPERTY(config, EditAnywhere, Category=Transport)
 	bool EnableTransport;
 
-	/**
-	 * The IP endpoint to listen to and send packets from.
-	 */
+	/** The IP endpoint to listen to and send packets from. */
 	UPROPERTY(config, EditAnywhere, Category=Transport)
 	FString UnicastEndpoint;
 
-	/**
-	 * The IP endpoint to send multicast packets to.
-	 */
+	/** The IP endpoint to send multicast packets to. */
 	UPROPERTY(config, EditAnywhere, Category=Transport)
 	FString MulticastEndpoint;
 
-	/**
-	 * The time-to-live (TTL) for sent multicast packets.
-	 */
+	/** The time-to-live (TTL) for sent multicast packets. */
 	UPROPERTY(config, EditAnywhere, Category=Transport)
 	uint8 MulticastTimeToLive;
 
@@ -51,21 +39,15 @@ public:
 
 public:
 
-	/**
-	 * Whether the UDP tunnel is enabled.
-	 */
+	/** Whether the UDP tunnel is enabled. */
 	UPROPERTY(config, EditAnywhere, Category=Tunnel)
 	bool EnableTunnel;
 
-	/**
-	 * The IP endpoint to listen to and send packets from.
-	 */
+	/** The IP endpoint to listen to and send packets from. */
 	UPROPERTY(config, EditAnywhere, Category=Tunnel)
 	FString TunnelUnicastEndpoint;
 
-	/**
-	 * The IP endpoint to send multicast packets to.
-	 */
+	/** The IP endpoint to send multicast packets to. */
 	UPROPERTY(config, EditAnywhere, Category=Tunnel)
 	FString TunnelMulticastEndpoint;
 

@@ -38,12 +38,12 @@ public:
 	 * Populate an array of FSlateBrush with resources consumed by this style chunk.
 	 * @param OutResources - the array to populate.
 	 */
-	virtual void GetResources( TArray< const FSlateBrush* >& OutResources ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutResources ) const override;
 
-	virtual void SetContentRoot( const FString& InContentRootDir ) OVERRIDE;
+	virtual void SetContentRoot( const FString& InContentRootDir ) override;
 
-	virtual const FSlateBrush* GetBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const OVERRIDE;
-	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const OVERRIDE;
+	virtual const FSlateBrush* GetBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const override;
+	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const override;
 
 	UCurveFloat* GetCurveFloat( const FName AssetName ) const;
 	UCurveVector* GetCurveVector( const FName AssetName ) const;
@@ -51,9 +51,9 @@ public:
 
 protected:
 
-	virtual const FSlateWidgetStyle* GetWidgetStyleInternal( const FName DesiredTypeName, const FName StyleName ) const OVERRIDE;
+	virtual const FSlateWidgetStyle* GetWidgetStyleInternal( const FName DesiredTypeName, const FName StyleName ) const override;
 
-	virtual void Log( ISlateStyle::EStyleMessageSeverity Severity, const FText& Message ) const OVERRIDE;
+	virtual void Log( ISlateStyle::EStyleMessageSeverity Severity, const FText& Message ) const override;
 
 	virtual void Log( const TSharedRef< class FTokenizedMessage >& Message ) const;
 
@@ -73,7 +73,7 @@ protected:
 
 	FName GenerateMapName( UObject* StyleObject );
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 

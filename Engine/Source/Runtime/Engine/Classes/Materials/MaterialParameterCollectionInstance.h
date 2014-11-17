@@ -18,7 +18,7 @@ class UMaterialParameterCollectionInstance : public UObject
 
 	// Begin UObject interface.
 	ENGINE_API virtual void PostInitProperties();	
-	ENGINE_API virtual void FinishDestroy() OVERRIDE;
+	ENGINE_API virtual void FinishDestroy() override;
 	// End UObject interface.
 
 	/** Initializes the instance with the collection it is based off of and the world it is owned by. */

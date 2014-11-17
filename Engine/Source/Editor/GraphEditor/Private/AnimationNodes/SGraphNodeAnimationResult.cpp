@@ -4,7 +4,7 @@
 #include "AnimGraphDefinitions.h"
 #include "SGraphNodeAnimationResult.h"
 #include "EdGraph/EdGraphNode.h"
-#include "AnimGraphNode_base.h"
+#include "AnimGraphNode_Base.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeAnimationResult

@@ -67,7 +67,7 @@ namespace AutomationTool
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || Name.Contains("Engine/Binaries/Mac");
 
                     System.Diagnostics.TraceEventType LogType = bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error;
-                    if (bSilentOkToBeDifferent && bOkToBeDifferent)
+                    if (bSilentOkToBeDifferent)
                     {
                         LogType = System.Diagnostics.TraceEventType.Information;
                     }
@@ -75,7 +75,7 @@ namespace AutomationTool
                     if (!((Timestamp - Other.Timestamp).TotalSeconds < 1 && (Timestamp - Other.Timestamp).TotalSeconds > -1))
                     {
                         CommandUtils.Log(LogType, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
-                        bOk = bOkToBeDifferent;
+                        bOk = bOkToBeDifferent || bSilentOkToBeDifferent;
                     }
                     if (!(Size == Other.Size))
                     {
@@ -557,13 +557,27 @@ namespace AutomationTool
             string Root = RootSharedTempStorageDirectory();
             return CombinePaths(Root, "UE4", SharedSubdir);
         }
-        public static bool HaveSharedTempStorage()
+        public static bool HaveSharedTempStorage(bool ForSaving)
         {
-            if (!DirectoryExists_NoExceptions(UE4TempStorageDirectory()))
+            var Dir = UE4TempStorageDirectory();
+            if (ForSaving)
             {
-                return false;
+                int Retries = 24;
+                while (--Retries > 0)
+                {
+                    if (DirectoryExistsAndIsWritable_NoExceptions(Dir))
+                    {
+                        return true;
+                    }
+                    FindDirectories_NoExceptions(false, "*", false, Dir); // there is some internet evidence to suggest this might perk up the mac share
+                    System.Threading.Thread.Sleep(5000);
+                }
             }
-            return true;
+            else if (DirectoryExists_NoExceptions(Dir))
+            {
+                return true;
+            }
+            return false;
         }
 
         public static string ResolveSharedTempStorageDirectory(string GameFolder)
@@ -678,6 +692,11 @@ namespace AutomationTool
             }
             return false;
         }
+        public static void DeleteLocalTempStorage(CommandEnvironment Env, string StorageBlockName, bool bQuiet = false)
+        {
+            var LocalManifest = LocalTempStorageManifestFilename(Env, StorageBlockName);
+            DeleteFile(bQuiet, LocalManifest);
+        }
         public static bool SharedTempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", bool bQuiet = false)
         {
             var SharedManifest = SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder);
@@ -691,6 +710,12 @@ namespace AutomationTool
         {
             return LocalTempStorageExists(Env, StorageBlockName, bQuiet) || (!bLocalOnly && SharedTempStorageExists(Env, StorageBlockName, GameFolder, bQuiet));
         }
+
+        static int ThreadsToCopyWith()
+        {
+            return 8;
+        }
+
         public static void StoreToTempStorage(CommandEnvironment Env, string StorageBlockName, List<string> Files, bool bLocalOnly = false, string GameFolder = "", string BaseFolder = "")
         {
             if (String.IsNullOrEmpty(BaseFolder))
@@ -720,26 +745,57 @@ namespace AutomationTool
                 {
                     throw new AutomationException("Storage Block Could Not Be Created! {0}", BlockPath);
                 }
+
                 var DestFiles = new List<string>();
-                foreach (string InFilename in Files)
+                if (ThreadsToCopyWith() < 2)
                 {
-                    var Filename = CombinePaths(InFilename);
-                    Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
-
-                    if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
+                    foreach (string InFilename in Files)
                     {
-                        throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
-                    }
-                    var RelativeFile = Filename.Substring(BaseFolder.Length);
-                    var DestFile = CombinePaths(BlockPath, RelativeFile);
-                    if (FileExists_NoExceptions(true, DestFile))
-                    {
-                        throw new AutomationException("Dest file {0} already exists.", DestFile);
-                    }
-                    CopyFile(Filename, DestFile, true);
-                    Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+                        var Filename = CombinePaths(InFilename);
+                        Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
 
-                    DestFiles.Add(DestFile);
+                        if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
+                        }
+                        var RelativeFile = Filename.Substring(BaseFolder.Length);
+                        var DestFile = CombinePaths(BlockPath, RelativeFile);
+                        if (FileExists_NoExceptions(true, DestFile))
+                        {
+                            throw new AutomationException("Dest file {0} already exists.", DestFile);
+                        }
+                        CopyFile(Filename, DestFile, true);
+                        Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+
+                        DestFiles.Add(DestFile);
+                    }
+                }
+                else
+                {
+                    var SrcFiles = new List<string>();
+                    foreach (string InFilename in Files)
+                    {
+                        var Filename = CombinePaths(InFilename);
+                        Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
+
+                        if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
+                        }
+                        var RelativeFile = Filename.Substring(BaseFolder.Length);
+                        var DestFile = CombinePaths(BlockPath, RelativeFile);
+                        if (FileExists_NoExceptions(true, DestFile))
+                        {
+                            throw new AutomationException("Dest file {0} already exists.", DestFile);
+                        }
+                        SrcFiles.Add(Filename);
+                        DestFiles.Add(DestFile);
+                    }
+                    ThreadedCopyFiles(SrcFiles.ToArray(), DestFiles.ToArray(), ThreadsToCopyWith());
+                    foreach (string DestFile in DestFiles)
+                    {
+                        Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+                    }
                 }
                 var Shared = SaveSharedTempStorageManifest(Env, StorageBlockName, GameFolder, DestFiles);
                 if (!Local.Compare(Shared))
@@ -810,33 +866,72 @@ namespace AutomationTool
             var SharedFiles = Shared.GetFiles(BlockPath);
 
             var DestFiles = new List<string>();
-            foreach (string InFilename in SharedFiles)
+            if (ThreadsToCopyWith() < 2)
             {
-                var Filename = CombinePaths(InFilename);
-                Robust_FileExists_NoExceptions(true, Filename, "Could not add {0} to manifest because it does not exist");
-
-                if (!Filename.StartsWith(BlockPath, StringComparison.InvariantCultureIgnoreCase))
+                foreach (string InFilename in SharedFiles)
                 {
-                    throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BlockPath);
+                    var Filename = CombinePaths(InFilename);
+                    Robust_FileExists_NoExceptions(true, Filename, "Could not add {0} to manifest because it does not exist");
+
+                    if (!Filename.StartsWith(BlockPath, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BlockPath);
+                    }
+                    var RelativeFile = Filename.Substring(BlockPath.Length);
+                    var DestFile = CombinePaths(BaseFolder, RelativeFile);
+                    if (FileExists_NoExceptions(true, DestFile))
+                    {
+                        Log("Dest file {0} already exists, deleting and overwriting", DestFile);
+                        DeleteFile(DestFile);
+                    }
+                    CopyFile(Filename, DestFile, true);
+
+                    Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+
+                    if (UnrealBuildTool.Utils.IsRunningOnMono)
+                    {
+						FixUnixFilePermissions(DestFile);
+                    }
+
+                    FileInfo Info = new FileInfo(DestFile);
+                    DestFiles.Add(Info.FullName);
                 }
-                var RelativeFile = Filename.Substring(BlockPath.Length);
-                var DestFile = CombinePaths(BaseFolder, RelativeFile);
-                if (FileExists_NoExceptions(true, DestFile))
+            }
+            else
+            {
+                var SrcFiles = new List<string>();
+                foreach (string InFilename in SharedFiles)
                 {
-                    Log("Dest file {0} already exists, deleting and overwriting", DestFile);
-                    DeleteFile(DestFile);
+                    var Filename = CombinePaths(InFilename);
+                    //Robust_FileExists_NoExceptions(true, Filename, "Could not add {0} to manifest because it does not exist");
+
+                    if (!Filename.StartsWith(BlockPath, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BlockPath);
+                    }
+                    var RelativeFile = Filename.Substring(BlockPath.Length);
+                    var DestFile = CombinePaths(BaseFolder, RelativeFile);
+                    if (FileExists_NoExceptions(true, DestFile))
+                    {
+                        Log("Dest file {0} already exists, deleting and overwriting", DestFile);
+                        DeleteFile(DestFile);
+                    }
+                    SrcFiles.Add(Filename);
+                    DestFiles.Add(DestFile);
                 }
-                CopyFile(Filename, DestFile, true);
-
-                Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
-
-                if (UnrealBuildTool.Utils.IsRunningOnMono && IsProbablyAMacOrIOSExe(DestFile))
+                ThreadedCopyFiles(SrcFiles.ToArray(), DestFiles.ToArray(), ThreadsToCopyWith());
+                var NewDestFiles = new List<string>();
+                foreach (string DestFile in DestFiles)
                 {
-                    SetExecutableBit(DestFile);
+                    Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+                    if (UnrealBuildTool.Utils.IsRunningOnMono)
+                    {
+						FixUnixFilePermissions(DestFile);
+                    }
+                    FileInfo Info = new FileInfo(DestFile);
+                    NewDestFiles.Add(Info.FullName);
                 }
-
-                FileInfo Info = new FileInfo(DestFile);
-                DestFiles.Add(Info.FullName);
+                DestFiles = NewDestFiles;
             }
             var NewLocal = SaveLocalTempStorageManifest(Env, BaseFolder, StorageBlockName, DestFiles);
             if (!NewLocal.Compare(Shared))

@@ -19,10 +19,10 @@ public:
 	virtual uint32 GetHeight() const { return Height; }
 
 	/** FRenderResource Interface.  Called when render resources need to be initialized */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/** FRenderResource Interface.  Called when render resources need to be released */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 	/**
 	 * Resize the texture.  Can only be called on the render thread
@@ -91,7 +91,7 @@ public:
 	{
 	}
 
-	virtual void InitDynamicRHI() {}
+	virtual void InitDynamicRHI() override {}
 
 	/** 
 	 * Releases all dynamic RHI data
@@ -117,6 +117,28 @@ private:
 	uint32 Height;
 };
 
+
+class FSlateMaterial : public FSlateShaderResource
+{
+public:
+	FSlateMaterial( FMaterialRenderProxy* InProxy,  const FVector2D& InImageSize )
+		: RenderProxy( InProxy )
+		, Width( FMath::RoundToInt( InImageSize.X ) )
+		, Height( FMath::RoundToInt( InImageSize.Y ) )
+	{}
+
+	virtual uint32 GetWidth() const { return Width; } 
+	virtual uint32 GetHeight() const { return Height; } 
+
+	virtual void SetResource( FMaterialRenderProxy* Proxy ) { RenderProxy = Proxy; }
+	virtual FMaterialRenderProxy* GetRenderProxy() const { return RenderProxy; }
+	virtual ESlateShaderResource::Type GetType() const override { return ESlateShaderResource::Material; }
+private:
+	FMaterialRenderProxy* RenderProxy;
+	uint32 Width;
+	uint32 Height;
+};
+
 class FSlateTextureRenderTarget2DResource : public FTextureRenderTargetResource
 {
 public:
@@ -132,18 +154,18 @@ public:
 
 public:
 	// FTextureRenderTargetResource implementation
-	virtual void ClampSize(int32 SizeX,int32 SizeY) OVERRIDE;
+	virtual void ClampSize(int32 SizeX,int32 SizeY) override;
 
 	// FRenderResource implementation
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// FDeferredUpdateResource implementation
-	virtual void UpdateResource() OVERRIDE;
+	virtual void UpdateResource() override;
 
 	// FRenderTarget interface
-	virtual FIntPoint GetSizeXY() const OVERRIDE;
-	virtual float GetDisplayGamma() const OVERRIDE;
+	virtual FIntPoint GetSizeXY() const override;
+	virtual float GetDisplayGamma() const override;
 
 private:
 	FTexture2DRHIRef Texture2DRHI;

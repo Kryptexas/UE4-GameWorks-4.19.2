@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
@@ -32,6 +32,13 @@ static TAutoConsoleVariable<int32> CVarAllowOcclusionQueries(
 	TEXT("If zero, occlusion queries will not be used to cull primitives."),
 	ECVF_RenderThreadSafe
 	);
+
+static TAutoConsoleVariable<float> CVarDemosaicVposOffset(
+	TEXT("r.DemosaicVposOffset"),
+	0.0f,
+	TEXT("This offset is added to the rasterized position used for demosaic in the ES2 tonemapping shader. It exists to workaround driver bugs on some Android devices that have a half-pixel offset."),
+	ECVF_RenderThreadSafe);
+
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
@@ -415,7 +422,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 	// After 4.2 we can put the workaround in the cross compiler.
 	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
-	ViewUniformShaderParameters.ExposureScale = FVector4(ExposureScale,ExposureScale,ExposureScale,ExposureScale);
+	ViewUniformShaderParameters.ExposureScale = FVector4(ExposureScale,ExposureScale,ExposureScale,1.0f);
 	ViewUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
 	ViewUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
 	ViewUniformShaderParameters.DepthOfFieldNearTransitionRegion = FinalPostProcessSettings.DepthOfFieldNearTransitionRegion;
@@ -438,11 +445,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 
 	ViewUniformShaderParameters.DemosaicVposOffset = 0.0f;
 	{
-		static auto* DemosaicVposOffsetCvar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DemosaicVposOffset"));
-		if (DemosaicVposOffsetCvar)
-		{
-			ViewUniformShaderParameters.DemosaicVposOffset = DemosaicVposOffsetCvar->GetValueOnRenderThread();
-		}
+		ViewUniformShaderParameters.DemosaicVposOffset = CVarDemosaicVposOffset.GetValueOnRenderThread();
 	}
 
 	ViewUniformShaderParameters.IndirectLightingColorScale = FVector(FinalPostProcessSettings.IndirectLightingColor.R * FinalPostProcessSettings.IndirectLightingIntensity,
@@ -464,11 +467,20 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 								(((float)ViewRect.Max.Y / BufferSize.Y) - OneScenePixelUVSize.Y) );
 	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
 
-	if (Family->Scene && ((FScene*)Family->Scene)->SkyLight)
+	FScene* Scene = (FScene*)Family->Scene;
+
+	if (Scene && Scene->SkyLight)
 	{
-		FScene* Scene = (FScene*)Family->Scene;
-		ViewUniformShaderParameters.SkyLightColor = Scene->SkyLight->LightColor;
-		ViewUniformShaderParameters.SkyLightParameters = Scene->SkyLight->bCastShadows && Scene->SkyLight->bPrecomputedLightingIsValid ? 1 : 0;
+		FSkyLightSceneProxy* SkyLight = Scene->SkyLight;
+
+		ViewUniformShaderParameters.SkyLightColor = SkyLight->LightColor;
+
+		bool bApplyPrecomputedBentNormalShadowing = 
+			SkyLight->bCastShadows 
+			&& SkyLight->bWantsStaticShadowing
+			&& SkyLight->bPrecomputedLightingIsValid;
+
+		ViewUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
 	}
 	else
 	{
@@ -480,7 +492,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	checkSlow(sizeof(ViewUniformShaderParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4) * 7);
 	SetupSkyIrradianceEnvironmentMapConstants((FVector4*)&ViewUniformShaderParameters.SkyIrradianceEnvironmentMap);
 
-	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleUse);
+	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
 void FViewInfo::InitRHIResources()
@@ -555,6 +567,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	check(Scene != NULL);
 
 	// Copy the individual views.
+	bool bAnyViewIsLocked = false;
 	Views.Empty(InViewFamily->Views.Num());
 	for(int32 ViewIndex = 0;ViewIndex < InViewFamily->Views.Num();ViewIndex++)
 	{
@@ -572,6 +585,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 		FViewInfo* ViewInfo = new(Views) FViewInfo(InViewFamily->Views[ViewIndex]);
 		ViewFamily.Views[ViewIndex] = ViewInfo;
 		ViewInfo->Family = &ViewFamily;
+		bAnyViewIsLocked |= ViewInfo->bIsLocked;
 
 #if WITH_EDITOR
 		// Should we allow the user to select translucent primitives?
@@ -586,6 +600,14 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 			FViewElementPDI ViewElementPDI(ViewInfo,HitProxyConsumer);
 			ViewInfo->Drawer->Draw(ViewInfo,&ViewElementPDI);
 		}
+	}
+
+	// If any viewpoint has been locked, set time to zero to avoid time-based
+	// rendering differences in materials.
+	if (bAnyViewIsLocked)
+	{
+		ViewFamily.CurrentRealTime = 0.0f;
+		ViewFamily.CurrentWorldTime = 0.0f;
 	}
 	
 	if(HitProxyConsumer)
@@ -632,7 +654,7 @@ FSceneRenderer::~FSceneRenderer()
 /** 
 * Finishes the view family rendering.
 */
-void FSceneRenderer::RenderFinish()
+void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RenderFinish, DEC_SCENE_ITEMS);
 
@@ -642,7 +664,7 @@ void FSceneRenderer::RenderFinish()
 		const FViewInfo& View = Views[0];
 
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FRenderingCompositeOutputRef BusyWait;
 		{
@@ -676,7 +698,8 @@ void FSceneRenderer::RenderFinish()
 			// display a message saying we're frozen
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
-			if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning)
+			bool bLocked = View.bIsLocked;
+			if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
 			{
 				// this is a helper class for FCanvas to be able to get screen size
 				class FRenderTargetTemp : public FRenderTarget
@@ -715,6 +738,12 @@ void FSceneRenderer::RenderFinish()
 				{
 					const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
 					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(1.0,0.05,0.05,1.0));
+					Y += 14;
+				}
+				if (bLocked)
+				{
+					const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
+					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(0.8,1.0,0.2,1.0));
 					Y += 14;
 				}
 				Canvas.Flush();
@@ -780,11 +809,14 @@ void FSceneRenderer::RenderFinish()
 				continue;
 			}
 
-			GRenderTargetPool.PresentContent(View);
+			GRenderTargetPool.PresentContent(RHICmdList, View);
 		}
 	}
 
 #endif
+
+	// Notify the RHI we are done rendering a scene.
+	RHICmdList.EndScene();
 }
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
@@ -801,7 +833,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 	}
 }
 
-void FSceneRenderer::RenderCustomDepthPass()
+void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
 	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 	{
@@ -826,7 +858,7 @@ void FSceneRenderer::RenderCustomDepthPass()
 	}
 
 	// Render CustomDepth
-	if(GSceneRenderTargets.BeginRenderingCustomDepth(bPrimitives))
+	if (GSceneRenderTargets.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
 	{
 		SCOPED_DRAW_EVENT(CustomDepth, DEC_SCENE_ITEMS);
 
@@ -836,23 +868,23 @@ void FSceneRenderer::RenderCustomDepthPass()
 
 			FViewInfo& View = Views[ViewIndex];
 
-			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-			RHIClear(false, FLinearColor(0,0,0,0), true, 0.0f, false, 0, FIntRect());
+			RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 			
 			// seems this is set each draw call anyway
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 
 			// Note, this is a reversed Z depth surface, so CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-			View.CustomDepthSet.DrawPrims(&View, false);
+			View.CustomDepthSet.DrawPrims(RHICmdList, &View, false);
 		}
 
 		// resolve using the current ResolveParams 
-		GSceneRenderTargets.FinishRenderingCustomDepth();
+		GSceneRenderTargets.FinishRenderingCustomDepth(RHICmdList);
 	}
 }
 
@@ -884,7 +916,7 @@ void FSceneRenderer::OnStartFrame()
  *
  * @param SceneRenderer	Scene renderer to use for rendering.
  */
-static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
+static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
     FMemMark MemStackMark(FMemStack::Get());
 
@@ -900,18 +932,23 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
         }
     }
 
+	if(SceneRenderer->ViewFamily.EngineShowFlags.OnScreenDebug)
+	{
+		GRenderTargetPool.SetEventRecordingActive(true);
+	}
+
     {
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
 		
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.
-			SceneRenderer->RenderHitProxies();
+			SceneRenderer->RenderHitProxies(RHICmdList);
 		}
 		else
 		{
 			// Render the scene.
-			SceneRenderer->Render();
+			SceneRenderer->Render(RHICmdList);
 		}
 
 #if STATS
@@ -931,6 +968,8 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
 		SET_MEMORY_STAT(STAT_RenderingMemStackMemory, FMemStack::Get().GetByteCount());
 		SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 #endif
+
+		GRenderTargetPool.SetEventRecordingActive(false);
 
         // Delete the scene renderer.
 		delete SceneRenderer;
@@ -974,7 +1013,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewF
 			FDrawSceneCommand,
 			FSceneRenderer*,SceneRenderer,SceneRenderer,
 		{
-			RenderViewFamily_RenderThread(SceneRenderer);
+			RenderViewFamily_RenderThread(RHICmdList, SceneRenderer);
 		});
 	}
 }
@@ -983,6 +1022,32 @@ void FRendererModule::UpdateMapNeedsLightingFullyRebuiltState(UWorld* World)
 {
 	World->SetMapNeedsLightingFullyRebuilt(World->Scene->GetRenderScene()->NumUncachedStaticLightingInteractions);
 }
+
+void FRendererModule::DrawRectangle(
+		FRHICommandList& RHICmdList,
+		float X,
+		float Y,
+		float SizeX,
+		float SizeY,
+		float U,
+		float V,
+		float SizeU,
+		float SizeV,
+		FIntPoint TargetSize,
+		FIntPoint TextureSize,
+		class FShader* VertexShader,
+		EDrawRectangleFlags Flags
+		)
+{
+	::DrawRectangle( RHICmdList, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, TargetSize, TextureSize, VertexShader, Flags );
+}
+
+
+TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDeclaration()
+{
+	return GFilterVertexDeclaration;
+}
+
 
 bool IsMobileHDR()
 {

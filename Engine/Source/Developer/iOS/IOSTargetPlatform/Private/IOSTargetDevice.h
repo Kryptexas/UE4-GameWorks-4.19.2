@@ -39,27 +39,27 @@ public:
 	}
 public:
 	// ITargetDevice interface
-	virtual bool Connect() OVERRIDE;
-	virtual bool Deploy(const FString& SourceFolder, FString& OutAppId) OVERRIDE;
-	virtual void Disconnect() OVERRIDE;
-	virtual int32 GetProcessSnapshot(TArray<FTargetDeviceProcessInfo>& OutProcessInfos) OVERRIDE;
-	virtual ETargetDeviceTypes::Type GetDeviceType() const OVERRIDE;
-	virtual FTargetDeviceId GetId() const OVERRIDE;
-	virtual FString GetName() const OVERRIDE;
-	virtual FString GetOperatingSystemName() OVERRIDE;
-	virtual const class ITargetPlatform& GetTargetPlatform() const OVERRIDE;
-	virtual bool IsConnected() OVERRIDE;
-	virtual bool IsDefault() const OVERRIDE;
-	virtual bool Launch(const FString& InAppId, EBuildConfigurations::Type InBuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId) OVERRIDE;
-	virtual bool PowerOff(bool Force) OVERRIDE;
-	virtual bool PowerOn() OVERRIDE;
-	virtual bool Reboot(bool bReconnect = false) OVERRIDE;
-	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) OVERRIDE;
+	virtual bool Connect() override;
+	virtual bool Deploy(const FString& SourceFolder, FString& OutAppId) override;
+	virtual void Disconnect() override;
+	virtual int32 GetProcessSnapshot(TArray<FTargetDeviceProcessInfo>& OutProcessInfos) override;
+	virtual ETargetDeviceTypes::Type GetDeviceType() const override;
+	virtual FTargetDeviceId GetId() const override;
+	virtual FString GetName() const override;
+	virtual FString GetOperatingSystemName() override;
+	virtual const class ITargetPlatform& GetTargetPlatform() const override;
+	virtual bool IsConnected() override;
+	virtual bool IsDefault() const override;
+	virtual bool Launch(const FString& InAppId, EBuildConfigurations::Type InBuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId) override;
+	virtual bool PowerOff(bool Force) override;
+	virtual bool PowerOn() override;
+	virtual bool Reboot(bool bReconnect = false) override;
+	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) override;
 	virtual bool SupportsFeature(ETargetDeviceFeatures::Type Feature) const;
-	virtual bool SupportsSdkVersion(const FString& VersionString) const OVERRIDE;
-	virtual bool TerminateProcess(const int32 ProcessId) OVERRIDE;
-	virtual void SetUserCredentials(const FString & UserName, const FString & UserPassword) OVERRIDE;
-	virtual bool GetUserCredentials(FString & OutUserName, FString & OutUserPassword) OVERRIDE;
+	virtual bool SupportsSdkVersion(const FString& VersionString) const override;
+	virtual bool TerminateProcess(const int32 ProcessId) override;
+	virtual void SetUserCredentials(const FString & UserName, const FString & UserPassword) override;
+	virtual bool GetUserCredentials(FString & OutUserName, FString & OutUserPassword) override;
 	// End of ITargetDevice interface
 
 public:

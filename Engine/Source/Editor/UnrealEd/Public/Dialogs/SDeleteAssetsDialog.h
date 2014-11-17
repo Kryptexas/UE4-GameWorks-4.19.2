@@ -38,8 +38,8 @@ public:
 	// Construct a SContentReference
 	void Construct( const FArguments& InArgs, TSharedRef<FAssetDeleteModel> InDeleteModel );
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 	TSharedRef<SWidget> CreateThumbnailWidget();

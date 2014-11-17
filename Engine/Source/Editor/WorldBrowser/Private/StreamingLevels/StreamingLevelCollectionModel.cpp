@@ -509,9 +509,9 @@ bool FStreamingLevelCollectionModel::AddExistingLevel()
 		}
 
 		// For safety
-		if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+		if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 		{
-			GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+			GLevelEditorModeTools().ActivateDefaultMode();
 		}
 
 		// refresh editor windows

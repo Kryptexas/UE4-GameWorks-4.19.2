@@ -11,7 +11,7 @@ class UDistributionVectorParticleParameter : public UDistributionVectorParameter
 
 
 	// Begin UDistributionVectorParameterBase Interface
-	virtual bool GetParamValue(UObject* Data, FName ParamName, FVector& OutVector) const OVERRIDE;
+	virtual bool GetParamValue(UObject* Data, FName ParamName, FVector& OutVector) const override;
 	// End UDistributionVectorParameterBase Interface
 };
 

@@ -24,7 +24,7 @@ RENDERCORE_API bool GUseThreadedRendering = false;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	
+
 static FRunnable* GRenderingThreadRunnable = NULL;
 
 /** If the rendering thread has been terminated by an unhandled exception, this contains the error message. */
@@ -36,22 +36,6 @@ FString GRenderingThreadError;
  */
 volatile bool GIsRenderingThreadHealthy = true;
 
-/** Whether the rendering thread is suspended (not even processing the tickables) */
-volatile int32 GIsRenderingThreadSuspended = 0;
-
-/** Thread used for rendering */
-RENDERCORE_API FRunnableThread* GRenderingThread = NULL;
-
-// Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
-RENDERCORE_API bool IsInActualRenderingThread()
-{
-	return GRenderingThread && FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID();
-}
-
-RENDERCORE_API bool IsInRenderingThread()
-{
-	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
-}
 
 /**
  * Maximum rate the rendering thread will tick tickables when idle (in Hz)
@@ -191,7 +175,7 @@ void TickRenderingTickables()
 	{
 		return;
 	}
-	
+
 	// tick any rendering thread tickables
 	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadTickableObjects.Num(); ObjectIndex++)
 	{
@@ -247,7 +231,7 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 /**
  * Advances stats for the rendering thread.
  */
-void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame)
+static void AdvanceRenderingThreadStats(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame)
 {
 #if STATS
 	int64 Frame = StatsFrame;
@@ -262,6 +246,27 @@ void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFram
 		FThreadStats::ExplicitFlush();
 	}
 #endif
+}
+
+/**
+ * Advances stats for the rendering thread. Called from the game thread.
+ */
+void AdvanceRenderingThreadStatsGT( bool bDiscardCallstack, int64 StatsFrame, int32 MasterDisableChangeTagStartFrame )
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
+	(
+		RenderingThreadTickCommand,
+		int64, SentStatsFrame, StatsFrame,
+		int32, SentMasterDisableChangeTagStartFrame, MasterDisableChangeTagStartFrame,
+		{
+			AdvanceRenderingThreadStats( SentStatsFrame, SentMasterDisableChangeTagStartFrame );
+		}
+	);
+	if( bDiscardCallstack )
+	{
+		// we need to flush the rendering thread here, otherwise it can get behind and then the stats will get behind.
+		FlushRenderingCommands();
+	}
 }
 
 /** The rendering thread runnable object. */
@@ -302,11 +307,7 @@ public:
 	{
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
-#if PLATFORM_ANDROID
-		//@TODO: This should be using the affinitymask in FRunnableThread::Create() and tested on all platforms.
-		uint64 RenderThreadAffinityMask = AffinityManagerGetAffinity( TEXT("RenderingThread 0"));
-		FPlatformProcess::SetThreadAffinityMask( RenderThreadAffinityMask );
-#endif
+		FPlatformProcess::SetupGameOrRenderThread(true);
 
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -340,7 +341,7 @@ public:
 #if STATS
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
-#endif		
+#endif
 		GRenderThreadId = 0;
 
 		return 0;
@@ -457,9 +458,7 @@ void StartRenderingThread()
 	// Create the rendering thread.
 	GRenderingThreadRunnable = new FRenderingThread();
 
-	EThreadPriority RenderingThreadPrio = TPri_Normal;
-
-	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, 0, 0, RenderingThreadPrio );
+	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, TPri_Normal, FPlatformAffinity::GetRenderingThreadMask());
 
 	// Wait for render thread to have taskgraph bound before we dispatch any tasks for it.
 	((FRenderingThread*)GRenderingThreadRunnable)->TaskGraphBoundSyncEvent->Wait();
@@ -476,7 +475,7 @@ void StartRenderingThread()
 	// Create the rendering thread heartbeat
 	GRenderingThreadRunnableHeartbeat = new FRenderingThreadTickHeartbeat();
 
-	GRenderingThreadHeartbeat = FRunnableThread::Create(GRenderingThreadRunnableHeartbeat, *FString::Printf(TEXT("RTHeartBeat %d"), ThreadCount), 0, 0, 16 * 1024, TPri_AboveNormal);
+	GRenderingThreadHeartbeat = FRunnableThread::Create(GRenderingThreadRunnableHeartbeat, *FString::Printf(TEXT("RTHeartBeat %d"), ThreadCount), 16 * 1024, TPri_AboveNormal, FPlatformAffinity::GetRTHeartBeatMask());
 
 	ThreadCount++;
 }
@@ -524,7 +523,7 @@ void StopRenderingThread()
 
 			// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
 			// If the game thread is already executing tasks, then we have no choice but to spin
-			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread)) 
+			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
 			{
 				while ((QuitTask.GetReference() != nullptr) && !QuitTask->IsComplete())
 				{
@@ -763,6 +762,10 @@ void FlushRenderingCommands()
 	delete PendingCleanupObjects;
 }
 
+FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList();
+}
 
 /** The set of deferred cleanup objects which are pending cleanup. */
 static TLockFreePointerList<FDeferredCleanupInterface>	PendingCleanupObjectsList;

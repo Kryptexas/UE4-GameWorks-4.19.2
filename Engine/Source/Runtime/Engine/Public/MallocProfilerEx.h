@@ -30,12 +30,12 @@ public:
 	 *
 	 * @param	InWorld		World Context.
 	 */
-	virtual void WriteLoadedLevels( UWorld* InWorld ) OVERRIDE;
+	virtual void WriteLoadedLevels( UWorld* InWorld ) override;
 
 	/** 
 	 * Gather texture memory stats. 
 	 */
-	virtual void GetTexturePoolSize( FGenericMemoryStats& out_Stats ) OVERRIDE;
+	virtual void GetTexturePoolSize( FGenericMemoryStats& out_Stats ) override;
 };
 
 #endif // USE_MALLOC_PROFILER

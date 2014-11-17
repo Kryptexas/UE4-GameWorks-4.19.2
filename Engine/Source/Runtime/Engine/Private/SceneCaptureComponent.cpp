@@ -19,8 +19,6 @@ ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCI
 	MeshComp->CastShadow = false;
 	MeshComp->PostPhysicsComponentTick.bCanEverTick = false;
 	RootComponent = MeshComp;
-	
-	bWantsInitialize = false;
 }
 // -----------------------------------------------
 
@@ -152,6 +150,27 @@ USceneCaptureComponent::USceneCaptureComponent(const class FPostConstructInitial
 	MaxViewDistanceOverride = -1;
 }
 
+
+void USceneCaptureComponent::HideComponent(UPrimitiveComponent* InComponent)
+{
+	if (InComponent)
+	{
+		HiddenComponents.AddUnique(InComponent);
+	}
+}
+
+void USceneCaptureComponent::HideActorComponents(AActor* InActor)
+{
+	if (InActor)
+	{
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		InActor->GetComponents(PrimitiveComponents);
+		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
+		{
+			HiddenComponents.AddUnique(PrimitiveComponents[ComponentIndex]);
+		}
+	}
+}
 
 // -----------------------------------------------
 

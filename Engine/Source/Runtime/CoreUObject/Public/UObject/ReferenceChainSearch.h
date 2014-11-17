@@ -81,10 +81,10 @@ public:
 		{
 		}
 
-		virtual void HandleObjectReference( UObject*& InObject, const UObject* ReferencingObject, const UObject* ReferencingProperty ) OVERRIDE;
+		virtual void HandleObjectReference( UObject*& InObject, const UObject* ReferencingObject, const UObject* ReferencingProperty ) override;
 
-		virtual bool IsIgnoringArchetypeRef() const OVERRIDE	{ return false; }
-		virtual bool IsIgnoringTransient() const OVERRIDE		{ return false; }
+		virtual bool IsIgnoringArchetypeRef() const override	{ return false; }
+		virtual bool IsIgnoringTransient() const override		{ return false; }
 
 		TArray<FReferenceChainLink> References;
 	};

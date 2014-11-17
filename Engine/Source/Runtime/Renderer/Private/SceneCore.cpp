@@ -274,9 +274,10 @@ void FStaticMesh::UnlinkDrawList(FStaticMesh::FDrawListElementLink* Link)
 	verify(DrawListLinks.RemoveSingleSwap(Link) == 1);
 }
 
-void FStaticMesh::AddToDrawLists(FScene* Scene)
+void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene)
 {
-	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	const auto FeatureLevel = Scene->GetFeatureLevel();
+	if (FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		if (CastShadow)
 		{
@@ -293,7 +294,7 @@ void FStaticMesh::AddToDrawLists(FScene* Scene)
 				FHitProxyDrawingPolicyFactory::AddStaticMesh(Scene,this);
 			}
 
-			if(!IsTranslucent())
+			if (!IsTranslucent(FeatureLevel))
 			{
 				extern TAutoConsoleVariable<int32> CVarEarlyZPass;
 				int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();
@@ -302,14 +303,14 @@ void FStaticMesh::AddToDrawLists(FScene* Scene)
 
 				// Render non-masked materials in the depth only pass
 				if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
-					&& (!IsMasked() || EarlyZPass == 2)
+					&& (!IsMasked(FeatureLevel) || EarlyZPass == 2)
 					&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable))
 				{
 					FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
 				}
 
 				// Add the static mesh to the DPG's base pass draw list.
-				FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(Scene,this);
+				FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
 
 				FVelocityDrawingPolicyFactory::AddStaticMesh(Scene, this);
 			}
@@ -317,7 +318,7 @@ void FStaticMesh::AddToDrawLists(FScene* Scene)
 	}
 	else
 	{
-		if (!bShadowOnly && !IsTranslucent())
+		if (!bShadowOnly && !IsTranslucent(FeatureLevel))
 		{
 			// Add the static mesh to the DPG's base pass draw list.
 			FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(Scene,this);

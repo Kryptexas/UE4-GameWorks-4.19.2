@@ -10,7 +10,7 @@ class FEditorObjectTracker : public FGCObject
 public:
 
 	// FGCObject interface
-	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	/** Returns an existing editor object for the specified class or creates one

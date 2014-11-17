@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "ExceptionHandling.h"
 
 /**
  * Because crash reporters can crash, too
@@ -40,7 +41,7 @@ static FString GSavedCommandLine;
 //handler for the quit apple event used by the Dock menu
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
-    [self OnQuitRequest:self];
+	[NSApp terminate:self];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -61,16 +62,6 @@ static FString GSavedCommandLine;
 	RunCrashReportClient(*GSavedCommandLine);
 	
 	[NSApp terminate: self];
-}
-
-- (IBAction)OnQuitRequest:(id)Sender
-{
-	[NSApp terminate: self];
-}
-
-- (IBAction)OnShowAboutWindow:(id)Sender
-{
-	[NSApp orderFrontStandardAboutPanel: Sender];
 }
 
 @end
@@ -98,5 +89,9 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += Argument;
 	}
 	
-	return NSApplicationMain(argc, (const char **)argv);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[UE4AppDelegate new]];
+	[NSApp run];
+	return 0;
 }

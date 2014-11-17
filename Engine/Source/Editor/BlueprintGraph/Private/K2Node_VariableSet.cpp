@@ -126,37 +126,6 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return Result;
 }
 
-FString UK2Node_VariableSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	FString Result = HasLocalRepNotify() ? TEXT("Set with Notify") : TEXT("Set");
-
-	// If there is only one variable being written (one non-meta input pin), the title can be made the variable name
-	FString InputPinName;
-	int32 NumInputsFound = 0;
-
-	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
-	{
-		UEdGraphPin* Pin = Pins[PinIndex];
-		if ((Pin->Direction == EGPD_Input) && (!K2Schema->IsMetaPin(*Pin)))
-		{
-			++NumInputsFound;
-			InputPinName = Pin->PinName;
-		}
-	}
-
-	if (NumInputsFound == 1)
-	{
-		Result = Result + TEXT(" ") + InputPinName;
-	}
-
-	return Result;
-}
-
-
 /** Returns true if the variable we are setting has a RepNotify AND was defined in a blueprint
  *		The 'defined in a blueprint' is to avoid natively defined RepNotifies being called unintentionally.
  *		Most (all?) native rep notifies are intended to be client only. We are moving away from this paradigm in blueprints

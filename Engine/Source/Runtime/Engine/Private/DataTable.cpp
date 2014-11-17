@@ -231,70 +231,75 @@ FString UDataTable::GetTableAsString()
 
 FString UDataTable::GetTableAsJSON() const
 {
+	// use the pretty print policy since these values are usually getting dumpped for check-in to P4 (or for inspection)
 	FString Result;
-
-	if(RowStruct != NULL)
+	TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR> >::Create(&Result);
+	if (!WriteTableAsJSON(JsonWriter))
 	{
-		// use the pretty print policy since these values are usually getting dumpped for check-in to P4 (or for inspection)
-		TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR> >::Create(&Result);
+		return TEXT("Missing RowStruct!\n");
+	}
+	JsonWriter->Close();
+	return Result;
+}
 
-		JsonWriter->WriteArrayStart();
+bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
+{
+	if (RowStruct == NULL)
+	{
+		return false;
+	}
+	JsonWriter->WriteArrayStart();
 
-		// First build array of properties
-		TArray<UProperty*> StructProps;
-		for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	// First build array of properties
+	TArray<UProperty*> StructProps;
+	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	{
+		UProperty* Prop = *It;
+		check(Prop != NULL);
+		StructProps.Add(Prop);
+	}
+
+	// Iterate over rows
+	for (auto RowIt = RowMap.CreateConstIterator(); RowIt; ++RowIt)
+	{
+		JsonWriter->WriteObjectStart();
+
+		//RowName
+		FName RowName = RowIt.Key();
+		JsonWriter->WriteValue(TEXT("Name"), RowName.ToString());
+
+		//Now the values
+		uint8* RowData = RowIt.Value();
+		for (int32 PropIdx = 0; PropIdx < StructProps.Num(); PropIdx++)
 		{
-			UProperty* Prop = *It;
-			check(Prop != NULL);
-			StructProps.Add(Prop);
-		}
-
-		// Iterate over rows
-		for ( auto RowIt = RowMap.CreateConstIterator(); RowIt; ++RowIt )
-		{
-			JsonWriter->WriteObjectStart();
-
-			//RowName
-			FName RowName = RowIt.Key();
-			JsonWriter->WriteValue(TEXT("Name"),RowName.ToString());
-
-			//Now the values
-			uint8* RowData = RowIt.Value();
-			for(int32 PropIdx=0; PropIdx<StructProps.Num(); PropIdx++)
+			UProperty* BaseProp = StructProps[PropIdx];
+			const void* Data = BaseProp->ContainerPtrToValuePtr<void>(RowData, 0);
+			if (UNumericProperty *NumProp = Cast<UNumericProperty>(StructProps[PropIdx]))
 			{
-				UProperty* BaseProp = StructProps[PropIdx];
-				const void* Data = BaseProp->ContainerPtrToValuePtr<void>(RowData, 0);
-				if (UNumericProperty *NumProp = Cast<UNumericProperty>(StructProps[PropIdx]))
+				if (NumProp->IsInteger())
 				{
-					if (NumProp->IsInteger())
-					{
-						JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetSignedIntPropertyValue(Data));
-					}
-					else
-					{
-						JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetFloatingPointPropertyValue(Data));
-					}
-				}
-				else if (UBoolProperty* BoolProp = Cast<UBoolProperty>(StructProps[PropIdx]))
-				{
-					JsonWriter->WriteValue(BaseProp->GetName(), BoolProp->GetPropertyValue(Data));
+					JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetSignedIntPropertyValue(Data));
 				}
 				else
 				{
-					FString PropertyValue = GetPropertyValueAsString(BaseProp, RowData);
-					JsonWriter->WriteValue(BaseProp->GetName(), PropertyValue);
+					JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetFloatingPointPropertyValue(Data));
 				}
 			}
-			JsonWriter->WriteObjectEnd();
+			else if (UBoolProperty* BoolProp = Cast<UBoolProperty>(StructProps[PropIdx]))
+			{
+				JsonWriter->WriteValue(BaseProp->GetName(), BoolProp->GetPropertyValue(Data));
+			}
+			else
+			{
+				FString PropertyValue = GetPropertyValueAsString(BaseProp, RowData);
+				JsonWriter->WriteValue(BaseProp->GetName(), PropertyValue);
+			}
 		}
-		JsonWriter->WriteArrayEnd();
-		JsonWriter->Close();
+		JsonWriter->WriteObjectEnd();
 	}
-	else
-	{
-		Result += FString(TEXT("Missing RowStruct!\n"));
-	}
-	return Result;
+
+	JsonWriter->WriteArrayEnd();
+	return true;
 }
 
 void UDataTable::EmptyTable()
@@ -340,12 +345,12 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 }
 
 /** Get array of UProperties that corresponds to columns in the table */
-TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems)
+TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
-	TArray<FName> ExpectedPropNames = GetStructPropertyNames(RowStruct);	
+	TArray<FName> ExpectedPropNames = GetStructPropertyNames(InRowStruct);
 
 	// Find the column names from first row
 	TArray<FString> ColumnNameStrings;
@@ -367,11 +372,11 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 			}
 			else
 			{
-				UProperty* ColumnProp = FindField<UProperty>(RowStruct, PropName);
+				UProperty* ColumnProp = FindField<UProperty>(InRowStruct, PropName);
 				// Didn't find a property with this name, problem..
 				if(ColumnProp == NULL)
 				{
-					OutProblems.Add(FString::Printf(TEXT("Cannot find Property for column '%s' in struct '%s'."), *PropName.ToString(), *RowStruct->GetName()));
+					OutProblems.Add(FString::Printf(TEXT("Cannot find Property for column '%s' in struct '%s'."), *PropName.ToString(), *InRowStruct->GetName()));
 				}
 				// Found one!
 				else

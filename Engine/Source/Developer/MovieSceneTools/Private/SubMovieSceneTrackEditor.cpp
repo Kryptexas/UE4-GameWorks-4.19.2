@@ -14,29 +14,29 @@ public:
 	FSubMovieSceneSection( TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSectionObject, FName SectionName )
 		: Sequencer( InSequencer )
 		, SectionObject( *CastChecked<USubMovieSceneSection>( &InSectionObject ) )
-		, DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes").ToString() )
+		, DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes") )
 	{
 		MovieSceneInstance = InSequencer->GetInstanceForSubMovieSceneSection( InSectionObject );
 	}
 
 	/** ISequencerSection interface */
-	virtual UMovieSceneSection* GetSectionObject() OVERRIDE { return &SectionObject; }
+	virtual UMovieSceneSection* GetSectionObject() override { return &SectionObject; }
 
-	virtual FString GetDisplayName() const OVERRIDE
+	virtual FText GetDisplayName() const override
 	{
 		return DisplayName;
 	}
 
-	virtual FString GetSectionTitle() const OVERRIDE
+	virtual FText GetSectionTitle() const override
 	{
-		return SectionObject.GetMovieScene()->GetName();
+		return FText::FromString( SectionObject.GetMovieScene()->GetName() );
 	}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 	}
 
-	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
@@ -45,9 +45,9 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual float GetSectionHeight() const OVERRIDE { return 30.0f; }
+	virtual float GetSectionHeight() const override { return 30.0f; }
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		// Add a box for the section
 		FSlateDrawElement::MakeBox(
@@ -65,7 +65,7 @@ public:
 	
 private:
 	/** Display name of the section */
-	FString DisplayName;
+	FText DisplayName;
 	/** The section we are visualizing */
 	USubMovieSceneSection& SectionObject;
 	/** The instance that this section is part of */

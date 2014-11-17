@@ -7,7 +7,19 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-
+#include "ParticleHelper.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Lifetime/ParticleModuleLifetime.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
+#include "Particles/Trail/ParticleModuleTrailSource.h"
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleModuleRequired.h"
 /** trail stats */
 
 
@@ -1807,7 +1819,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 				Component->ComponentToWorld = FTransform(CurrRotation, CurrPosition);
 
 				// Standard spawn setup
-				PreSpawn(Particle, Location, FVector::ZeroVector);
+				PreSpawn(Particle, CurrPosition, FVector::ZeroVector);
 				for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
 				{
 					UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];
@@ -1844,11 +1856,6 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 				TrailData->Tangent = CurrTangent * InvCount;
 				TrailData->SpawnTime = ElapsedTime - StoredSpawnTime;
 				TrailData->SpawnDelta = TrueSpawnTime;
-				// Set the location and up vectors
-				//@todo. Need to add support for offsetting from the source...
-				Particle->Location = CurrPosition;
-				Particle->OldLocation = CurrPosition;
-
 				TrailData->Up = CurrUp;
 
 				TrailData->bMovementSpawned = true;
@@ -2819,7 +2826,7 @@ FParticleAnimTrailEmitterInstance::FParticleAnimTrailEmitterInstance() :
 	, SecondSocketName(NAME_None)
 	, Width(1.0f)
 	, WidthMode( ETrailWidthMode_FromCentre )
-	, AnimNotifyState(NULL)
+	, Owner(NULL)
 	, bTagTrailAsDead(false)
 	, bTrailEnabled(false)
 #if WITH_EDITORONLY_DATA
@@ -3867,6 +3874,11 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 	}
 }
 
+bool FParticleAnimTrailEmitterInstance::HasCompleted()
+{
+	return !IsTrailActive() && ActiveParticles == 0;
+}
+
 /**
  *	Retrieves the dynamic data for the emitter
  */
@@ -4046,16 +4058,8 @@ SIZE_T FParticleAnimTrailEmitterInstance::GetResourceSize(EResourceSizeMode::Typ
 	return ResSize;
 }
 
-void FParticleAnimTrailEmitterInstance::BeginTrail(class UAnimNotifyState* InAnimNotifyState)
+void FParticleAnimTrailEmitterInstance::BeginTrail()
 {
-	if( !AnimNotifyState )
-	{
-		//This is the first time we've been triggered.
-		AnimNotifyState = InAnimNotifyState;
-	}
-
-	check(AnimNotifyState == InAnimNotifyState);
-
 	//Mark any existing trails as dead.
 	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 	{
@@ -4076,8 +4080,6 @@ void FParticleAnimTrailEmitterInstance::BeginTrail(class UAnimNotifyState* InAni
 
 void FParticleAnimTrailEmitterInstance::EndTrail()
 {
-	check(AnimNotifyState);
-
 	FirstSocketName = NAME_None;
 	SecondSocketName = NAME_None;
 	bTagTrailAsDead = true;
@@ -4086,7 +4088,6 @@ void FParticleAnimTrailEmitterInstance::EndTrail()
 
 void FParticleAnimTrailEmitterInstance::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth )
 {
-	check(AnimNotifyState);
 	check(!InFirstSocketName.IsNone());
 	check(!InSecondSocketName.IsNone());
 

@@ -70,9 +70,10 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 	}
 }
 
-void FTranslucentLightingParameters::Set(FShader* Shader, const FSceneView* View)
+void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView* View)
 {
 	SetTextureParameter(
+		RHICmdList, 
 		Shader->GetPixelShader(), 
 		TranslucencyLightingVolumeAmbientInner, 
 		TranslucencyLightingVolumeAmbientInnerSampler, 
@@ -80,6 +81,7 @@ void FTranslucentLightingParameters::Set(FShader* Shader, const FSceneView* View
 		GSceneRenderTargets.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
+		RHICmdList, 
 		Shader->GetPixelShader(), 
 		TranslucencyLightingVolumeAmbientOuter, 
 		TranslucencyLightingVolumeAmbientOuterSampler, 
@@ -87,6 +89,7 @@ void FTranslucentLightingParameters::Set(FShader* Shader, const FSceneView* View
 		GSceneRenderTargets.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
+		RHICmdList, 
 		Shader->GetPixelShader(), 
 		TranslucencyLightingVolumeDirectionalInner, 
 		TranslucencyLightingVolumeDirectionalInnerSampler, 
@@ -94,16 +97,17 @@ void FTranslucentLightingParameters::Set(FShader* Shader, const FSceneView* View
 		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
+		RHICmdList, 
 		Shader->GetPixelShader(), 
 		TranslucencyLightingVolumeDirectionalOuter, 
 		TranslucencyLightingVolumeDirectionalOuterSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
-	SkyLightReflectionParameters.SetParameters(Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
+	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 }
 
-void FTranslucentLightingParameters::SetMesh(FShader* Shader, const FPrimitiveSceneProxy* Proxy)
+void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy)
 {
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = GBlackCubeArrayTexture->TextureRHI;
@@ -116,13 +120,14 @@ void FTranslucentLightingParameters::SetMesh(FShader* Shader, const FPrimitiveSc
 	}
 
 	SetTextureParameter(
+		RHICmdList, 
 		Shader->GetPixelShader(), 
 		ReflectionCubemap, 
 		ReflectionCubemapSampler, 
 		TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		CubeArrayTexture);
 
-	SetShaderValue(Shader->GetPixelShader(), CubemapArrayIndex, ArrayIndex);
+	SetShaderValue(RHICmdList, Shader->GetPixelShader(), CubemapArrayIndex, ArrayIndex);
 }
 
 /** The action used to draw a base pass static mesh element. */
@@ -155,6 +160,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList& RHICmdList,
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -162,7 +168,7 @@ public:
 	{
 		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;		
  
-		if (StaticMesh->IsMasked())
+		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
 			DrawType = FScene::EBasePass_Masked;	
 		}
@@ -182,7 +188,7 @@ public:
 				LightMapPolicy,
 				Parameters.BlendMode,
 				Parameters.TextureMode,
-				Parameters.LightingModel != MLM_Unlit && Scene && Scene->SkyLight,
+				Parameters.ShadingModel != MSM_Unlit && Scene && Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing && !Scene->SkyLight->bHasStaticLighting,
 				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog()
 				),
 			Scene->GetFeatureLevel()
@@ -190,7 +196,7 @@ public:
 	}
 };
 
-void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
+void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh)
 {
 	// Determine the mesh's material and blend mode.
 	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
@@ -203,15 +209,16 @@ void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMes
 	if( !IsTranslucentBlendMode(BlendMode) )
 	{
 		ProcessBasePassMesh(
+			RHICmdList, 
 			FProcessBasePassMeshParameters(
 				*StaticMesh,
 				Material,
 				StaticMesh->PrimitiveSceneInfo->Proxy,
 				false,
 				bEditorCompositeDepthTest,
-				ESceneRenderTargetsMode::DontSet),
-			FDrawBasePassStaticMeshAction(Scene,StaticMesh),
-			Scene->GetFeatureLevel()
+				ESceneRenderTargetsMode::DontSet,
+				Scene->GetFeatureLevel()),
+			FDrawBasePassStaticMeshAction(Scene,StaticMesh)
 			);
 	}
 }
@@ -253,12 +260,13 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		const bool bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
+		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// When rendering masked materials in the shader complexity viewmode, 
@@ -269,7 +277,7 @@ public:
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
 		}
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
@@ -281,13 +289,14 @@ public:
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
-			Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting && bIsLitMaterial,
+			Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting && Scene->SkyLight->bWantsStaticShadowing && bIsLitMaterial,
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.Atmosphere,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			false,
 			Parameters.bEditorCompositeDepthTest
 			);
 		DrawingPolicy.DrawShared(
+			RHICmdList, 
 			&View,
 			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
@@ -295,6 +304,7 @@ public:
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
 			DrawingPolicy.SetMeshRenderState(
+				RHICmdList, 
 				View,
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
@@ -302,20 +312,21 @@ public:
 				bBackFace,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
 				);
-			DrawingPolicy.DrawMesh(Parameters.Mesh, BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
 		}
 #endif
 	}
 };
 
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -333,20 +344,21 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	if(!IsTranslucentBlendMode(BlendMode))
 	{
 		ProcessBasePassMesh(
+			RHICmdList, 
 			FProcessBasePassMeshParameters(
 				Mesh,
 				Material,
 				PrimitiveSceneProxy,
 				!bPreFog,
 				DrawingContext.bEditorCompositeDepthTest,
-				DrawingContext.TextureMode
+				DrawingContext.TextureMode,
+				View.GetFeatureLevel()
 				),
 			FDrawBasePassDynamicMeshAction(
 				View,
 				bBackFace,
 				HitProxyId
-				),
-			View.GetFeatureLevel()
+				)
 			);
 		return true;
 	}
@@ -357,6 +369,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 }
 
 void FCachedVolumeIndirectLightingPolicy::Set(
+	FRHICommandList& RHICmdList, 
 	const VertexParametersType* VertexShaderParameters,
 	const PixelParametersType* PixelShaderParameters,
 	FShader* VertexShader,
@@ -366,7 +379,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 	const FSceneView* View
 	) const
 {
-	FNoLightMapPolicy::Set(VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
+	FNoLightMapPolicy::Set(RHICmdList, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
 
 	if (PixelShaderParameters)
 	{
@@ -390,6 +403,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 		const FPixelShaderRHIParamRef PixelShaderRHI = PixelShader->GetPixelShader();
 
 		SetTextureParameter(
+			RHICmdList, 
 			PixelShaderRHI,
 			PixelShaderParameters->IndirectLightingCacheTexture0,
 			PixelShaderParameters->IndirectLightingCacheSampler0,
@@ -398,6 +412,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 			);
 
 		SetTextureParameter(
+			RHICmdList, 
 			PixelShaderRHI,
 			PixelShaderParameters->IndirectLightingCacheTexture1,
 			PixelShaderParameters->IndirectLightingCacheSampler1,
@@ -406,6 +421,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 			);
 
 		SetTextureParameter(
+			RHICmdList, 
 			PixelShaderRHI,
 			PixelShaderParameters->IndirectLightingCacheTexture2,
 			PixelShaderParameters->IndirectLightingCacheSampler2,
@@ -416,6 +432,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 }
 
 void FCachedVolumeIndirectLightingPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,
@@ -448,15 +465,16 @@ void FCachedVolumeIndirectLightingPolicy::SetMesh(
 		}
 		
 		const FPixelShaderRHIParamRef PixelShaderRHI = PixelShader->GetPixelShader();
-		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveAdd, AllocationAdd);
-		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveScale, AllocationScale);
-		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMinUV, MinUV);
-		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMaxUV, MaxUV);
-		SetShaderValue(PixelShaderRHI, PixelShaderParameters->PointSkyBentNormal, SkyBentNormal);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveAdd, AllocationAdd);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveScale, AllocationScale);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMinUV, MinUV);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMaxUV, MaxUV);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->PointSkyBentNormal, SkyBentNormal);
 	}
 }
 
 void FCachedPointIndirectLightingPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,
@@ -485,6 +503,7 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 					* FSHVector2::ConstantBasisIntegral * .5f;
 
 				SetShaderValue(
+					RHICmdList, 
 					PixelShader->GetPixelShader(), 
 					PixelShaderParameters->IndirectLightingSHCoefficients, 
 					SwizzledAmbientTerm);
@@ -492,6 +511,7 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 			else
 			{
 				SetShaderValueArray(
+					RHICmdList, 
 					PixelShader->GetPixelShader(), 
 					PixelShaderParameters->IndirectLightingSHCoefficients, 
 					&LightingAllocation.SingleSamplePacked, 
@@ -499,11 +519,13 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 			}
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->PointSkyBentNormal, 
 				LightingAllocation.CurrentSkyBentNormal);
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->DirectionalLightShadowing, 
 				LightingAllocation.CurrentDirectionalShadowing);
@@ -513,17 +535,20 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 			const FVector4 ZeroArray[sizeof(FSHVectorRGB2) / sizeof(FVector4)] = {FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0)};
 
 			SetShaderValueArray(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&ZeroArray, 
 				ARRAY_COUNT(ZeroArray));
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->PointSkyBentNormal, 
 				FVector::ZeroVector);
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->DirectionalLightShadowing, 
 				1);
@@ -532,6 +557,7 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 }
 
 void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,
@@ -552,12 +578,14 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 			const FIndirectLightingCacheAllocation& LightingAllocation = *PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
 
 			SetShaderValueArray(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&LightingAllocation.SingleSamplePacked, 
 				ARRAY_COUNT(LightingAllocation.SingleSamplePacked));
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->PointSkyBentNormal, 
 				LightingAllocation.CurrentSkyBentNormal);
@@ -567,12 +595,14 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 			const FVector4 ZeroArray[sizeof(FSHVectorRGB2) / sizeof(FVector4)] = {FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0)};
 
 			SetShaderValueArray(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&ZeroArray, 
 				ARRAY_COUNT(ZeroArray));
 
 			SetShaderValue(
+				RHICmdList, 
 				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->PointSkyBentNormal, 
 				FVector::ZeroVector);
@@ -580,6 +610,7 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 	}
 
 	FSelfShadowedTranslucencyPolicy::SetMesh(
+		RHICmdList, 
 		View, 
 		PrimitiveSceneProxy, 
 		VertexShaderParameters,

@@ -21,7 +21,7 @@ public:
 	{ }
 
 	/** Overridden to provide public access */
-	virtual void Construct() OVERRIDE
+	virtual void Construct() override
 	{
 		FDragDropOperation::Construct();
 	}
@@ -34,7 +34,7 @@ public:
 	}
 
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		// Create hover widget
 		return SNew(SBorder)

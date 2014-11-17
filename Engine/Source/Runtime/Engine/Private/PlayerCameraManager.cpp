@@ -3,8 +3,9 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
 #include "IHeadMountedDisplay.h"
-
+#include "Particles/EmitterCameraLensEffectBase.h"
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
 
@@ -324,7 +325,7 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 	// fov
 	const float FOVMin = 5.f;
 	const float FOVMax = 170.f;
-	InOutPOV.FOV += AnimatedCamActor->CameraComponent->FieldOfView - AnimInst->InitialFOV;
+	InOutPOV.FOV += (AnimatedCamActor->CameraComponent->FieldOfView - AnimInst->InitialFOV) * Scale;
 	InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV, FOVMin, FOVMax);
 
 	// postprocess

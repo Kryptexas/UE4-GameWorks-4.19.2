@@ -121,8 +121,7 @@ void FWindowsPlatformMemory::GetStatsForMallocProfiler( FGenericMemoryStats& out
 	FPlatformMemoryStats Stats = GetStats();
 
 	// Windows specific stats.
-	static const FName NAME_WindowsSpecificMemoryStat   = TEXT("Windows Specific Memory Stat");
-	out_Stats.Add( NAME_WindowsSpecificMemoryStat, Stats.WindowsSpecificMemoryStat );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_WindowsSpecificMemoryStat ), Stats.WindowsSpecificMemoryStat );
 #endif // STATS
 }
 
@@ -166,6 +165,7 @@ void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 
 void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr )
 {
+	CA_SUPPRESS(6001)
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);
 }
 

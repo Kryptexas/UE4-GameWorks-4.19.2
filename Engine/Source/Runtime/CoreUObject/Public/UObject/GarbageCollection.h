@@ -132,6 +132,63 @@ struct FGCSkipInfo
 	};
 };
 
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+/**
+ * Stores debug info about the token.
+ */
+struct FTokenInfo
+{
+	/* Token offset. */
+	int32 Offset;
+	/* Token debug name. */
+	FName Name;
+};
+
+/**
+ * Stores info about GC token stream debug map.
+ */
+class FGCDebugReferenceTokenMap
+{
+public:
+	/**
+	 * Maps token.
+	 *
+	 * @param DebugName Field name.
+	 * @param Offset Field offset.
+	 * @param TokenIndex Token index.
+	 */
+	void MapToken(const FName& DebugName, int32 Offset, int32 TokenIndex);
+
+	/**
+	 * Prepends this token map with its super class token map.
+	 *
+	 * @param SuperClass Super class to obtain its token map.
+	 */
+	void PrependWithSuperClass(const UClass& SuperClass);
+
+	/**
+	 * Returns pointer to token info object at given index.
+	 *
+	 * @param TokenIndex Index of the token.
+	 *
+	 * @returns FTokenInfo object.
+	 */
+	const FTokenInfo& GetTokenInfo(int32 TokenIndex) const;
+
+	/**
+	 * Empties the map.
+	 */
+	void Empty()
+	{
+		TokenMap.Empty();
+	}
+
+private:
+	/* Token map. */
+	TArray<FTokenInfo> TokenMap;
+};
+#endif
+
 /**
  * Reference token stream class. Used for creating and parsing stream of object references.
  */
@@ -161,6 +218,16 @@ struct FGCReferenceTokenStream
 	}
 
 	/**
+	 * Returns the size ofthe reference token stream.
+	 *
+	 * @returns Size of the stream.
+	 */
+	int32 Size() const
+	{
+		return Tokens.Num();
+	}
+
+	/**
 	 * return true if this is empty
 	 */
 	bool IsEmpty() const
@@ -176,11 +243,13 @@ struct FGCReferenceTokenStream
 	void PrependStream( const FGCReferenceTokenStream& Other );
 
 	/**
-	 * Emit reference info
+	 * Emit reference info.
 	 *
-	 * @param ReferenceInfo	reference info to emit
+	 * @param ReferenceInfo	reference info to emit.
+	 *
+	 * @return Index of the reference info in the token stream.
 	 */
-	void EmitReferenceInfo( FGCReferenceInfo ReferenceInfo );
+	int32 EmitReferenceInfo(FGCReferenceInfo ReferenceInfo);
 
 	/**
 	 * Emit placeholder for aray skip index, updated in UpdateSkipIndexPlaceholder
@@ -261,10 +330,10 @@ struct FGCReferenceTokenStream
 	{
 		UPTRINT Result = UPTRINT(Tokens[CurrentIndex++]);
 #if PLATFORM_64BITS // warning C4293: '<<' : shift count negative or too big, undefined behavior, so we needed the ifdef
-		checkAtCompileTime(sizeof(void*) == 8, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 8, "Pointer size mismatch.");
 		Result |= UPTRINT(Tokens[CurrentIndex++]) << 32;
 #else
-		checkAtCompileTime(sizeof(void*) == 4, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 4, "Pointer size mismatch.");
 #endif
 		return (void*)Result;
 	}
@@ -337,11 +406,11 @@ private:
 	FORCEINLINE void StorePointer( uint32* Stream, void const* Ptr )
 	{
 	#if PLATFORM_64BITS // warning C4293: '<<' : shift count negative or too big, undefined behavior, so we needed the ifdef
-		checkAtCompileTime(sizeof(void*) == 8, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 8, "Pointer size mismatch.");
 		Stream[0] = UPTRINT(Ptr) & 0xffffffff;
 		Stream[1] = UPTRINT(Ptr) >> 32;
 	#else
-		checkAtCompileTime(sizeof(void*) == 4, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 4, "Pointer size mismatch.");
 		Stream[0] = PTRINT(Ptr);
 	#endif
 	}

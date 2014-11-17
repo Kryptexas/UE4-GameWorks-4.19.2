@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TaskDatabaseThread.cpp: Implements logic for task database worker thread
-=============================================================================*/
-
 #include "TaskBrowserPrivatePCH.h"
 #include "TaskDatabaseThread.h"
+
 
 /**
  * FTaskDatabaseThreadRunnable constructor
@@ -22,7 +19,6 @@ FTaskDatabaseThreadRunnable::FTaskDatabaseThreadRunnable( FTaskDatabaseProviderI
 	// NOTE: This code always runs on the main thread, not the task database thread
 	// NOTE: This code runs after the task database thread has shut down
 }
-
 
 
 /** FTaskDatabaseThreadRunnable destructor */
@@ -48,7 +44,6 @@ FTaskDatabaseThreadRunnable::~FTaskDatabaseThreadRunnable()
 }
 
 
-
 /**
  * Allows per runnable object initialization. NOTE: This is called in the
  * context of the thread object that aggregates this, not the thread that
@@ -63,8 +58,6 @@ bool FTaskDatabaseThreadRunnable::Init()
 
 	return true;
 }
-
-
 
 
 /**
@@ -286,7 +279,6 @@ uint32 FTaskDatabaseThreadRunnable::Run()
 }
 
 
-
 /**
  * This is called if a thread is requested to terminate early
  */
@@ -299,7 +291,6 @@ void FTaskDatabaseThreadRunnable::Stop()
 
 	TDLOG( TEXT( "TDThread: Stop() finished" ) );
 }
-
 
 
 /**
@@ -318,4 +309,3 @@ void FTaskDatabaseThreadRunnable::Exit()
 
 	TDLOG( TEXT( "TDThread: Exit() finished" ) );
 }
-

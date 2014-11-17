@@ -28,11 +28,11 @@ public:
 	virtual ~SMeshProxyDialog();
 
 	/** SMeshProxyDialog functions */
-	virtual void AssignWindowContent(TSharedPtr<SWindow> Window) OVERRIDE;
-	virtual TSharedPtr<SWindow> GetParentWindow() OVERRIDE;
-	virtual void SetParentWindow(TSharedPtr<SWindow> Window) OVERRIDE;
-	virtual void OnWindowClosed(const TSharedRef<SWindow>&) OVERRIDE;
-	virtual void MarkDirty() OVERRIDE;
+	virtual void AssignWindowContent(TSharedPtr<SWindow> Window) override;
+	virtual TSharedPtr<SWindow> GetParentWindow() override;
+	virtual void SetParentWindow(TSharedPtr<SWindow> Window) override;
+	virtual void OnWindowClosed(const TSharedRef<SWindow>&) override;
+	virtual void MarkDirty() override;
 
 	/** SWidget functions */
 	void Construct(const FArguments& InArgs);
@@ -647,7 +647,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 		GEditor->BeginTransaction( LOCTEXT( "MeshProxy_Create", "Creating Mesh Proxy" ) );
 
 		FVector ProxyLocation = FVector::ZeroVector;
-		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, ProxyPackageName, AssetsToSync, ProxyLocation);
+		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, AssetsToSync, ProxyLocation);
 
 		GEditor->EndTransaction();
 		GWarn->EndSlowTask();
@@ -710,7 +710,7 @@ void SMeshProxyDialog::GenerateNewProxyPackageName()
 				if (Component->StaticMesh)
 				{
 					ProxyPackageName = FPackageName::GetLongPackagePath(Component->StaticMesh->GetOutermost()->GetName());
-					ProxyPackageName+= FString(TEXT("/ProxyMesh_")) + Component->StaticMesh->GetName();
+					ProxyPackageName+= FString(TEXT("/PROXY_")) + Component->StaticMesh->GetName();
 					break;
 				}
 			}
@@ -724,10 +724,9 @@ void SMeshProxyDialog::GenerateNewProxyPackageName()
 
 	if (ProxyPackageName.IsEmpty())
 	{
-		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("ProxyMesh"));
+		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("PROXY"));
+		ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
 	}
-
-	ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
 }
 
 FText SMeshProxyDialog::GetProxyPackagName() const

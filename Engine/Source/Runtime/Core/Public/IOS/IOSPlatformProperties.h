@@ -18,11 +18,6 @@
 struct FIOSPlatformProperties
 	: public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		return "iOS";
-	}
-
 	static FORCEINLINE bool HasEditorOnlyData( )
 	{
 		return false;
@@ -69,6 +64,11 @@ struct FIOSPlatformProperties
 	}
 
 	static FORCEINLINE bool HasFixedResolution()
+	{
+		return true;
+	}
+
+	static FORCEINLINE bool AllowsFramerateSmoothing()
 	{
 		return true;
 	}

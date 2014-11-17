@@ -3,7 +3,6 @@
 
 #include "GameProjectGenerationPrivatePCH.h"
 #include "SourceCodeNavigation.h"
-#include "ClassIconFinder.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Editor/ClassViewer/Private/SClassViewer.h"
@@ -13,17 +12,17 @@
 
 struct FParentClassItem
 {
-	TWeakObjectPtr<UClass> ParentClass;
+	GameProjectUtils::FNewClassInfo ParentClassInfo;
 
-	FParentClassItem(const TWeakObjectPtr<UClass>& InParentClass)
-		: ParentClass(InParentClass)
+	FParentClassItem(const GameProjectUtils::FNewClassInfo& InParentClassInfo)
+		: ParentClassInfo(InParentClassInfo)
 	{}
 };
 
 class FNativeClassParentFilter : public IClassViewerFilter
 {
 public:
-	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) OVERRIDE
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
 		// You may not make native classes based on blueprint generated classes
 		const bool bIsBlueprintClass = (InClass->ClassGeneratedBy != NULL);
@@ -31,16 +30,17 @@ public:
 		// UObject is special cased to be extensible since it would otherwise not be since it doesn't pass the API check (intrinsic class).
 		const bool bIsExplicitlyUObject = (InClass == UObject::StaticClass());
 
-		// @todo Assuming the game name is the same as the destination module name
-		const FString DestModuleName = FApp::GetGameName();
+		// Is this class in the same module as our current module?
+		const GameProjectUtils::FModuleContextInfo ModuleInfo = GameProjectUtils::GetCurrentModuleContextInfo();
 		const FString ClassModuleName = InClass->GetOutermost()->GetName().RightChop( FString(TEXT("/Script/")).Len() );
-		const bool bIsInDestinationModule = (DestModuleName == ClassModuleName);
+		const bool bIsInDestinationModule = (ModuleInfo.ModuleName == ClassModuleName);
 
 		// You need API if you are either not UObject itself and you are not in the destination module
 		const bool bNeedsAPI = !bIsExplicitlyUObject && !bIsInDestinationModule;
 
 		// You may not make a class that is not DLL exported.
-		const bool bHasAPI = InClass->HasAnyClassFlags(CLASS_RequiredAPI);
+		// MinimalAPI classes aren't compatible with the DLL export macro, but can still be used as a valid base
+		const bool bHasAPI = InClass->HasAnyClassFlags(CLASS_RequiredAPI) || InClass->HasAnyClassFlags(CLASS_MinimalAPI);
 
 		// @todo should we support interfaces?
 		const bool bIsInterface = InClass->IsChildOf(UInterface::StaticClass());
@@ -48,7 +48,7 @@ public:
 		return !bIsBlueprintClass && (!bNeedsAPI || bHasAPI) && !bIsInterface;
 	}
 
-	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) OVERRIDE
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
 		return false;
 	}
@@ -57,11 +57,13 @@ public:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
-	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/);
+	ModuleInfo = GameProjectUtils::GetCurrentModuleContextInfo();
 
-	ParentClass = InArgs._Class;
+	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/, ModuleInfo);
+	ClassLocation = GameProjectUtils::EClassLocation::UserDefined; // the first call to UpdateInputValidity will set this correctly based on NewClassPath
 
-	DialogFixedWidth = 900;
+	ParentClassInfo = GameProjectUtils::FNewClassInfo(InArgs._Class);
+
 	bShowFullClassTree = false;
 
 	LastPeriodicValidityCheckTime = 0;
@@ -92,364 +94,439 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SBorder)
-		.HAlign(HAlign_Center)
+		.Padding(FMargin(26, 8))
 		.BorderImage( FEditorStyle::GetBrush("Docking.Tab.ContentAreaBrush") )
 		[
-			SNew(SBox)
-			.WidthOverride(DialogFixedWidth)
-			.Padding( FMargin(0, 4) )
+			SNew(SVerticalBox)
+
+			+SVerticalBox::Slot()
 			[
-				SNew(SVerticalBox)
-
-				+SVerticalBox::Slot()
-				[
-					SAssignNew( MainWizard, SWizard)
-					.ShowPageList(false)
-					.CanFinish(this, &SNewClassDialog::CanFinish)
-					.FinishButtonText( LOCTEXT("FinishButtonText", "Create Class").ToString() )
-					.FinishButtonToolTip ( LOCTEXT("FinishButtonToolTip", "Creates the code files to add your new class.").ToString() )
-					.OnCanceled(this, &SNewClassDialog::CancelClicked)
-					.OnFinished(this, &SNewClassDialog::FinishClicked)
-					.InitialPageIndex(ParentClass.IsValid() ? 1 : 0)
+				SAssignNew( MainWizard, SWizard)
+				.ShowPageList(false)
+				.CanFinish(this, &SNewClassDialog::CanFinish)
+				.FinishButtonText( LOCTEXT("FinishButtonText", "Create Class").ToString() )
+				.FinishButtonToolTip ( LOCTEXT("FinishButtonToolTip", "Creates the code files to add your new class.").ToString() )
+				.OnCanceled(this, &SNewClassDialog::CancelClicked)
+				.OnFinished(this, &SNewClassDialog::FinishClicked)
+				.InitialPageIndex(ParentClassInfo.IsSet() ? 1 : 0)
 				
-					// Choose parent class
-					+SWizard::Page()
-					[
-						SNew(SVerticalBox)
+				// Choose parent class
+				+SWizard::Page()
+				[
+					SNew(SVerticalBox)
 
-						// Title
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0, 20, 0, 0)
+					// Title
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 20, 0, 0)
+					[
+						SNew(STextBlock)
+						.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
+						.Text( LOCTEXT( "ParentClassTitle", "Choose Parent Class" ) )
+					]
+
+					// Title spacer
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 2, 0, 8)
+					[
+						SNew(SSeparator)
+					]
+
+					// Page description and view options
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 10)
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.FillWidth(1.f)
+						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock)
-							.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
-							.Text( LOCTEXT( "ParentClassTitle", "Choose Parent Class" ) )
+							.Text( FText::Format( LOCTEXT("ChooseParentClassDescription", "You are about to add a C++ source code file. To compile these files you must have {0} installed."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
 						]
 
-						// Title spacer
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0, 2, 0, 8)
+						// Full tree checkbox
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(4, 0, 0, 0)
 						[
-							SNew(SSeparator)
-						]
-
-						// Page description and view options
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0, 10)
-						[
-							SNew(SHorizontalBox)
-
-							+SHorizontalBox::Slot()
-							.FillWidth(1.f)
-							.VAlign(VAlign_Center)
+							SNew(SCheckBox)
+							.IsChecked( this, &SNewClassDialog::IsFullClassTreeChecked )
+							.OnCheckStateChanged( this, &SNewClassDialog::OnFullClassTreeChanged )
 							[
 								SNew(STextBlock)
-								.Text( FText::Format( LOCTEXT("ChooseParentClassDescription", "You are about to add a C++ source code file. To compile these files you must have {0} installed."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
-							]
-
-							// Full tree checkbox
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							.Padding(4, 0, 0, 0)
-							[
-								SNew(SCheckBox)
-								.IsChecked( this, &SNewClassDialog::IsFullClassTreeChecked )
-								.OnCheckStateChanged( this, &SNewClassDialog::OnFullClassTreeChanged )
-								[
-									SNew(STextBlock)
-									.Text( LOCTEXT( "FullClassTree", "Show All Classes" ) )
-								]
-							]
-						]
-
-						// Add Code list
-						+SVerticalBox::Slot()
-						.FillHeight(1.f)
-						.Padding(0, 10)
-						[
-							SNew(SBorder)
-							.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-							[
-								SNew(SVerticalBox)
-
-								+SVerticalBox::Slot()
-								[
-									// Basic view
-									SAssignNew(ParentClassListView, SListView< TSharedPtr<FParentClassItem> >)
-									.ListItemsSource(&ParentClassItemsSource)
-									.SelectionMode(ESelectionMode::Single)
-									.ClearSelectionOnClick(false)
-									.OnGenerateRow(this, &SNewClassDialog::MakeParentClassListViewWidget)
-									.OnMouseButtonDoubleClick( this, &SNewClassDialog::OnParentClassItemDoubleClicked )
-									.OnSelectionChanged(this, &SNewClassDialog::OnClassSelected)
-									.Visibility(this, &SNewClassDialog::GetBasicParentClassVisibility)
-								]
-
-								+SVerticalBox::Slot()
-								[
-									// Advanced view
-									SNew(SBox)
-									.Visibility(this, &SNewClassDialog::GetAdvancedParentClassVisibility)
-									[
-										ClassViewer.ToSharedRef()
-									]
-								]
-							]
-						]
-
-						// Class selection
-						+SVerticalBox::Slot()
-						.Padding(40, 2)
-						.AutoHeight()
-						[
-							SNew(SHorizontalBox)
-
-							// Class label
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							.Padding(0, 0, 12, 0)
-							[
-								SNew(STextBlock)
-								.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-								.Text( LOCTEXT( "ParentClassLabel", "Selected Class" ) )
-							]
-
-							// Class selection preview
-							+SHorizontalBox::Slot()
-							.FillWidth(1.f)
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-								.Text( this, &SNewClassDialog::GetSelectedParentClassName )
+								.Text( LOCTEXT( "FullClassTree", "Show All Classes" ) )
 							]
 						]
 					]
 
-					// Name class
-					+SWizard::Page()
-					.OnEnter(this, &SNewClassDialog::OnNamePageEntered)
+					// Add Code list
+					+SVerticalBox::Slot()
+					.FillHeight(1.f)
+					.Padding(0, 10)
 					[
-						SNew(SVerticalBox)
-
-						// Title
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0, 20, 0, 0)
-						[
-							SNew(STextBlock)
-							.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
-							.Text( this, &SNewClassDialog::GetNameClassTitle )
-						]
-
-						// Title spacer
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0, 2, 0, 0)
-						[
-							SNew(SSeparator)
-						]
-
-						+SVerticalBox::Slot()
-						.FillHeight(1.f)
-						.Padding(80, 2)
-						.VAlign(VAlign_Center)
+						SNew(SBorder)
+						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 						[
 							SNew(SVerticalBox)
 
 							+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0, 0, 0, 5)
 							[
-								SNew(STextBlock)
-								.Text( LOCTEXT("ClassNameDescription", "Enter a name for your new class. Class names may only contain alphanumeric characters, and may not contain a space.") )
+								// Basic view
+								SAssignNew(ParentClassListView, SListView< TSharedPtr<FParentClassItem> >)
+								.ListItemsSource(&ParentClassItemsSource)
+								.SelectionMode(ESelectionMode::Single)
+								.ClearSelectionOnClick(false)
+								.OnGenerateRow(this, &SNewClassDialog::MakeParentClassListViewWidget)
+								.OnMouseButtonDoubleClick( this, &SNewClassDialog::OnParentClassItemDoubleClicked )
+								.OnSelectionChanged(this, &SNewClassDialog::OnClassSelected)
+								.Visibility(this, &SNewClassDialog::GetBasicParentClassVisibility)
 							]
 
 							+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0, 0, 0, 20)
 							[
-								SNew(STextBlock)
-								.Text( LOCTEXT("ClassNameDetails", "When you click the \"Create\" button below, a header (.h) file and a source (.cpp) file will be made using this name.") )
-							]
-
-							// Name Error label
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0, 5)
-							[
-								// Constant height, whether the label is visible or not
-								SNew(SBox).HeightOverride(20)
+								// Advanced view
+								SNew(SBox)
+								.Visibility(this, &SNewClassDialog::GetAdvancedParentClassVisibility)
 								[
-									SNew(SBorder)
-									.Visibility( this, &SNewClassDialog::GetNameErrorLabelVisibility )
-									.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
-									.Content()
-									[
-										SNew(STextBlock)
-										.Text( this, &SNewClassDialog::GetNameErrorLabelText )
-										.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
-									]
-								]
-							]
-
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0)
-							[
-								SNew(SGridPanel)
-								.FillColumn(1, 1.0f)
-
-								// Name label
-								+SGridPanel::Slot(0, 0)
-								.VAlign(VAlign_Center)
-								.Padding(0, 0, 12, 0)
-								[
-									SNew(STextBlock)
-									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-									.Text( LOCTEXT( "NameLabel", "Name" ) )
-								]
-
-								// Name edit box
-								+SGridPanel::Slot(1, 0)
-								.Padding(0.0f, 3.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(SBox)
-									.HeightOverride(EditableTextHeight)
-									[
-										SAssignNew( ClassNameEditBox, SEditableTextBox)
-										.Text( this, &SNewClassDialog::OnGetClassNameText )
-										.OnTextChanged( this, &SNewClassDialog::OnClassNameTextChanged )
-									]
-								]
-
-								// Path label
-								+SGridPanel::Slot(0, 1)
-								.VAlign(VAlign_Center)
-								.Padding(0, 0, 12, 0)
-								[
-									SNew(STextBlock)
-									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-									.Text( LOCTEXT( "PathLabel", "Path" ).ToString() )
-								]
-
-								// Path edit box
-								+SGridPanel::Slot(1, 1)
-								.Padding(0.0f, 3.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(SBox)
-									.HeightOverride(EditableTextHeight)
-									[
-										SNew(SHorizontalBox)
-
-										+SHorizontalBox::Slot()
-										.FillWidth(1.0f)
-										[
-											SNew(SEditableTextBox)
-											.Text(this, &SNewClassDialog::OnGetClassPathText)
-											.OnTextChanged(this, &SNewClassDialog::OnClassPathTextChanged)
-										]
-
-										+SHorizontalBox::Slot()
-										.AutoWidth()
-										.Padding(6.0f, 1.0f, 0.0f, 0.0f)
-										[
-											SNew(SButton)
-											.VAlign(VAlign_Center)
-											.OnClicked(this, &SNewClassDialog::HandleChooseFolderButtonClicked)
-											.Text( LOCTEXT( "BrowseButtonText", "Choose Folder" ) )
-										]
-									]
-								]
-
-								// Header output label
-								+SGridPanel::Slot(0, 2)
-								.VAlign(VAlign_Center)
-								.Padding(0, 0, 12, 0)
-								[
-									SNew(STextBlock)
-									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-									.Text( LOCTEXT( "HeaderFileLabel", "Header File" ).ToString() )
-								]
-
-								// Header output text
-								+SGridPanel::Slot(1, 2)
-								.Padding(0.0f, 3.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(SBox)
-									.VAlign(VAlign_Center)
-									.HeightOverride(EditableTextHeight)
-									[
-										SNew(STextBlock)
-										.Text(this, &SNewClassDialog::OnGetClassHeaderFileText)
-									]
-								]
-
-								// Source output label
-								+SGridPanel::Slot(0, 3)
-								.VAlign(VAlign_Center)
-								.Padding(0, 0, 12, 0)
-								[
-									SNew(STextBlock)
-									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-									.Text( LOCTEXT( "SourceFileLabel", "Source File" ).ToString() )
-								]
-
-								// Source output text
-								+SGridPanel::Slot(1, 3)
-								.Padding(0.0f, 3.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(SBox)
-									.VAlign(VAlign_Center)
-									.HeightOverride(EditableTextHeight)
-									[
-										SNew(STextBlock)
-										.Text(this, &SNewClassDialog::OnGetClassSourceFileText)
-									]
+									ClassViewer.ToSharedRef()
 								]
 							]
 						]
 					]
-				]
 
-				+ SVerticalBox::Slot()
-					.Padding(0, 5)
+					// Class selection
+					+SVerticalBox::Slot()
+					.Padding(30, 2)
 					.AutoHeight()
 					[
-						SNew(SBorder)
-							.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
-							.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
-							.Content()
-							[
-								SNew(SHorizontalBox)
+						SNew(SHorizontalBox)
 
-								+ SHorizontalBox::Slot()
+						// Class label
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(0, 0, 12, 0)
+						[
+							SNew(STextBlock)
+							.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+							.Text( LOCTEXT( "ParentClassLabel", "Selected Class" ) )
+						]
+
+						// Class selection preview
+						+SHorizontalBox::Slot()
+						.FillWidth(1.f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text( this, &SNewClassDialog::GetSelectedParentClassName )
+						]
+					]
+				]
+
+				// Name class
+				+SWizard::Page()
+				.OnEnter(this, &SNewClassDialog::OnNamePageEntered)
+				[
+					SNew(SVerticalBox)
+
+					// Title
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 20, 0, 0)
+					[
+						SNew(STextBlock)
+						.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
+						.Text( this, &SNewClassDialog::GetNameClassTitle )
+					]
+
+					// Title spacer
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 2, 0, 8)
+					[
+						SNew(SSeparator)
+					]
+
+					+SVerticalBox::Slot()
+					.FillHeight(1.f)
+					.Padding(0, 10)
+					[
+						SNew(SVerticalBox)
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 5)
+						[
+							SNew(STextBlock)
+							.Text( LOCTEXT("ClassNameDescription", "Enter a name for your new class. Class names may only contain alphanumeric characters, and may not contain a space.") )
+						]
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 2)
+						[
+							SNew(STextBlock)
+							.Text( LOCTEXT("ClassNameDetails", "When you click the \"Create\" button below, a header (.h) file and a source (.cpp) file will be made using this name.") )
+						]
+
+						// Name Error label
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 5)
+						[
+							// Constant height, whether the label is visible or not
+							SNew(SBox).HeightOverride(20)
+							[
+								SNew(SBorder)
+								.Visibility( this, &SNewClassDialog::GetNameErrorLabelVisibility )
+								.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
+								.Content()
+								[
+									SNew(STextBlock)
+									.Text( this, &SNewClassDialog::GetNameErrorLabelText )
+									.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
+								]
+							]
+						]
+
+						// Properties
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("DetailsView.CategoryTop"))
+							.BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
+							.Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
+							[
+								SNew(SVerticalBox)
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(0)
+								[
+									SNew(SGridPanel)
+									.FillColumn(1, 1.0f)
+
+									// Name label
+									+SGridPanel::Slot(0, 0)
 									.VAlign(VAlign_Center)
+									.Padding(0, 0, 12, 0)
 									[
 										SNew(STextBlock)
-											.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
-											.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
+										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+										.Text( LOCTEXT( "NameLabel", "Name" ) )
 									]
 
-								+ SHorizontalBox::Slot()
+									// Name edit box
+									+SGridPanel::Slot(1, 0)
+									.Padding(0.0f, 3.0f)
 									.VAlign(VAlign_Center)
-									.AutoWidth()
 									[
-										SNew(SHyperlink)
-											.Text( FText::Format( LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
-											.OnNavigate( this, &SNewClassDialog::OnDownloadIDEClicked, FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL() )
-											.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility )
+										SNew(SBox)
+										.HeightOverride(EditableTextHeight)
+										[
+											SNew(SHorizontalBox)
+
+											+SHorizontalBox::Slot()
+											.FillWidth(1.0f)
+											[
+												SAssignNew( ClassNameEditBox, SEditableTextBox)
+												.Text( this, &SNewClassDialog::OnGetClassNameText )
+												.OnTextChanged( this, &SNewClassDialog::OnClassNameTextChanged )
+											]
+
+											+SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(6.0f, 0.0f, 0.0f, 0.0f)
+											[
+												SNew(SHorizontalBox)
+
+												+SHorizontalBox::Slot()
+												.AutoWidth()
+												[
+													SNew(SCheckBox)
+													.Style(FEditorStyle::Get(), "Property.ToggleButton.Start")
+													.IsEnabled(this, &SNewClassDialog::CanChangeClassLocation)
+													.IsChecked(this, &SNewClassDialog::IsClassLocationActive, GameProjectUtils::EClassLocation::Public)
+													.OnCheckStateChanged(this, &SNewClassDialog::OnClassLocationChanged, GameProjectUtils::EClassLocation::Public)
+													.ToolTipText(this, &SNewClassDialog::GetClassLocationTooltip, GameProjectUtils::EClassLocation::Public)
+													[
+														SNew(SBox)
+														.VAlign(VAlign_Center)
+														.HAlign(HAlign_Left)
+														.Padding(FMargin(4.0f, 0.0f, 3.0f, 0.0f))
+														[
+															SNew(STextBlock)
+															.Text(LOCTEXT("Public", "Public"))
+															.ColorAndOpacity(this, &SNewClassDialog::GetClassLocationTextColor, GameProjectUtils::EClassLocation::Public)
+														]
+													]
+												]
+
+												+SHorizontalBox::Slot()
+												.AutoWidth()
+												[
+													SNew(SCheckBox)
+													.Style(FEditorStyle::Get(), "Property.ToggleButton.End")
+													.IsEnabled(this, &SNewClassDialog::CanChangeClassLocation)
+													.IsChecked(this, &SNewClassDialog::IsClassLocationActive, GameProjectUtils::EClassLocation::Private)
+													.OnCheckStateChanged(this, &SNewClassDialog::OnClassLocationChanged, GameProjectUtils::EClassLocation::Private)
+													.ToolTipText(this, &SNewClassDialog::GetClassLocationTooltip, GameProjectUtils::EClassLocation::Private)
+													[
+														SNew(SBox)
+														.VAlign(VAlign_Center)
+														.HAlign(HAlign_Right)
+														.Padding(FMargin(3.0f, 0.0f, 4.0f, 0.0f))
+														[
+															SNew(STextBlock)
+															.Text(LOCTEXT("Private", "Private"))
+															.ColorAndOpacity(this, &SNewClassDialog::GetClassLocationTextColor, GameProjectUtils::EClassLocation::Private)
+														]
+													]
+												]
+											]
+										]
 									]
+
+									// Path label
+									+SGridPanel::Slot(0, 1)
+									.VAlign(VAlign_Center)
+									.Padding(0, 0, 12, 0)
+									[
+										SNew(STextBlock)
+										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+										.Text( LOCTEXT( "PathLabel", "Path" ).ToString() )
+									]
+
+									// Path edit box
+									+SGridPanel::Slot(1, 1)
+									.Padding(0.0f, 3.0f)
+									.VAlign(VAlign_Center)
+									[
+										SNew(SBox)
+										.HeightOverride(EditableTextHeight)
+										[
+											SNew(SHorizontalBox)
+
+											+SHorizontalBox::Slot()
+											.FillWidth(1.0f)
+											[
+												SNew(SEditableTextBox)
+												.Text(this, &SNewClassDialog::OnGetClassPathText)
+												.OnTextChanged(this, &SNewClassDialog::OnClassPathTextChanged)
+											]
+
+											+SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(6.0f, 1.0f, 0.0f, 0.0f)
+											[
+												SNew(SButton)
+												.VAlign(VAlign_Center)
+												.OnClicked(this, &SNewClassDialog::HandleChooseFolderButtonClicked)
+												.Text( LOCTEXT( "BrowseButtonText", "Choose Folder" ) )
+											]
+										]
+									]
+
+									// Header output label
+									+SGridPanel::Slot(0, 2)
+									.VAlign(VAlign_Center)
+									.Padding(0, 0, 12, 0)
+									[
+										SNew(STextBlock)
+										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+										.Text( LOCTEXT( "HeaderFileLabel", "Header File" ).ToString() )
+									]
+
+									// Header output text
+									+SGridPanel::Slot(1, 2)
+									.Padding(0.0f, 3.0f)
+									.VAlign(VAlign_Center)
+									[
+										SNew(SBox)
+										.VAlign(VAlign_Center)
+										.HeightOverride(EditableTextHeight)
+										[
+											SNew(STextBlock)
+											.Text(this, &SNewClassDialog::OnGetClassHeaderFileText)
+										]
+									]
+
+									// Source output label
+									+SGridPanel::Slot(0, 3)
+									.VAlign(VAlign_Center)
+									.Padding(0, 0, 12, 0)
+									[
+										SNew(STextBlock)
+										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+										.Text( LOCTEXT( "SourceFileLabel", "Source File" ).ToString() )
+									]
+
+									// Source output text
+									+SGridPanel::Slot(1, 3)
+									.Padding(0.0f, 3.0f)
+									.VAlign(VAlign_Center)
+									[
+										SNew(SBox)
+										.VAlign(VAlign_Center)
+										.HeightOverride(EditableTextHeight)
+										[
+											SNew(STextBlock)
+											.Text(this, &SNewClassDialog::OnGetClassSourceFileText)
+										]
+									]
+								]
 							]
+						]
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f)
+						[
+							SNew(SBorder)
+							.Padding(FMargin(0.0f, 3.0f, 0.0f, 0.0f))
+							.BorderImage(FEditorStyle::GetBrush("DetailsView.CategoryBottom"))
+							.BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
+						]
 					]
+				]
+			]
+
+			// IDE download information
+			+SVerticalBox::Slot()
+			.Padding(0, 5)
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
+				.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
+				.Content()
+				[
+					SNew(SHorizontalBox)
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
+						.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
+					]
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(SHyperlink)
+						.Text( FText::Format( LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
+						.OnNavigate( this, &SNewClassDialog::OnDownloadIDEClicked, FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL() )
+						.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility )
+					]
+				]
 			]
 		]
 	];
@@ -482,25 +559,17 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 		return SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable );
 	}
 
-	UClass* Class = ParentClassItem->ParentClass.Get();
-	if ( !Class )
+	if ( !ParentClassItem->ParentClassInfo.IsSet() )
 	{
 		return SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable );
 	}
 
-	const FString ClassName = FName::NameToDisplayString( Class->GetName(), false );
-	FString ClassDescription = Class->GetToolTipText().ToString();
-	int32 NewLineIndex = 0;
-	if (ClassDescription.FindChar('.', NewLineIndex))
-	{
-		// Only show the first sentence so as not to clutter up the UI with a detailed description of implementation details
-		ClassDescription = ClassDescription.Left(NewLineIndex + 1);
-	}
+	const FString ClassName = ParentClassItem->ParentClassInfo.GetClassName();
+	const FString ClassDescription = ParentClassItem->ParentClassInfo.GetClassDescription();
+	const FSlateBrush* const ClassBrush = ParentClassItem->ParentClassInfo.GetClassIcon();
 
-	const FSlateBrush* ClassBrush = FClassIconFinder::FindIconForClass(Class);
-
-	const int32 ItemHeight = 128;
-	const int32 DescriptionIndent = 128;
+	const int32 ItemHeight = 64;
+	const int32 DescriptionIndent = 32;
 	return
 		SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable )
 		.Style(FEditorStyle::Get(), "NewClassDialog.ParentClassListView.TableRow")
@@ -539,7 +608,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 				.Padding(DescriptionIndent, 0, 0, 0)
 				[
 					SNew(STextBlock)
-					.WrapTextAt(DialogFixedWidth - DescriptionIndent - 32)
+					//.AutoWrapText(true)
 					.Text(ClassDescription)
 				]
 			]
@@ -548,15 +617,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 
 FString SNewClassDialog::GetSelectedParentClassName() const
 {
-	const UClass* SelectedParentClass = GetSelectedParentClass();
-	if (SelectedParentClass)
-	{
-		return SelectedParentClass->GetName();
-	}
-	else
-	{
-		return TEXT("");
-	}
+	return ParentClassInfo.IsSet() ? ParentClassInfo.GetClassName() : TEXT("");
 }
 
 void SNewClassDialog::OnParentClassItemDoubleClicked( TSharedPtr<FParentClassItem> TemplateItem )
@@ -574,18 +635,18 @@ void SNewClassDialog::OnClassSelected(TSharedPtr<FParentClassItem> Item, ESelect
 	if ( Item.IsValid() )
 	{
 		ClassViewer->ClearSelection();
-		ParentClass = Item->ParentClass;
+		ParentClassInfo = Item->ParentClassInfo;
 	}
 	else
 	{
-		ParentClass = NULL;
+		ParentClassInfo = GameProjectUtils::FNewClassInfo();
 	}
 }
 
 void SNewClassDialog::OnAdvancedClassSelected(UClass* Class)
 {
 	ParentClassListView->ClearSelection();
-	ParentClass = Class;
+	ParentClassInfo = GameProjectUtils::FNewClassInfo(Class);
 }
 
 ESlateCheckBoxState::Type SNewClassDialog::IsFullClassTreeChecked() const
@@ -646,16 +707,17 @@ FString SNewClassDialog::GetGlobalErrorLabelText() const
 void SNewClassDialog::OnNamePageEntered()
 {
 	// Set the default class name based on the selected parent class, eg MyActor
-	FString PotentialNewClassName = "My";
-	PotentialNewClassName += GetSelectedParentClassName();
+	const FString ParentClassName = ParentClassInfo.GetClassNameCPP();
+	const FString PotentialNewClassName = FString::Printf(TEXT("My%s"), ParentClassName.IsEmpty() ? TEXT("Class") : *ParentClassName);
 
 	// Only set the default if the user hasn't changed the class name from the previous default
 	if(LastAutoGeneratedClassName.IsEmpty() || NewClassName == LastAutoGeneratedClassName)
 	{
 		NewClassName = PotentialNewClassName;
 		LastAutoGeneratedClassName = PotentialNewClassName;
-		UpdateInputValidity();
 	}
+
+	UpdateInputValidity();
 
 	// Steal keyboard focus to accelerate name entering
 	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EKeyboardFocusCause::SetDirectly);
@@ -663,7 +725,13 @@ void SNewClassDialog::OnNamePageEntered()
 
 FString SNewClassDialog::GetNameClassTitle() const
 {
-	return FText::Format( LOCTEXT( "NameClassTitle", "Name Your New {0}" ), FText::FromString(GetSelectedParentClassName()) ).ToString();
+	FString ParentClassName = GetSelectedParentClassName();
+	if(ParentClassName.IsEmpty() || ParentClassName == "None")
+	{
+		ParentClassName = TEXT("Class");
+	}
+
+	return FText::Format( LOCTEXT( "NameClassTitle", "Name Your New {0}" ), FText::FromString(ParentClassName) ).ToString();
 }
 
 FText SNewClassDialog::OnGetClassNameText() const
@@ -705,7 +773,7 @@ void SNewClassDialog::CancelClicked()
 
 bool SNewClassDialog::CanFinish() const
 {
-	return bLastInputValidityCheckSuccessful && GetSelectedParentClass() != NULL && FSourceCodeNavigation::IsCompilerAvailable();
+	return bLastInputValidityCheckSuccessful && ParentClassInfo.IsSet() && FSourceCodeNavigation::IsCompilerAvailable();
 }
 
 void SNewClassDialog::FinishClicked()
@@ -716,7 +784,7 @@ void SNewClassDialog::FinishClicked()
 	FString CppFilePath;
 
 	FText FailReason;
-	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, GetSelectedParentClass(), HeaderFilePath, CppFilePath, FailReason) )
+	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, ParentClassInfo, HeaderFilePath, CppFilePath, FailReason) )
 	{
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
@@ -790,20 +858,120 @@ FReply SNewClassDialog::HandleChooseFolderButtonClicked()
 	return FReply::Handled();
 }
 
+FSlateColor SNewClassDialog::GetClassLocationTextColor(GameProjectUtils::EClassLocation InLocation) const
+{
+	return (ClassLocation == InLocation) ? FSlateColor(FLinearColor(0, 0, 0)) : FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
+}
+
+FText SNewClassDialog::GetClassLocationTooltip(GameProjectUtils::EClassLocation InLocation) const
+{
+	if(CanChangeClassLocation())
+	{
+		switch(InLocation)
+		{
+		case GameProjectUtils::EClassLocation::Public:
+			return LOCTEXT("ClassLocation_Public", "A public class can be included and used inside other modules in addition to the module it resides in");
+
+		case GameProjectUtils::EClassLocation::Private:
+			return LOCTEXT("ClassLocation_Private", "A private class can only be included and used within the module it resides in");
+
+		default:
+			break;
+		}
+	}
+
+	return LOCTEXT("ClassLocation_UserDefined", "Your project is either not using a Public and Private source layout, or you're explicitly creating your class outside of the Public or Private folder");
+}
+
+ESlateCheckBoxState::Type SNewClassDialog::IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const
+{
+	return (ClassLocation == InLocation) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SNewClassDialog::OnClassLocationChanged(ESlateCheckBoxState::Type InCheckedState, GameProjectUtils::EClassLocation InLocation)
+{
+	if(InCheckedState == ESlateCheckBoxState::Checked)
+	{
+		const FString AbsoluteClassPath = FPaths::ConvertRelativePathToFull(NewClassPath) / ""; // Ensure trailing /
+
+		FString ModuleName;
+		GameProjectUtils::EClassLocation TmpClassLocation = GameProjectUtils::EClassLocation::UserDefined;
+		GameProjectUtils::GetClassLocation(AbsoluteClassPath, ModuleName, TmpClassLocation, ModuleInfo);
+
+		const FString BaseRootPath = GameProjectUtils::GetSourceRootPath(false/*bIncludeModuleName*/, ModuleInfo);
+		const FString RootPath = BaseRootPath / ModuleName / "";	// Ensure trailing /
+		const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
+		const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
+
+		// Update the class path to be rooted to the Public or Private folder based on InVisibility
+		switch(InLocation)
+		{
+		case GameProjectUtils::EClassLocation::Public:
+			if(AbsoluteClassPath.StartsWith(PrivatePath))
+			{
+				NewClassPath = AbsoluteClassPath.Replace(*PrivatePath, *PublicPath);
+			}
+			else if(AbsoluteClassPath.StartsWith(RootPath))
+			{
+				NewClassPath = AbsoluteClassPath.Replace(*RootPath, *PublicPath);
+			}
+			break;
+
+		case GameProjectUtils::EClassLocation::Private:
+			if(AbsoluteClassPath.StartsWith(PublicPath))
+			{
+				NewClassPath = AbsoluteClassPath.Replace(*PublicPath, *PrivatePath);
+			}
+			else if(AbsoluteClassPath.StartsWith(RootPath))
+			{
+				NewClassPath = AbsoluteClassPath.Replace(*RootPath, *PrivatePath);
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		// Will update ClassVisibility correctly
+		UpdateInputValidity();
+	}
+}
+
+bool SNewClassDialog::CanChangeClassLocation() const
+{
+	return ClassLocation != GameProjectUtils::EClassLocation::UserDefined;
+}
+
 void SNewClassDialog::UpdateInputValidity()
 {
 	bLastInputValidityCheckSuccessful = true;
 
 	// Validate the path first since this has the side effect of updating the UI
 	FString ModuleName;
-	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, &LastInputValidityErrorText);
-	CalculatedClassHeaderName /= NewClassName + ".h";
-	CalculatedClassSourceName /= NewClassName + ".cpp";
+	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, ModuleInfo, &LastInputValidityErrorText);
+	CalculatedClassHeaderName /= ParentClassInfo.GetHeaderFilename(NewClassName);
+	CalculatedClassSourceName /= ParentClassInfo.GetSourceFilename(NewClassName);
+
+	// If the source paths check as succeeded, check to see if we're using a Public/Private class
+	if(bLastInputValidityCheckSuccessful)
+	{
+		GameProjectUtils::GetClassLocation(NewClassPath, ModuleName, ClassLocation, ModuleInfo);
+
+		// We only care about the Public and Private folders
+		if(ClassLocation != GameProjectUtils::EClassLocation::Public && ClassLocation != GameProjectUtils::EClassLocation::Private)
+		{
+			ClassLocation = GameProjectUtils::EClassLocation::UserDefined;
+		}
+	}
+	else
+	{
+		ClassLocation = GameProjectUtils::EClassLocation::UserDefined;
+	}
 
 	// Validate the class name only if the path is valid
 	if ( bLastInputValidityCheckSuccessful )
 	{
-		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, LastInputValidityErrorText);
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, ModuleInfo, LastInputValidityErrorText);
 	}
 
 	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();
@@ -812,26 +980,33 @@ void SNewClassDialog::UpdateInputValidity()
 	bPreventPeriodicValidityChecksUntilNextChange = false;
 }
 
-const UClass* SNewClassDialog::GetSelectedParentClass() const
+const GameProjectUtils::FNewClassInfo& SNewClassDialog::GetSelectedParentClassInfo() const
 {
-	return ParentClass.Get();
+	return ParentClassInfo;
 }
 
 void SNewClassDialog::SetupParentClassItems()
 {
-	TArray<UClass*> FeaturedClasses;
+	TArray<GameProjectUtils::FNewClassInfo> FeaturedClasses;
 	
+	// Add an empty class
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(GameProjectUtils::FNewClassInfo::EClassType::EmptyCpp));
+
 	// @todo make this ini configurable
-	FeaturedClasses.Add(ACharacter::StaticClass());
-	FeaturedClasses.Add(APawn::StaticClass());
-	FeaturedClasses.Add(AActor::StaticClass());
-	FeaturedClasses.Add(APlayerCameraManager::StaticClass());
-	FeaturedClasses.Add(APlayerController::StaticClass());
-	FeaturedClasses.Add(AGameMode::StaticClass());
-	FeaturedClasses.Add(AWorldSettings::StaticClass());
-	FeaturedClasses.Add(AHUD::StaticClass());
-	FeaturedClasses.Add(APlayerState::StaticClass());
-	FeaturedClasses.Add(AGameState::StaticClass());
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(ACharacter::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(APawn::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(AActor::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(APlayerCameraManager::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(APlayerController::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(AGameMode::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(AWorldSettings::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(AHUD::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(APlayerState::StaticClass()));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(AGameState::StaticClass()));
+	
+	// Add the extra non-UObject classes
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(GameProjectUtils::FNewClassInfo::EClassType::SlateWidget));
+	FeaturedClasses.Add(GameProjectUtils::FNewClassInfo(GameProjectUtils::FNewClassInfo::EClassType::SlateWidgetStyle));
 
 	for ( auto ClassIt = FeaturedClasses.CreateConstIterator(); ClassIt; ++ClassIt )
 	{

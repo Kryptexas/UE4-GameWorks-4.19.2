@@ -38,6 +38,11 @@ namespace UK2Node_LiveEditObjectStatics
 			RemainingTokens = FString(TEXT(""));
 		}
 
+		if ( FirstToken.FindChar( '[', SplitIndex ) )
+		{
+			FirstToken = FirstToken.LeftChop( FirstToken.Len()-SplitIndex );
+		}
+
 		for (TFieldIterator<UProperty> PropertyIt(InStruct, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
@@ -192,19 +197,6 @@ FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	Args.Add(TEXT("SpawnString"), SpawnString);
 	Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
 	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
-}
-
-FString UK2Node_LiveEditObject::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	UEdGraphPin* BaseClassPin = GetBaseClassPin();
-
-	FString SpawnString = TEXT("NONE");
-	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
-	{
-		SpawnString = BaseClassPin->DefaultObject->GetName();
-	}
-
-	return FString::Printf(TEXT("LiveEditObject %s_%d"), *SpawnString, GetUniqueID());
 }
 
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 
@@ -580,6 +572,17 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 		// Break any links to the expanded node
 		BreakAllNodeLinks();
 	}
+}
+
+void UK2Node_LiveEditObject::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	UClass* ClassToSpawn = GetClassToSpawn();
+	const FString ClassToSpawnStr = ClassToSpawn ? ClassToSpawn->GetName() : TEXT( "UnknownClass" );
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "LiveEditObject" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ClassToSpawn" ), ClassToSpawnStr ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "EventName" ), GetEventName() ));
 }
 
 void UK2Node_LiveEditObject::CreatePinsForClass(UClass* InClass)

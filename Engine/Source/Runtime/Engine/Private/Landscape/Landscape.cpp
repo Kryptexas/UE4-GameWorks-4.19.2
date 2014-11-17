@@ -5,6 +5,7 @@ Landscape.cpp: Terrain rendering
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeRenderMobile.h"
@@ -13,6 +14,11 @@ Landscape.cpp: Terrain rendering
 #include "MapErrors.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 // Set this to 0 to disable landscape cooking and thus disable it on device.
 #define ENABLE_LANDSCAPE_COOKING 1
@@ -84,6 +90,12 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
 }
+
+ULandscapeComponent::~ULandscapeComponent()
+{
+
+}
+
 
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -339,7 +351,8 @@ void ULandscapeComponent::PostLoad()
 	if (ensure(LandscapeProxy))
 	{
 		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
-		
+		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+
 		// convert from deprecated layer names to direct LayerInfo references
 		static const FName DataWeightmapName = FName("__DataLayer__");
 		for (int32 i = 0; i < WeightmapLayerAllocations.Num(); i++)
@@ -413,6 +426,40 @@ void ULandscapeComponent::PostLoad()
 			}
 		}
 	}
+
+#if WITH_EDITOR
+	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		// Move the MICs and Textures back to the Package if they're currently in the level
+		{
+			ULevel* Level = GetLevel();
+			if (ensure(Level))
+			{
+				TArray<UObject*> ObjectsToMoveFromLevelToPackage;
+				for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+				{
+					ObjectsToMoveFromLevelToPackage.Add(CurrentMIC);
+				}
+				ObjectsToMoveFromLevelToPackage.Add(HeightmapTexture);
+				for (auto* Tex : WeightmapTextures)
+				{
+					ObjectsToMoveFromLevelToPackage.Add(Tex);
+				}
+				ObjectsToMoveFromLevelToPackage.Add(XYOffsetmapTexture);
+
+				UPackage* MyPackage = GetOutermost();
+				for (auto* Obj : ObjectsToMoveFromLevelToPackage)
+				{
+					if (Obj && Obj->GetOuter() == Level)
+					{
+						Obj->ClearFlags(RF_Public);
+						Obj->Rename(NULL, MyPackage, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+					}
+				}
+			}
+		}
+	}
+#endif
 }
 
 #endif // WITH_EDITOR
@@ -459,6 +506,7 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	LODDistanceFactor = 1.0f;
 	LODFalloff = ELandscapeLODFalloff::Linear;
 	bCastStaticShadow = true;
+	bCastShadowAsTwoSided = false;
 	bUsedForNavigation = true;
 	CollisionThickness = 16;
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
@@ -527,6 +575,12 @@ ALandscape* ULandscapeComponent::GetLandscapeActor() const
 		return Landscape->GetLandscapeActor();
 	}
 	return NULL;
+}
+
+ULevel* ULandscapeComponent::GetLevel() const
+{
+	AActor* MyOwner = GetOwner();
+	return MyOwner ? MyOwner->GetLevel() : NULL;
 }
 
 ALandscapeProxy* ULandscapeComponent::GetLandscapeProxy() const
@@ -1179,7 +1233,7 @@ void ALandscapeProxy::PostLoad()
 		if( Comp )
 		{
 			ComponentSizeQuads = Comp->ComponentSizeQuads;
-			SubsectionSizeQuads = Comp->SubsectionSizeQuads;	
+			SubsectionSizeQuads = Comp->SubsectionSizeQuads;
 			NumSubsections = Comp->NumSubsections;
 		}
 	}
@@ -1252,6 +1306,7 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		//PrePivot = Landscape->PrePivot;
 		StaticLightingResolution = Landscape->StaticLightingResolution;
 		bCastStaticShadow = Landscape->bCastStaticShadow;
+		bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
 		ComponentSizeQuads = Landscape->ComponentSizeQuads;
 		NumSubsections = Landscape->NumSubsections;
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;

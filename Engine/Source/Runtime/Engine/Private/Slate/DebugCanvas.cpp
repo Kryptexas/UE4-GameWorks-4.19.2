@@ -50,7 +50,7 @@ FProxyCounter FCanvasProxy::Counter;
  * Simple representation of the backbuffer that the debug canvas renders to
  * This class may only be accessed from the render thread
  */
-class FSlateBackBufferTarget : public FRenderTarget
+class FSlateCanvasRenderTarget : public FRenderTarget
 {
 public:
 	/** FRenderTarget interface */
@@ -89,7 +89,7 @@ private:
 FDebugCanvasDrawer::FDebugCanvasDrawer()
 	: GameThreadCanvas( NULL )
 	, RenderThreadCanvas( NULL )
-	, RenderTarget( new FSlateBackBufferTarget )
+	, RenderTarget( new FSlateCanvasRenderTarget )
 {}
 
 FDebugCanvasDrawer::~FDebugCanvasDrawer()
@@ -114,16 +114,16 @@ FCanvas* FDebugCanvasDrawer::GetGameThreadDebugCanvas()
 }
 
 
-void FDebugCanvasDrawer::BeginRenderingCanvas( const FIntRect& InCanvasRect )
+void FDebugCanvasDrawer::BeginRenderingCanvas( const FIntRect& CanvasRect )
 {
-	if( InCanvasRect.Size().X > 0 && InCanvasRect.Size().Y > 0 )
+	if( CanvasRect.Size().X > 0 && CanvasRect.Size().Y > 0 )
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER
 		(
 			BeginRenderingDebugCanvas,
 			FDebugCanvasDrawer*, CanvasDrawer, this, 
 			FCanvasProxy*, CanvasToRender, GameThreadCanvas,
-			FIntRect, CanvasRect, InCanvasRect,
+			FIntRect, CanvasRect, CanvasRect,
 			{
 				// Delete the old rendering thread canvas
 				if( CanvasDrawer->GetRenderThreadCanvas() && CanvasToRender != NULL )
@@ -163,17 +163,24 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 	}
 }
 
-void FDebugCanvasDrawer::DrawRenderThread( const void* InWindowBackBuffer )
+void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer)
 {
 	check( IsInRenderingThread() );
 
 	if( RenderThreadCanvas )
 	{
-		RenderTarget->SetRenderTargetTexture( *(FTexture2DRHIRef*)InWindowBackBuffer );
+		FTexture2DRHIRef& RT = *(FTexture2DRHIRef*)InWindowBackBuffer;
+		RenderTarget->SetRenderTargetTexture( RT );
+		if (RenderThreadCanvas->Canvas.IsScaledToRenderTarget() && IsValidRef(RT)) 
+		{
+			RenderThreadCanvas->Canvas.SetRenderTargetRect( FIntRect(0, 0, RT->GetSizeX(), RT->GetSizeY()) );
+		}
+		else
 		{
 			RenderThreadCanvas->Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );
 			RenderThreadCanvas->Canvas.Flush( true );
 		}
+		RenderThreadCanvas->Canvas.Flush( true );
 		RenderTarget->ClearRenderTargetTexture();
 	}
 }

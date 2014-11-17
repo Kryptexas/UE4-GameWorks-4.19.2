@@ -29,7 +29,7 @@ class UDEPRECATED_PhysicalMaterialPropertyBase : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// Begin UObject Interface
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual bool IsAsset() const override { return false; }
 	// End UObject Interface
 
 	// compatibility support function

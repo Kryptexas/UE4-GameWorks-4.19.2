@@ -10,13 +10,13 @@ class UAnimGraphNode_BlendListBase : public UAnimGraphNode_Base
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
+	virtual FString GetNodeCategory() const override;
 	// End of UAnimGraphNode_Base interface
 
 protected:

@@ -13,7 +13,7 @@
 
 SLevelEditorModeContent::~SLevelEditorModeContent()
 {
-	GEditorModeTools().OnEditorModeChanged().RemoveAll( this );
+	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll( this );
 	GEditor->AccessEditorUserSettings().OnUserSettingChanged().RemoveAll( this );
 }
 
@@ -24,7 +24,7 @@ void SLevelEditorModeContent::Construct( const FArguments& InArgs, const TShared
 	EditorMode = InEditorMode;
 
 	InOwningDocTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateSP(this, &SLevelEditorModeContent::HandleParentClosed ) );
-	GEditorModeTools().OnEditorModeChanged().AddSP( this, &SLevelEditorModeContent::HandleEditorModeChanged );
+	GLevelEditorModeTools().OnEditorModeChanged().AddSP( this, &SLevelEditorModeContent::HandleEditorModeChanged );
 	GEditor->AccessEditorUserSettings().OnUserSettingChanged().AddSP( this, &SLevelEditorModeContent::HandleUserSettingsChange );
 
 	ChildSlot
@@ -124,9 +124,9 @@ void SLevelEditorModeContent::OnToolkitHostingFinished( const TSharedRef< class 
 
 void SLevelEditorModeContent::HandleParentClosed( TSharedRef<SDockTab> TabBeingClosed )
 {
-	if ( GEditorModeTools().IsModeActive(EditorMode->GetID()) )
+	if ( GLevelEditorModeTools().IsModeActive(EditorMode->GetID()) )
 	{
-		GEditorModeTools().DeactivateMode(EditorMode->GetID());
+		GLevelEditorModeTools().DeactivateMode(EditorMode->GetID());
 	}
 }
 

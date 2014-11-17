@@ -9,8 +9,8 @@ class FPerforceSourceControlModule : public IModuleInterface
 {
 public:
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Access the Perforce source control settings */
 	FPerforceSourceControlSettings& AccessSettings();
@@ -22,6 +22,17 @@ public:
 	FPerforceSourceControlProvider& GetProvider()
 	{
 		return PerforceSourceControlProvider;
+	}
+	
+	/**
+	 * Singleton-like access to this module's interface.  This is just for convenience!
+	 * Beware of calling this during the shutdown phase, though.  Your module might have been unloaded already.
+	 *
+	 * @return Returns singleton instance, loading the module on demand if needed
+	 */
+	static inline FPerforceSourceControlModule& Get()
+	{
+		return FModuleManager::LoadModuleChecked< FPerforceSourceControlModule >("PerforceSourceControl");
 	}
 
 private:

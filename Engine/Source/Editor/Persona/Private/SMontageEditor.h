@@ -45,7 +45,7 @@ private:
 
 protected:
 	// Begin SAnimEditorBase interface
-	virtual TSharedRef<class SAnimationScrubPanel> ConstructAnimScrubPanel() OVERRIDE;
+	virtual TSharedRef<class SAnimationScrubPanel> ConstructAnimScrubPanel() override;
 	// End SAnimEditorBase interface
 
 public:
@@ -53,7 +53,7 @@ public:
 	void SetMontageObj(UAnimMontage * NewMontage);
 	UAnimMontage * GetMontageObj() const { return MontageObj; }
 
-	virtual UAnimSequenceBase* GetEditorObject() const OVERRIDE { return GetMontageObj(); }
+	virtual UAnimSequenceBase* GetEditorObject() const override { return GetMontageObj(); }
 
 	void RestartPreview();
 	void RestartPreviewFromSection(int32 FromSectionIdx = INDEX_NONE);
@@ -78,7 +78,7 @@ private:
 	/** If user is currently dragging an item */
 	bool bDragging;
 	
-	virtual float CalculateSequenceLengthOfEditorObject() const OVERRIDE;
+	virtual float CalculateSequenceLengthOfEditorObject() const override;
 	void SortAndUpdateMontage();
 	void CollapseMontage();
 	void SortBranchPoints();
@@ -86,7 +86,7 @@ private:
 	void SortSections();
 	void EnsureStartingSection();
 	void EnsureSlotNode();
-	virtual bool ClampToEndTime(float NewEndTime) OVERRIDE;
+	virtual bool ClampToEndTime(float NewEndTime) override;
 	void PostUndo();
 	
 	bool GetSectionTime( int32 SectionIndex, float &OutTime ) const;
@@ -99,7 +99,7 @@ private:
 	void RefreshNotifyTriggerOffsets();
 
 protected:
-	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) OVERRIDE;
+	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) override;
 
 public:
 
@@ -140,6 +140,6 @@ public:
 	void			PostAnimUpdate();
 
 	// SWidget interface start
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// SWidget interface end
 };

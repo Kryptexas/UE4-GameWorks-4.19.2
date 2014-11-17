@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node.h"
 #include "K2Node_TemporaryVariable.generated.h"
 
 UCLASS(MinimalAPI)
@@ -20,16 +20,15 @@ class UK2Node_TemporaryVariable : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetVariablePin();
 
 	// Begin UEdGraphNode interface.
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetDescriptiveCompiledName() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetDescriptiveCompiledName() const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.
-	virtual bool IsNodePure() const OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool IsNodePure() const override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End UK2Node interface.
 };
 

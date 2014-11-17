@@ -48,5 +48,5 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteTab;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BSP.h: Static lighting BSP mesh/mapping definitions.
-=============================================================================*/
-
 #pragma once
 
 namespace Lightmass

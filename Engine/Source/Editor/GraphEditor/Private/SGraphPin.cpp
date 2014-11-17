@@ -10,6 +10,64 @@
 #include "ScopedTransaction.h"
 
 /////////////////////////////////////////////////////
+// FKnotNetCollector
+
+struct FKnotNetCollector
+{
+	TSet<UEdGraphNode*> VisitedNodes;
+	TSet<UEdGraphPin*> VisitedPins;
+
+	FKnotNetCollector(UEdGraphPin* StartingPin)
+	{
+		TraversePin(StartingPin);
+	}
+
+	void TraversePin(UEdGraphPin* Pin)
+	{
+		if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(Pin->GetOwningNode()))
+		{
+			TraverseNodes(Knot);
+		}
+		else
+		{
+			VisitedPins.Add(Pin);
+
+			for (UEdGraphPin* OtherPin : Pin->LinkedTo)
+			{
+				UEdGraphNode* OtherNode = OtherPin->GetOwningNode();
+				if (OtherPin->GetOwningNode()->IsA(UK2Node_Knot::StaticClass()))
+				{
+					TraverseNodes(OtherNode);
+				}
+			}
+		}
+	}
+
+	void TraverseNodes(UEdGraphNode* Node)
+	{
+		if (VisitedNodes.Contains(Node))
+		{
+			return;
+		}
+		VisitedNodes.Add(Node);
+
+		for (UEdGraphPin* MyPin : Node->Pins)
+		{
+			VisitedPins.Add(MyPin);
+
+			for (UEdGraphPin* OtherPin : MyPin->LinkedTo)
+			{
+				UEdGraphNode* OtherNode = OtherPin->GetOwningNode();
+				if (OtherNode->IsA(UK2Node_Knot::StaticClass()))
+				{
+					TraverseNodes(OtherNode);
+				}
+			}
+		}
+	}
+};
+
+/////////////////////////////////////////////////////
 // SGraphPin
 
 FName SGraphPin::NAME_DefaultPinLabelStyle(TEXT("Graph.Node.PinName"));
@@ -54,7 +112,8 @@ SGraphPin::SGraphPin()
 	static const FName NAME_Pin_Background("Graph.Pin.Background");
 	static const FName NAME_Pin_BackgroundHovered("Graph.Pin.BackgroundHovered");
 
-	const EBlueprintPinStyleType StyleType = GEditor->GetEditorUserSettings().DataPinStyle;
+	const EBlueprintPinStyleType StyleType = GetDefault<UGraphEditorSettings>()->DataPinStyle;
+
 	switch(StyleType)
 	{
 	case BPST_VariantA:
@@ -167,17 +226,22 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 				LabelWidget
 			];
 
-		LabelAndValue->AddSlot()
-			.Padding( bIsInput ? FMargin(5,0,0,0) : FMargin(0,0,5,0) )
-			.VAlign(VAlign_Center)
-			[
-				SNew(SBox)
-				.Padding(0.0f)
-				.IsEnabled(this, &SGraphPin::IsEditingEnabled)
+		TSharedRef<SWidget> ValueWidget = GetDefaultValueWidget();
+
+		if (ValueWidget != SNullWidget::NullWidget)
+		{
+			LabelAndValue->AddSlot()
+				.Padding(bIsInput ? FMargin(InArgs._SideToSideMargin, 0, 0, 0) : FMargin(0, 0, InArgs._SideToSideMargin, 0))
+				.VAlign(VAlign_Center)
 				[
-					GetDefaultValueWidget()
-				]	
-			];
+					SNew(SBox)
+					.Padding(0.0f)
+					.IsEnabled(this, &SGraphPin::IsEditingEnabled)
+					[
+						ValueWidget
+					]
+				];
+		}
 
 		LabelAndValue->AddSlot()
 			.VAlign(VAlign_Center)
@@ -201,7 +265,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding( 0,0,5,0 )
+			.Padding(0, 0, InArgs._SideToSideMargin, 0)
 			[
 				ActualPinWidget
 			]
@@ -226,7 +290,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding( 5,0,0,0 )
+			.Padding(InArgs._SideToSideMargin, 0, 0, 0)
 			[
 				ActualPinWidget
 			];
@@ -379,7 +443,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				{
 					bIsMovingLinks = true;
 
-					return FReply::Handled().BeginDragDrop(FDragConnection::New(OwnerPanelPtr.ToSharedRef(), PinArray, true));
+					return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerPanelPtr.ToSharedRef(), PinArray, /*bIsShiftOperation=*/ false));
 				}
 				else
 				{
@@ -387,13 +451,14 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 					return FReply::Handled();
 				}
 			}
-			else if (MouseEvent.IsShiftDown())
-			{
-				return FReply::Handled();
-			}
 			
 			// Start a drag-drop on the pin
-			return FReply::Handled().BeginDragDrop(FDragConnection::New(this->OwnerNodePtr.Pin()->GetOwnerPanel().ToSharedRef(), SharedThis(this)));
+			{
+				TArray<TSharedRef<SGraphPin>> PinArray;
+				PinArray.Add(SharedThis(this));
+
+				return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(this->OwnerNodePtr.Pin()->GetOwnerPanel().ToSharedRef(), PinArray, MouseEvent.IsShiftDown()));
+			}
 		}
 		else
 		{
@@ -450,6 +515,10 @@ TOptional<EMouseCursor::Type> SGraphPin::GetPinCursor() const
 	}
 }
 
+TSharedRef<FDragDropOperation> SGraphPin::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation)
+{
+	return FDragConnection::New(InGraphPanel, InStartingPins, bShiftOperation);
+}
 
 /**
  * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
@@ -487,14 +556,32 @@ FReply SGraphPin::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 
 void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	OwnerNodePtr.Pin()->GetOwnerPanel()->AddPinToHoverSet(GetPinObj());
-	SCompoundWidget::OnMouseEnter( MyGeometry, MouseEvent );
+	FKnotNetCollector NetCollector(GetPinObj());
+
+	TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+	for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+	{
+		Panel->AddPinToHoverSet(PinInNet);
+		HoverPinSet.Add(PinInNet);
+	}
+
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
 }
 
 void SGraphPin::OnMouseLeave( const FPointerEvent& MouseEvent )
 {	
-	OwnerNodePtr.Pin()->GetOwnerPanel()->RemovePinFromHoverSet(GetPinObj());
-	SCompoundWidget::OnMouseLeave( MouseEvent );
+	TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+
+	for (TWeakObjectPtr<UEdGraphPin> WeakPin : HoverPinSet)
+	{
+		if (UEdGraphPin* PinInNet = WeakPin.Get())
+		{
+			Panel->RemovePinFromHoverSet(PinInNet);
+		}
+	}
+	HoverPinSet.Empty();
+
+	SCompoundWidget::OnMouseLeave(MouseEvent);
 }
 
 void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
@@ -513,7 +600,7 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 		{
 			// Inform the Drag and Drop operation that we are hovering over this pin.
 			TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
-			DragConnectionOp->SetHoveredPin( SharedThis(this) );
+			DragConnectionOp->SetHoveredPin(GraphPinObj);
 		}	
 
 		// Pins treat being dragged over the same as being hovered outside of drag and drop if they know how to respond to the drag action.
@@ -551,9 +638,9 @@ void SGraphPin::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	{
 		// Inform the Drag and Drop operation that we are not hovering any pins
 		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
-		DragConnectionOp->SetHoveredPin( TSharedPtr<SGraphPin>(NULL) );
+		DragConnectionOp->SetHoveredPin(nullptr);
 
-		SBorder::OnMouseLeave( DragDropEvent );
+		SBorder::OnMouseLeave(DragDropEvent);
 	}
 
 	else if (Operation->IsOfType<FAssetDragDropOp>())
@@ -579,8 +666,11 @@ bool SGraphPin::TryHandlePinConnection(SGraphPin& OtherSPin)
 
 FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
+	bool bReadOnly = NodeWidget.IsValid() ? !NodeWidget->IsNodeEditable() : false;
+
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || bReadOnly)
 	{
 		return FReply::Unhandled();
 	}
@@ -620,18 +710,14 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 		return DragConnectionOp->DroppedOnPin(DragDropEvent.GetScreenSpacePosition(), NodeAddPosition);
 	}
 	// handle dropping an asset on the pin
-	else if (Operation->IsOfType<FAssetDragDropOp>())
+	else if (Operation->IsOfType<FAssetDragDropOp>() && NodeWidget.IsValid())
 	{
-		TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
-		if (NodeWidget.IsValid())
+		UEdGraphNode* Node = NodeWidget->GetNodeObj();
+		if(Node != NULL && Node->GetSchema() != NULL)
 		{
-			UEdGraphNode* Node = NodeWidget->GetNodeObj();
-			if(Node != NULL && Node->GetSchema() != NULL)
-			{
-				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
-				Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
-			}
+			Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
 		}
 		return FReply::Handled();
 	}

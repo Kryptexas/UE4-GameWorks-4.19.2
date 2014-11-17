@@ -12,11 +12,11 @@
 class FIOSPlatformEditorModule : public IModuleInterface
 {
 	// IModuleInterface interface
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Register the settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout(
+		PropertyModule.RegisterCustomClassLayout(
 			"IOSRuntimeSettings",
 			FOnGetDetailCustomizationInstance::CreateStatic(&FIOSTargetSettingsCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
@@ -33,7 +33,7 @@ class FIOSPlatformEditorModule : public IModuleInterface
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 

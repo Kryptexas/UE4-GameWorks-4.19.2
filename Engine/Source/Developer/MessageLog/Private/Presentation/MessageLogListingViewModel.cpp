@@ -312,6 +312,7 @@ void FMessageLogListingViewModel::NotifyIfAnyMessages( const FText& Message, EMe
 		ErrorNotification.Image = FEditorStyle::GetBrush(FTokenizedMessage::GetSeverityIconName(HighestSeverityPresent(0)));
 		ErrorNotification.bFireAndForget = true;
 		ErrorNotification.Hyperlink = FSimpleDelegate::CreateSP(this, &FMessageLogListingViewModel::OpenMessageLog);
+		ErrorNotification.HyperlinkText = LOCTEXT("ShowMessageLogHyperlink", "Show Message Log");
 		ErrorNotification.ExpireDuration = 8.0f; // Need this message to last a little longer than normal since the user may want to "Show Log"
 		ErrorNotification.bUseThrobber = true;
 

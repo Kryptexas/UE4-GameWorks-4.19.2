@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "PhysXSupport.h"
+#include "DynamicMeshBuilder.h"
 
 static const int32 DrawCollisionSides = 16;
 static const int32 DrawConeLimitSides = 40;
@@ -24,7 +26,7 @@ static const FColor JointLockedColor(255,128,10);
 /////////////////////////////////////////////////////////////////////////////////////
 
 // NB: ElemTM is assumed to have no scaling in it!
-void FKSphereElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color)
+void FKSphereElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const
 {
 	FVector ElemCenter = ElemTM.GetLocation();
 	FVector X = ElemTM.GetScaledAxis( EAxis::X );
@@ -36,7 +38,7 @@ void FKSphereElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 	DrawCircle(PDI,ElemCenter, Y, Z, Color, Scale*Radius, DrawCollisionSides, SDPG_World);
 }
 
-void FKSphereElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy)
+void FKSphereElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
 {
 	DrawSphere(PDI, ElemTM.GetLocation(), FVector( this->Radius * Scale ), DrawCollisionSides, DrawCollisionSides/2, MaterialRenderProxy, SDPG_World );
 }
@@ -47,7 +49,7 @@ void FKSphereElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTran
 /////////////////////////////////////////////////////////////////////////////////////
 
 // NB: ElemTM is assumed to have no scaling in it!
-void FKBoxElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color)
+void FKBoxElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const
 {
 	FVector	B[2], P, Q, Radii;
 
@@ -81,7 +83,7 @@ void FKBoxElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& Ele
 	}
 }
 
-void FKBoxElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy)
+void FKBoxElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
 {
 	DrawBox(PDI, ElemTM.ToMatrixWithScale(), 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World );
 }
@@ -104,7 +106,7 @@ static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, co
 }
 
 // NB: ElemTM is assumed to have no scaling in it!
-void FKSphylElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color)
+void FKSphylElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const
 {
 	FVector Origin = ElemTM.GetLocation();
 	FVector XAxis = ElemTM.GetScaledAxis( EAxis::X );
@@ -134,7 +136,7 @@ void FKSphylElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& E
 	PDI->DrawLine(TopEnd - Scale*Radius*YAxis, BottomEnd - Scale*Radius*YAxis, Color, SDPG_World);
 }
 
-void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy)
+void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
 {
 	const int32 NumSides = DrawCollisionSides;
 	const int32 NumRings = (DrawCollisionSides/2) + 1;
@@ -238,7 +240,7 @@ void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& 
 // FKConvexElem
 /////////////////////////////////////////////////////////////////////////////////////
 
-void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color)
+void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const
 {
 #if WITH_PHYSX
 
@@ -359,7 +361,8 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 
 void FConvexCollisionVertexBuffer::InitRHI()
 {
-	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),NULL,BUF_Static);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static, CreateInfo);
 
 	// Copy the vertex data into the vertex buffer.
 	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
@@ -369,7 +372,8 @@ void FConvexCollisionVertexBuffer::InitRHI()
 
 void FConvexCollisionIndexBuffer::InitRHI()
 {
-	IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),NULL,BUF_Static);
+	FRHIResourceCreateInfo CreateInfo;
+	IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),BUF_Static,CreateInfo);
 
 	// Write the indices to the index buffer.
 	void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
@@ -520,7 +524,6 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 				FTransform ElemTM = ConvexElems[i].GetTransform();
 				ElemTM *= Transform;
 				ConvexElems[i].DrawElemWire(PDI, ElemTM, ConvexColor);
-
 			}
 		}
 	}

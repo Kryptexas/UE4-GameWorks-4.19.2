@@ -5,6 +5,7 @@ LandscapeCollision.cpp: Landscape collision
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeRender.h"
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -12,6 +13,8 @@ LandscapeCollision.cpp: Landscape collision
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
 #include "../PhysicsEngine/PhysDerivedData.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeMeshCollisionComponent.h"
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 
@@ -264,8 +267,10 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 				HeightfieldRef = GSharedHeightfieldRefs.Add(HeightfieldGuid, new FPhysXHeightfieldRef(HeightfieldGuid));
 
 				// Create heightfield shape
-				FPhysXInputStream HeightFieldStream(CookedCollisionData.GetData(), CookedCollisionData.Num());
-				HeightfieldRef->RBHeightfield = GPhysXSDK->createHeightField(HeightFieldStream);
+				{
+					FPhysXInputStream HeightFieldStream(CookedCollisionData.GetData(), CookedCollisionData.Num());
+					HeightfieldRef->RBHeightfield = GPhysXSDK->createHeightField(HeightFieldStream);
+				}
 
 				for (UPhysicalMaterial* PhysicalMaterial : CookedPhysicalMaterials)
 				{

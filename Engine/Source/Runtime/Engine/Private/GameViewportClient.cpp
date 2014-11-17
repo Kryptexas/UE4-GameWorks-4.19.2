@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/Console.h"
+#include "GameFramework/HUD.h"
 #include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
 #include "FXSystem.h"
 #include "SubtitleManager.h"
 #include "ImageUtils.h"
-
 #include "RenderCore.h"
 #include "ColorList.h"
 #include "Slate.h"
@@ -14,8 +14,12 @@
 #include "IHeadMountedDisplay.h"
 #include "SVirtualJoystick.h"
 #include "SceneViewport.h"
-
+#include "EngineModule.h"
+#include "AudioDevice.h"
+#include "Sound/SoundWave.h"
 #include "HighResScreenshot.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
@@ -25,7 +29,7 @@ extern ENGINE_API bool GShowDebugSelectedLightmap;
 /** The currently selected component in the actor. */
 extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 /** The lightmap used by the currently selected component, if it's a static mesh component. */
-extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
+extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
@@ -37,6 +41,15 @@ TArray<FString> UGameViewportClient::EnabledStats;
 FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
 
 DEFINE_STAT(STAT_UIDrawingTime);
+
+static TAutoConsoleVariable<int32> CVarSetBlackBordersEnabled(
+	TEXT("r.BlackBorders"),
+	1,
+	TEXT("To draw black borders around the rendered image\n")
+	TEXT("(prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)\n")
+	TEXT("in pixels, 0:off"),
+	ECVF_Default);
+
 
 /**
  * Draw debug info on a game scene view.
@@ -150,6 +163,7 @@ void UGameViewportClient::BeginDestroy()
 void UGameViewportClient::DetachViewportClient()
 {
 	ViewportConsole = NULL;
+	RemoveAllViewportWidgets();
 	RemoveFromRoot();
 }
 
@@ -586,12 +600,6 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 
 void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 {
-	// Allow HMD to modify screen settings
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-	{
-		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
-	}
-
 	FCanvas* DebugCanvas = InViewport->GetDebugCanvas();
 
 	// Create a temporary canvas if there isn't already one.
@@ -604,6 +612,21 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	UCanvas* DebugCanvasObject = GetCanvasByName(DebugCanvasObjectName);
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
+
+	const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D();
+	if (bScaledToRenderTarget)
+	{
+		// Allow HMD to modify screen settings
+		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
+	}
+	if (DebugCanvas)
+	{
+		DebugCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
+	}
+	if (SceneCanvas)
+	{
+		SceneCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
+	}
 
 	bool bUIDisableWorldRendering = false;
 	FGameViewDrawer GameViewDrawer;
@@ -821,8 +844,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 		// To draw black borders around the rendered image (prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BlackBorders"));
-			int32 BlackBorders = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 10);
+			int32 BlackBorders = FMath::Clamp(CVarSetBlackBordersEnabled.GetValueOnGameThread(), 0, 10);
 
 			if(ViewFamily.Views.Num() == 1 && BlackBorders)
 			{
@@ -969,14 +991,23 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			{
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
+#if !UE_BUILD_SHIPPING
+				if (DebugCanvas != NULL && GEngine->HMDDevice.IsValid())
+				{
+					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_LEFT_EYE);
+				}
+#endif
 				DebugCanvas->PopTransform();
 
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
-				if (DebugCanvas != NULL)
+#if !UE_BUILD_SHIPPING
+				if (DebugCanvas != NULL && GEngine->HMDDevice.IsValid())
 				{
-					DebugCanvas->PopTransform();
+					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_RIGHT_EYE);
 				}
+#endif
+				DebugCanvas->PopTransform();
 
 				// Reset the canvas for rendering to the full viewport.
 				DebugCanvasObject->Reset();
@@ -1019,6 +1050,13 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		DebugCanvasObject->SizeY = Viewport->GetSizeXY().Y;
 		DebugCanvasObject->SetView(NULL);
 		DebugCanvasObject->Update();
+
+#if !UE_BUILD_SHIPPING
+		if (GEngine->HMDDevice.IsValid())
+		{
+			GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_FULL);
+		}
+#endif
 	}
 	else
 	{
@@ -1166,6 +1204,10 @@ void UGameViewportClient::PostRender(UCanvas* Canvas)
 
 	// Draw the transition screen.
 	DrawTransition(Canvas);
+
+	// Draw default web cam.  This only will draw something if a web camera is currently enabled in the live streaming settings
+	// and the user has activated it.  Also, the game may override this functionality entirely, and draw the web cam video itself.
+	IGameLiveStreaming::Get().DrawSimpleWebCamVideo( Canvas );
 }
 
 void UGameViewportClient::PeekTravelFailureMessages(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString)
@@ -1173,7 +1215,7 @@ void UGameViewportClient::PeekTravelFailureMessages(UWorld* InWorld, ETravelFail
 	UE_LOG(LogNet, Warning, TEXT("Travel Failure: [%s]: %s"), ETravelFailure::ToString(FailureType), *ErrorString);
 }
 
-void UGameViewportClient::PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+void UGameViewportClient::PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
 	UE_LOG(LogNet, Warning, TEXT("Network Failure: %s[%s]: %s"), NetDriver ? *NetDriver->NetDriverName.ToString() : TEXT("NULL"), ENetworkFailure::ToString(FailureType), *ErrorString);
 }
@@ -1820,7 +1862,7 @@ void UGameViewportClient::VerifyPathRenderingComponents()
 	const bool bShowPaths = !!EngineShowFlags.Navigation;
 
 	// make sure nav mesh has a rendering component
-	ANavigationData* NavData = GetWorld()->GetNavigationSystem() != NULL ? GetWorld()->GetNavigationSystem()->GetMainNavData(NavigationSystem::DontCreate)
+	ANavigationData* NavData = GetWorld()->GetNavigationSystem() != NULL ? GetWorld()->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
 		: NULL;
 
 	if(NavData && NavData->RenderingComp == NULL)
@@ -1850,6 +1892,10 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	else if( FParse::Command(&Cmd,TEXT("SHOW")) )
 	{
 		return HandleShowCommand( Cmd, Ar, InWorld );
+	}
+	else if( FParse::Command(&Cmd,TEXT("SHOWLAYER")) )
+	{
+		return HandleShowLayerCommand( Cmd, Ar, InWorld );
 	}
 	else if (FParse::Command(&Cmd,TEXT("VIEWMODE")))
 	{
@@ -2199,6 +2245,64 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 	return true;
 }
 
+bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	FString LayerName = FParse::Token(Cmd, 0);
+	bool bPrintValidEntries = false;
+
+	if (LayerName.IsEmpty())
+	{
+		Ar.Logf(TEXT("Missing layer name."));
+		bPrintValidEntries = true;
+	}
+	else
+	{
+		int32 NumActorsToggled = 0;
+		FName LayerFName = FName(*LayerName);
+
+		for (FActorIterator It(InWorld); It; ++It)
+		{
+			AActor* Actor = *It;
+			
+			if (Actor->Layers.Contains(LayerFName))
+			{
+				NumActorsToggled++;
+				// Note: overriding existing hidden property, ideally this would be something orthogonal
+				Actor->bHidden = !Actor->bHidden;
+
+				Actor->MarkComponentsRenderStateDirty();
+			}
+		}
+
+		Ar.Logf(TEXT("Toggled visibility of %u actors"), NumActorsToggled);
+		bPrintValidEntries = NumActorsToggled == 0;
+	}
+
+	if (bPrintValidEntries)
+	{
+		TArray<FName> LayerNames;
+
+		for (FActorIterator It(InWorld); It; ++It)
+		{
+			AActor* Actor = *It;
+
+			for (int32 LayerIndex = 0; LayerIndex < Actor->Layers.Num(); LayerIndex++)
+			{
+				LayerNames.AddUnique(Actor->Layers[LayerIndex]);
+			}
+		}
+
+		Ar.Logf(TEXT("Valid layer names:"));
+
+		for (int32 LayerIndex = 0; LayerIndex < LayerNames.Num(); LayerIndex++)
+		{
+			Ar.Logf(TEXT("   %s"), *LayerNames[LayerIndex].ToString());
+		}
+	}
+
+	return true;
+}
+
 bool UGameViewportClient::HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if !UE_BUILD_DEBUG
@@ -2399,7 +2503,12 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
+#if PLATFORM_MAC // @TODO: Fullscreen mode isn't working fully on OS X as it requires explicit CGL back-buffer size and mouse<->display coordinate conversions.
+				 // For now use the windowed fullscreen mode which merely stretches to fill the display, which is what OS X does for us by default.
+	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::WindowedFullscreen);
+#else
 	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen);
+#endif
 }
 
 bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar )

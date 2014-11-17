@@ -9,6 +9,7 @@
 
 #pragma once
 #include "SkeletalMeshTypes.h"
+#include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
 
 //
@@ -392,21 +393,21 @@ public:
 	FSkeletalMeshResource* GetSkeletalMeshResource() const;
 
 	// Begin UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface
 
 protected:
 	// Begin UActorComponent interface
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderDynamicData_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 #if 0
 	/** return true if this component requires end of frame updates to happen from the game thread. */
 	virtual bool RequiresGameThreadEndOfFrameUpdates()
@@ -416,24 +417,24 @@ protected:
 		return true;
 	}
 #endif
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual UObject const* AdditionalStatObject() const OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual UObject const* AdditionalStatObject() const override;
 	// End UActorComponent interface
 
 public:
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual bool HasAnySockets() const OVERRIDE;
-	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual bool HasAnySockets() const override;
+	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 	// End USceneComponent interface
 
 	// Begin UPrimitiveComponent interface
-	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const OVERRIDE;
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const OVERRIDE;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const OVERRIDE;
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual int32 GetNumMaterials() const override;
 	// End UPrimitiveComponent interface
 
 	/**
@@ -464,7 +465,21 @@ public:
 	 *
 	 * @param VertexIndex Vertex Index. If compressed, this will be slow. 
 	 */
-	FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
+	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
+
+	/**
+	* CPU evaluation of the positions of all vertices (returned in component space)
+	*
+	* @param OutPositions buffer to place positions into
+	*/
+	virtual void ComputeSkinnedPositions(TArray<FVector> & OutPositions) const;
+
+	/**
+	* Returns color of the vertex.
+	*
+	* @param VertexIndex Vertex Index. If compressed, this will be slow.
+	*/
+	FColor GetVertexColor(int32 VertexIndex) const;
 
 	/**
 	 * Update functions
@@ -475,8 +490,10 @@ public:
 	 * Each class will need to implement this function
 	 * Ideally this function should be atomic (not relying on Tick or any other update.) 
 	 * 
+	 * @param TickFunction Supplied as non null if we are running in a tick, allows us to create graph tasks for parallelism
+	 * 
 	 */
-	virtual void RefreshBoneTransforms() PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms,);
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms, );
 
 	/**
 	 * Tick Pose, this function ticks and do whatever it needs to do in this frame, should be called before RefreshBoneTransforms
@@ -513,7 +530,7 @@ public:
 	/** 
 	 * Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
 	 */
-	void UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims);
+	TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const;
 
 	/**
 	 * Checks/updates material usage on proxy based on current morph target usage
@@ -617,20 +634,20 @@ public:
 	// Get all socket names.
 	//
 
-	virtual TArray<FName> GetAllSocketNames() const OVERRIDE;
+	virtual TArray<FName> GetAllSocketNames() const override;
 
 	//
 	// Bone Transform.
 	//
 
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 
 	/**
 	 * @return SkeletalMeshSocket of named socket on the skeletal mesh component, or NULL if not found.
 	 */
 	class USkeletalMeshSocket const* GetSocketByName( FName InSocketName ) const;
 
-	virtual bool DoesSocketExist(FName InSocketName) const OVERRIDE;
+	virtual bool DoesSocketExist(FName InSocketName) const override;
 
 	/** 
 	 * Get Bone Matrix from index
@@ -746,7 +763,7 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	virtual class UMorphTarget* FindMorphTarget( FName MorphTargetName );
+	virtual class UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
 
 	/**	
 	 * Find all bones by name within given radius 
@@ -822,6 +839,6 @@ private:
 	/** 
 	 * Simple, CPU evaluation of a vertex's skinned position helper function
 	 */
-	template <bool bExtraBoneInfluencesT>
-	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex) const;
+	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
+	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 };

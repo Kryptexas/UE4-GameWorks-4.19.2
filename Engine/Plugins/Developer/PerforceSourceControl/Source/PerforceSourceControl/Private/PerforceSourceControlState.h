@@ -18,9 +18,6 @@ namespace EPerforceState
 		/** File is not checked out (but IS controlled by the source control system). */
 		ReadOnly		= 2,
 
-		/** File is not at the head revision - must sync the file before editing. */
-		NotCurrent		= 3,
-
 		/** File is new and not in the depot - needs to be added. */
 		NotInDepot		= 4,
 
@@ -38,42 +35,51 @@ namespace EPerforceState
 
 		/** Not under client root */
 		NotUnderClientRoot	= 9,
+
+		/** Opened for branch */
+		Branched = 10,
 	};
 }
 
 class FPerforceSourceControlState : public ISourceControlState, public TSharedFromThis<FPerforceSourceControlState, ESPMode::ThreadSafe>
 {
 public:
-	FPerforceSourceControlState( const FString& InLocalFilename, EPerforceState::Type InState = EPerforceState::DontCare)
+	FPerforceSourceControlState( const FString& InLocalFilename, EPerforceState::Type InState = EPerforceState::DontCare )
 		: LocalFilename(InLocalFilename)
 		, State(InState)
+		, DepotRevNumber(INVALID_REVISION)
+		, LocalRevNumber(INVALID_REVISION)
+		, PendingResolveRevNumber(INVALID_REVISION)
 		, bModifed(false)
 		, TimeStamp(0)
 	{
 	}
 
 	/** ISourceControlState interface */
-	virtual int32 GetHistorySize() const OVERRIDE;
-	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const OVERRIDE;
-	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const OVERRIDE;
-	virtual FName GetIconName() const OVERRIDE;
-	virtual FName GetSmallIconName() const OVERRIDE;
-	virtual FText GetDisplayName() const OVERRIDE;
-	virtual FText GetDisplayTooltip() const OVERRIDE;
-	virtual const FString& GetFilename() const OVERRIDE;
-	virtual const FDateTime& GetTimeStamp() const OVERRIDE;
-	virtual bool CanCheckout() const OVERRIDE;
-	virtual bool IsCheckedOut() const OVERRIDE;
-	virtual bool IsCheckedOutOther(FString* Who = NULL) const OVERRIDE;
-	virtual bool IsCurrent() const OVERRIDE;
-	virtual bool IsSourceControlled() const OVERRIDE;
-	virtual bool IsAdded() const OVERRIDE;
-	virtual bool IsDeleted() const OVERRIDE;
-	virtual bool IsIgnored() const OVERRIDE;
-	virtual bool CanEdit() const OVERRIDE;
-	virtual bool IsUnknown() const OVERRIDE;
-	virtual bool IsModified() const OVERRIDE;
-	virtual bool CanAdd() const OVERRIDE;
+	virtual int32 GetHistorySize() const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetBaseRevForMerge() const override;
+	virtual FName GetIconName() const override;
+	virtual FName GetSmallIconName() const override;
+	virtual FText GetDisplayName() const override;
+	virtual FText GetDisplayTooltip() const override;
+	virtual const FString& GetFilename() const override;
+	virtual const FDateTime& GetTimeStamp() const override;
+	virtual bool CanCheckIn() const override;
+	virtual bool CanCheckout() const override;
+	virtual bool IsCheckedOut() const override;
+	virtual bool IsCheckedOutOther(FString* Who = NULL) const override;
+	virtual bool IsCurrent() const override;
+	virtual bool IsSourceControlled() const override;
+	virtual bool IsAdded() const override;
+	virtual bool IsDeleted() const override;
+	virtual bool IsIgnored() const override;
+	virtual bool CanEdit() const override;
+	virtual bool IsUnknown() const override;
+	virtual bool IsModified() const override;
+	virtual bool CanAdd() const override;
+	virtual bool IsConflicted() const override;
 
 	/** Get the state of a file */
 	EPerforceState::Type GetState() const
@@ -102,6 +108,15 @@ public:
 
 	/** Status of the file */
 	EPerforceState::Type State;
+
+	/** Latest revision number of the file in the depot */
+	int DepotRevNumber;
+
+	/** Latest rev number at which a file was synced to before being edited */
+	int LocalRevNumber;
+
+	/** Pending rev number with which a file must be resolved, INVALID_REVISION if no resolve pending */
+	int PendingResolveRevNumber;
 
 	/** Modified from depot version */
 	bool bModifed;

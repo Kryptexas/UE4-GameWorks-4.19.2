@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
+#include "Engine/BrushShape.h"
+#include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "BSPOps.h"
 #include "GeomTools.h"
@@ -11,7 +13,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.GeomModifier"
 
-static FVector ComputeWorldSpaceMousePos( FLevelEditorViewportClient* ViewportClient )
+static FVector ComputeWorldSpaceMousePos( FEditorViewportClient* ViewportClient )
 {
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		ViewportClient->Viewport,
@@ -42,14 +44,14 @@ void UGeomModifier::Initialize()
 {
 }
 
-bool UGeomModifier::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool UGeomModifier::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	return false;
 }
 
-bool UGeomModifier::InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
+bool UGeomModifier::InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
 {
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		if( !bInitialized )
 		{
@@ -65,7 +67,7 @@ bool UGeomModifier::InputDelta(FLevelEditorViewportClient* InViewportClient,FVie
 bool UGeomModifier::Apply()
 {
 	bool bResult = false;
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		StartTrans();
 		bResult = OnApply();
@@ -112,15 +114,15 @@ void UGeomModifier::Render(const FSceneView* View,FViewport* Viewport,FPrimitive
 {
 }
 
-void UGeomModifier::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void UGeomModifier::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 }
 
 
 void UGeomModifier::CacheBrushState()
 {
-	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 	if( !CachedPolys )
 	{
 		//Create the list of polys
@@ -149,8 +151,8 @@ void UGeomModifier::CacheBrushState()
 
 void UGeomModifier::RestoreBrushState()
 {
-	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	//Remove all of the current polys
 	BuilderBrush->Brush->Polys->Element.Empty();
@@ -179,7 +181,7 @@ void UGeomModifier::RestoreBrushState()
 
 bool UGeomModifier::DoEdgesOverlap()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	//Loop through all of the geometry objects
 	for( FEdModeGeometry::TGeomObjectIterator itor( mode->GeomObjectItor() ) ; itor ; ++itor )
@@ -274,7 +276,7 @@ namespace {
 
 void UGeomModifier::StartTrans()
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return;
 	}
@@ -285,7 +287,7 @@ void UGeomModifier::StartTrans()
 	BeginTransaction( FText::Format( NSLOCTEXT("UnrealEd", "Modifier_F", "Modifier [{0}]"), GetModifierDescription() ) );
 
 	// Mark all selected brushes as modified.
-	FEdModeGeometry* CurMode = static_cast<FEdModeGeometry*>( GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
+	FEdModeGeometry* CurMode = static_cast<FEdModeGeometry*>( GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
 	for( FEdModeGeometry::TGeomObjectIterator Itor( CurMode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
 		FGeomObject* go = *Itor;
@@ -344,12 +346,12 @@ void UGeomModifier::StoreCurrentGeomSelections( TArray<struct FGeomSelection>& S
 
 void UGeomModifier::StoreAllCurrentGeomSelections()
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return;
 	}
 
-	FEdModeGeometry* CurMode = static_cast<FEdModeGeometry*>( GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
+	FEdModeGeometry* CurMode = static_cast<FEdModeGeometry*>( GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
 
 	// Record the current selection list into the selected brushes.
 	for( FEdModeGeometry::TGeomObjectIterator Itor( CurMode->GeomObjectItor() ) ; Itor ; ++Itor )
@@ -371,19 +373,19 @@ UGeomModifier_Edit::UGeomModifier_Edit(const class FPostConstructInitializePrope
 }
 
 
-bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
+bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
 {
 	if( UGeomModifier::InputDelta( InViewportClient, InViewport, InDrag, InRot, InScale ) )
 	{
 		return true;
 	}
 
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return false;
 	}
 
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	FModeTool_GeometryModify* tool = (FModeTool_GeometryModify*)mode->GetCurrentTool();
 
 	TArray<FGeomVertex*> UniqueVertexList;
@@ -514,9 +516,9 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 
 			FVector Wk( vtx->X, vtx->Y, vtx->Z );
 			Wk = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().TransformPosition( Wk );
-			Wk -= GEditorModeTools().PivotLocation;
+			Wk -= GLevelEditorModeTools().PivotLocation;
 			Wk = matrix.TransformPosition( Wk );
-			Wk += GEditorModeTools().PivotLocation;
+			Wk += GLevelEditorModeTools().PivotLocation;
 			*vtx = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().InverseTransformPosition( Wk );
 		}
 
@@ -534,7 +536,7 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 
 			// Move vert to the origin
 
-			Wk -= GEditorModeTools().PivotLocation;
+			Wk -= GLevelEditorModeTools().PivotLocation;
 
 			// Move it along each axis based on it's distance from the origin
 
@@ -558,7 +560,7 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 
 			// Move it back into world space
 
-			Wk += GEditorModeTools().PivotLocation;
+			Wk += GLevelEditorModeTools().PivotLocation;
 
 			*vtx = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().InverseTransformPosition( Wk );
 		}
@@ -573,8 +575,8 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 			*vtx -= vertOffset;
 		}
 		
-		GEditorModeTools().PivotLocation -= vertOffset;
-		GEditorModeTools().SnappedLocation -= vertOffset;
+		GLevelEditorModeTools().PivotLocation -= vertOffset;
+		GLevelEditorModeTools().SnappedLocation -= vertOffset;
 	}
 
 	const bool bIsCtrlPressed = InViewportClient->IsCtrlPressed();
@@ -614,7 +616,7 @@ UGeomModifier_Extrude::UGeomModifier_Extrude(const class FPostConstructInitializ
 
 bool UGeomModifier_Extrude::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->HavePolygonsSelected();
 }
 
@@ -623,7 +625,7 @@ void UGeomModifier_Extrude::WasActivated()
 	// Extrude requires a local coordinate system to work properly so automatically enable
 	// that here while saving the current coordinate system for restoration later.
 	const bool bGetRawValue = true;
-	SaveCoordSystem = GEditorModeTools().GetCoordSystem(bGetRawValue);
+	SaveCoordSystem = GLevelEditorModeTools().GetCoordSystem(bGetRawValue);
 	
 	CheckCoordinatesMode();
 
@@ -633,7 +635,7 @@ void UGeomModifier_Extrude::WasActivated()
 void UGeomModifier_Extrude::WasDeactivated()
 {
 	// When the user leaves this modifier, restore their old coordinate system.
-	GEditorModeTools().SetCoordSystem((ECoordSystem)SaveCoordSystem);
+	GLevelEditorModeTools().SetCoordSystem((ECoordSystem)SaveCoordSystem);
 
 	GEditor->RedrawLevelEditingViewports(true);
 }
@@ -641,14 +643,14 @@ void UGeomModifier_Extrude::WasDeactivated()
 void UGeomModifier_Extrude::CheckCoordinatesMode() 
 {
 	const bool bGetRawValue = true;	
-	if( GEditorModeTools().GetCoordSystem(bGetRawValue) != COORD_Local )
+	if( GLevelEditorModeTools().GetCoordSystem(bGetRawValue) != COORD_Local )
 	{
 		FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("ExtrudeCoordinateWarningBody","Extrude only works with Local Coordinates System"), LOCTEXT("ExtrudeCoordinateWarningTitle","Extrude Coordinates Mode Warning"), "ExtrudeCoordsWarning" );
 		Info.ConfirmText = LOCTEXT( "Close", "Close");
 
 		FSuppressableWarningDialog WarnAboutCoordinatesSystem( Info );
 		WarnAboutCoordinatesSystem.ShowModal();			
-		GEditorModeTools().SetCoordSystem(COORD_Local);
+		GLevelEditorModeTools().SetCoordSystem(COORD_Local);
 	}
 }
 
@@ -663,18 +665,18 @@ void UGeomModifier_Extrude::Initialize()
 
 bool UGeomModifier_Extrude::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// When applying via the keyboard, we force the local coordinate system.
 	const bool bGetRawValue = true;
-	const ECoordSystem SaveCS = GEditorModeTools().GetCoordSystem(bGetRawValue);
-	GEditorModeTools().SetCoordSystem(COORD_Local);
+	const ECoordSystem SaveCS = GLevelEditorModeTools().GetCoordSystem(bGetRawValue);
+	GLevelEditorModeTools().SetCoordSystem(COORD_Local);
 
 	//GApp->DlgGeometryTools->PropertyWindow->FinalizeValues();
 	Apply( Length, Segments );
 
 	// Restore the coordinate system.
-	GEditorModeTools().SetCoordSystem(SaveCS);
+	GLevelEditorModeTools().SetCoordSystem(SaveCS);
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
@@ -720,12 +722,12 @@ void ExtrudePolygonGroup( ABrush* InBrush, FVector InGroupNormal, int32 InStartO
 
 void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return;
 	}
 
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// Force user input to be valid
 
@@ -870,7 +872,7 @@ void UGeomModifier_Lathe::Initialize()
 
 bool UGeomModifier_Lathe::OnApply()
 {
-	//FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetCurrentMode();
+	//FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetCurrentMode();
 
 	//GApp->DlgGeometryTools->PropertyWindow->FinalizeValues();
 	Apply( TotalSegments, Segments, Axis );
@@ -882,7 +884,7 @@ bool UGeomModifier_Lathe::OnApply()
 
 void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis::Type InAxis )
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return;
 	}
@@ -912,7 +914,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 			break;
 	}
 
-	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	InTotalSegments = FMath::Max( 3, InTotalSegments );
 	InSegments = FMath::Max( 1, InSegments );
@@ -924,7 +926,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 	// We will be replacing the builder brush, so get it prepped.
 
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	BuilderBrush->SetActorLocation(GeomMode->GetWidgetLocation(), false);
 	BuilderBrush->SetPrePivot(FVector::ZeroVector);
@@ -1197,9 +1199,9 @@ void UGeomModifier_Pen::Apply()
 {
 	if( ShapeVertices.Num() > 2 )
 	{
-		FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-		ABrush* ResultingBrush = GeomMode->GetWorld()->GetBrush();
-		ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+		FEdModeGeometry* GeomMode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+		ABrush* ResultingBrush = GeomMode->GetWorld()->GetDefaultBrush();
+		ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 		// Move all the vertices that the user placed to the same "height" as the builder brush, based on
 		// viewport orientation.  This is preferable to always creating the new builder brush at height zero.
@@ -1378,7 +1380,7 @@ void UGeomModifier_Pen::Apply()
 
 		ShapeVertices.Empty();
 
-		FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+		FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 		mode->FinalizeSourceData();
 		mode->GetFromSource();
@@ -1400,7 +1402,7 @@ void UGeomModifier_Pen::Apply()
 /**
 * @return		true if the key was handled by this editor mode tool.
 */
-bool UGeomModifier_Pen::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool UGeomModifier_Pen::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	bool bResult = false;
 #if WITH_EDITORONLY_DATA
@@ -1460,7 +1462,7 @@ bool UGeomModifier_Pen::InputKey(FLevelEditorViewportClient* ViewportClient, FVi
 
 void UGeomModifier_Pen::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI)
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	FModeTool_GeometryModify* tool = (FModeTool_GeometryModify*)mode->GetCurrentTool();
 	if( tool->GetCurrentModifier() != this )
 	{
@@ -1469,7 +1471,7 @@ void UGeomModifier_Pen::Render(const FSceneView* View,FViewport* Viewport,FPrimi
 
 	// Only draw in ortho viewports
 
-	if( !((FLevelEditorViewportClient*)(Viewport->GetClient()))->IsOrtho() )
+	if( !((FEditorViewportClient*)(Viewport->GetClient()))->IsOrtho() )
 	{
 		return;
 	}
@@ -1511,11 +1513,11 @@ void UGeomModifier_Pen::Render(const FSceneView* View,FViewport* Viewport,FPrimi
 	DrawWireBox(PDI, FBox::BuildAABB( MouseWorldSpacePos, FVector(BoxSz,BoxSz,BoxSz) ), FLinearColor(1,1,1), SDPG_Foreground);
 }
 
-void UGeomModifier_Pen::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void UGeomModifier_Pen::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 }
 
-void UGeomModifier_Pen::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void UGeomModifier_Pen::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	if( GCurrentLevelEditingViewportClient == ViewportClient )
 	{
@@ -1784,7 +1786,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	}
 
 	// Move the new brush to where the new brush was to preserve brush ordering.
-	ABrush* BuilderBrush = World->GetBrush();
+	ABrush* BuilderBrush = World->GetDefaultBrush();
 	if( InBrush == BuilderBrush )
 	{
 		// Special-case behavior for the builder brush.
@@ -1829,7 +1831,7 @@ void UGeomModifier_Clip::WasActivated()
 
 bool UGeomModifier_Clip::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->GetSelectionState() ? false : true;
 }
 
@@ -2009,12 +2011,12 @@ void UGeomModifier_Clip::ApplyClip( bool InSplit, bool InFlipNormal )
 		GEditor->NoteSelectionChange();
 	}
 
-	FEdModeGeometry* Mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	Mode->FinalizeSourceData();
 	Mode->GetFromSource();
 }
 
-bool UGeomModifier_Clip::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool UGeomModifier_Clip::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	bool bResult = false;
 
@@ -2084,7 +2086,7 @@ bool UGeomModifier_Clip::InputKey(FLevelEditorViewportClient* ViewportClient, FV
 
 void UGeomModifier_Clip::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI)
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	FModeTool_GeometryModify* tool = (FModeTool_GeometryModify*)mode->GetCurrentTool();
 	if( tool->GetCurrentModifier() != this )
 	{
@@ -2093,7 +2095,7 @@ void UGeomModifier_Clip::Render(const FSceneView* View,FViewport* Viewport,FPrim
 
 	// Only draw in ortho viewports
 
-	if( !((FLevelEditorViewportClient*)(Viewport->GetClient()))->IsOrtho() )
+	if( !((FEditorViewportClient*)(Viewport->GetClient()))->IsOrtho() )
 	{
 		return;
 	}
@@ -2132,7 +2134,7 @@ void UGeomModifier_Clip::Render(const FSceneView* View,FViewport* Viewport,FPrim
 
 		vtx3 = vtx1;
 
-		const FLevelEditorViewportClient* ViewportClient = static_cast<FLevelEditorViewportClient*>( Viewport->GetClient() );
+		const FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>( Viewport->GetClient() );
 		switch( ViewportClient->ViewportType )
 		{
 			case LVT_OrthoXY:
@@ -2173,11 +2175,11 @@ void UGeomModifier_Clip::Render(const FSceneView* View,FViewport* Viewport,FPrim
 	DrawWireBox(PDI, FBox::BuildAABB( SnappedMouseWorldSpacePos, FVector(BoxSz,BoxSz,BoxSz) ), FLinearColor(1,1,1), SDPG_Foreground);
 }
 
-void UGeomModifier_Clip::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void UGeomModifier_Clip::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 }
 
-void UGeomModifier_Clip::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void UGeomModifier_Clip::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	if( GCurrentLevelEditingViewportClient == ViewportClient )
 	{
@@ -2204,14 +2206,14 @@ UGeomModifier_Delete::UGeomModifier_Delete(const class FPostConstructInitializeP
 
 bool UGeomModifier_Delete::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return (mode->HavePolygonsSelected() || mode->HaveVerticesSelected());
 }
 
 
 bool UGeomModifier_Delete::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	bool bHandled = false;
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
@@ -2272,7 +2274,7 @@ bool UGeomModifier_Delete::OnApply()
 
 	if(SelectedActor)
 	{
-		FEditorModeTools& Tools = GEditorModeTools();
+		FEditorModeTools& Tools = GLevelEditorModeTools();
 		Tools.SetPivotLocation( SelectedActor->GetActorLocation() , false );
 	}
 	
@@ -2288,13 +2290,13 @@ UGeomModifier_Create::UGeomModifier_Create(const class FPostConstructInitializeP
 
 bool UGeomModifier_Create::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->HaveVerticesSelected();
 }
 
 bool UGeomModifier_Create::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
@@ -2354,13 +2356,13 @@ bool UGeomModifier_Flip::Supports()
 {
 	// Supports polygons selected and objects selected
 
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return (!mode->HaveEdgesSelected() && !mode->HaveVerticesSelected());
 }
 
 bool UGeomModifier_Flip::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	bool bHavePolygonsSelected = mode->HavePolygonsSelected();
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
@@ -2396,7 +2398,7 @@ UGeomModifier_Split::UGeomModifier_Split(const class FPostConstructInitializePro
 
 bool UGeomModifier_Split::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// This modifier assumes that a single geometry object is selected
 
@@ -2423,7 +2425,7 @@ bool UGeomModifier_Split::Supports()
 
 bool UGeomModifier_Split::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// Get a pointer to the selected geom object
 
@@ -2766,13 +2768,13 @@ UGeomModifier_Triangulate::UGeomModifier_Triangulate(const class FPostConstructI
 
 bool UGeomModifier_Triangulate::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return (!mode->HaveEdgesSelected() && !mode->HaveVerticesSelected());
 }
 
 bool UGeomModifier_Triangulate::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	bool bHavePolygonsSelected = mode->HavePolygonsSelected();
 
 	// Mark the selected polygons so we can find them in the next loop, and create
@@ -2837,14 +2839,14 @@ UGeomModifier_Optimize::UGeomModifier_Optimize(const class FPostConstructInitial
 
 bool UGeomModifier_Optimize::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return !mode->HaveVerticesSelected() && !mode->HaveEdgesSelected();
 }
 
 
 bool UGeomModifier_Optimize::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	TArray<FPoly> Polygons;
 
@@ -2924,13 +2926,13 @@ UGeomModifier_Turn::UGeomModifier_Turn(const class FPostConstructInitializePrope
 
 bool UGeomModifier_Turn::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->HaveEdgesSelected();
 }
 
 bool UGeomModifier_Turn::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// Edges
 
@@ -3085,13 +3087,13 @@ UGeomModifier_Weld::UGeomModifier_Weld(const class FPostConstructInitializePrope
 
 bool UGeomModifier_Weld::Supports()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return (mode->HaveVerticesSelected() && !mode->HaveEdgesSelected() && !mode->HavePolygonsSelected());
 }
 
 bool UGeomModifier_Weld::OnApply()
 {
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	// Verts
 
@@ -3144,7 +3146,7 @@ bool UGeomModifier_Weld::OnApply()
 		int32 res = go->SetPivotFromSelectionArray( Actor->SavedSelections );
 		if( res == INDEX_NONE )
 		{
-			FEditorModeTools& Tools = GEditorModeTools();
+			FEditorModeTools& Tools = GLevelEditorModeTools();
 			Tools.SetPivotLocation( Actor->GetActorLocation() , false );
 		}
 		go->ForceLastSelectionIndex( res );

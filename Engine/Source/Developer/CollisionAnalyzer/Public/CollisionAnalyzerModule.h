@@ -10,8 +10,8 @@ class FCollisionAnalyzerModule : public IModuleInterface
 {
 public:
 	// Begin IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface
 
 	/** Gets the debugger singleton or returns NULL */

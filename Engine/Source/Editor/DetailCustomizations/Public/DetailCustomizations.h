@@ -22,12 +22,14 @@ public:
 	 *
 	 * @return	Whether the module supports shutdown separate from the rest of the engine.
 	 */
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
 
 private:
+	void RegisterPropertyTypeCustomizations();
+	void RegisterObjectCustomizations();
 
 	/**
 	 * Registers a custom class
@@ -35,7 +37,7 @@ private:
 	 * @param ClassName				The class name to register for property customization
 	 * @param DetailLayoutDelegate	The delegate to call to get the custom detail layout instance
 	 */
-	void RegisterCustomPropertyLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
+	void RegisterCustomClassLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 
 	/**
 	* Registers a custom struct
@@ -43,10 +45,9 @@ private:
 	* @param StructName				The name of the struct to register for property customization
 	* @param StructLayoutDelegate	The delegate to call to get the custom detail layout instance
 	*/
-	void RegisterStructPropertyLayout(FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate);
-
+	void RegisterCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate );
 private:
 	/** List of registered class that we must unregister when the module shuts down */
 	TSet< FName > RegisteredClassNames;
-	TSet< FName > RegisteredStructs;
+	TSet< FName > RegisteredPropertyTypes;
 };

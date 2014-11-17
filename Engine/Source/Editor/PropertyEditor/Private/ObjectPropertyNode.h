@@ -11,19 +11,19 @@
 typedef TArray< TWeakObjectPtr<UObject> >::TIterator TPropObjectIterator;
 typedef TArray< TWeakObjectPtr<UObject> >::TConstIterator TPropObjectConstIterator;
 
-class FObjectPropertyNode : public FPropertyNode
+class FObjectPropertyNode : public FComplexPropertyNode
 {
 public:
 	FObjectPropertyNode();
 	virtual ~FObjectPropertyNode();
 
 	/** FPropertyNode Interface */
-	virtual FObjectPropertyNode* AsObjectNode() OVERRIDE { return this;}
-	virtual const FObjectPropertyNode* AsObjectNode() const OVERRIDE { return this; }
-	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData& OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const OVERRIDE;
-	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const OVERRIDE;
+	virtual FObjectPropertyNode* AsObjectNode() override { return this;}
+	virtual const FObjectPropertyNode* AsObjectNode() const override { return this; }
+	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData& OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const override;
+	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const override;
 
-	virtual uint8* GetValueBaseAddress( uint8* Base ) OVERRIDE;
+	virtual uint8* GetValueBaseAddress( uint8* Base ) override;
 
 	/**
 	 * Returns the UObject at index "n" of the Objects Array
@@ -61,6 +61,26 @@ public:
 	/** @return		The base-est baseclass for objects in this list. */
 	const UClass*	GetObjectBaseClass() const { return BaseClass.IsValid() ? BaseClass.Get() : NULL; }
 
+
+	// FComplexPropertyNode implementation
+	virtual UStruct* GetBaseStructure() override { return GetObjectBaseClass(); }
+	virtual const UStruct* GetBaseStructure() const override{ return GetObjectBaseClass(); }
+	virtual int32 GetInstancesNum() const override{ return GetNumObjects(); }
+	virtual uint8* GetMemoryOfInstance(int32 Index)
+	{
+		return (uint8*)GetUObject(Index);
+	}
+	virtual TWeakObjectPtr<UObject> GetInstanceAsUObject(int32 Index) override
+	{
+		check(Objects.IsValidIndex(Index));
+		return Objects[Index];
+	}
+	virtual EPropertyType GetPropertyType() const override{ return EPT_Object; }
+	virtual void Disconnect() override 
+	{
+		RemoveAllObjects();
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	/** @return		The property stored at this node, to be passed to Pre/PostEditChange. */
 	virtual UProperty*		GetStoredProperty()		{ return StoredProperty.IsValid() ? StoredProperty.Get() : NULL; }
@@ -79,9 +99,9 @@ public:
 
 protected:
 	/** FPropertyNode interface */
-	virtual void InitBeforeNodeFlags() OVERRIDE;
-	virtual void InitChildNodes() OVERRIDE;
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const OVERRIDE;
+	virtual void InitBeforeNodeFlags() override;
+	virtual void InitChildNodes() override;
+	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const override;
 
 	/**
 	 * Looks at the Objects array and creates the best base class.  Called by

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightmapData.cpp: Lightmap data implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Exporter.h"
 #include "LightmassSwarm.h"

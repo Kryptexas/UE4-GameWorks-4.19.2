@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpGroupInst.h"
 #include "InterpGroupInstDirector.generated.h"
 
 UCLASS(MinimalAPI)

@@ -7,8 +7,18 @@
 class UBlueprint;
 class UEdGraph;
 class UEdGraphNode;
+class UEdGraphSchema;
 class UEdGraphPin;
 class SGraphNode;
+
+/** Enum used to define which way data flows into or out of this pin */
+UENUM()
+enum EEdGraphPinDirection
+{
+	EGPD_Input,
+	EGPD_Output,
+	EGPD_MAX,
+};
 
 /** Enum to indicate what sort of title we want */
 UENUM()
@@ -128,7 +138,7 @@ private:
 public:
 	// UObject interface
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End of UObject interface
 
 	/** widget representing this node if exists */
@@ -154,6 +164,9 @@ public:
 
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
+
+	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
+	virtual bool AllowSplitPins() const { return false; }
 
 	/** Gets the overridden name for the specified pin, if any */
 	virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const { return FString(TEXT("")); }
@@ -200,15 +213,7 @@ public:
 	}
 
 	/** Returns the graph that contains this node */
-	class UEdGraph* GetGraph() const
-	{
-		UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
-		if(Graph == NULL)
-		{
-			ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
-		}
-		return Graph;
-	}
+	class UEdGraph* GetGraph() const;
 
 	/**
 	 * Allocate default pins for a given node, based only the NodeType, which should already be filled in.
@@ -248,13 +253,6 @@ public:
 	/** Gets the name of this node, shown in title bar */
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
 	
-	/** Gets the name of this node in the native language. This should always be overridden when a node's title is built from concatenation
-		By default this will return the source string from GetNodeTitle, which is not guaranteed to be correct */
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const;
-
-	/** Gets the searchable metadata of this node */
-	virtual FText GetNodeSearchTitle() const;
-
 	/** 
 	 * Gets the draw color of a node's title bar
 	 */
@@ -321,7 +319,7 @@ public:
 	virtual void NodeConnectionListChanged() {}
 
 	/** Shorthand way to access the schema of the graph that owns this node */
-	const class UEdGraphSchema* GetSchema() const;
+	const UEdGraphSchema* GetSchema() const;
 
 	/** Whether or not this node can be safely duplicated (via copy/paste, etc...) in the graph */
 	virtual bool CanDuplicateNode() const;
@@ -372,6 +370,12 @@ public:
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 
+	/**
+	 * Add's node data to the search metadata, override to collect more data that may be desirable to search for
+	 *
+	 * @param OutTaggedMetaData		Built array of tagged meta data for the node
+	 */
+	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const;
 #endif // WITH_EDITOR
 
 };

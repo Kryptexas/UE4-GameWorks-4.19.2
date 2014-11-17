@@ -1,15 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AVIHandler.h: Declares the AVI handling functions.
-=============================================================================*/
-
 #pragma once
 
 
 /**
  * Given a series of JPEG compressed images, this will wrap them with an AVI header
- * and write them out as a Motion JPEG avi video.
+ * and write them out as a Motion JPEG AVI video.
+ *
  * @param CompressedFrames	An ordered array of JPEG images
  * @param OutputPath		The path with which to dump out the video
  * @param Width				The width of the images

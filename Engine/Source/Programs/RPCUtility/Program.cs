@@ -300,7 +300,7 @@ namespace RPCUtility
 			foreach (string Pair in CopyCommands)
 			{
 				// each pair is a local and remote filename
-				string[] Filenames = Pair.Split(" ".ToCharArray());
+				string[] Filenames = Pair.Split(";".ToCharArray());
 				if (Filenames.Length == 2)
 				{
 					FileInfo Info = new FileInfo(Filenames[0]);

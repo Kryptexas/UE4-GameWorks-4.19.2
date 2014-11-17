@@ -133,10 +133,10 @@ public:
 	virtual void OnRep_UniqueId();
 
 	// Begin AActor Interface
-	virtual void PostInitializeComponents() OVERRIDE; 
-	virtual void Destroyed() OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual FString GetHumanReadableName() const OVERRIDE;
+	virtual void PostInitializeComponents() override; 
+	virtual void Destroyed() override;
+	virtual void Reset() override;
+	virtual FString GetHumanReadableName() const override;
 	// End AActor Interface
 
 

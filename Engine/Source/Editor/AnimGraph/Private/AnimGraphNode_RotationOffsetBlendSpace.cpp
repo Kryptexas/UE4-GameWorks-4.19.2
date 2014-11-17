@@ -37,22 +37,6 @@ FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type
 	}
 }
 
-FString UAnimGraphNode_RotationOffsetBlendSpace::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
-
-	if (TitleType == ENodeTitleType::ListView)
-	{
-		return FString::Printf(TEXT("AimOffset '%s'"), *BlendSpaceName);
-	}
-	else
-	{
-		return FString::Printf(TEXT("%s\nAimOffset"), *BlendSpaceName);
-	}
-}
-
 void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const bool bWantAimOffsets = true;

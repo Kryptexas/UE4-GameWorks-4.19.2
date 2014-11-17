@@ -5,6 +5,8 @@
 #include "BodySetup.generated.h"
 
 struct FDynamicMeshVertex;
+class FMaterialRenderProxy;
+class FPrimitiveDrawInterface;
 
 namespace physx
 {
@@ -78,7 +80,7 @@ struct FKConvexElem
 		, ConvexMeshNegX(NULL)
 		{}
 
-		ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const;
 		void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
 
 		/** Reset the hull to empty all arrays */
@@ -88,7 +90,7 @@ struct FKConvexElem
 		ENGINE_API void	UpdateElemBox();
 
 		/** Calculate a bounding box for this convex element with the specified transform and scale */
-		FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D);		
+	ENGINE_API FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D) const;
 
 		/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
 		bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
@@ -109,6 +111,7 @@ struct FKConvexElem
 
 		friend FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem);
 	
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Sphere shape used for collision */
@@ -154,11 +157,19 @@ struct FKSphereElem
 		return FTransform( Center );
 	};
 
+	void SetTransform(const FTransform& InTransform)
+	{
+		ensure(InTransform.IsValid());
+		Center = InTransform.GetLocation();
+	}
+
 	FORCEINLINE float GetVolume(const FVector& Scale) const { return 1.3333f * PI * FMath::Pow(Radius * Scale.GetMin(), 3); }
 	
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Box shape used for collision */
@@ -238,9 +249,11 @@ struct FKBoxElem
 
 	FORCEINLINE float GetVolume(const FVector& Scale) const { float MinScale = Scale.GetMin(); return (X * MinScale) * (Y * MinScale) * (Z * MinScale); }
 
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Capsule shape used for collision */
@@ -308,9 +321,11 @@ struct FKSphylElem
 
 	FORCEINLINE float GetVolume(const FVector& Scale) const { float ScaledRadius = Radius * Scale.GetMin(); return PI * FMath::Square(ScaledRadius) * ( 1.3333f * ScaledRadius + (Length * Scale.GetMin())); }
 
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Container for an aggregate of collision shapes */
@@ -362,7 +377,7 @@ struct ENGINE_API FKAggregateGeom
 	/** Release the RenderInfo (if its there) and safely clean up any resources. Call on the game thread. */
 	void FreeRenderInfo();
 
-	FBox CalcAABB(const FTransform& Transform);
+	FBox CalcAABB(const FTransform& Transform) const;
 
 	/**
 		* Calculates a tight box-sphere bounds for the aggregate geometry; this is more expensive than CalcAABB
@@ -371,13 +386,13 @@ struct ENGINE_API FKAggregateGeom
 		* @param Output The output box-sphere bounds calculated for this set of aggregate geometry
 		*	@param LocalToWorld Transform
 		*/
-	void CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld);
+	void CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld) const;
 
 	/** Returns the volume of this element */
-	float GetVolume(const FVector& Scale) const;
+	float GetVolume(const FVector& Scale3D) const;
 };
 
-UCLASS(hidecategories=Object, MinimalAPI, dependson=BodyInstance)
+UCLASS(hidecategories=Object, MinimalAPI)
 class UBodySetup : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -417,6 +432,13 @@ class UBodySetup : public UObject
 	UPROPERTY(Transient)
 	uint32 bMeshCollideAll:1;
 
+	/**
+	*	If true, the physics triangle mesh will use double sided faces when doing scene queries.
+	*	This is useful for planes and single sided meshes that need traces to work on both sides.
+	*/
+	UPROPERTY(EditAnywhere, Category=Physics)
+	uint32 bDoubleSidedGeometry : 1;
+
 	/**	Should we generate data necessary to support collision on normal (non-mirrored) versions of this body. */
 	UPROPERTY()
 	uint32 bGenerateNonMirroredCollision:1;
@@ -454,70 +476,78 @@ class UBodySetup : public UObject
 	/** Build scale for this body setup (static mesh settings define this value) */
 	UPROPERTY()
 	FVector BuildScale3D;
-public:
+
 	/** GUID used to uniquely identify this setup so it can be found in the DDC */
-	FGuid						BodySetupGuid;
+	FGuid BodySetupGuid;
 
 	/** Cooked physics data for each format */
-	FFormatContainer			CookedFormatData;
+	FFormatContainer CookedFormatData;
 
+#if WITH_PHYSX
 	/** Physics triangle mesh, created from cooked data in CreatePhysicsMeshes */
-	physx::PxTriangleMesh*		TriMesh;
+	physx::PxTriangleMesh* TriMesh;
 
 	/** Physics triangle mesh, flipped across X, created from cooked data in CreatePhysicsMeshes */
-	physx::PxTriangleMesh*		TriMeshNegX;
+	physx::PxTriangleMesh* TriMeshNegX;
+#endif
 
 	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */
-	bool						bCreatedPhysicsMeshes;
+	bool bCreatedPhysicsMeshes;
 
 	/** Indicates whether this setup has any cooked collision data. */
-	bool						bHasCookedCollisionData;
+	bool bHasCookedCollisionData;
 
+public:
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual void PostLoad() override;
+	virtual void PostInitProperties() override;
+#if WITH_EDITOR
+	virtual void PostEditUndo() override;
+#endif // WITH_EDITOR
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface.
 
 	//
 	// UBodySetup interface.
 	//
-	ENGINE_API void			CopyBodyPropertiesFrom(class UBodySetup* FromSetup);
+	ENGINE_API void CopyBodyPropertiesFrom(class UBodySetup* FromSetup);
 
 	/** Add collision shapes from another body setup to this one */
-	ENGINE_API void			AddCollisionFrom(class UBodySetup* FromSetup);
+	ENGINE_API void AddCollisionFrom(class UBodySetup* FromSetup);
 
 
 	/** Create Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) from cooked data */
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX). Must be called before the BodySetup is destroyed */
-	ENGINE_API void			CreatePhysicsMeshes();
+	ENGINE_API virtual void CreatePhysicsMeshes();
 
+	/** Returns the volume of this element */
+	ENGINE_API virtual float GetVolume(const FVector& Scale) const;
 
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) */
-	ENGINE_API void			ClearPhysicsMeshes();
+	ENGINE_API void ClearPhysicsMeshes();
 
 	/** Calculates the mass. You can pass in the component where additional information is pulled from ( Scale, PhysMaterialOverride ) */
-	ENGINE_API float		CalculateMass(const UPrimitiveComponent* Component = NULL);
+	ENGINE_API virtual float CalculateMass(const UPrimitiveComponent* Component = nullptr) const;
 
 	/** Returns the physics material used for this body. If none, specified, returns the default engine material. */
-	class UPhysicalMaterial* GetPhysMaterial() const;
+	ENGINE_API class UPhysicalMaterial* GetPhysMaterial() const;
 
 #if WITH_EDITOR
 	/** Clear all simple collision */
-	ENGINE_API void			RemoveSimpleCollision();
+	ENGINE_API void RemoveSimpleCollision();
 
 	/** 
 	 * Rescales simple collision geometry.  Note you must recreate physics meshes after this 
 	 *
 	 * @param BuildScale	The scale to apply to the geometry
 	 */
-	ENGINE_API void			RescaleSimpleCollision( FVector BuildScale );
+	ENGINE_API void RescaleSimpleCollision( FVector BuildScale );
 
 	/** Invalidate physics data */
-	ENGINE_API void			InvalidatePhysicsData();	
+	ENGINE_API virtual void	InvalidatePhysicsData();	
 
 	/**
 	 * Converts a UModel to a set of convex hulls for simplified collision.  Any convex elements already in
@@ -528,8 +558,16 @@ public:
 	 * @param		bRemoveExisting			If true, clears any pre-existing collision
 	 * @return								true on success, false on failure because of vertex count overflow.
 	 */
-	ENGINE_API void			CreateFromModel(class UModel* InModel, bool bRemoveExisting);
+	ENGINE_API void CreateFromModel(class UModel* InModel, bool bRemoveExisting);
+
 #endif // WITH_EDITOR
+
+	/**
+	 * Converts the skinned data of a skeletal mesh into a tri mesh collision. This is used for per poly scene queries and is quite expensive.
+	 * In 99% of cases you should be fine using a physics asset created for the skeletal mesh
+	 * @param	InSkeletalMeshComponent		The skeletal mesh component we'll be grabbing the skinning information from
+	 */
+	ENGINE_API void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
 	/**
 	 * Given a format name returns its cooked data.
@@ -544,13 +582,10 @@ public:
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
 #if WITH_BODY_WELDING
-	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM = NULL);
+	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform* RelativeTM = NULL);
 #else
-	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
+	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
 #endif
 #endif // WITH_PHYSX
 
 };
-
-
-

@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialFunction.h"
 #include "MaterialEditorUtilities.h"
 
 /////////////////////////////////////////////////////

@@ -11,6 +11,29 @@
 #include "PostProcessing.h"
 #include "ScreenRendering.h"
 
+
+// CVars
+static TAutoConsoleVariable<float> CVarColorMin(
+	TEXT("r.Color.Min"),
+	0.0f,
+	TEXT("Allows to define where the value 0 in the color channels is mapped to after color grading.\n")
+	TEXT("The value should be around 0, positive: a gray scale is added to the darks, negative: more dark values become black, Default: 0"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarColorMid(
+	TEXT("r.Color.Mid"),
+	0.5f,
+	TEXT("Allows to define where the value 0.5 in the color channels is mapped to after color grading (This is similar to a gamma correction).\n")
+	TEXT("Value should be around 0.5, smaller values darken the mid tones, larger values brighten the mid tones, Default: 0.5"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarColorMax(
+	TEXT("r.Color.Max"),
+	1.0f,
+	TEXT("Allows to define where the value 1.0 in the color channels is mapped to after color grading.\n")
+	TEXT("Value should be around 1, smaller values darken the highlights, larger values move more colors towards white, Default: 1"),
+	ECVF_RenderThreadSafe);
+
 // false:use 256x16 texture / true:use volume texture (faster, requires geometry shader)
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 static bool UseVolumeTextureLUT(EShaderPlatform Platform) 
@@ -51,22 +74,13 @@ FColorRemapShaderParameters::FColorRemapShaderParameters(const FShaderParameterM
 	MappingPolynomial.Bind(ParameterMap, TEXT("MappingPolynomial"));
 }
 
-void FColorRemapShaderParameters::Set(const FPixelShaderRHIParamRef ShaderRHI)
+void FColorRemapShaderParameters::Set(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI)
 {
 	FColorTransform ColorTransform;
-
-	{
-		static const auto ICVarMin = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Min"));
-		static const auto ICVarMid = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Mid"));
-		static const auto ICVarMax = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Max"));
-		
-		check(ICVarMin && ICVarMid && ICVarMax);
-		
-		ColorTransform.MinValue = FMath::Clamp(ICVarMin->GetValueOnRenderThread(), -10.0f, 10.0f);
-		ColorTransform.MidValue = FMath::Clamp(ICVarMid->GetValueOnRenderThread(), -10.0f, 10.0f);
-		ColorTransform.MaxValue = FMath::Clamp(ICVarMax->GetValueOnRenderThread(), -10.0f, 10.0f);
-	}
-
+	ColorTransform.MinValue = FMath::Clamp(CVarColorMin.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MidValue = FMath::Clamp(CVarColorMid.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MaxValue = FMath::Clamp(CVarColorMax.GetValueOnRenderThread(), -10.0f, 10.0f);
+	
 	{
 		// x is the input value, y the output value
 		// RGB = a, b, c where y = a * x*x + b * x + c
@@ -75,7 +89,7 @@ void FColorRemapShaderParameters::Set(const FPixelShaderRHIParamRef ShaderRHI)
 		float b = 4 * ColorTransform.MidValue - 3 * ColorTransform.MinValue - ColorTransform.MaxValue;
 		float a = ColorTransform.MaxValue - ColorTransform.MinValue - b;
 
-		SetShaderValue(ShaderRHI, MappingPolynomial, FVector(a, b, c));
+		SetShaderValue(RHICmdList, ShaderRHI, MappingPolynomial, FVector(a, b, c));
 	}
 }
 
@@ -119,7 +133,7 @@ public:
 	}
 	FLUTBlenderPS() {}
 
-	void SetParameters(const FSceneView& View, FTexture* Texture[BlendCount], float Weights[BlendCount])
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTexture* Texture[BlendCount], float Weights[BlendCount])
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -128,15 +142,15 @@ public:
 			// we don't need to set the neutral one
 			if(i != 0)
 			{
-				SetTextureParameter(ShaderRHI, TextureParameter[i], TextureParameterSampler[i], Texture[i]);
+				SetTextureParameter(RHICmdList, ShaderRHI, TextureParameter[i], TextureParameterSampler[i], Texture[i]);
 			}
 
-			SetShaderValue(ShaderRHI, WeightsParameter, Weights[i], i);
+			SetShaderValue(RHICmdList, ShaderRHI, WeightsParameter, Weights[i], i);
 		}
 
-		SetShaderValue(ShaderRHI, ColorScale, View.ColorScale);
-		SetShaderValue(ShaderRHI, OverlayColor, View.OverlayColor);
-		ColorRemapShaderParameters.Set(ShaderRHI);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorScale, View.ColorScale);
+		SetShaderValue(RHICmdList, ShaderRHI, OverlayColor, View.OverlayColor);
+		ColorRemapShaderParameters.Set(RHICmdList, ShaderRHI);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -217,16 +231,16 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 		TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(*LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
-		VertexShader->SetParameters(VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
-		GeometryShader->SetParameters(VolumeBounds);
+		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
+		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
 	}
 	else
 	{
 		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(*LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
 
 		VertexShader->SetParameters(Context);
 	}
@@ -234,7 +248,7 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	case BlendCount: \
 	{ \
 	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(GetGlobalShaderMap()); \
-	PixelShader->SetParameters(View, Texture, Weights); \
+	PixelShader->SetParameters(Context.RHICmdList, View, Texture, Weights); \
 	}; \
 	break;
 
@@ -387,13 +401,13 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const FVolumeBounds VolumeBounds(16);
 
@@ -402,7 +416,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	if(UseVolumeTextureLUT(GRHIShaderPlatform))
 	{
 		// use volume texture 16x16x16
-		RasterizeToVolumeTexture(VolumeBounds);
+		RasterizeToVolumeTexture(Context.RHICmdList, VolumeBounds);
 	}
 	else
 	{
@@ -410,6 +424,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 		DrawRectangle( 
+			Context.RHICmdList,
 			0, 0,						// XY
 			16 * 16, 16,				// SizeXY
 			0, 0,						// UV
@@ -420,7 +435,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 			EDRF_UseTriangleOptimization);
 	}
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOutputId InPassOutputId) const

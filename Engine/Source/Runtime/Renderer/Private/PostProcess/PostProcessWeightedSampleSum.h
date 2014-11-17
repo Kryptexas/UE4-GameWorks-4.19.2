@@ -62,7 +62,7 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FVector2D* SampleOffsetsValue)
+	void SetParameters(FRHICommandList& RHICmdList, const FVector2D* SampleOffsetsValue)
 	{
 		FVector4 PackedSampleOffsetsValue[NumSampleChunks];
 		for(int32 SampleIndex = 0;SampleIndex < NumSamples;SampleIndex += 2)
@@ -75,7 +75,7 @@ public:
 				PackedSampleOffsetsValue[SampleIndex / 2].Z = SampleOffsetsValue[SampleIndex + 1].Y;
 			}
 		}
-		SetShaderValueArray(GetVertexShader(),SampleOffsets,PackedSampleOffsetsValue,NumSampleChunks);
+		SetShaderValueArray(RHICmdList, GetVertexShader(),SampleOffsets,PackedSampleOffsetsValue,NumSampleChunks);
 	}
 
 private:
@@ -116,7 +116,7 @@ public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
 
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 	// retrieve runtime filter kernel properties.
@@ -124,7 +124,7 @@ public:
 	static int GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
 
 private:
-	void DrawQuad(bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
+	void DrawQuad(FRHICommandListImmediate& RHICmdList, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
 	static uint32 GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// e.g. EFS_Horiz or EFS_Vert

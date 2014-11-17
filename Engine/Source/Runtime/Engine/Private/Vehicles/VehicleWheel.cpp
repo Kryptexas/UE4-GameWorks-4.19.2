@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
+#include "Vehicles/VehicleWheel.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Vehicles/TireType.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -38,7 +42,7 @@ UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCI
 
 float UVehicleWheel::GetSteerAngle()
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	return FMath::RadiansToDegrees( VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager()->GetWheelsStates(VehicleSim)[WheelIndex].steerAngle );
 #else
 	return 0.0f;
@@ -47,7 +51,7 @@ float UVehicleWheel::GetSteerAngle()
 
 float UVehicleWheel::GetRotationAngle()
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	float RotationAngle = -1.0f * FMath::RadiansToDegrees( VehicleSim->PVehicle->mWheelsDynData.getWheelRotationAngle( WheelIndex ) );
 	check(!FMath::IsNaN(RotationAngle));
 	return RotationAngle;
@@ -58,7 +62,7 @@ float UVehicleWheel::GetRotationAngle()
 
 float UVehicleWheel::GetSuspensionOffset()
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	return VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager()->GetWheelsStates(VehicleSim)[WheelIndex].suspJounce;
 #else
 	return 0.0f;
@@ -74,13 +78,15 @@ void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 
 
 	VehicleSim = InVehicleSim;
 	WheelIndex = InWheelIndex;
+	WheelShape = NULL;
 
+#if WITH_VEHICLE
 	const int32 WheelShapeIdx = VehicleSim->PVehicle->mWheelsSimData.getWheelShapeMapping( WheelIndex );
 	check(WheelShapeIdx >= 0);
 
-	WheelShape = NULL;
 	VehicleSim->PVehicle->getRigidDynamicActor()->getShapes( &WheelShape, 1, WheelShapeIdx );
 	check(WheelShape);
+#endif
 
 	Location = GetPhysicsLocation();
 	OldLocation = Location;
@@ -105,11 +111,13 @@ void UVehicleWheel::Tick( float DeltaTime )
 
 FVector UVehicleWheel::GetPhysicsLocation()
 {
+#if WITH_VEHICLE
 	if ( WheelShape )
 	{
 		PxVec3 PLocation = VehicleSim->PVehicle->getRigidDynamicActor()->getGlobalPose().transform( WheelShape->getLocalPose() ).p;
 		return P2UVector( PLocation );
 	}
+#endif
 
 	return FVector(0.0f);
 }
@@ -132,7 +140,7 @@ UPhysicalMaterial* UVehicleWheel::GetContactSurfaceMaterial()
 {
 	UPhysicalMaterial* PhysMaterial = NULL;
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	const PxMaterial* ContactSurface = VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager()->GetWheelsStates(VehicleSim)[WheelIndex].tireSurfaceMaterial;
 	if (ContactSurface)
 	{

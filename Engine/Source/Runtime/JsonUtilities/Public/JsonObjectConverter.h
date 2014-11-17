@@ -140,5 +140,16 @@ public:
 		}
 		return true;
 	}
+
+	/* * Converts from a UProperty to a Json Value using exportText
+	 *
+	 * @param Property			The property to export
+	 * @param Value				Pointer to the value of the property
+	 * @param CheckFlags		Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags			Skip properties that match any of these flags
+	 *
+	 * @return					The constructed JsonValue from the property
+	 */
+	static TSharedPtr<FJsonValue> UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags);
 };
 

@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "Controller.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
 #include "Character.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
 //
 // Forward declarations
 //
@@ -134,7 +139,8 @@ struct FRepRelativeMovement
 // to a CharacterMovementComponent that handles movement of the collision capsule, and they
 // also have implementations of basic networking and input models.
 //=============================================================================
-UCLASS(abstract, config=Game, dependson=(AController, UCharacterMovementComponent), BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
+
+UCLASS(abstract, config=Game, BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_UCLASS_BODY()
@@ -251,15 +257,16 @@ public:
 	float JumpMaxHoldTime;
 
 	// Begin AActor Interface.
-	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
-	virtual void ClearCrossLevelReferences() OVERRIDE;
-	virtual void PreNetReceive() OVERRIDE;
-	virtual void PostNetReceive() OVERRIDE;
-	virtual void OnRep_ReplicatedMovement() OVERRIDE;
-	virtual void PostNetReceiveLocation() OVERRIDE;
-	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
-	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const OVERRIDE;
+	virtual void TeleportSucceeded(bool bIsATest) override;
+	virtual void ClearCrossLevelReferences() override;
+	virtual void PreNetReceive() override;
+	virtual void PostNetReceive() override;
+	virtual void OnRep_ReplicatedMovement() override;
+	virtual void PostNetReceiveLocation() override;
+	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const override;
+	virtual void TornOff() override;
 	// End AActor Interface
 
 	template<class T>
@@ -269,17 +276,17 @@ public:
 	}
 
 	// Begin APawn Interface.
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual class UPawnMovementComponent* GetMovementComponent() const OVERRIDE { return CharacterMovement; }
-	virtual class UPrimitiveComponent* GetMovementBase() const OVERRIDE FINAL { return MovementBase; }
-	virtual float GetDefaultHalfHeight() const OVERRIDE;
-	virtual void TurnOff() OVERRIDE;
-	virtual void Restart() OVERRIDE;
-	virtual void PawnClientRestart() OVERRIDE;
-	virtual void UnPossessed() OVERRIDE;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void RecalculateBaseEyeHeight() OVERRIDE;
+	virtual void PostInitializeComponents() override;
+	virtual class UPawnMovementComponent* GetMovementComponent() const override { return CharacterMovement; }
+	virtual class UPrimitiveComponent* GetMovementBase() const override final { return MovementBase; }
+	virtual float GetDefaultHalfHeight() const override;
+	virtual void TurnOff() override;
+	virtual void Restart() override;
+	virtual void PawnClientRestart() override;
+	virtual void UnPossessed() override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void RecalculateBaseEyeHeight() override;
 	// End APawn Interface
 
 	/** Apply momentum caused by damage. */
@@ -449,6 +456,8 @@ public:
 	 */
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0);
 
+	/** Native multicast delegate for MovementMode changing. */
+	FMovementModeChangedSignature MovementModeChangedDelegate;
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
 	 * @param	PrevMovementMode	Movement mode before the change
@@ -462,6 +471,19 @@ public:
 	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))
 	virtual void K2_UpdateCustomMovement(float DeltaTime);
+
+	/**
+	 * Event triggered at the end of a CharacterMovementComponent movement update.
+	 * This is the preferred event to use rather than the Tick event when performing custom updates to CharacterMovement properties based on the current state.
+	 * This is mainly due to the nature of network updates, where client corrections in position from the server can cause multiple iterations of a movement update,
+	 * which allows this event to update as well, while a Tick event would not.
+	 *
+	 * @param	DeltaSeconds		Delta time in seconds for this update
+	 * @param	InitialLocation		Location at the start of the update. May be different than the current location if movement occurred.
+	 * @param	InitialVelocity		Velocity at the start of the update. May be different than the current velocity.
+	 */
+	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
+	FCharacterMovementUpdatedSignature OnCharacterMovementUpdated;
 
 	/**
 	 * Called when our pawn has landed from a fall.
@@ -571,5 +593,5 @@ public:
 	bool IsPlayingRootMotion() const;
 
 	/** Called on the actor right before replication occurs */
-	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) OVERRIDE;
+	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
 };

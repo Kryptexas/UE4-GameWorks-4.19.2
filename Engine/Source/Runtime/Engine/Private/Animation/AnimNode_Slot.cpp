@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Animation/AnimNode_Slot.h"
+#include "Animation/AnimMontage.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_Slot
@@ -86,7 +88,8 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 }
 
 FAnimNode_Slot::FAnimNode_Slot()
-: SourceWeight(0.f)
+: GroupName(USkeleton::DefaultSlotGroupName)
+, SourceWeight(0.f)
 , SlotNodeWeight(0.f)
 {
 }

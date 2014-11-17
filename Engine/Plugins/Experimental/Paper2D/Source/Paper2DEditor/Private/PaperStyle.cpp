@@ -5,7 +5,8 @@
 #include "SlateStyle.h"
 #include "EditorStyle.h"
 
-#define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style.RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+#define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(Style.RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
+#define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(Style.RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperStyle
@@ -65,17 +66,26 @@ TSharedRef<FSlateStyleSet> FPaperStyle::Create()
 		Style.Set("SpriteEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
 		Style.Set("SpriteEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.EnterViewMode", new IMAGE_BRUSH(TEXT("Icons/icon_TextureEd_AlphaChannel_40x"), Icon40x40));
-		Style.Set("SpriteEditor.EnterViewMode.Small", new IMAGE_BRUSH(TEXT("Icons/icon_TextureEd_AlphaChannel_40x"), Icon20x20));
+		Style.Set("SpriteEditor.AddPolygon", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon40x40));
+		Style.Set("SpriteEditor.AddPolygon.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.EnterCollisionEditMode", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/EditCollisionGeom.EditCollisionGeom"), Icon40x40));
-		Style.Set("SpriteEditor.EnterCollisionEditMode.Small", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/EditCollisionGeom.EditCollisionGeom"), Icon20x20));
+		Style.Set("SpriteEditor.SnapAllVertices", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon40x40));
+		Style.Set("SpriteEditor.SnapAllVertices.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.EnterRenderingEditMode", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/EditRenderGeomButton.EditRenderGeomButton"), Icon40x40));
-		Style.Set("SpriteEditor.EnterRenderingEditMode.Small", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/EditRenderGeomButton.EditRenderGeomButton"), Icon20x20));
+		Style.Set("SpriteEditor.EnterViewMode", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon40x40));
+		Style.Set("SpriteEditor.EnterViewMode.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.EnterAddSpriteMode", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/AddSpriteButton.AddSpriteButton"), Icon40x40));
-		Style.Set("SpriteEditor.EnterAddSpriteMode.Small", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/AddSpriteButton.AddSpriteButton"), Icon20x20));
+		Style.Set("SpriteEditor.EnterCollisionEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon40x40));
+		Style.Set("SpriteEditor.EnterCollisionEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon20x20));
+
+		Style.Set("SpriteEditor.EnterSourceRegionEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon40x40));
+		Style.Set("SpriteEditor.EnterSourceRegionEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon20x20));
+
+		Style.Set("SpriteEditor.EnterRenderingEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon40x40));
+		Style.Set("SpriteEditor.EnterRenderingEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon20x20));
+
+		Style.Set("SpriteEditor.EnterAddSpriteMode", new IMAGE_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon40x40));
+		Style.Set("SpriteEditor.EnterAddSpriteMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon20x20));
 	}
 
 	// Flipbook editor
@@ -88,6 +98,10 @@ TSharedRef<FSlateStyleSet> FPaperStyle::Create()
 		Style.Set("FlipbookEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
 		Style.Set("FlipbookEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
 		Style.Set("FlipbookEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
+
+		Style.Set("FlipbookEditor.RegionGrabHandle", new BOX_BRUSH("Sequencer/ScrubHandleWhole", FMargin(6.f / 13.f, 10 / 24.f, 6 / 13.f, 10 / 24.f)));
+		Style.Set("FlipbookEditor.RegionBody", new BOX_BRUSH("Common/Scrollbar_Thumb", FMargin(4.f / 16.f)));
+		Style.Set("FlipbookEditor.RegionBorder", new BOX_BRUSH("Common/CurrentCellBorder", FMargin(4.f / 16.f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f)));
 	}
 
 	return StyleRef;

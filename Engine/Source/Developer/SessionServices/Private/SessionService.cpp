@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionService.cpp: Implements the FSessionService class.
-=============================================================================*/
-
 #include "SessionServicesPrivatePCH.h"
 
 

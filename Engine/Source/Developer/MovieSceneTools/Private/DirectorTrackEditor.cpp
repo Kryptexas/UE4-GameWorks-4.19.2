@@ -133,7 +133,7 @@ void FShotThumbnail::CopyTextureIn(FSlateRenderTargetRHI* InTexture)
 		FSlateRenderTargetRHI*, RenderTarget, InTexture,
 		FSlateTexture2DRHIRef*, TargetTexture, Texture,
 	{
-		RHICopyToResolveTarget(RenderTarget->GetRHIRef(), TargetTexture->GetTypedResource(), false, FResolveParams());
+		RHICmdList.CopyToResolveTarget(RenderTarget->GetRHIRef(), TargetTexture->GetTypedResource(), false, FResolveParams());
 	});
 }
 
@@ -174,7 +174,7 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 		InternalViewportClient->bDrawAxes = false;
 		InternalViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 		InternalViewportClient->EngineShowFlags.DisableAdvancedFeatures();
-		InternalViewportClient->SetControllingActor(Camera.Get());
+		InternalViewportClient->SetActorLock(Camera.Get());
 
 		InternalViewportScene = MakeShareable(new FSceneViewport(InternalViewportClient.Get(), NULL));
 		InternalViewportClient->Viewport = InternalViewportScene.Get();
@@ -198,9 +198,9 @@ UMovieSceneSection* FShotSection::GetSectionObject()
 	return Section;
 }
 
-FString FShotSection::GetSectionTitle() const
+FText FShotSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneShotSection>(Section)->GetTitle().ToString();
+	return Cast<UMovieSceneShotSection>(Section)->GetTitle();
 }
 
 float FShotSection::GetSectionHeight() const
@@ -271,7 +271,10 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 
 void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if (!Camera.IsValid()) {return;}
+	if (!Camera.IsValid())
+	{
+		return;
+	}
 
 	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section->GetStartTime(), Section->GetEndTime() ) );
 
@@ -342,7 +345,7 @@ void FShotSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 void FShotSection::DrawViewportThumbnail(TSharedPtr<FShotThumbnail> ShotThumbnail)
 {
 	Sequencer.Pin()->SetGlobalTime(ShotThumbnail->GetTime());
-	InternalViewportClient->PushControllingActorDataToViewportClient();
+	InternalViewportClient->UpdateViewForLockedActor();
 			
 	GWorld->SendAllEndOfFrameUpdates();
 	InternalViewportScene->Draw(false);

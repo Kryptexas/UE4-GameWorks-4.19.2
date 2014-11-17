@@ -3,8 +3,6 @@
 #pragma once
 
 
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
 #include "Runtime/MovieSceneCore/Public/IMovieScenePlayer.h"
 
 class UMovieScene;
@@ -12,10 +10,13 @@ class UMovieScene;
 /**
  * Sequencer public interface
  */
-class ISequencer : public FAssetEditorToolkit, public IMovieScenePlayer
+class ISequencer : public IMovieScenePlayer, public TSharedFromThis<ISequencer>
 {
 
 public:
+	/** @return Widget used to display the sequencer */
+	virtual TSharedRef<SWidget> GetSequencerWidget() const = 0;
+
 	/** @return Returns the MovieScene that is currently focused for editing by the sequencer.  This can change at any time. */
 	virtual UMovieScene* GetFocusedMovieScene() const = 0;
 
@@ -108,7 +109,9 @@ public:
 	/**
 	 * @return Returns the object change listener for sequencer instance
 	 */
-	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() const = 0;
+	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
 	virtual void NotifyMovieSceneDataChanged() = 0;
+
+	virtual void UpdateRuntimeInstances() = 0;
 };

@@ -1042,7 +1042,26 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 				// Write out the Portable Object to .po file.
 				{
 					FString OutputString = PortableObj.ToString();
-					FString OutputFileName = DestinationPath / Filename;
+					FString OutputFileName;
+					
+					if (CulturesToGenerate.Num() > 1)
+					{
+						OutputFileName = DestinationPath / CultureName / Filename;
+					}
+					else
+					{
+						OutputFileName = DestinationPath / Filename;
+					}
+
+					if( SourceControlInfo.IsValid() )
+					{
+						FText SCCErrorText;
+						if (!SourceControlInfo->CheckOutFile(OutputFileName, SCCErrorText))
+						{
+							UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Check out of file %s failed: %s"), *OutputFileName, *SCCErrorText.ToString());
+							return false;
+						}
+					}
 
 					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
 					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
@@ -1080,7 +1099,16 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 	{
 		// Load the Portable Object file if found
 		const FString CultureName = CulturesToGenerate[Culture];
-		FString POFilePath = SourcePath / Filename;
+		FString POFilePath;
+					
+		if (CulturesToGenerate.Num() > 1)
+		{
+			POFilePath = SourcePath / CultureName / Filename;
+		}
+		else
+		{
+			POFilePath = SourcePath / Filename;
+		}
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
@@ -1149,7 +1177,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 				TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, NULL );
 				if( !FoundEntry.IsValid() )
 				{
-					UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
+					UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
 					continue;
 				}
 				

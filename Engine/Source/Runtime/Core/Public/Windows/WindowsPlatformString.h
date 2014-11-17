@@ -23,11 +23,6 @@ struct FWindowsPlatformString : public FMicrosoftPlatformString
 	{
 		::MultiByteToWideChar(CP_ACP,0,Source,LengthM1+1,Dest,LengthM1+1);
 	}*/
-
-	static const ANSICHAR* GetEncodingName()
-	{
-		return "UTF-16LE";
-	}
 };
 
 typedef FWindowsPlatformString FPlatformString;

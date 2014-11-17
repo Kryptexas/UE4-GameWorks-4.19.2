@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 
 UBehaviorTreeGraphNode_SubtreeTask::UBehaviorTreeGraphNode_SubtreeTask(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

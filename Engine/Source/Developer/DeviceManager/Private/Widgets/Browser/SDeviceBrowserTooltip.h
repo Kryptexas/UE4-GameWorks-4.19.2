@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserTooltip.h: Declares the SDeviceBrowserTooltip class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,9 +22,9 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceServiceManager - The target device service manager to use.
-	 * @param InDeviceManagerState - The optional device manager view state.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceServiceManager The target device service manager to use.
+	 * @param InDeviceManagerState The optional device manager view state.
 	 */
 	void Construct( const FArguments& InArgs, const ITargetDeviceServiceRef& InDeviceService )
 	{

@@ -5,19 +5,21 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.h"
+#include "MovieScenePropertyTrack.h"
+
 #include "MovieSceneVectorTrack.generated.h"
 
 /**
  * Handles manipulation of component transforms in a movie scene
  */
-UCLASS( dependson=UMovieScenePropertyTrack, MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneVectorTrack : public UMovieScenePropertyTrack
 {
 	GENERATED_UCLASS_BODY()
 public:
 	/** UMovieSceneTrack interface */
-	virtual UMovieSceneSection* CreateNewSection() OVERRIDE;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() OVERRIDE;
+	virtual UMovieSceneSection* CreateNewSection() override;
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 
 	/**
 	 * Adds a key to a section.  Will create the section if it doesn't exist
@@ -43,4 +45,11 @@ public:
 	 * @return true if anything was evaluated. Note: if false is returned OutVector remains unchanged
 	 */
 	virtual bool Eval( float Position, float LastPostion, FVector4& OutVector ) const;
+
+	/** @return Get the number of channels used by the vector */
+	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }
+private:
+	/** The number of channels used by the vector (2,3, or 4) */
+	UPROPERTY()
+	int32 NumChannelsUsed;
 };

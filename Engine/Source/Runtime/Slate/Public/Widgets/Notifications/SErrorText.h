@@ -17,10 +17,12 @@ public:
 	SLATE_BEGIN_ARGS( SErrorText )
 		: _ErrorText()
 		, _BackgroundColor(FCoreStyle::Get().GetColor("ErrorReporting.BackgroundColor"))
+		, _Font()
 		{}
 
 		SLATE_TEXT_ARGUMENT(ErrorText)
 		SLATE_ATTRIBUTE(FSlateColor, BackgroundColor)
+		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
 		
 	SLATE_END_ARGS()
 
@@ -28,16 +30,18 @@ public:
 
 	// IErrorReportingWidget interface
 
-	virtual void SetError( const FText& InErrorText ) OVERRIDE;
-	virtual void SetError( const FString& InErrorText ) OVERRIDE;
+	virtual void SetError( const FText& InErrorText ) override;
+	virtual void SetError( const FString& InErrorText ) override;
 
-	virtual bool HasError() const OVERRIDE;
+	virtual bool HasError() const override;
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> AsWidget() override;
 
 	// IErrorReportingWidget interface
 
 private:
+	TAttribute< FSlateFontInfo > Font;
+
 	TAttribute<EVisibility> CustomVisibility;
 	EVisibility MyVisibility() const;
 

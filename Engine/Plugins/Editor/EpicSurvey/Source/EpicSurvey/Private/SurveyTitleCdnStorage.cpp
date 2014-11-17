@@ -7,8 +7,6 @@
 #include "SecureHash.h"
 #include "HttpModule.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEpicSurvey, Display, All);
-
 IOnlineTitleFilePtr FSurveyTitleCdnStorage::Create( const FString& IndexUrl )
 {
 	return MakeShareable( new FSurveyTitleCdnStorage( IndexUrl ) );
@@ -74,7 +72,7 @@ bool FSurveyTitleCdnStorage::ClearFile(const FString& FileName)
 	return false;
 }
 
-bool FSurveyTitleCdnStorage::EnumerateFiles()
+bool FSurveyTitleCdnStorage::EnumerateFiles(const FPagedQuery& Page)
 {
 	// Make sure an enumeration request  is not currently pending
 	if(!EnumerateFilesRequests.IsEmpty())
@@ -88,18 +86,13 @@ bool FSurveyTitleCdnStorage::EnumerateFiles()
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 	EnumerateFilesRequests.Enqueue(&HttpRequest.Get());
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete);
+	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(AsShared(), &FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete);
 	HttpRequest->SetURL( IndexUrl );
 	HttpRequest->SetVerb(TEXT("GET"));
 	HttpRequest->ProcessRequest();
 	return true;
 	
 }	
-
-bool FSurveyTitleCdnStorage::EnumerateFiles(int32 Start, int32 Count)
-{
-	return EnumerateFiles();
-}
 
 void FSurveyTitleCdnStorage::GetFileList(TArray<FCloudFileHeader>& OutFiles) 
 {
@@ -249,7 +242,7 @@ bool FSurveyTitleCdnStorage::ReadFile(const FString& FileName)
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 	FileRequests.Add(&HttpRequest.Get(), FPendingFileRequest(FileName));
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete);
+	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(AsShared(), &FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete);
 	HttpRequest->SetURL( FileName );
 	HttpRequest->SetVerb(TEXT("GET"));
 

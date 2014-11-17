@@ -173,17 +173,17 @@ public:
 	 * Notification from the renderer that it is about to draw FX belonging to
 	 * this system.
 	 */
-	virtual void PreRender() = 0;
+	virtual void PreRender(FRHICommandListImmediate& RHICmdList) = 0;
 
 	/**
 	 * Notification from the renderer that opaque primitives have rendered.
 	 */
-	virtual void PostRenderOpaque(const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) = 0;
+	virtual void PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) = 0;
 
 	/**
 	 * Helper in case the data necessary for collision is not available.
 	 */
-	void PostRenderOpaque() { PostRenderOpaque(NULL,FTexture2DRHIParamRef(),FTexture2DRHIParamRef()); }
+	void PostRenderOpaque(FRHICommandListImmediate& RHICmdList) { PostRenderOpaque(RHICmdList, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef()); }
 
 protected:
 

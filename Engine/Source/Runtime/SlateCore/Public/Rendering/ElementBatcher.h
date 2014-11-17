@@ -179,7 +179,7 @@ private:
 											 ESlateDrawEffect::Type DrawEffects, 
 											 ESlateBatchDrawFlag::Type DrawFlags = ESlateBatchDrawFlag::None);
 
-	void AddBasicVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch );
+	void AddVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch );
 
 	void AddIndices( TArray<SlateIndex>& OutIndices, FSlateElementBatch& ElementBatch, const TArray<SlateIndex>& IndexBatch );
 
@@ -202,7 +202,14 @@ private:
 	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
 	TArray<TArray<SlateIndex>> BatchIndexArrays;
 
-	TSharedRef<FSlateRenderingPolicy> RenderingPolicy;
+	/** Resource manager for accessing shader resources */
+	FSlateShaderResourceManager& ResourceManager;
+
+	/** Font cache used to layout text */
+	FSlateFontCache& FontCache;
+
+	/** Offset to use when supporting 1:1 texture to pixel snapping */
+	const float PixelCenterOffset;
 
 	// true if any element in the batch requires vsync.
 	bool bRequiresVsync;

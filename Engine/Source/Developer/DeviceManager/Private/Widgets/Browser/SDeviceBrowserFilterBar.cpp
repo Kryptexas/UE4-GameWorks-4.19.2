@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserFilterBar.cpp: Implements the SDeviceBrowserFilterBar class.
-=============================================================================*/
-
 #include "DeviceManagerPrivatePCH.h"
 
 
@@ -113,6 +109,8 @@ FString SDeviceBrowserFilterBar::HandlePlatformListRowText( TSharedPtr<FString> 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable )
 {
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**PlatformName);
+
 	return SNew(STableRow<TSharedPtr<FString> >, OwnerTable)
 		.Content()
 		[
@@ -127,8 +125,13 @@ TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow
 					+ SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							SNew(SImage)
-								.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), **PlatformName)))
+							SNew(SBox)
+								.WidthOverride(24)
+								.HeightOverride(24)
+								[
+									SNew(SImage)
+										.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+								]
 						]
 
 					+ SHorizontalBox::Slot()

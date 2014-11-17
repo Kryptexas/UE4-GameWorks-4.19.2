@@ -24,9 +24,9 @@ public:
 	 * Default constructor, initializing all member variables and iterating to first.
 	 */
 	FStaticBrushIterator( UWorld* InWorld )
-	:	World( InWorld ),
-		ActorIndex( -1 ),
-		ReachedEnd( false )
+	:	ActorIndex( -1 ),
+		ReachedEnd( false ),
+		World( InWorld )
 	{
 		// Iterate to first.
 		++(*this);
@@ -1257,7 +1257,7 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 		if( BrushActor && !FActorEditorUtils::IsABuilderBrush(Actor) )
 		{
 			check( BrushActor->GetWorld() );			
-			ABrush* WorldBrush = BrushActor->GetWorld()->GetBrush();
+			ABrush* WorldBrush = BrushActor->GetWorld()->GetDefaultBrush();
 			check( WorldBrush );
 			WorldBrush->Modify();
 			WorldBrush->Brush->Polys->Element.AssignButKeepOwner(BrushActor->Brush->Polys->Element);
@@ -1269,14 +1269,14 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 	}
 
 	GEditor->SelectNone( false, true );
-	GEditor->SelectActor( InWorld->GetBrush(), true, true );
+	GEditor->SelectActor(InWorld->GetDefaultBrush(), true, true);
 }
 
 
 void UEditorEngine::mapBrushPut()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 
 	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 	{
@@ -1287,7 +1287,7 @@ void UEditorEngine::mapBrushPut()
 		if( BrushActor && !FActorEditorUtils::IsABuilderBrush(Actor) )
 		{
 			check( BrushActor->GetWorld() );
-			ABrush* WorldBrush = BrushActor->GetWorld()->GetBrush();
+			ABrush* WorldBrush = BrushActor->GetWorld()->GetDefaultBrush();
 			check( WorldBrush );
 
 			BrushActor->Modify();

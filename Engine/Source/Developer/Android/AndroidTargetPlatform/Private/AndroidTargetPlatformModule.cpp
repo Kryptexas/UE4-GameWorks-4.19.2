@@ -29,7 +29,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{
@@ -43,11 +43,11 @@ public:
 
 public:
 	// Begin IModuleInterface interface
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 	}
 	// End IModuleInterface interface

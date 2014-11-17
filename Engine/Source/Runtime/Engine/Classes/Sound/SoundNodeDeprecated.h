@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNode.h"
 #include "SoundNodeDeprecated.generated.h"
 
 UCLASS(deprecated, abstract, MinimalAPI)

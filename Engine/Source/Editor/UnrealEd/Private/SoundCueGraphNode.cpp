@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "SoundDefinitions.h"
 #include "GraphEditorActions.h"
 #include "SoundCueGraphEditorCommands.h"

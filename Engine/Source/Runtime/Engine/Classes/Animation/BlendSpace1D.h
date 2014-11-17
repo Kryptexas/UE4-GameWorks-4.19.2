@@ -8,9 +8,10 @@
 #pragma once
 
 #include "AnimInterpFilter.h"
+#include "BlendSpaceBase.h"
 #include "BlendSpace1D.generated.h"
 
-UCLASS(config=Engine, hidecategories=Object, dependson=UVimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpace1D : public UBlendSpaceBase
 {
 	GENERATED_UCLASS_BODY()
@@ -27,14 +28,14 @@ public:
 	bool bScaleAnimation;
 
 	/** return true if all sample data is additive **/
-	virtual bool IsValidAdditive() const OVERRIDE;
+	virtual bool IsValidAdditive() const override;
 
 protected:
 	// Begin UBlendSpaceBase interface
-	virtual void SnapToBorder(FBlendSample& Sample) const OVERRIDE;
-	virtual EBlendSpaceAxis GetAxisToScale() const OVERRIDE;
-	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const OVERRIDE;
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const OVERRIDE;
+	virtual void SnapToBorder(FBlendSample& Sample) const override;
+	virtual EBlendSpaceAxis GetAxisToScale() const override;
+	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const override;
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const override;
 	// End UBlendSpaceBase interface
 
 private:

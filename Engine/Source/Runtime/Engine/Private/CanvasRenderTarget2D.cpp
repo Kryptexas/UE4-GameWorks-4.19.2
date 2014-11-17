@@ -44,8 +44,8 @@ void UCanvasRenderTarget2D::UpdateResource()
 		TextureRenderTarget,
 		(FTextureRenderTarget2DResource*)GameThread_GetRenderTargetResource(),
 		{
-			RHISetRenderTarget(TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef());
-			RHISetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
+			SetRenderTarget(RHICmdList, TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef());
+			RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
 		}
 	);
 
@@ -73,7 +73,7 @@ void UCanvasRenderTarget2D::UpdateResource()
 		RenderTargetResource,
 		GameThread_GetRenderTargetResource(),
 		{
-			RHICopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
+			RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
 		}
 	);
 }

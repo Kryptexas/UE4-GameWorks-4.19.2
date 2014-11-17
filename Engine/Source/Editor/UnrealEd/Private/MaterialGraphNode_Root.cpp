@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 #include "MaterialEditorUtilities.h"
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode_Root"
 
@@ -25,7 +26,7 @@ FText UMaterialGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 
 FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
 FString UMaterialGraphNode_Root::GetTooltip() const

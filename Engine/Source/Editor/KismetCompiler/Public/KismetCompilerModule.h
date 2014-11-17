@@ -64,11 +64,11 @@ class FKismet2CompilerModule : public IKismetCompilerInterface
 {
 public:
 	// Implementation of the IKismetCompilerInterface
-	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, class FBlueprintCompileReinstancer* ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) OVERRIDE;
-	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) OVERRIDE;
-	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) OVERRIDE;
-	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) OVERRIDE;
-	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() OVERRIDE { return Compilers; }
+	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, class FBlueprintCompileReinstancer* ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) override;
+	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) override;
+	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
+	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
+	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() override { return Compilers; }
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);

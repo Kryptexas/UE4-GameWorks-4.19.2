@@ -23,12 +23,12 @@ public:
 
 	}
 
-	virtual FName GetId() const OVERRIDE { return FName( TEXT("RowHeader") ); }
-	virtual FText GetDisplayName() const OVERRIDE { return FText::GetEmpty(); }
-	virtual TSharedRef< IDataSource > GetDataSource() const OVERRIDE { return MakeShareable( new PropertyPathDataSource( FPropertyPath::CreateEmpty() ) ); }
-	virtual TSharedRef< class FPropertyPath > GetPartialPath() const OVERRIDE { return FPropertyPath::CreateEmpty(); }
+	virtual FName GetId() const override { return FName( TEXT("RowHeader") ); }
+	virtual FText GetDisplayName() const override { return FText::GetEmpty(); }
+	virtual TSharedRef< IDataSource > GetDataSource() const override { return MakeShareable( new PropertyPathDataSource( FPropertyPath::CreateEmpty() ) ); }
+	virtual TSharedRef< class FPropertyPath > GetPartialPath() const override { return FPropertyPath::CreateEmpty(); }
 
-	virtual TSharedRef< class IPropertyTableCell > GetCell( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE
+	virtual TSharedRef< class IPropertyTableCell > GetCell( const TSharedRef< class IPropertyTableRow >& Row ) override
 	{
 		//@todo Clean Cells cache when rows get updated [11/27/2012 Justin.Sargent]
 		TSharedRef< IPropertyTableCell >* CellPtr = Cells.Find( Row );
@@ -44,39 +44,39 @@ public:
 		return Cell;
 	}
 
-	virtual void RemoveCellsForRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE
+	virtual void RemoveCellsForRow( const TSharedRef< class IPropertyTableRow >& Row ) override
 	{
 		Cells.Remove( Row );
 	}
 
-	virtual TSharedRef< class IPropertyTable > GetTable() const OVERRIDE { return Table.Pin().ToSharedRef(); }
+	virtual TSharedRef< class IPropertyTable > GetTable() const override { return Table.Pin().ToSharedRef(); }
 
-	virtual bool CanSelectCells() const OVERRIDE { return false; }
+	virtual bool CanSelectCells() const override { return false; }
 
-	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fixed; }
+	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const override { return EPropertyTableColumnSizeMode::Fixed; }
 
-	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE {}
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) override {}
 
-	virtual float GetWidth() const OVERRIDE { return 20.0f; } 
+	virtual float GetWidth() const override { return 20.0f; } 
 
-	virtual void SetWidth( float InWidth ) OVERRIDE {  }
+	virtual void SetWidth( float InWidth ) override {  }
 
-	virtual bool IsHidden() const OVERRIDE { return bIsHidden; }
+	virtual bool IsHidden() const override { return bIsHidden; }
 
-	virtual void SetHidden( bool InIsHidden ) OVERRIDE { bIsHidden = InIsHidden; }
+	virtual void SetHidden( bool InIsHidden ) override { bIsHidden = InIsHidden; }
 
-	virtual bool IsFrozen() const OVERRIDE { return true; }
+	virtual bool IsFrozen() const override { return true; }
 
-	virtual void SetFrozen( bool InIsFrozen ) OVERRIDE {}
+	virtual void SetFrozen( bool InIsFrozen ) override {}
 
-	virtual bool CanSortBy() const OVERRIDE { return false; }
+	virtual bool CanSortBy() const override { return false; }
 
-	virtual void Sort( TArray< TSharedRef< class IPropertyTableRow > >& Rows, const EColumnSortMode::Type SortMode ) OVERRIDE {  }
+	virtual void Sort( TArray< TSharedRef< class IPropertyTableRow > >& Rows, const EColumnSortMode::Type SortMode ) override {  }
 
-	virtual void Tick() OVERRIDE {}
+	virtual void Tick() override {}
 
 	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
-	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
+	FFrozenStateChanged* OnFrozenStateChanged() override { return &FrozenStateChanged; }
 
 private:
 

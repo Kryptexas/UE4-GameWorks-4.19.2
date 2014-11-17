@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Animation/BoneControllers/AnimNode_Fabrik.h"
 
 /////////////////////////////////////////////////////
 // AnimNode_Fabrik

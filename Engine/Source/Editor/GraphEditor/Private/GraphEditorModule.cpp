@@ -63,22 +63,22 @@ TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor(
 	UEdGraph* InGraphToDiff,
 	FSimpleDelegate InOnNavigateHistoryBack,
 	FSimpleDelegate InOnNavigateHistoryForward,
-	bool InShowPIENotification)
+	TAttribute<bool> ShowGraphStateOverlay)
 {
 	return
 		SNew(SGraphEditorImpl)
-		.AdditionalCommands( InAdditionalCommands )
-		.IsEditable( InIsEditable )
-		.Appearance( Appearance )
-		.TitleBar( InTitleBar )
-		.TitleBarEnabledOnly( InTitleBarEnabledOnly )
-		.GraphToEdit( InGraphToEdit)
+		.AdditionalCommands(InAdditionalCommands)
+		.IsEditable(InIsEditable)
+		.Appearance(Appearance)
+		.TitleBar(InTitleBar)
+		.TitleBarEnabledOnly(InTitleBarEnabledOnly)
+		.GraphToEdit(InGraphToEdit)
 		.GraphEvents(InGraphEvents)
 		.AutoExpandActionMenu(InAutoExpandActionMenu)
 		.GraphToDiff(InGraphToDiff)
 		.OnNavigateHistoryBack(InOnNavigateHistoryBack)
 		.OnNavigateHistoryForward(InOnNavigateHistoryForward)
-		.ShowPIENotification(InShowPIENotification);
+		.ShowGraphStateOverlay(ShowGraphStateOverlay);
 }
 
 /////////////////////////////////////////////////////

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageHelloSender.h: Declares the FUdpMessageHelloSender class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,12 +20,12 @@ public:
 	 * @param InSocketId The network socket identifier (used to detect unicast endpoint).
 	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
-	FUdpMessageBeacon(FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint);
+	FUdpMessageBeacon( FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint );
 
 	/**
 	 * Destructor.
 	 */
-	virtual ~FUdpMessageBeacon();
+	virtual ~FUdpMessageBeacon( );
 
 public:
 
@@ -38,7 +34,7 @@ public:
 	 *
 	 * @return Beacon interval.
 	 */
-	FTimespan GetBeaconInterval()
+	FTimespan GetBeaconInterval( )
 	{
 		return BeaconInterval;
 	}
@@ -48,21 +44,16 @@ public:
 	 *
 	 * @param EndpointCount The current number of known endpoints.
 	 */
-	void SetEndpointCount(int32 EndpointCount);
+	void SetEndpointCount( int32 EndpointCount );
 
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init() OVERRIDE;
-
-	virtual uint32 Run() OVERRIDE;
-
-	virtual void Stop() OVERRIDE;
-
-	virtual void Exit() OVERRIDE { }
-	
-	// End FRunnable interface
+	virtual bool Init( ) override;
+	virtual uint32 Run( ) override;
+	virtual void Stop( ) override;
+	virtual void Exit( ) override { }
 
 protected:
 
@@ -71,7 +62,7 @@ protected:
 	 *
 	 * @param SegmentType The type of segment to send (Hello or Bye).
 	 */
-	void SendSegment(EUdpMessageSegments::Type SegmentType);
+	void SendSegment( EUdpMessageSegments::Type SegmentType );
 
 private:
 

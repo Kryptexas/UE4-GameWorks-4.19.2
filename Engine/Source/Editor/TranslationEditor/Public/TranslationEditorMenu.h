@@ -46,6 +46,6 @@ public:
 	TSharedPtr<FUICommandInfo> OpenSearchTab;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 

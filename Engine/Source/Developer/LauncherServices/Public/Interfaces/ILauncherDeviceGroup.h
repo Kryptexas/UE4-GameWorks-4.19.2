@@ -1,19 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherDeviceGroup.h: Declares the ILauncherDeviceGroup interface.
-=============================================================================*/
-
 #pragma once
 
-/**
- * Type definition for shared pointers to instances of ILauncherDeviceGroup.
- */
+
+/** Type definition for shared pointers to instances of ILauncherDeviceGroup. */
 typedef TSharedPtr<class ILauncherDeviceGroup> ILauncherDeviceGroupPtr;
 
-/**
- * Type definition for shared references to instances of ILauncherDeviceGroup.
- */
+/** Type definition for shared references to instances of ILauncherDeviceGroup. */
 typedef TSharedRef<class ILauncherDeviceGroup> ILauncherDeviceGroupRef;
 
 
@@ -90,7 +83,6 @@ public:
 	 */
 	virtual void SetName( const FString& NewName ) = 0;
 
-
 public:
 
 	/**
@@ -106,7 +98,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved( ) = 0;
-
 
 public:
 

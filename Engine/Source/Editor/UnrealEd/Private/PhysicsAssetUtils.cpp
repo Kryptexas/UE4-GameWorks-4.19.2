@@ -4,6 +4,7 @@
 #include "PhysicsAssetUtils.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "Editor/UnrealEd/Private/ConvexDecompTool.h"
+#include "MessageLog.h"
 
 
 void FPhysAssetCreateParams::Initialize()
@@ -33,13 +34,13 @@ static int32 GetChildIndex(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArra
 	{
 		int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(i);
 
-		if(ParentIndex == BoneIndex)
+		if (ParentIndex == BoneIndex && Infos[i].Positions.Num() > 0)
 		{
 			if(ChildIndex != INDEX_NONE)
 			{
 				return INDEX_NONE; // if we already have a child, this bone has more than one so return INDEX_NONE.
 			}
-			else if (Infos[i].Positions.Num() > 0)
+			else
 			{
 				ChildIndex = i;
 			}
@@ -165,10 +166,10 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			check(bs->BoneName == BoneName);
 
 			// Fill in collision info for this bone.
-			CreateCollisionFromBone(bs, SkelMesh, i, Params, Infos);
+			bool bSuccess = CreateCollisionFromBone(bs, SkelMesh, i, Params, Infos);
 
 			// If not root - create joint to parent body.
-			if(bHitRoot && Params.bCreateJoints)
+			if(bHitRoot && Params.bCreateJoints && bSuccess)
 			{
 				int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, BoneName);
 				UPhysicsConstraintTemplate* CS = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
@@ -197,6 +198,11 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			}
 
 			bHitRoot = true;
+
+			if (bSuccess == false)
+			{
+				DestroyBody(PhysicsAsset, NewBodyIndex);
+			}
 		}
 	}
 
@@ -237,16 +243,83 @@ bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh
 	return bSuccess;
 }
 
+FMatrix ComputeCovarianceMatrix(const FBoneVertInfo & VertInfo)
+{
+	if (VertInfo.Positions.Num() == 0)
+	{
+		return FMatrix::Identity;
+	}
 
-void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos )
+	const TArray<FVector> & Positions = VertInfo.Positions;
+
+	//get average
+	const float N = Positions.Num();
+	FVector U = FVector::ZeroVector;
+	for (int32 i = 0; i < N; ++i)
+	{
+		U += Positions[i];
+	}
+
+	U = U / N;
+
+	//compute error terms
+	TArray<FVector> Errors;
+	Errors.AddUninitialized(N);
+
+	for (int32 i = 0; i < N; ++i)
+	{
+		Errors[i] = Positions[i] - U;
+	}
+
+	FMatrix Covariance = FMatrix::Identity;
+	for (int32 j = 0; j < 3; ++j)
+	{
+		FVector Axis = FVector::ZeroVector;
+		float * Cj = &Axis.X;
+		for (int32 k = 0; k < 3; ++k)
+		{
+			float Cjk = 0.f;
+			for (int32 i = 0; i < N; ++i)
+			{
+				const float * error = &Errors[i].X;
+				Cj[k] += error[j] * error[k];
+			}
+			Cj[k] /= N;
+		}
+
+		Covariance.SetAxis(j, Axis);
+	}
+
+	return Covariance;
+}
+
+FVector ComputeEigenVector(const FMatrix & A)
+{
+	//using the power method: this is ok because we only need the dominate eigenvector and speed is not critical: http://en.wikipedia.org/wiki/Power_iteration
+	FVector Bk = FVector(0, 0, 1);
+	for (int32 i = 0; i < 32; ++i)
+	{
+		float Length = Bk.Size();
+		Bk = A.TransformVector(Bk) / Length;
+	}
+
+	return Bk.SafeNormal();
+}
+
+
+bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos )
 {
 #if WITH_EDITOR
-	// Empty any existing collision.
-	bs->RemoveSimpleCollision();
+	if (Params.GeomType != EFG_MultiConvexHull)	//multi convex hull can fail so wait to clear it
+	{
+		// Empty any existing collision.
+		bs->RemoveSimpleCollision();
+	}
 #endif // WITH_EDITOR
 
 	// Calculate orientation of to use for collision primitive.
 	FMatrix ElemTM;
+	bool ComputeFromVerts = false;
 
 	if(Params.bAlignDownBone)
 	{
@@ -273,17 +346,33 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			else
 			{
 				ElemTM = FMatrix::Identity;
+				ComputeFromVerts = true;
 			}
 		}
 		else
 		{
 			ElemTM = FMatrix::Identity;
+			ComputeFromVerts = true;
 		}
 	}
 	else
 	{
 		ElemTM = FMatrix::Identity;
 	}
+
+	
+	if (ComputeFromVerts)
+	{
+		// Compute covariance matrix for verts of this bone
+		// Then use axis with largest variance for orienting bone box
+		const FMatrix CovarianceMatrix = ComputeCovarianceMatrix(Infos[BoneIndex]);
+		FVector ZAxis = ComputeEigenVector(CovarianceMatrix);
+		FVector XAxis, YAxis;
+		ZAxis.FindBestAxisVectors(YAxis, XAxis);
+		ElemTM = FMatrix(XAxis, YAxis, ZAxis, FVector::ZeroVector);
+	}
+	
+
 
 	// Get the (Unreal scale) bounding box for this bone using the rotation.
 	const FBoneVertInfo* BoneInfo = &Infos[BoneIndex];
@@ -313,36 +402,38 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	if(Params.GeomType == EFG_Box)
 	{
 		// Add a new box geometry to this body the size of the bounding box.
-		int32 ex = bs->AggGeom.BoxElems.AddZeroed();
-		FKBoxElem* be = &bs->AggGeom.BoxElems[ex];
+		FKBoxElem BoxElem;
 
-		be->SetTransform( FTransform( ElemTM ) );
+		BoxElem.SetTransform(FTransform(ElemTM));
 
-		be->X = BoxExtent.X * 2.0f * 1.01f; // Side Lengths (add 1% to avoid graphics glitches)
-		be->Y = BoxExtent.Y * 2.0f * 1.01f;
-		be->Z = BoxExtent.Z * 2.0f * 1.01f;	
+		BoxElem.X = BoxExtent.X * 2.0f * 1.01f; // Side Lengths (add 1% to avoid graphics glitches)
+		BoxElem.Y = BoxExtent.Y * 2.0f * 1.01f;
+		BoxElem.Z = BoxExtent.Z * 2.0f * 1.01f;
+
+		bs->AggGeom.BoxElems.Add(BoxElem);
 	}
 	else if (Params.GeomType == EFG_Sphere)
 	{
-		int32 sx = bs->AggGeom.SphereElems.AddZeroed();
-		FKSphereElem* se = &bs->AggGeom.SphereElems[sx];
+		FKSphereElem SphereElem;
 
-		se->Center = ElemTM.GetOrigin();
-		se->Radius = BoxExtent.GetMax() * 1.01f;
+		SphereElem.Center = ElemTM.GetOrigin();
+		SphereElem.Radius = BoxExtent.GetMax() * 1.01f;
+
+		bs->AggGeom.SphereElems.Add(SphereElem);
 	}
 	// Deal with creating a single convex hull
 	else if (Params.GeomType == EFG_SingleConvexHull)
 	{
-		int32 ex = bs->AggGeom.ConvexElems.Add(FKConvexElem());
-		FKConvexElem* ce = &bs->AggGeom.ConvexElems[ex];
+		FKConvexElem ConvexElem;
 
 		// Add all of the vertices for this bone to the convex element
 		for( int32 index=0; index<BoneInfo->Positions.Num(); index++ )
 		{
-			ce->VertexData.Add( BoneInfo->Positions[index] );
+			ConvexElem.VertexData.Add(BoneInfo->Positions[index]);
 		}
+		ConvexElem.UpdateElemBox();
 
-		ce->UpdateElemBox();		
+		bs->AggGeom.ConvexElems.Add(ConvexElem);
 	}
 	else if (Params.GeomType == EFG_MultiConvexHull)
 	{
@@ -372,8 +463,10 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			if ( bSoftVertex )
 			{
 				// We dont want to support soft verts, only rigid
-				UE_LOG(LogPhysics, Log, TEXT("Unable to create physics asset with a multi convex hull due to the presence of soft vertices!"));
-				return;
+				FMessageLog EditorErrors("EditorErrors");
+				EditorErrors.Warning(NSLOCTEXT("PhysicsAssetUtils", "MultiConvexSoft", "Unable to create physics asset with a multi convex hull due to the presence of soft vertices."));
+				EditorErrors.Open();
+				return false;
 			}
 
 			// Using the same code in GetSkinnedVertexPosition
@@ -398,24 +491,32 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 		if ( Params.GeomType == EFG_MultiConvexHull )
 		{
+#if WITH_EDITOR
+			bs->RemoveSimpleCollision();
+#endif
 			// Create the convex hull from the data we got from the skeletal mesh
 			DecomposeMeshToHulls( bs, Verts, Indices, Params.MaxHullCount, Params.MaxHullVerts );
 		}
 		else
 		{
 			//Support triangle mesh soon
+			return false;
 		}		
 	}
 	else
 	{
-		int32 sx = bs->AggGeom.SphylElems.AddZeroed();
-		FKSphylElem* se = &bs->AggGeom.SphylElems[sx];
+		
+		FKSphylElem SphylElem;
 
-		se->SetTransform( FTransform( ElemTM ) );
+		SphylElem.SetTransform(FTransform(ElemTM));
 
-		se->Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
-		se->Length = BoxExtent.Z * 1.01f;
+		SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
+		SphylElem.Length = BoxExtent.Z * 1.01f;
+
+		bs->AggGeom.SphylElems.Add(SphylElem);
 	}
+
+	return true;
 }
 
 

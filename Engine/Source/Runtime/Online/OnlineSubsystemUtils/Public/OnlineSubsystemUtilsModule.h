@@ -18,15 +18,15 @@ public:
 
 	// IModuleInterface
 
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}
 
-	virtual bool SupportsAutomaticShutdown() OVERRIDE
+	virtual bool SupportsAutomaticShutdown() override
 	{
 		return false;
 	}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerCommands.h: Declares the FMessagingDebuggerCommands class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,9 +20,9 @@ public:
 
 public:
 
-	// Begin TCommands interface
+	// TCommands interface
 
-	virtual void RegisterCommands( ) OVERRIDE
+	virtual void RegisterCommands( ) override
 	{
 		UI_COMMAND(BreakDebugger, "Break", "Break the debugger at the next message", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(ClearHistory, "Clear History", "Clears the message history list", EUserInterfaceActionType::Button, FInputGesture());
@@ -36,38 +32,24 @@ public:
 		UI_COMMAND(StopDebugger, "Stop", "Stop the debugger", EUserInterfaceActionType::Button, FInputGesture());
 	}
 
-	// End TCommands interface
-
 public:
 
-	/**
-	 * Holds a command that breaks at the next message.
-	 */
+	/** Holds a command that breaks at the next message. */
 	TSharedPtr<FUICommandInfo> BreakDebugger;
 
-	/**
-	 * Holds a command that clears the message history.
-	 */
+	/** Holds a command that clears the message history. */
 	TSharedPtr<FUICommandInfo> ClearHistory;
 
-	/**
-	 * Holds a command that continues debugging.
-	 */
+	/** Holds a command that continues debugging. */
 	TSharedPtr<FUICommandInfo> ContinueDebugger;
 
-	/**
-	 * Holds a command that starts debugging.
-	 */
+	/** Holds a command that starts debugging. */
 	TSharedPtr<FUICommandInfo> StartDebugger;
 
-	/**
-	 * Holds a command that continues debugging for one step.
-	 */
+	/** Holds a command that continues debugging for one step. */
 	TSharedPtr<FUICommandInfo> StepDebugger;
 
-	/**
-	 * Holds a command that stops debugging.
-	 */
+	/** Holds a command that stops debugging. */
 	TSharedPtr<FUICommandInfo> StopDebugger;
 };
 

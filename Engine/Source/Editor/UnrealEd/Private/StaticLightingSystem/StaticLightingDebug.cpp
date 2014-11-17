@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "StaticLightingPrivate.h"
 
 /** Information about the texel that is selected */

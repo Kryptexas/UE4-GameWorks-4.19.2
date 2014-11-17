@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-StackTracker.h: Stack Tracking within Unreal Engine.
-=============================================================================*/
-
 #pragma once
 
 #include "UMemoryDefines.h"
@@ -31,7 +27,6 @@ struct FSlackTrackData
 	// maybe store off policy also
 
 };
-
 
 
 /**
@@ -66,7 +61,7 @@ public:
 		,	StopFrameCounter(0)
 		,   UpdateFn(InUpdateFn)
 		,   ReportFn(InReportFn)
-	{}
+	{ }
 
 	/**
 	 * Captures the current stack and updates stack tracking information.
@@ -87,6 +82,7 @@ public:
 	CORE_API void ToggleTracking();
 
 private:
+
 	/** Array of unique callstacks. */
 	TArray<FCallStack> CallStacks;
 	/** Mapping from callstack CRC to index in callstack array. */

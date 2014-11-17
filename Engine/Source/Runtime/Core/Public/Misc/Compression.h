@@ -19,8 +19,6 @@ enum ECompressionFlags
 	COMPRESS_BiasMemory 			= 0x10,
 	/** Prefer compression that compresses faster (ONLY VALID FOR COMPRESSION)		*/
 	COMPRESS_BiasSpeed				= 0x20,
-	/** If this flag is present, decompression will not happen on the SPUs.			*/
-	COMPRESS_ForcePPUDecompressZLib	= 0x80
 };
 
 // Define global current platform default to current platform.
@@ -52,6 +50,15 @@ struct FCompression
 	CORE_API static uint64 CompressorSrcBytes;
 	/** Number of bytes after compression.		*/
 	CORE_API static uint64 CompressorDstBytes;
+
+	/**
+	 * Thread-safe abstract compression routine to query memory requirements for a compression operation.
+	 *
+	 * @param	Flags						Flags to control what method to use and optionally control memory vs speed
+	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @return The maximum possible bytes needed for compression of data buffer of size UncompressedSize
+	 */
+	CORE_API static int32 CompressMemoryBound( ECompressionFlags Flags, int32 UncompressedSize );
 
 	/**
 	 * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed

@@ -650,6 +650,8 @@ namespace UnrealDocTranslator
 
         private void UdtRun(string path, bool recursive = false, UdtRunMode mode = UdtRunMode.Normal, string lang = null)
         {
+            path = new Uri(GetUnrealDocToolLocation()).MakeRelativeUri(new Uri(path)).ToString();
+
             if (currentUdtLoggingThread != null && currentUdtLoggingThread.IsAlive)
             {
                 MessageBox.Show("Conversion in progress. You have to wait until previous finishes to run another.");
@@ -658,9 +660,14 @@ namespace UnrealDocTranslator
 
             if (File.Exists(path) || Directory.Exists(path))
             {
+                if (Directory.Exists(path) && recursive)
+                {
+                    path += "*";
+                }
+
                 // Relative path to UnrealDocTool, same folder.
                 var startInfo = new ProcessStartInfo(GetUnrealDocToolLocation(),
-                    String.Format("\"{0}\" " + (recursive ? "-r " : "") + GetParameters(mode), path) + (lang != null ? (" -lang=" + lang) : ""))
+                    String.Format("\"{0}\" " + GetParameters(mode), path) + (lang != null ? (" -lang=" + lang) : ""))
                                     {
                                         UseShellExecute = false,
                                         CreateNoWindow = true,

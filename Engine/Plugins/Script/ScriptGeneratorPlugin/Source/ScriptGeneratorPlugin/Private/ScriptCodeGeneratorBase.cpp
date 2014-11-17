@@ -2,11 +2,12 @@
 #include "ScriptGeneratorPluginPrivatePCH.h"
 #include "ScriptCodeGeneratorBase.h"
 
-FScriptCodeGeneratorBase::FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& InOutputDirectory)
+FScriptCodeGeneratorBase::FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& InOutputDirectory, const FString& InIncludeBase)
 {
 	GeneratedCodePath = InOutputDirectory;
 	RootLocalPath = InRootLocalPath;
 	RootBuildPath = InRootBuildPath;
+	IncludeBase = InIncludeBase;
 }
 
 bool FScriptCodeGeneratorBase::SaveHeaderIfChanged(const FString& HeaderPath, const FString& NewHeaderContents)
@@ -55,13 +56,7 @@ void FScriptCodeGeneratorBase::RenameTempFiles()
 FString FScriptCodeGeneratorBase::RebaseToBuildPath(const FString& FileName) const
 {
 	FString NewFilename(FileName);
-	if (RootLocalPath != RootBuildPath)
-	{
-		if (FPaths::MakePathRelativeTo(NewFilename, *RootLocalPath))
-		{
-			NewFilename = RootBuildPath / NewFilename;
-		}
-	}
+	FPaths::MakePathRelativeTo(NewFilename, *IncludeBase);
 	return NewFilename;
 }
 
@@ -157,20 +152,6 @@ bool FScriptCodeGeneratorBase::CanExportClass(UClass* Class)
 		(Class->ClassFlags & (CLASS_RequiredAPI | CLASS_MinimalAPI)) && // Don't export classes that don't export DLL symbols
 		!ExportedClasses.Contains(Class->GetFName()); // Don't export classes that have already been exported
 
-	if (bCanExport)
-	{
-		// Only export functions from selected modules
-		static struct FSupportedModules
-		{
-			TArray<FString> SupportedScriptModules;
-			FSupportedModules()
-			{
-				GConfig->GetArray(TEXT("Plugins"), TEXT("ScriptSupportedModules"), SupportedScriptModules, GEngineIni);
-			}
-		} SupportedModules;
-
-		bCanExport = SupportedModules.SupportedScriptModules.Contains(Class->GetOutermost()->GetName());
-	}
 	return bCanExport;
 }
 

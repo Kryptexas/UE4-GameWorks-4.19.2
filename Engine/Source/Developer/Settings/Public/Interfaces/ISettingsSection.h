@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISettingsSection.h: Declares the ISettingsSection interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -71,61 +67,39 @@ DECLARE_DELEGATE_RetVal(FText, FOnSettingsSectionStatus)
  */
 struct FSettingsSectionDelegates
 {
-	/**
-	 * Holds a delegate that is executed to check whether a settings section can be edited (default = true).
-	 */
+	/** A delegate that is executed to check whether a settings section can be edited (default = true). */
 	FOnSettingsSectionCanEdit CanEditDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section should export its values to a file (default = false).
-	 */
+	/** A delegate that is executed when a settings section should export its values to a file (default = false). */
 	FOnSettingsSectionExport ExportDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section should import its values from a file (default = false).
-	 */
+	/** A delegate that is executed when a settings section should import its values from a file (default = false). */
 	FOnSettingsSectionImport ImportDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section has been modified (default = true).
-	 */
+	/** A delegate that is executed when a settings section has been modified (default = true). */
 	FOnSettingsSectionModified ModifiedDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section should have its values reset to default (default = false).
-	 */
+	/** A delegate that is executed when a settings section should have its values reset to default (default = false). */
 	FOnSettingsSectionResetDefaults ResetDefaultsDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section should have its values saved as default.
-	 */
+	/** A delegate that is executed when a settings section should have its values saved as default. */
 	FOnSettingsSectionSaveDefaults SaveDefaultsDelegate;
 
-	/**
-	 * Holds a delegate that is executed when a settings section should have its values saved.
-	 */
+	/** A delegate that is executed when a settings section should have its values saved. */
 	FOnSettingsSectionSave SaveDelegate;
 
-	/**
-	 * Holds a delegate that is executed to retrieve a status message for a settings section.
-	 */
+	/** A delegate that is executed to retrieve a status message for a settings section. */
 	FOnSettingsSectionStatus StatusDelegate;
 };
 
 
-/**
- * Type definition for weak pointers to instances of ISettingsCategory.
- */
+/** Type definition for weak pointers to instances of ISettingsCategory. */
 typedef TWeakPtr<class ISettingsCategory> ISettingsCategoryWeakPtr;
 
-/**
- * Type definition for shared pointers to instances of ISettingsSection.
- */
+/** Type definition for shared pointers to instances of ISettingsSection. */
 typedef TSharedPtr<class ISettingsSection> ISettingsSectionPtr;
 
-/**
- * Type definition for shared references to instances of ISettingsSection.
- */
+/** Type definition for shared references to instances of ISettingsSection. */
 typedef TSharedRef<class ISettingsSection> ISettingsSectionRef;
 
 
@@ -189,8 +163,7 @@ public:
 	/**
 	 * Exports the settings in this section to the specified file.
 	 *
-	 * @param Filename - The path to the file.
-	 *
+	 * @param Filename The path to the file.
 	 * @return true if the settings were exported, false otherwise.
 	 */
 	virtual bool Export( const FString& Filename ) = 0;
@@ -254,8 +227,7 @@ public:
 	/**
 	 * Imports the settings in this section from the specified file.
 	 *
-	 * @param Filename - The path to the file.
-	 *
+	 * @param Filename The path to the file.
 	 * @return true if the settings were imported, false otherwise.
 	 */
 	virtual bool Import( const FString& Filename ) = 0;

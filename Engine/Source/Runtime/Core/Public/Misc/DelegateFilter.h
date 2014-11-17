@@ -23,7 +23,7 @@ public:
 	}
 
 	DECLARE_DERIVED_EVENT( TDelegateFilter, IFilter<ItemType>::FChangedEvent, FChangedEvent );
-	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
+	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 	/** 
 	 * Returns whether the specified Item passes the Filter's restrictions 
@@ -31,7 +31,7 @@ public:
 	 *	@param	InItem	The Item is check 
 	 *	@return			Whether the specified Item passed the filter
 	 */
-	virtual bool PassesFilter( ItemType InItem ) const OVERRIDE
+	virtual bool PassesFilter( ItemType InItem ) const override
 	{
 		return Predicate.Execute( InItem );
 	}

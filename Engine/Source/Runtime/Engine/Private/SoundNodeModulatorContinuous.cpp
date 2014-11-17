@@ -4,6 +4,7 @@
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "DistributionHelpers.h"
+#include "Sound/SoundNodeModulatorContinuous.h"
 
 float FModulatorContinuousParams::GetValue(const FActiveSound& ActiveSound) const
 {

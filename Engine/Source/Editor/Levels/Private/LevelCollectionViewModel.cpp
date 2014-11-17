@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "LevelsPrivatePCH.h"
 
+#include "Matinee/MatineeActor.h"
+
 #include "EditorLevelUtils.h"
 #include "LevelUtils.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -23,6 +25,7 @@ FLevelCollectionViewModel::FLevelCollectionViewModel( const TWeakObjectPtr< UEdi
 	, Editor( InEditor )
 	, CurrentWorld( NULL )
 	, AddedLevelStreamingClass( ULevelStreamingKismet::StaticClass() )
+	, bSelectionHasChanged( true )
 {
 	OnResetLevels();
 }
@@ -66,6 +69,9 @@ void FLevelCollectionViewModel::Initialize()
 			SetCurrentWorld( GEditor->GetEditorWorldContext().World() );
 		}
 	}
+	
+	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionViewModel::OnActorSelectionChanged);
+	SelectionChanged.AddSP(this, &FLevelCollectionViewModel::OnActorOrLevelSelectionChanged);
 }
 
 void FLevelCollectionViewModel::Tick( float DeltaTime )
@@ -93,7 +99,7 @@ void FLevelCollectionViewModel::BindCommands()
 	
 	ActionList.MapAction( Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::MoveActorsToSelected_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionViewModel::IsSelectedLevelUnlocked ) );
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionViewModel::IsValidMoveActorsToLevel));
 
 	//invalid selected levels
 	ActionList.MapAction( Commands.FixUpInvalidReference,
@@ -289,70 +295,70 @@ void FLevelCollectionViewModel::ToggleReadOnlyLevels_Executed()
 
 void FLevelCollectionViewModel::OnToggleDisplayActorCount()
 {
-	bool bDisplayActorCount = GetDisplayActorCountState();
-	GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser = !bDisplayActorCount;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayActorCount = !Settings->bDisplayActorCount;
+	Settings->PostEditChange();
 
-	DisplayActorCountChanged.Broadcast(!bDisplayActorCount);
+	DisplayActorCountChanged.Broadcast(Settings->bDisplayActorCount);
 }
 
 bool FLevelCollectionViewModel::GetDisplayActorCountState() const
 {
-	return (GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser);
+	return (GetDefault<ULevelBrowserSettings>()->bDisplayActorCount);
 }
 
 void FLevelCollectionViewModel::OnToggleLightmassSize()
 {
-	bool bDisplayLightmassSize = GetDisplayLightmassSizeState();
-	GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser = !bDisplayLightmassSize;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayLightmassSize = !GetDisplayLightmassSizeState();
+	Settings->PostEditChange();
 
-	DisplayLightmassSizeChanged.Broadcast(!bDisplayLightmassSize);
+	DisplayLightmassSizeChanged.Broadcast(Settings->bDisplayLightmassSize);
 }
 
 bool FLevelCollectionViewModel::GetDisplayLightmassSizeState() const
 {
-	return GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize;
 }
 
 void FLevelCollectionViewModel::OnToggleFileSize()
 {
-	bool bDisplayFileSize = GetDisplayFileSizeState();
-	GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser = !bDisplayFileSize;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayFileSize = !GetDisplayFileSizeState();
+	Settings->PostEditChange();
 
-	DisplayFileSizeChanged.Broadcast(!bDisplayFileSize);
+	DisplayFileSizeChanged.Broadcast(Settings->bDisplayFileSize);
 }
 
 bool FLevelCollectionViewModel::GetDisplayFileSizeState() const
 {
-	return GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayFileSize;
 }
 
 void FLevelCollectionViewModel::OnToggleEditorOffset()
 {
-	UEditorUserSettings& UserSettings = GEditor->AccessEditorUserSettings();
-	UserSettings.bDisplayEditorOffsetInLevelBrowser = !UserSettings.bDisplayEditorOffsetInLevelBrowser;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayEditorOffset = !Settings->bDisplayEditorOffset;
+	Settings->PostEditChange();
 
-	DisplayEditorOffsetChanged.Broadcast(UserSettings.bDisplayEditorOffsetInLevelBrowser);
+	DisplayEditorOffsetChanged.Broadcast(Settings->bDisplayEditorOffset);
 }
 
 bool FLevelCollectionViewModel::GetDisplayEditorOffsetState() const
 {
-	return GEditor->GetEditorUserSettings().bDisplayEditorOffsetInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayEditorOffset;
 }
 
 void FLevelCollectionViewModel::OnToggleDisplayPaths()
 {
-	bool bDisplayPaths = GetDisplayPathsState();
-	GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser = !bDisplayPaths;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayPaths = !GetDisplayPathsState();
+	Settings->PostEditChange();
 }
 
 bool FLevelCollectionViewModel::GetDisplayPathsState() const
 {
-	return (GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser);
+	return (GetDefault<ULevelBrowserSettings>()->bDisplayPaths);
 }
 
 bool FLevelCollectionViewModel::CanShiftSelection()
@@ -992,6 +998,20 @@ bool FLevelCollectionViewModel::AreSelectedLevelsUnlockedAndNotPersistent() cons
 	return true;
 }
 
+bool FLevelCollectionViewModel::AreAllSelectedLevelsUnlockedAndVisible() const
+{
+	for (const auto& Level : SelectedLevels)
+	{
+		if (Level->IsLocked() == true ||
+			Level->IsVisible() == false) 
+		{
+			return false;
+		}
+	}
+
+	return SelectedLevels.Num() > 0;
+}
+
 bool FLevelCollectionViewModel::AreActorsSelected() const
 {
 	return Editor->GetSelectedActorCount() > 0;
@@ -1438,9 +1458,9 @@ bool FLevelCollectionViewModel::AddExistingLevel()
 		}
 
 		// For safety
-		if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+		if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 		{
-			GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+			GLevelEditorModeTools().ActivateDefaultMode();
 		}
 
 		// refresh editor windows
@@ -1517,18 +1537,18 @@ void FLevelCollectionViewModel::RemoveSelectedLevels_Executed()
 	}
 
 	// If matinee is opened, and if it belongs to the level being removed, close it
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 		if ( InterpEditMode && InterpEditMode->MatineeActor && LevelsToRemove.Contains( InterpEditMode->MatineeActor->GetLevel() ) )
 		{
-			GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+			GLevelEditorModeTools().ActivateDefaultMode();
 		}
 	}
-	else if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+	else if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 	{
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	// Disassociate selected levels from streaming volumes since the levels will be removed
@@ -1551,9 +1571,7 @@ void FLevelCollectionViewModel::RemoveSelectedLevels_Executed()
 		
 		EditorLevelUtils::RemoveLevelFromWorld( CurLevel );
 	}
-
-	GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
-
+	
 	// Collect garbage to clear out the destroyed level
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 }
@@ -2069,6 +2087,91 @@ void FLevelCollectionViewModel::CacheCanExecuteSourceControlVars()
 			break;
 		}
 	}
+}
+
+void FLevelCollectionViewModel::AddExistingLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
+{
+	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
+	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
+	{
+		const FAssetData& AssetData = SelectedAssets[0];
+		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
+		{
+			// Close the menu that we were picking from
+			FSlateApplication::Get().DismissAllMenus();
+
+			// Fire ULevel::LevelDirtiedEvent when falling out of scope.
+			FScopedLevelDirtied LevelDirtyCallback;
+
+			// Add the level
+			ULevel* NewLevel = EditorLevelUtils::AddLevelToWorld(CurrentWorld.Get(), *AssetData.PackageName.ToString(), AddedLevelStreamingClass);
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
+
+			// For safety
+			if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+			{
+				GLevelEditorModeTools().ActivateDefaultMode();
+			}
+
+			// refresh editor windows
+			FEditorDelegates::RefreshAllBrowsers.Broadcast();
+
+			// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
+			GUnrealEd->UpdateVolumeActorVisibility(NULL);
+		}
+	}
+}
+
+bool FLevelCollectionViewModel::IsValidMoveActorsToLevel()
+{
+	static bool bCachedIsValidActorMoveResult = false;
+	if (bSelectionHasChanged)
+	{
+		bSelectionHasChanged = false;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+
+		// you cant move no selected actors to a level
+		if (SelectedActors->Num() == 0)
+		{
+			bCachedIsValidActorMoveResult = false;
+			return false;
+		}
+
+		// are any of the selected actors in the selected levels
+		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		{
+			AActor* Actor = CastChecked<AActor>(*Iter);
+			if (Actor != nullptr)
+			{
+				const ULevel* ActorsLevel = Actor->GetLevel();
+				for (TSharedPtr<FLevelViewModel> SelectedLevel : SelectedLevels)
+				{
+					if (SelectedLevel->GetLevel().Get() == ActorsLevel)
+					{
+						bCachedIsValidActorMoveResult = false;
+						return false;
+					}
+				}
+			}
+		}
+		bCachedIsValidActorMoveResult = true;
+	}
+
+	// if non of the selected actors are in the level, just check the level is unlocked
+	return bCachedIsValidActorMoveResult && AreAllSelectedLevelsUnlockedAndVisible();
+}
+
+void FLevelCollectionViewModel::OnActorSelectionChanged(UObject* obj)
+{
+	OnActorOrLevelSelectionChanged();
+}
+
+void FLevelCollectionViewModel::OnActorOrLevelSelectionChanged()
+{
+	bSelectionHasChanged = true;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -3,16 +3,17 @@
 #include "Engine.h"
 #include "MeshBoneReduction.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "ComponentReregisterContext.h"
 
 class FMeshBoneReductionModule : public IMeshBoneReductionModule
 {
 public:
 	// IModuleInterface interface.
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	// IMeshBoneReductionModule interface.
-	virtual class IMeshBoneReduction* GetMeshBoneReductionInterface() OVERRIDE;
+	virtual class IMeshBoneReduction* GetMeshBoneReductionInterface() override;
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshBoneReduction, Log, All);

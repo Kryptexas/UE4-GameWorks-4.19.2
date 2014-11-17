@@ -48,7 +48,7 @@ struct FIOSOpenGL : public FOpenGLES2
 
 	static FORCEINLINE EFenceResult ClientWaitSync(UGLsync Sync, GLbitfield Flags, GLuint64 Timeout)
 	{
-		check( Flags == GL_SYNC_FLUSH_COMMANDS_BIT );
+//		check( Flags == GL_SYNC_FLUSH_COMMANDS_BIT );
 		GLenum Result = glClientWaitSyncAPPLE( Sync, GL_SYNC_FLUSH_COMMANDS_BIT_APPLE, Timeout );
 		switch (Result)
 		{

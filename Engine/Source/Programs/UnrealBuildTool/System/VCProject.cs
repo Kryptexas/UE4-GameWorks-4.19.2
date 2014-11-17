@@ -177,13 +177,13 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
 			if (BuildPlatform == null)
 			{
 				return false;
 			}
 
-			if (BuildPlatform.HasRequiredSDKsInstalled() != UEBuildPlatform.SDKStatus.Valid)
+			if (BuildPlatform.HasRequiredSDKsInstalled() != SDKStatus.Valid)
 			{
 				return false;
 			}
@@ -415,8 +415,8 @@ namespace UnrealBuildTool
 						{
 							continue;
 						}
-						UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
-						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
+						var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid))
 						{
 							// Now go through all of the target types for this project
 							if( ProjectTargets.Count == 0 )
@@ -893,17 +893,9 @@ namespace UnrealBuildTool
 			{
 				return;
 			}
-
+	
 			string UProjectPath = "";
-			bool bIsProjectTarget = UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath());
-
-			// @todo Rocket: HACK: Only use long project names on the UBT command-line for out-of-root projects for now.  We need to revisit all uses of HasUProjectFile and short names in general to fix this.
-			if (bIsProjectTarget && !UnrealBuildTool.RunningRocket() && Utils.IsFileUnderDirectory(UnrealBuildTool.GetUProjectFile(), ProjectFileGenerator.RootRelativePath))
-			{
-				bIsProjectTarget = false;
-			}
-
-			if (bIsProjectTarget)
+			if (IsForeignProject)
 			{
 				UProjectPath = "\"$(SolutionDir)$(SolutionName).uproject\"";
 			}
@@ -942,7 +934,7 @@ namespace UnrealBuildTool
 					var UBTConfigurationName = IsStubProject ? StubProjectConfigurationName : Configuration.ToString();
 
 					// Setup output path
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
 					// Figure out if this is a monolithic build
 					bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
@@ -989,7 +981,7 @@ namespace UnrealBuildTool
 					}
 					NMakePath += BuildPlatform.GetActiveArchitecture();
 					NMakePath += BuildPlatform.GetBinaryExtension(UEBuildBinaryType.Executable);
-					NMakePath = BuildPlatform.ModifyNMakeOutput(NMakePath);
+					NMakePath = (BuildPlatform as UEBuildPlatform).ModifyNMakeOutput(NMakePath);
 
 					string PathStrings = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioPathsEntries(Platform, Configuration, TargetRulesObject.Type, TargetFilePath, ProjectFilePath, NMakePath) : "";
 					if (string.IsNullOrEmpty(PathStrings) || (PathStrings.Contains("<IntDir>") == false))
@@ -1022,7 +1014,7 @@ namespace UnrealBuildTool
 					// NMake Build command line
 					VCProjectFileContent.Append("		<NMakeBuildCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Build.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}
@@ -1031,7 +1023,7 @@ namespace UnrealBuildTool
 					// NMake ReBuild command line
 					VCProjectFileContent.Append("		<NMakeReBuildCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Rebuild.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}
@@ -1040,7 +1032,7 @@ namespace UnrealBuildTool
 					// NMake Clean command line
 					VCProjectFileContent.Append("		<NMakeCleanCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Clean.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}

@@ -8,8 +8,8 @@ static FName Name_Vector4("Vector4");
 static FName Name_Quat("Quat");
 static FName Name_Transform("Transform");
 
-FLuaScriptCodeGenerator::FLuaScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory)
-: FScriptCodeGeneratorBase(RootLocalPath, RootBuildPath, OutputDirectory)
+FLuaScriptCodeGenerator::FLuaScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& InIncludeBase)
+: FScriptCodeGeneratorBase(RootLocalPath, RootBuildPath, OutputDirectory, InIncludeBase)
 {
 
 }
@@ -471,18 +471,6 @@ void FLuaScriptCodeGenerator::ExportClass(UClass* Class, const FString& SourceHe
 	const FString ClassNameCPP = GetClassNameCPP(Class);
 	FString GeneratedGlue(TEXT("#pragma once\r\n\r\n"));		
 
-	for (UClass* Super = Class->GetSuperClass(); Super != NULL; Super = Super->GetSuperClass())
-	{
-		FString SuperScriptHeader = GetScriptHeaderForClass(Super);
-		if (FPaths::FileExists(SuperScriptHeader))
-		{
-			// Re-base to make sure we're including the right files on a remote machine
-			FString NewFilename(RebaseToBuildPath(SuperScriptHeader));
-			GeneratedGlue += FString::Printf(TEXT("#include \"%s\"\r\n\r\n"), *NewFilename);
-			break;
-		}
-	}
-
 	// Export all functions
 	for (TFieldIterator<UFunction> FuncIt(Class /*, EFieldIteratorFlags::ExcludeSuper*/); FuncIt; ++FuncIt)
 	{
@@ -534,7 +522,7 @@ void FLuaScriptCodeGenerator::GlueAllGeneratedFiles()
 	for (auto& HeaderFilename : AllScriptHeaders)
 	{
 		// Re-base to make sure we're including the right files on a remote machine
-		FString NewFilename(RebaseToBuildPath(HeaderFilename));
+		FString NewFilename(FPaths::GetCleanFilename(HeaderFilename));
 		LibGlue += FString::Printf(TEXT("#include \"%s\"\r\n"), *NewFilename);
 	}
 

@@ -6,6 +6,7 @@
 #include "SPersonaToolbar.h"
 #include "PersonaModule.h"
 #include "AnimGraphDefinitions.h"
+#include "IDetailsView.h"
 
 #include "Toolkits/IToolkitHost.h"
 
@@ -46,7 +47,13 @@
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_SequenceEvaluator.h"
+#include "AnimGraphNode_Slot.h"
+#include "Customization/AnimGraphNodeSlotDetails.h"
+
 #include "AnimPreviewInstance.h"
+
+#include "Particles/ParticleSystemComponent.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -431,6 +438,7 @@ TArray<UObject*> GetEditorObjectsOfClass( const TArray< UObject* >& Objects, con
 FPersona::FPersona()
 	: TargetSkeleton(NULL)
 	, PreviewComponent(NULL)
+	, PersonaMeshDetailLayout(NULL)
 	, PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 {
 	// Register to be notified when properties are edited
@@ -440,6 +448,7 @@ FPersona::FPersona()
 
 FPersona::~FPersona()
 {
+	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
@@ -460,9 +469,6 @@ FPersona::~FPersona()
 	if(PreviewComponent)
 	{
 		PreviewComponent->RemoveFromRoot();
-#if WITH_APEX_CLOTHING
-		PreviewComponent->RestoreClothSectionsVisibility();
-#endif //#if WITH_APEX_CLOTHING
 	}
 	
 	// NOTE: Any tabs that we still have hanging out when destroyed will be cleaned up by FBaseToolkit's destructor
@@ -844,7 +850,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		}
 	}
 
-	PreviewComponent->SetAnimClass(AnimBlueprint ? AnimBlueprint->GeneratedClass : NULL);
+	PreviewComponent->SetAnimInstanceClass(AnimBlueprint ? AnimBlueprint->GeneratedClass : NULL);
 
 	// We always want a preview instance unless we are using blueprints so that bone manipulation works
 	if (AnimBlueprint == NULL)
@@ -873,6 +879,15 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	{
 		OpenNewDocumentTab( InitAnimationAsset );
 	}
+
+	// register customization of Slot node for this Persona
+	// this is so that you can open the manage window per Persona
+	TWeakPtr<FPersona> PersonaPtr = SharedThis(this);
+	Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UAnimGraphNode_Slot::StaticClass(),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphNodeSlotDetails::MakeInstance, PersonaPtr));
+
+	// Register post import callback to catch animation imports when we have the asset open (we need to reinit)
+	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FPersona::OnPostImport);
 }
 
 
@@ -989,13 +1004,24 @@ UDebugSkelMeshComponent* FPersona::GetPreviewMeshComponent()
 
 void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {
+	ConditionalRefreshEditor(InObject);
+}
+
+void FPersona::OnPostImport(UFactory* InFactory, UObject* InObject)
+{
+	ConditionalRefreshEditor(InObject);
+}
+
+void FPersona::ConditionalRefreshEditor(UObject* InObject)
+{
 	// Ignore if this is regarding a different object
-	if ( InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited() )
+	if(InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited())
 	{
 		return;
 	}
 
 	RefreshViewport();
+	ReinitMode();
 }
 
 /** Called when graph editor focus is changed */
@@ -2357,9 +2383,9 @@ void FPersona::RemoveUnusedBones()
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().GetAssets(Filter, SkeletalMeshes);
 
-		FText Message = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
+		FText TimeTakenMessage = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
 		
-		if(FMessageDialog::Open( EAppMsgType::YesNo, Message ) == EAppReturnType::Yes)
+		if(FMessageDialog::Open( EAppMsgType::YesNo, TimeTakenMessage ) == EAppReturnType::Yes)
 		{
 			const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssets", "Processing Skeletal Meshes for {0}"), FText::FromString(TargetSkeleton->GetName()) );
 			GWarn->BeginSlowTask(StatusUpdate, true );
@@ -2406,10 +2432,10 @@ void FPersona::RemoveUnusedBones()
 			// If we have any bones left they are unused
 			if(SkeletonBones.Num() > 0)
 			{
-				const FText Message = FText::Format(LOCTEXT("RemoveBoneWarning", "Continuing will remove the following bones from the skeleton '{0}'. These bones are not being used by any of the SkeletalMeshes assigned to this skeleton\n\nOnce the bones have been removed all loaded animations for this skeleton will be recompressed (any that aren't loaded will be recompressed the next time they are loaded)."), FText::FromString(TargetSkeleton->GetName()) );
+				const FText RemoveBoneMessage = FText::Format(LOCTEXT("RemoveBoneWarning", "Continuing will remove the following bones from the skeleton '{0}'. These bones are not being used by any of the SkeletalMeshes assigned to this skeleton\n\nOnce the bones have been removed all loaded animations for this skeleton will be recompressed (any that aren't loaded will be recompressed the next time they are loaded)."), FText::FromString(TargetSkeleton->GetName()) );
 
 				// Ask User whether they would like to remove the bones from the skeleton
-				if (SSkeletonBoneRemoval::ShowModal(SkeletonBones, Message))
+				if (SSkeletonBoneRemoval::ShowModal(SkeletonBones, RemoveBoneMessage))
 				{
 					//Remove these bones from the skeleton
 					TargetSkeleton->RemoveBonesFromSkeleton(SkeletonBones, true);
@@ -2720,7 +2746,7 @@ static class FMeshHierarchyCmd : private FSelfRegisteringExec
 {
 public:
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		bool bResult = false;
 		if(FParse::Command(&Cmd,TEXT("TMH")))

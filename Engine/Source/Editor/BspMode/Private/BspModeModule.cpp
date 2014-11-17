@@ -11,8 +11,13 @@ void FBspModeModule::StartupModule()
 {
 	FBspModeStyle::Initialize();
 
-	BspMode = FBspMode::Create();
-	GEditorModeTools().RegisterMode( BspMode.ToSharedRef() );
+	FEditorModeRegistry::Get().RegisterMode<FBspMode>(
+		FBuiltinEditorModes::EM_Bsp,
+		NSLOCTEXT("GeometryMode", "DisplayName", "Geometry"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.BspMode", "LevelEditor.BspMode.Small"),
+		false,		// Visible
+		100			// UI priority order
+		);
 
 	RegisterBspBuilderType(UCubeBuilder::StaticClass(), LOCTEXT("CubeBuilderName", "Box"), LOCTEXT("CubeBuilderToolTip", "Make a box brush"), FBspModeStyle::Get().GetBrush(TEXT("BspMode.BoxBrush")));
 	RegisterBspBuilderType(UConeBuilder::StaticClass(), LOCTEXT("ConeBuilderName", "Cone"), LOCTEXT("ConeBuilderToolTip", "Make a cone brush"), FBspModeStyle::Get().GetBrush(TEXT("BspMode.ConeBrush")));
@@ -26,8 +31,7 @@ void FBspModeModule::StartupModule()
 
 void FBspModeModule::ShutdownModule()
 {
-	GEditorModeTools().UnregisterMode( BspMode.ToSharedRef() );
-	BspMode = NULL;
+	FEditorModeRegistry::Get().UnregisterMode( FBuiltinEditorModes::EM_Bsp );
 
 	BspBuilderTypes.Empty();
 }
@@ -36,12 +40,6 @@ void FBspModeModule::ShutdownModule()
 TSharedRef< SWidget > FBspModeModule::CreateBspModeWidget() const
 {
 	return SNew(SBspPalette);
-}
-
-
-TSharedRef< FEdMode > FBspModeModule::GetBspMode() const
-{
-	return BspMode.ToSharedRef();
 }
 
 

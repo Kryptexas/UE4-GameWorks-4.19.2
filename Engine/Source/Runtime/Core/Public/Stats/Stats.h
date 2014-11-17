@@ -50,12 +50,9 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS FScopeCycleCounter(TStatId StatId)
+	FORCEINLINE_STATS FScopeCycleCounter( TStatId StatId )
 	{
-		if (FThreadStats::IsCollectingData(StatId))
-		{
-			Start(*StatId);
-		}
+		Start( StatId );
 	}
 
 	/**
@@ -159,5 +156,6 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 
 #define GET_STATID(Stat) (TStatId())
 #define GET_STATFNAME(Stat) (FName())
+#define GET_STATDESCRIPTION(Stat) (nullptr)
 
 #endif

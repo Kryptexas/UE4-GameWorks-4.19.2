@@ -68,6 +68,9 @@ public:
 	/** Toggles immersive mode in the viewport */
 	TSharedPtr< FUICommandInfo > ToggleImmersive;
 
+	/** Toggles showing the exact camera view when locking a viewport to a camera */
+	TSharedPtr< FUICommandInfo > ToggleLockedCameraView;
+
 	/** Toggles maximize mode in the viewport */
 	TSharedPtr< FUICommandInfo > ToggleMaximize;
 
@@ -169,7 +172,7 @@ public:
 
 public:
 	/** Registers our commands with the binding system */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 private:
 	/** Registers additional commands as they are loaded */
 	void HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos);

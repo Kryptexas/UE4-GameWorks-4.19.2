@@ -177,7 +177,7 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
  * @param AllottedGeometry    The geometry allotted for this widget by its parent.
  * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
  */
-void SBoxPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SBoxPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	if ( this->Orientation == Orient_Horizontal )
 	{

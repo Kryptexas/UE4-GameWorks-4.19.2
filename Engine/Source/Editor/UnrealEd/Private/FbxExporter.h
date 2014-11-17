@@ -34,6 +34,10 @@
 #include "MatineeExporter.h"
 #include "FbxImporter.h"
 
+class ALandscapeProxy;
+struct FAnimControlTrackKey;
+class USplineMeshComponent;
+
 namespace UnFbx
 {
 
@@ -148,7 +152,7 @@ public:
 	/**
 	 * Exports the list of UAnimSequences as a single animation based on the settings in the TrackKeys
 	 */
-	UNREALED_API void ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const ASkeletalMeshActor* SkelMeshActor, const FString& ExportName, const TArray<UAnimSequence*>& AnimSeqList, const TArray<struct FAnimControlTrackKey>& TrackKeys );
+	UNREALED_API void ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const ASkeletalMeshActor* SkelMeshActor, const FString& ExportName, const TArray<UAnimSequence*>& AnimSeqList, const TArray<FAnimControlTrackKey>& TrackKeys );
 
 private:
 	FFbxExporter();

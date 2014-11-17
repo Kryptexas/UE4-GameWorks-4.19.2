@@ -28,10 +28,10 @@ public:
 	virtual ~SStatsViewer();
 
 	/** SWidget interface */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Begin IStatsViewer interface */
-	virtual void Refresh() OVERRIDE;
+	virtual void Refresh() override;
 	TSharedPtr< class IPropertyTable > GetPropertyTable();
 	int32 GetObjectSetIndex() const;
 	/** End IStatsViewer interface */

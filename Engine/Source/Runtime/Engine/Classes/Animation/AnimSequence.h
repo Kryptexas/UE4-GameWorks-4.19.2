@@ -496,26 +496,26 @@ class UAnimSequence : public UAnimSequenceBase
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UObject interface
-	ENGINE_API virtual void Serialize(FArchive& Ar) OVERRIDE;
-	ENGINE_API virtual void PostLoad() OVERRIDE;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual void BeginDestroy() OVERRIDE;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End of UObject interface
 
 	// Begin UAnimationAsset interface
-	ENGINE_API virtual bool IsValidAdditive() const OVERRIDE;
+	ENGINE_API virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
-	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) OVERRIDE;
-	ENGINE_API virtual int32 GetNumberOfFrames() OVERRIDE { return NumFrames; }
+	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
+	ENGINE_API virtual int32 GetNumberOfFrames() override { return NumFrames; }
 #endif
 	// End of UAnimationAsset interface
 
 	// Begin UAnimSequenceBase interface
-	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const OVERRIDE;
-	ENGINE_API virtual void UpgradeMorphTargetCurves() OVERRIDE;
+	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const override;
+	ENGINE_API virtual void UpgradeMorphTargetCurves() override;
 	// End UAnimSequenceBase interface
 
 	// Begin Transform related functions 

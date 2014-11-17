@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InternationalizationSettingsModel.h: Declares the UInternationalizationSettingsModel class.
-=============================================================================*/
-
 #pragma once
 
 #include "InternationalizationSettingsModel.generated.h"
+
 
 /**
  * Implements loading and saving of internationalization settings.
@@ -18,6 +15,7 @@ class INTERNATIONALIZATIONSETTINGS_API UInternationalizationSettingsModel
 	GENERATED_UCLASS_BODY()
 
 public:
+
 	void SaveDefaults();
 	void ResetToDefault();
 	FString GetCultureName() const;
@@ -26,6 +24,7 @@ public:
 	void ShouldLoadLocalizedPropertyNames(const bool Value);
 
 public:
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
@@ -35,6 +34,7 @@ public:
 	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
 
 private:
+
 	// Holds an event delegate that is executed when a setting has changed.
 	FSettingChangedEvent SettingChangedEvent;
 };

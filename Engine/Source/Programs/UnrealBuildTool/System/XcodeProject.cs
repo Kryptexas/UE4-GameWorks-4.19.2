@@ -188,7 +188,10 @@ namespace UnrealBuildTool
 						// UE4XcodeHelper is Mac only target, so skip other platforms files
 						return false;
 					}
-					else if (SourceFile.FilePath.EndsWith("SimplygonMeshReduction.cpp") || SourceFile.FilePath.EndsWith("Android.cpp"))
+					else if (SourceFile.FilePath.EndsWith("SimplygonMeshReduction.cpp") || SourceFile.FilePath.EndsWith("MeshBoneReduction.cpp") || SourceFile.FilePath.EndsWith("Android.cpp")
+						|| SourceFile.FilePath.EndsWith("Amazon.cpp") || SourceFile.FilePath.EndsWith("FacebookModule.cpp") || SourceFile.FilePath.EndsWith("SDL_angle.c")
+						|| SourceFile.FilePath.Contains("VisualStudioSourceCodeAccess") || SourceFile.FilePath.Contains("AndroidDevice") || SourceFile.FilePath.Contains("IOSDevice")
+						|| SourceFile.FilePath.Contains("WindowsDevice") || SourceFile.FilePath.Contains("WindowsMoviePlayer") || SourceFile.FilePath.EndsWith("IOSTapJoy.cpp"))
 					{
 						// @todo: We need a way to filter out files that use SDKs we don't have
 						return false;
@@ -260,15 +263,6 @@ namespace UnrealBuildTool
 		{
 			if (Path.GetFileName(InitFilePath) == ".DS_Store")
 			{
-				return null;
-			}
-			else if (InitFilePath.EndsWith("Classes/Engine/Engine.h") || InitFilePath.EndsWith("Classes/VectorField/VectorField.h") || InitFilePath.EndsWith("Classes/Materials/MaterialInstance.h")
-				|| InitFilePath.EndsWith("Classes/Engine/Canvas.h") || InitFilePath.EndsWith("Classes/Intrinsic/Model.h") || InitFilePath.EndsWith("Classes/Engine/Texture.h")
-				|| InitFilePath.EndsWith("Windows/OnlineFriendsFacebook.h") || InitFilePath.EndsWith("Windows/OnlineIdentityFacebook.h") || InitFilePath.EndsWith("HTML5/Simulator/SocketSubsystem.h")
-				|| InitFilePath.EndsWith("HTML5/Device/SocketSubsystem.h") || InitFilePath.EndsWith("ContentBrowser/Private/HistoryManager.h") || InitFilePath.EndsWith("Private/Menus/TranslationEditorMenu.h"))
-			{
-				// @todo: Get rid of this workaround when possible.
-				// Xcode has a bug (radr://15660224) that makes indexing fail if there are multiple header files with the same name, so we skip few files that cause the problem.
 				return null;
 			}
 			return new XcodeSourceFile(InitFilePath, InitProjectSubFolder);

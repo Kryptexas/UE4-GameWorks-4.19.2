@@ -5,6 +5,9 @@
 #include "PackageTools.h"
 #include "MessageLog.h"
 #include "AssetRegistryModule.h"
+#include "BehaviorTree/Tasks/BTTask_BlueprintBase.h"
+#include "BehaviorTree/Decorators/BTDecorator_BlueprintBase.h"
+#include "BehaviorTree/Services/BTService_BlueprintBase.h"
 
 const FString UBehaviorTreeEditorTypes::PinCategory_MultipleNodes("MultipleNodes");
 const FString UBehaviorTreeEditorTypes::PinCategory_SingleComposite("SingleComposite");
@@ -12,6 +15,26 @@ const FString UBehaviorTreeEditorTypes::PinCategory_SingleTask("SingleTask");
 const FString UBehaviorTreeEditorTypes::PinCategory_SingleNode("SingleNode");
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
+
+FClassData::FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
+	bIsHidden(0), 
+	bHideParent(0), 
+	Class(InClass), 
+	DeprecatedMessage(InDeprecatedMessage)
+{
+	Category = GetCategory();
+}
+
+FClassData::FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass) :
+	bIsHidden(0), 
+	bHideParent(0), 
+	Class(InClass), 
+	AssetName(InAssetName), 
+	GeneratedClassPackage(InGeneratedClassPackage), 
+	ClassName(InClassName) 
+{
+	Category = GetCategory();
+}
 
 FString FClassData::ToString() const
 {
@@ -42,12 +65,17 @@ FString FClassData::GetClassName() const
 	return Class.IsValid() ? Class->GetName() : ClassName;
 }
 
+FString FClassData::GetCategory() const
+{
+	return Class.IsValid() ? Class->GetMetaData(TEXT("Category")) : Category;
+}
+
 bool FClassData::IsAbstract() const
 {
 	return Class.IsValid() ? Class.Get()->HasAnyClassFlags(CLASS_Abstract) : false;
 }
 
-UClass* FClassData::GetClass()
+UClass* FClassData::GetClass(bool bSilent)
 {
 	UClass* RetClass = Class.Get();
 	if (RetClass == NULL && GeneratedClassPackage.Len())
@@ -64,17 +92,23 @@ UClass* FClassData::GetClass()
 			GWarn->EndSlowTask();
 
 			UBlueprint* BlueprintOb = Cast<UBlueprint>(Object);
-			RetClass = BlueprintOb ? *BlueprintOb->GeneratedClass : Object->GetClass();
+			RetClass = BlueprintOb ? *BlueprintOb->GeneratedClass :
+				Object ? Object->GetClass() : 
+				NULL;
+
 			Class = RetClass;
 		}
 		else
 		{
 			GWarn->EndSlowTask();
 
-			FMessageLog EditorErrors("EditorErrors");
-			EditorErrors.Error(LOCTEXT("PackageLoadFail", "Package Load Failed"));
-			EditorErrors.Info(FText::FromString(GeneratedClassPackage));
-			EditorErrors.Notify(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+			if (!bSilent)
+			{
+				FMessageLog EditorErrors("EditorErrors");
+				EditorErrors.Error(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+				EditorErrors.Info(FText::FromString(GeneratedClassPackage));
+				EditorErrors.Notify(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+			}
 		}
 	}
 
@@ -82,6 +116,24 @@ UClass* FClassData::GetClass()
 }
 
 //////////////////////////////////////////////////////////////////////////
+FClassBrowseHelper::FOnPackageListUpdated FClassBrowseHelper::OnPackageListUpdated;
+TArray<FName> FClassBrowseHelper::UnknownPackages;
+bool FClassBrowseHelper::bMoreThanOneTaskClassAvailable = false;
+bool FClassBrowseHelper::bMoreThanOneDecoratorClassAvailable = false;
+bool FClassBrowseHelper::bMoreThanOneServiceClassAvailable = false;
+
+void FClassDataNode::AddUniqueSubNode(TSharedPtr<FClassDataNode> SubNode)
+{
+	for (int32 Idx = 0; Idx < SubNodes.Num(); Idx++)
+	{
+		if (SubNode->Data.GetClassName() == SubNodes[Idx]->Data.GetClassName())
+		{
+			return;
+		}
+	}
+
+	SubNodes.Add(SubNode);
+}
 
 FClassBrowseHelper::FClassBrowseHelper()
 {
@@ -95,6 +147,8 @@ FClassBrowseHelper::FClassBrowseHelper()
 	GEditor->OnHotReload().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 	GEditor->OnBlueprintCompiled().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 	GEditor->OnClassPackageLoadedOrUnloaded().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
+
+	UpdateAvailableNodeClasses();
 }
 
 FClassBrowseHelper::~FClassBrowseHelper()
@@ -148,10 +202,31 @@ FString FClassBrowseHelper::GetDeprecationMessage(const UClass* Class)
 	return DeprecatedMessage;
 }
 
+DEFINE_LOG_CATEGORY_STATIC(LogBTDebug3, Log, All);
+
+bool FClassBrowseHelper::IsClassKnown(const FClassData& ClassData)
+{
+	return !ClassData.IsBlueprint() || !UnknownPackages.Contains(*ClassData.GetPackageName());
+}
+
+void FClassBrowseHelper::AddUnknownClass(const FClassData& ClassData)
+{
+	if (ClassData.IsBlueprint())
+	{
+		UnknownPackages.AddUnique(*ClassData.GetPackageName());
+	}
+}
+
 bool FClassBrowseHelper::IsHidingParentClass(UClass* Class)
 {
 	static FName MetaHideParent = TEXT("HideParentNode");
 	return Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaHideParent);
+}
+
+bool FClassBrowseHelper::IsPackageSaved(FName PackageName)
+{
+	const bool bFound = FPackageName::SearchForPackageOnDisk(PackageName.ToString());
+	return bFound;
 }
 
 void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
@@ -162,12 +237,33 @@ void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
 	if (Node.IsValid())
 	{
 		ParentNode = FindBaseClassNode(RootNode, Node->ParentClassName);
+
+		if (!IsPackageSaved(AssetData.PackageName))
+		{
+			UnknownPackages.AddUnique(AssetData.PackageName);
+		}
+		else
+		{
+			const int32 PrevListCount = UnknownPackages.Num();
+			UnknownPackages.RemoveSingleSwap(AssetData.PackageName);
+
+			if (UnknownPackages.Num() != PrevListCount)
+			{
+				FClassBrowseHelper::OnPackageListUpdated.Broadcast();
+			}
+		}
 	}
 
 	if (ParentNode.IsValid())
 	{
-		ParentNode->SubNodes.Add(Node);
+		ParentNode->AddUniqueSubNode(Node);
 		Node->ParentNode = ParentNode;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if(!AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		UpdateAvailableNodeClasses();
 	}
 }
 
@@ -186,11 +282,19 @@ void FClassBrowseHelper::OnAssetRemoved(const class FAssetData& AssetData)
 			Node->ParentNode->SubNodes.RemoveSingleSwap(Node);
 		}
 	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if(!AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		UpdateAvailableNodeClasses();
+	}
 }
 
 void FClassBrowseHelper::InvalidateCache()
 {
 	RootNode.Reset();
+
+	UpdateAvailableNodeClasses();
 }
 
 TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class FAssetData& AssetData)
@@ -212,7 +316,11 @@ TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class F
 		Node = MakeShareable(new FClassDataNode);
 		Node->ParentClassName = AssetParentClassName;
 
-		FClassData NewData(AssetData.AssetName.ToString(), AssetData.PackageName.ToString(), AssetClassName);
+		UObject* AssetOb = AssetData.IsAssetLoaded() ? AssetData.GetAsset() : NULL;
+		UBlueprint* AssetBP = Cast<UBlueprint>(AssetOb);
+		UClass* AssetClass = AssetBP ? *AssetBP->GeneratedClass : AssetOb ? AssetOb->GetClass() : NULL;
+
+		FClassData NewData(AssetData.AssetName.ToString(), AssetData.PackageName.ToString(), AssetClassName, AssetClass);
 		Node->Data = NewData;
 	}
 
@@ -358,6 +466,54 @@ void FClassBrowseHelper::AddClassGraphChildren(TSharedPtr<FClassDataNode> Node, 
 			Node->SubNodes.Add(MatchingNode);
 
 			AddClassGraphChildren(MatchingNode, NodeList);
+		}
+	}
+}
+
+bool FClassBrowseHelper::IsMoreThanOneTaskClassAvailable()
+{
+	return bMoreThanOneTaskClassAvailable;
+}
+
+bool FClassBrowseHelper::IsMoreThanOneDecoratorClassAvailable()
+{
+	return bMoreThanOneDecoratorClassAvailable;
+}
+
+bool FClassBrowseHelper::IsMoreThanOneServiceClassAvailable()
+{
+	return bMoreThanOneServiceClassAvailable;
+}
+
+void FClassBrowseHelper::UpdateAvailableNodeClasses()
+{
+	if(FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")))
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+		const bool bSearchSubClasses = true;
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTTask_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneTaskClassAvailable = DerivedClassNames.Num() > 1;
+		}
+
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTDecorator_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneDecoratorClassAvailable = DerivedClassNames.Num() > 1;
+		}
+
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTService_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneServiceClassAvailable = DerivedClassNames.Num() > 1;
 		}
 	}
 }

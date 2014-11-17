@@ -73,10 +73,10 @@ public:
 	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
 
-	/** delegate type for opening a modal message box ( Params: const FString& Text, EAppMsgType::Type MessageType ) */
-	DECLARE_DELEGATE_RetVal_TwoParams(EAppReturnType::Type, FOnModalMessageBox, const FText&, EAppMsgType::Type);
+	/** delegate type for opening a modal message box ( Params: EAppMsgType::Type MessageType, const FText& Text, const FText& Title ) */
+	DECLARE_DELEGATE_RetVal_ThreeParams(EAppReturnType::Type, FOnModalMessageBox, EAppMsgType::Type, const FText&, const FText&);
 
-	/** delegate type for querrying whether a loaded object should replace an already exisiting one */
+	/** delegate type for querying whether a loaded object should replace an already existing one */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
 
 	// Callback for handling an ensure

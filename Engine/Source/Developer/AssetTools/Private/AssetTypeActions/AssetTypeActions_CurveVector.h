@@ -6,7 +6,7 @@ class FAssetTypeActions_CurveVector : public FAssetTypeActions_Curve
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CurveVector", "Vector Curve"); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UCurveVector::StaticClass(); }
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CurveVector", "Vector Curve"); }
+	virtual UClass* GetSupportedClass() const override { return UCurveVector::StaticClass(); }
+	virtual bool CanFilter() override { return true; }
 };

@@ -18,4 +18,6 @@ public:
 	virtual void RequestRefresh() = 0;
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const = 0;
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) = 0;
+	/** If a customization standalone widget is used, the value should be update only once, when its window is closed */
+	virtual bool DontUpdateValueWhileEditing() const = 0;
 };

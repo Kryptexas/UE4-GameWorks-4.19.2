@@ -30,6 +30,7 @@ namespace ESlateVisibility
 	};
 }
 
+/** The sizing options of UWidgets */
 UENUM()
 namespace ESlateSizeRule
 {
@@ -42,15 +43,19 @@ namespace ESlateSizeRule
 	};
 }
 
+/** A struct exposing FReply options in a UStruct compatible way. */
 USTRUCT()
 struct FSReply
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=User)
-		uint32 bIsHandled : 1;
+	uint32 bIsHandled : 1;
 
-	FReply ToReply() const
+	UPROPERTY(EditAnywhere, Category=User)
+	uint32 bCaptureMouse : 1;
+
+	FReply ToReply( TSharedRef<SWidget> Widget ) const
 	{
 		FReply Reply = FReply::Unhandled();
 
@@ -59,19 +64,26 @@ struct FSReply
 			Reply = FReply::Handled();
 		}
 
+		if ( bCaptureMouse )
+		{
+			Reply = Reply.CaptureMouse(Widget);
+		}
+
 		return Reply;
 	}
 };
 
+/** A struct exposing size param related properties to UMG. */
 USTRUCT()
 struct FSlateChildSize
 {
 	GENERATED_USTRUCT_BODY()
 
-	//editcondition="SizeRule=ESlateSizeRule::Fill"
+	/** The parameter of the size rule. */
 	UPROPERTY(EditAnywhere, Category=Appearance, meta=(ClampMin="0", ClampMax="1"))
 	float Value;
 
+	/** The sizing rule of the content. */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<ESlateSizeRule::Type> SizeRule;
 

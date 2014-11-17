@@ -16,6 +16,7 @@
 #endif
 
 #include "TargetPlatform.h"
+#include "ContentStreaming.h"
 
 UTexture2D::UTexture2D(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -28,6 +29,19 @@ UTexture2D::UTexture2D(const class FPostConstructInitializeProperties& PCIP)
 /*-----------------------------------------------------------------------------
 	Global helper functions
 -----------------------------------------------------------------------------*/
+
+/** CVars */
+static TAutoConsoleVariable<float> CVarSetMipMapLODBias(
+	TEXT("r.MipMapLODBias"),
+	0.0f,
+	TEXT("Apply additional mip map bias for all 2D textures, range of -15.0 to 15.0"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarVirtualTextureEnabled(
+	TEXT("r.VirtualTexture"),
+	1,
+	TEXT("If set to 1, textures will use virtual memory so they can be partially resident."),
+	ECVF_RenderThreadSafe);
 
 static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreateFlags)
 {
@@ -42,9 +56,7 @@ static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreat
 	const uint32 iRequiredFlags =
 		TexCreate_OfflineProcessed;
 
-	static auto CVarVirtualTextureEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VirtualTexture"));
-	check(CVarVirtualTextureEnabled);
-	bool bCreateVirtual = ((TexCreateFlags & (iDisableFlags | iRequiredFlags)) == iRequiredFlags) && Texture->bIsStreamable && CVarVirtualTextureEnabled->GetValueOnRenderThread();
+	bool bCreateVirtual = ((TexCreateFlags & (iDisableFlags | iRequiredFlags)) == iRequiredFlags) && Texture->bIsStreamable && CVarVirtualTextureEnabled.GetValueOnRenderThread();
 	
 	static auto CVarVirtualTextureReducedMemoryEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VirtualTextureReducedMemory"));
 	check(CVarVirtualTextureReducedMemoryEnabled);
@@ -299,6 +311,27 @@ void UTexture2D::Serialize(FArchive& Ar)
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
+}
+
+float UTexture2D::GetLastRenderTimeForStreaming()
+{
+	float LastRenderTime = -FLT_MAX;
+	if (Resource)
+	{
+		// The last render time is the last time the resource was directly bound or the last
+		// time the texture reference was cached in a resource table, whichever was later.
+		LastRenderTime = FMath::Max<double>(Resource->LastRenderTime,TextureReference.GetLastRenderTime());
+	}
+	return LastRenderTime;
+}
+
+void UTexture2D::InvalidateLastRenderTimeForStreaming()
+{
+	if (Resource)
+	{
+		Resource->LastRenderTime = -FLT_MAX;
+	}
+	TextureReference.InvalidateLastRenderTime();
 }
 
 #if WITH_EDITOR
@@ -1119,10 +1152,11 @@ void UTexture2D::UpdateTextureRegions( int32 MipIndex, uint32 NumRegions, FUpdat
 
 #endif
 
+
+
 float UTexture2D::GetGlobalMipMapLODBias()
 {
-	static const auto CVarMipMapLODBias = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.MipMapLODBias"));
-	float BiasOffset = CVarMipMapLODBias->GetValueOnAnyThread(); // called from multiple threads.
+	float BiasOffset = CVarSetMipMapLODBias.GetValueOnAnyThread(); // called from multiple threads.
 	return FMath::Clamp(BiasOffset, -15.0f, 15.0f);
 }
 
@@ -1271,7 +1305,8 @@ void FTexture2DResource::InitRHI()
 			{
 				TexCreateFlags |= TexCreate_Virtual;
 
-				Texture2DRHI	= RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, EffectiveFormat, OwnerMips.Num(), 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				Texture2DRHI	= RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, EffectiveFormat, OwnerMips.Num(), 1, TexCreateFlags, CreateInfo);
 				RHIVirtualTextureSetFirstMipInMemory(Texture2DRHI, CurrentFirstMip);
 				RHIVirtualTextureSetFirstMipVisible(Texture2DRHI, CurrentFirstMip);
 
@@ -1298,14 +1333,17 @@ void FTexture2DResource::InitRHI()
 
 				TextureRHI = Texture2DRHI;
 				RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+				RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 				return;
 			}
 
 			// create texture with ResourceMem data when available
-			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, ResourceMem );
+			FRHIResourceCreateInfo CreateInfo(ResourceMem);
+			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo);
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 			check(Owner->RequestedMips == Texture2DRHI->GetNumMips());
 			check(Owner->PlatformData->Mips.Num() == CurrentFirstMip + Owner->RequestedMips);
@@ -1351,9 +1389,11 @@ void FTexture2DResource::InitRHI()
 		bool bSkipRHITextureCreation = false; //Owner->bIsCompositingSource;
 		if (GIsEditor || (!bSkipRHITextureCreation))
 		{
-			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, NULL );
+			FRHIResourceCreateInfo CreateInfo;
+			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 			for( int32 MipIndex=CurrentFirstMip; MipIndex<OwnerMips.Num(); MipIndex++ )
 			{
 				if( MipData[MipIndex] != NULL )
@@ -1394,6 +1434,7 @@ void FTexture2DResource::ReleaseRHI()
 	check( Owner->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests );	
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 }
 
 void FTexture2DResource::CreateSamplerStates(float MipMapBias)
@@ -1634,7 +1675,8 @@ void FTexture2DResource::UpdateMipCount()
 				check(PendingFirstMip>=0);
 
 				const uint32 TexCreateFlags = Texture2DRHI->GetFlags() & ~TexCreate_Virtual;
-				IntermediateTextureRHI = RHICreateTexture2D( OwnerMips[PendingFirstMip].SizeX, OwnerMips[PendingFirstMip].SizeY, OldTexture->GetFormat(), OwnerMips.Num() - PendingFirstMip, 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				IntermediateTextureRHI = RHICreateTexture2D( OwnerMips[PendingFirstMip].SizeX, OwnerMips[PendingFirstMip].SizeY, OldTexture->GetFormat(), OwnerMips.Num() - PendingFirstMip, 1, TexCreateFlags, CreateInfo );
 
 				check(Owner->bIsStreamable);
 				check(Owner->PendingMipChangeRequestStatus.GetValue() == TexState_InProgress_Allocation);
@@ -1654,13 +1696,15 @@ void FTexture2DResource::UpdateMipCount()
 			else
 			{
 				const uint32 TexCreateFlags = Texture2DRHI->GetFlags() | TexCreate_Virtual;
-				Texture2DRHI = RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, OldTexture->GetFormat(), OwnerMips.Num(), 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				Texture2DRHI = RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, OldTexture->GetFormat(), OwnerMips.Num(), 1, TexCreateFlags, CreateInfo );
 				RHIVirtualTextureSetFirstMipInMemory(Texture2DRHI, CurrentFirstMip);
 				RHIVirtualTextureSetFirstMipVisible(Texture2DRHI, CurrentFirstMip);
 				RHICopySharedMips(Texture2DRHI, OldTexture);
 			}
 
 			TextureRHI = Texture2DRHI;
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 		}
 	}
 
@@ -1981,6 +2025,7 @@ void FCreateTextureTask::DoWork()
 	// NOTE: Leaving scope here to drop the reference held by AsyncTexture.
 	// The only remaining reference is now Texture2DResource->IntermediateTextureRHI.
 	// This is important otherwise two threads could be ref counting simultaneously!
+	FPlatformMisc::MemoryBarrier();
 
 	// Decrement the counter so the texture streamer knows that texture creation has completed.
 	Args.ThreadSafeCounter->Decrement();
@@ -2165,6 +2210,7 @@ void FTexture2DResource::FinalizeMipCount()
 			TextureRHI		= IntermediateTextureRHI;
 			Texture2DRHI	= IntermediateTextureRHI;
 			CurrentFirstMip = PendingFirstMip;
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 			// Update mip-level fading.
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
@@ -2264,6 +2310,7 @@ bool FTexture2DResource::TryReallocate( int32 OldMipCount, int32 NewMipCount )
 
 	Texture2DRHI = NewTextureRHI;
 	TextureRHI = NewTextureRHI;
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 	PendingFirstMip = CurrentFirstMip = MipIndex;
 
@@ -2306,7 +2353,8 @@ void FTexture2DArrayResource::InitRHI()
 {
 	// Create the RHI texture.
 	const uint32 TexCreateFlags = (bSRGB ? TexCreate_SRGB : 0) | TexCreate_OfflineProcessed;
-	FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(SizeX, SizeY, GetNumValidTextures(), Format, NumMips, TexCreateFlags, NULL);
+	FRHIResourceCreateInfo CreateInfo;
+	FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(SizeX, SizeY, GetNumValidTextures(), Format, NumMips, TexCreateFlags, CreateInfo);
 	TextureRHI = TextureArray;
 
 	// Read the mip-levels into the RHI texture.

@@ -24,6 +24,7 @@ public class ContentBrowser : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Engine",
+                "Merge",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
@@ -31,7 +32,8 @@ public class ContentBrowser : ModuleRules
 				"SourceControlWindows",
 				"WorkspaceMenuStructure",
 				"UnrealEd",
-				"EditorWidgets"
+				"EditorWidgets",
+				"Projects"
 			}
 		);
 

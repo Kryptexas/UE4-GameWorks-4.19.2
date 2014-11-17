@@ -34,7 +34,7 @@ enum
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID and set this new
 // guid as version
 
-#define TEXTURE_DERIVEDDATA_VER		TEXT("4F83E7F4EC4E4AB788364F736C9E4311")
+#define TEXTURE_DERIVEDDATA_VER		TEXT("75F87CE100B546AAB8A1C4132AF9DB17")
 
 /*------------------------------------------------------------------------------
 	Timing of derived data operations.
@@ -445,11 +445,11 @@ static void PutDerivedDataInCache(
 
 #if WITH_EDITORONLY_DATA
 
-class FTextureStatusMessageContext : public FStatusMessageContext
+class FTextureStatusMessageContext : public FScopedSlowTask
 {
 public:
 	explicit FTextureStatusMessageContext(const FText& InMessage)
-		: FStatusMessageContext(InMessage)
+		: FScopedSlowTask(InMessage)
 	{
 		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
 	}
@@ -1206,7 +1206,6 @@ static void SerializePlatformData(
 		if (Ar.IsLoading())
 		{
 			check(Texture);
-			Texture->LODBias -= FirstMipToSerialize;
 			FirstMipToSerialize = 0;
 		}
 	}

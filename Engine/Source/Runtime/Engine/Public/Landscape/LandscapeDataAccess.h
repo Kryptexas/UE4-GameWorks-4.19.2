@@ -17,6 +17,11 @@ LandscapeDataAccess.h: Classes for the editor to access to Landscape data
 
 #if WITH_EDITOR
 
+// Forward declarations
+class ULandscapeLayerInfoObject;
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeComponent.h"
+
 namespace LandscapeDataAccess
 {
 	const int32 MaxValue = 65535;

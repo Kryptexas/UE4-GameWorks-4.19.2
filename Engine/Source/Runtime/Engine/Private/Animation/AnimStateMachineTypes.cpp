@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
+#include "Animation/AnimStateMachineTypes.h"
 
 /////////////////////////////////////////////////////
 // UAnimStateMachineTypes

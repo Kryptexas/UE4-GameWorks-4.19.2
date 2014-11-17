@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ScenePrivate.h"
 #include "FXSystem.h"
 #include "PostProcessing.h"
@@ -22,14 +22,14 @@ FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamil
  * Initialize scene's views.
  * Check visibility, sort translucent items, etc.
  */
-void FForwardShadingSceneRenderer::InitViews()
+void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(InitViews, DEC_SCENE_ITEMS);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
-	PreVisibilityFrameSetup();
-	ComputeViewVisibility();
+	PreVisibilityFrameSetup(RHICmdList);
+	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup();
 
 	OnStartFrame();
@@ -38,7 +38,7 @@ void FForwardShadingSceneRenderer::InitViews()
 /** 
 * Renders the view family. 
 */
-void FForwardShadingSceneRenderer::Render()
+void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
 	if(!ViewFamily.EngineShowFlags.Rendering)
 	{
@@ -48,18 +48,18 @@ void FForwardShadingSceneRenderer::Render()
 	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures();
+	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
 	// Allocate the maximum scene render target space for the current view family.
 	GSceneRenderTargets.Allocate(ViewFamily);
 
 	// Find the visible primitives.
-	InitViews();
+	InitViews(RHICmdList);
 	
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
-		Scene->FXSystem->PreRender();
+		Scene->FXSystem->PreRender(RHICmdList);
 	}
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
@@ -71,26 +71,27 @@ void FForwardShadingSceneRenderer::Render()
 	const bool bGammaSpace = !IsMobileHDR();
 	if( bGammaSpace )
 	{
-		RHISetRenderTarget( ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture() );
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture());
 	}
 	else
 	{
 		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(false);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
 	}
 
 	// Clear color and depth buffer
 	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-	RHIClear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
+	RHICmdList.Clear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
-	RenderForwardShadingBasePass();
+	RenderForwardShadingBasePass(RHICmdList);
 
-	RenderCustomDepthPass();
+	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
+	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{
-		Scene->FXSystem->PostRenderOpaque();
+		Scene->FXSystem->PostRenderOpaque(RHICmdList);
 	}
 
 	// Draw translucency.
@@ -98,7 +99,12 @@ void FForwardShadingSceneRenderer::Render()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
-		RenderTranslucency();
+		if (ViewFamily.EngineShowFlags.Refraction)
+		{
+			// to apply refraction effect by distorting the scene color
+			RenderDistortion(RHICmdList);
+		}
+		RenderTranslucency(RHICmdList);
 	}
 
 	if( !bGammaSpace )
@@ -121,7 +127,7 @@ void FForwardShadingSceneRenderer::Render()
 			FIntPoint PrePostSourceViewportSize = GSceneRenderTargets.GetBufferSizeXY();
 
 			FMemMark Mark(FMemStack::Get());
-			FRenderingCompositePassContext CompositeContext(View);
+			FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 			FRenderingCompositePass* PostProcessSunMask = CompositeContext.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMaskES2(PrePostSourceViewportSize, true));
 			CompositeContext.Root->AddDependency(FRenderingCompositeOutputRef(PostProcessSunMask));
@@ -129,22 +135,33 @@ void FForwardShadingSceneRenderer::Render()
 		}
 
 		// Resolve the scene color for post processing.
-		GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		// Drop depth and stencil before post processing to avoid export.
-		RHIDiscardRenderTargets(true, true, 0);
+		RHICmdList.DiscardRenderTargets(true, true, 0);
 
-		// Finish rendering for each view.
+		// Finish rendering for each view, or the full stereo buffer if enabled
+		if (GEngine->IsStereoscopic3D())
+		{
+			check(Views.Num() > 1);
+
+			//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
+			FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
+			Views[0].ViewRect.Max = Views[1].ViewRect.Max;
+			GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
+			Views[0].ViewRect.Max = OriginalMax0;
+		}
+		else
 		{
 			SCOPED_DRAW_EVENT(FinishRendering, DEC_SCENE_ITEMS);
 			SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{	
 				SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
-				GPostProcessing.ProcessES2( Views[ViewIndex], bOnChipSunMask );
+				GPostProcessing.ProcessES2(RHICmdList, Views[ViewIndex], bOnChipSunMask);
 			}
 		}
 	}
 
-	RenderFinish();
+	RenderFinish(RHICmdList);
 }

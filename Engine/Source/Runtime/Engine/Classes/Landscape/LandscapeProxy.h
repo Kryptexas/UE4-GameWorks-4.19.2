@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Engine/EngineTypes.h"
 #include "LandscapeInfo.h"
 #include "PhysicsEngine/BodyInstance.h"
 
@@ -153,6 +155,9 @@ struct FLandscapeImportLayerInfo
 #endif
 };
 
+// this is only here because putting it in LandscapeEditorObject.h (where it belongs)
+// results in Engine being dependent on LandscapeEditor, as the actual landscape editing
+// code (e.g. LandscapeEdit.h) is in /Engine/ for some reason...
 UENUM()
 namespace ELandscapeLayerPaintingRestriction
 {
@@ -181,7 +186,7 @@ namespace ELandscapeLODFalloff
 	};
 }
 
-UCLASS(dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
+UCLASS(NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
 class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -221,7 +226,7 @@ public:
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
 	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
 	 */
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	UPROPERTY(EditAnywhere, Category=Landscape, meta=(ClampMin=0))
 	float StreamingDistanceMultiplier;
 
 	/** Combined material used to render the landscape */
@@ -256,6 +261,10 @@ public:
 
 	UPROPERTY(EditAnywhere, Category=Lighting)
 	uint32 bCastStaticShadow:1;
+
+	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
+	uint32 bCastShadowAsTwoSided:1;
 
 	UPROPERTY()
 	uint32 bIsProxy:1;
@@ -331,19 +340,19 @@ public:
 	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
 
 	// Begin AActor Interface
-	virtual void UnregisterAllComponents() OVERRIDE;
-	virtual void RegisterAllComponents() OVERRIDE;
-	virtual void RerunConstructionScripts() OVERRIDE {}
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return true; }
-	virtual bool UpdateNavigationRelevancy() OVERRIDE;
-	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const OVERRIDE;
+	virtual void UnregisterAllComponents() override;
+	virtual void RegisterAllComponents() override;
+	virtual void RerunConstructionScripts() override {}
+	virtual bool IsLevelBoundsRelevant() const override { return true; }
+	virtual bool UpdateNavigationRelevancy() override;
+	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 #if WITH_EDITOR
-	virtual void Destroyed() OVERRIDE;
-	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) OVERRIDE;
-	virtual bool ShouldExport() OVERRIDE;
-	virtual bool GetSelectedComponents(TArray<UObject*>& SelectedObjects) OVERRIDE;
+	virtual void Destroyed() override;
+	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
+	virtual bool ShouldExport() override;
+	virtual bool GetSelectedComponents(TArray<UObject*>& SelectedObjects) override;
 	// End AActor Interface
 #endif	//WITH_EDITOR
 
@@ -351,20 +360,20 @@ public:
 	virtual class ALandscape* GetLandscapeActor();
 
 	// Begin INavRelevantActorInterface Interface
-	virtual bool DoesSupplyPerComponentNavigationCollision() const OVERRIDE{ return true; }
+	virtual bool DoesSupplyPerComponentNavigationCollision() const override{ return true; }
 	// End INavRelevantActorInterface Interface
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
+	virtual void PostEditImport() override;
 	// End UObject Interface
 
 	FLandscapeLayerStruct* GetLayerInfo_Deprecated(FName LayerName);
@@ -418,14 +427,18 @@ public:
 	/**
 	 * Exports landscape into raw mesh
 	 * 
+	 * @param InExportLOD Landscape LOD level to use while exporting, INDEX_NONE will use ALanscapeProxy::ExportLOD settings
 	 * @param OutRawMesh - Resulting raw mesh
 	 * @return true if successful
 	 */
-	ENGINE_API bool ExportToRawMesh(struct FRawMesh& OutRawMesh) const;
+	ENGINE_API bool ExportToRawMesh(int32 InExportLOD, struct FRawMesh& OutRawMesh) const;
 
 
 	/** @return Current size of bounding rectangle in quads space */
 	ENGINE_API FIntRect GetBoundingRect() const;
+
+	/** Creates a Texture2D for use by this landscape proxy or one of it's components. If OptionalOverrideOuter is not specified, the level is used. */
+	ENGINE_API class UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
 #endif
 };
 

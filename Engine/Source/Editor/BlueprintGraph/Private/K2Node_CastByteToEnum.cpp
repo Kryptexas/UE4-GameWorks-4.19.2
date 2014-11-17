@@ -3,7 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "K2Node_CastByteToEnum.h"
 
 const FString UK2Node_CastByteToEnum::ByteInputPinName = TEXT("Byte");
 
@@ -102,7 +103,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		FNodeHandlingFunctor::RegisterNets(Context, Node); //handle literals
 

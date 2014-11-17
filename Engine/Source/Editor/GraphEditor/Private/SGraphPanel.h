@@ -10,14 +10,30 @@ class UEdGraphNode;
 
 DECLARE_DELEGATE( FOnUpdateGraphPanel )
 
+// Arguments when the graph panel wants to open a context menu
+struct FGraphContextMenuArguments
+{
+	// The endpoint of the drag or the location of the right-click
+	FVector2D NodeAddPosition;
+
+	// The source node if there are any
+	UEdGraphNode* GraphNode;
+
+	// The source pin if there is one
+	UEdGraphPin* GraphPin;
+
+	// 
+	TArray<UEdGraphPin*> DragFromPins;
+
+	// Was shift held down when the operation started?
+	bool bShiftOperation;
+};
+
+
 class GRAPHEDITOR_API SGraphPanel : public SNodePanel, public FGCObject
 {
 public:
-	DECLARE_DELEGATE_RetVal_FourParams(
-		FActionMenuContent,
-		FOnGetContextMenuFor,
-		const FVector2D&, class UEdGraphNode*, class UEdGraphPin*, const TArray<class UEdGraphPin*>& )
-
+	DECLARE_DELEGATE_RetVal_OneParam(FActionMenuContent, FOnGetContextMenuFor, const FGraphContextMenuArguments& /*SpawnInfo*/)
 
 	SLATE_BEGIN_ARGS( SGraphPanel )
 		: _OnGetContextMenuFor()
@@ -27,8 +43,8 @@ public:
 		, _GraphObjToDiff( static_cast<UEdGraph*>(NULL) )
 		, _InitialZoomToFit( false )
 		, _IsEditable( true )
+		, _ShowGraphStateOverlay(true)
 		, _OnUpdateGraphPanel()
-		, _ShowPIENotification( true )
 		{}
 
 		SLATE_EVENT( FOnGetContextMenuFor, OnGetContextMenuFor )
@@ -40,12 +56,13 @@ public:
 		SLATE_ARGUMENT( class UEdGraph*, GraphObjToDiff )
 		SLATE_ARGUMENT( bool, InitialZoomToFit )
 		SLATE_ATTRIBUTE( bool, IsEditable )
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 		SLATE_EVENT( FOnNodeVerifyTextCommit, OnVerifyTextCommit )
 		SLATE_EVENT( FOnNodeTextCommitted, OnTextCommitted )
 		SLATE_EVENT( SGraphEditor::FOnSpawnNodeByShortcut, OnSpawnNodeByShortcut )
 		SLATE_EVENT( FOnUpdateGraphPanel, OnUpdateGraphPanel )
 		SLATE_EVENT( SGraphEditor::FOnDisallowedPinConnection, OnDisallowedPinConnection )
-		SLATE_ARGUMENT( bool, ShowPIENotification )
 		//SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 	SLATE_END_ARGS()
 
@@ -76,30 +93,30 @@ public:
 	~SGraphPanel();
 public:
 	// SWidget interface
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual bool SupportsKeyboardFocus() const override;
 	// End of SWidget interface
 
 	// SNodePanel interface
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual bool OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd) OVERRIDE;
-	virtual void RemoveAllNodes() OVERRIDE;
+	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual bool OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd) override;
+	virtual void RemoveAllNodes() override;
 	// End of SNodePanel interface
 
 	// FGCObject interface.
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface.
 
 	void ArrangeChildrenForContextMenuSummon(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
-	TSharedPtr<SWidget> SummonContextMenu( const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins );
+	TSharedPtr<SWidget> SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation);
 
-	void OnBeginMakingConnection( const TSharedRef<SGraphPin>& InOriginatingPin );
+	void OnBeginMakingConnection(UEdGraphPin* InOriginatingPin);
 	void OnStopMakingConnection(bool bForceStop = false);
 	void PreservePinPreviewUntilForced();
 
@@ -134,6 +151,9 @@ public:
 
 	/** helper to attach graph events to sub node, which won't be placed directly on the graph */
 	void AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode);
+
+	/** Returns if this graph is editable */
+	bool IsGraphEditable() const { return IsEditable.Get(); }
 
 protected:
 
@@ -214,6 +234,9 @@ protected:
 
 	/** Whether to draw the overlay indicating we're in PIE */
 	bool bShowPIENotification;
+
+	/** Whether to draw decorations for graph state (PIE / ReadOnly etc.) */
+	TAttribute<bool> ShowGraphStateOverlay;
 
 private:
 	/** Map of recently added nodes for the panel */

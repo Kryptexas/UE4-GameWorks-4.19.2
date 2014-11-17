@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetDeviceProxy.h: Declares the ITargetDeviceProxy interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ITargetDeviceProxy.
- */
+/** Type definition for shared pointers to instances of ITargetDeviceProxy. */
 typedef TSharedPtr<class ITargetDeviceProxy> ITargetDeviceProxyPtr;
 
-/**
- * Type definition for shared references to instances of ITargetDeviceProxy.
- */
+/** Type definition for shared references to instances of ITargetDeviceProxy. */
 typedef TSharedRef<class ITargetDeviceProxy> ITargetDeviceProxyRef;
 
 
@@ -108,7 +100,7 @@ public:
 	/**
 	 * Gets the name of the (device's) user that is logged in on a device.
 	 *
-	 * @return Devie user name.
+	 * @return Device user name.
 	 */
 	virtual const FString& GetDeviceUser( ) const = 0;
 
@@ -177,11 +169,9 @@ public:
 	 * application identifier (AppId) that can be used to launch to the deployed
 	 * application. If deploymend fails, the OnDeployFailed() delegate will be invoked.
 	 *
-	 * @param Files - The files to deploy.
-	 * @param TransactionId - The transaction identifier for the deployment.
-	 *
+	 * @param Files The files to deploy.
+	 * @param TransactionId The transaction identifier for the deployment.
 	 * @return true if deployment has been started, false otherwise.
-	 *
 	 * @see Launch
 	 * @see OnDeployCommitted
 	 * @see OnDeployFailed
@@ -193,12 +183,10 @@ public:
 	 *
 	 * If the launching fails, the OnLaunchFailed() delegate will be invoked.
 	 *
-	 * @param AppId - The identifier of the application to launch.
-	 * @param BuildConfiguration - The build configuration to launch with.
-	 * @param Params - The command line parameters to launch with.
-	 *
+	 * @param AppId The identifier of the application to launch.
+	 * @param BuildConfiguration The build configuration to launch with.
+	 * @param Params The command line parameters to launch with.
 	 * @return true on success, false otherwise.
-	 *
 	 * @see Deploy
 	 * @see OnLaunchFailed
 	 */
@@ -207,8 +195,7 @@ public:
 	/**
 	 * Powers off the device.
 	 *
-	 * @param Force - Whether to force powering off.
-	 *
+	 * @param Force Whether to force powering off.
 	 * @see PowerOn
 	 * @see Reboot
 	 */
@@ -233,8 +220,8 @@ public:
 	/**
 	 * Attempts to run an executable on the device.
 	 *
-	 * @param ExecutablePath - The path to the executable to run.
-	 * @param Params - The command line parameters.
+	 * @param ExecutablePath The path to the executable to run.
+	 * @param Params The command line parameters.
 	 */
 	virtual void Run( const FString& ExecutablePath, const FString& Params ) = 0;
 
@@ -244,7 +231,6 @@ public:
 	 * Returns a delegate to be invoked when a build has been deployed to the target device.
 	 *
 	 * @return The delegate.
-	 *
 	 * @see DeployApp
 	 */
 	virtual FOnTargetDeviceProxyDeployCommitted& OnDeployCommitted( ) = 0;
@@ -253,7 +239,6 @@ public:
 	 * Returns a delegate to be invoked when a build failed to deploy to the target device.
 	 *
 	 * @return The delegate.
-	 *
 	 * @see DeployApp
 	 */
 	virtual FOnTargetDeviceProxyDeployFailed& OnDeployFailed( ) = 0;
@@ -262,7 +247,6 @@ public:
 	 * Returns a delegate to be invoked when a build failed to launch on the target device.
 	 *
 	 * @return The delegate.
-	 *
 	 * @see LaunchApp
 	 */
 	virtual FOnTargetDeviceProxyLaunchFailed& OnLaunchFailed( ) = 0;

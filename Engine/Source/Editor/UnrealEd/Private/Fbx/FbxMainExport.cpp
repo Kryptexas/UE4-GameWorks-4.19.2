@@ -33,10 +33,28 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackInstFloatProp.h"
+#include "Matinee/InterpTrackInstMove.h"
+
+#include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Components/SplineMeshComponent.h"
 
 #include "FbxExporter.h"
 #include "RawMesh.h"
+#include "Particles/Emitter.h"
 
 namespace UnFbx
 {
@@ -809,7 +827,9 @@ void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* Sk
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
 {
-	FbxSurfaceMaterial* FbxMaterial = Scene->GetMaterial("Fbx Default Material");
+	// TODO(sbc): the below cast is needed to avoid clang warning.  The upstream
+	// signature in FBX should really use 'const char *'.
+	FbxSurfaceMaterial* FbxMaterial = Scene->GetMaterial(const_cast<char*>("Fbx Default Material"));
 	
 	if (!FbxMaterial)
 	{
@@ -906,14 +926,14 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	// Create the Fbx material
 	FbxSurfaceMaterial* FbxMaterial = NULL;
 	
-	// Set the lighting model
-	if (Material->GetLightingModel() == MLM_DefaultLit)
+	// Set the shading model
+	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
 		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
 		((FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->SpecularColor));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
-	else // if (Material->LightingModel == MLM_Unlit)
+	else // if (Material->ShadingModel == MSM_Unlit)
 	{
 		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
 	}
@@ -1279,8 +1299,8 @@ void ConvertInterpToFBX(uint8 UnrealInterpMode, FbxAnimCurveDef::EInterpolationT
 		Tangent = (FbxAnimCurveDef::ETangentMode) (FbxAnimCurveDef::eTangentAuto | FbxAnimCurveDef::eTangentGenericClamp);
 		break;
 	case CIM_Unknown:  // ???
-		FbxAnimCurveDef::EInterpolationType Interpolation = FbxAnimCurveDef::eInterpolationConstant;
-		FbxAnimCurveDef::ETangentMode Tangent = FbxAnimCurveDef::eTangentAuto;
+		Interpolation = FbxAnimCurveDef::eInterpolationConstant;
+		Tangent = FbxAnimCurveDef::eTangentAuto;
 		break;
 	}
 }

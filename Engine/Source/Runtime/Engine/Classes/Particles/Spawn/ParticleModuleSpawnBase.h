@@ -2,7 +2,10 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleSpawnBase.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Spawn"))
 class UParticleModuleSpawnBase : public UParticleModule
@@ -27,7 +30,7 @@ class UParticleModuleSpawnBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Spawn;	}
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Spawn;	}
 	// End UParticleModule Interface
 
 	/**

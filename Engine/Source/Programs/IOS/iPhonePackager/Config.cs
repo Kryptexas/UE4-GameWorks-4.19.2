@@ -40,9 +40,9 @@ namespace iPhonePackager
 		public static string RepackageStagingDirectory = "";
 
 		/// <summary>
-		/// The project root directory that is passed into IPP from UAT
+		/// The project file that is passed into IPP from UAT
 		/// </summary>
-		public static string ProjectRootDirectory = "";
+		public static string ProjectFile = "";
 
 		/// <summary>
 		/// The device to deploy or launch on
@@ -65,6 +65,14 @@ namespace iPhonePackager
 		}
 
 		/// <summary>
+		/// The shared provision library directory (on PC)
+		/// </summary>
+		public static string ProvisionDirectory
+		{
+			get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/"; }
+		}
+
+		/// <summary>
 		/// The shared (Engine) build directory (on PC)
 		/// </summary>
 		public static string EngineBuildDirectory
@@ -77,7 +85,7 @@ namespace iPhonePackager
 		/// </summary>
 		public static string CookedDirectory
 		{
-			get { return Path.GetFullPath(GameDirectory + @"\Saved\Sandboxes\Cooked-IOS"); }
+			get { return Path.GetFullPath(GameDirectory + @"\Saved\Cooked\IOS"); }
 		}
 
 		/// <summary>
@@ -189,10 +197,10 @@ namespace iPhonePackager
 
 			string BinariesDir = BinariesDirectory;
 			string GameName = Program.GameName;
-			if (!String.IsNullOrEmpty(ProjectRootDirectory))
+			if (!String.IsNullOrEmpty(ProjectFile))
 			{
-				BinariesDir = Path.Combine(ProjectRootDirectory, "Binaries", "IOS");
-				GameName = ProjectRootDirectory.Substring(ProjectRootDirectory.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+				BinariesDir = Path.Combine(Path.GetDirectoryName(ProjectFile), "Binaries", "IOS");
+				GameName = Path.GetFileNameWithoutExtension(ProjectFile);
 			}
 			if (Program.GameConfiguration == "Development")
 			{

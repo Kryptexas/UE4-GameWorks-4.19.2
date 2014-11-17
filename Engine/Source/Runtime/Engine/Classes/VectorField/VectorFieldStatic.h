@@ -44,16 +44,16 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 
 	// Begin UVectorField Interface
-	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) OVERRIDE;
+	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) override;
 	// End UVectorField Interface
 
 	/**

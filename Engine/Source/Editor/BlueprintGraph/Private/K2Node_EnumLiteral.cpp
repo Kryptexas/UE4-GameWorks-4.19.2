@@ -3,6 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompilerMisc.h"
+#include "K2Node_EnumLiteral.h"
 
 const FString& UK2Node_EnumLiteral::GetEnumInputPinName()
 {
@@ -57,7 +58,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		check(Context.Schema && Cast<UK2Node_EnumLiteral>(Node));
 		FNodeHandlingFunctor::RegisterNets(Context, Node);

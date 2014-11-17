@@ -347,137 +347,86 @@ UGatherTextFromAssetsCommandlet::UGatherTextFromAssetsCommandlet(const class FPo
 
 }
 
-bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextProp, UObject* Object, const FString& ObjectPath, bool bInFixBroken, bool& OutFixed)
+namespace
 {
-	bool TextPropertyWasValid = true;
-
-	OutFixed = false;
-	FText* Data = InTextProp->ContainerPtrToValuePtr<FText>(Object);
-
-	// Transient check.
-	if( Data->Flags & ETextFlag::Transient )
+	class FGatherTextFromObject
 	{
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Transient text found set to %s in %s  -  %s."), *InTextProp->GetName(), *Object->GetPathName(), *Object->GetName());
-		TextPropertyWasValid = false;
-	}
-	else
-	{
-		FConflictTracker::FEntry NewEntry;
-		NewEntry.ObjectPath = ObjectPath;
-		NewEntry.SourceString = Data->SourceString;
-		NewEntry.Status = EAssetTextGatherStatus::None;
-
-		// Fix missing key if broken and allowed.
-		if( !( Data->Key.IsValid() ) || Data->Key->IsEmpty() )
+	public:
+		static inline void Execute(UGatherTextFromAssetsCommandlet* const Commandlet, UObject* const Object, const UPackage* const ObjectPackage, const bool ShouldFixBroken)
 		{
-			// Key fix.
-			if (bInFixBroken)
+			if( !Object->HasAnyFlags( RF_Transient | RF_PendingKill ) )
 			{
-				// Create key if needed.
-				if( !( Data->Key.IsValid() ) )
-				{
-					Data->Key = MakeShareable( new FString() );
-				}
-				// Generate new GUID for key.
-				*(Data->Key) = FGuid::NewGuid().ToString();
-
-				// Fixed.
-				NewEntry.Status = EAssetTextGatherStatus::MissingKey_Resolved;
-			}
-			else
-			{
-				NewEntry.Status = EAssetTextGatherStatus::MissingKey;
-				TextPropertyWasValid = false;
+				FGatherTextFromObject(Commandlet, Object, ObjectPackage, ShouldFixBroken);
 			}
 		}
 
-		// Must have valid key.
-		if( Data->Key.IsValid() && !( Data->Key->IsEmpty() ) )
+	private:
+		FGatherTextFromObject(UGatherTextFromAssetsCommandlet* const InCommandlet, UObject* const InObject, const UPackage* const InObjectPackage, const bool InShouldFixBroken)
+			: Commandlet(InCommandlet)
+			, Object(InObject)
+			, ObjectPackage(InObjectPackage)
+			, ShouldFixBroken(InShouldFixBroken)
 		{
-			FContext SearchContext;
-			SearchContext.Key = Data->Key.IsValid() ? *Data->Key : TEXT("");
-
-			// Find existing entry from manifest or manifest dependencies.
-			TSharedPtr< FManifestEntry > ExistingEntry = ManifestInfo->GetManifest()->FindEntryByContext( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT(""), SearchContext );
-			if( !ExistingEntry.IsValid() )
+			// Iterate over all fields of the object's class.
+			for (TFieldIterator<UProperty>PropIt(Object->GetClass(), EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
 			{
-				FString FileInfo;
-				ExistingEntry = ManifestInfo->FindDependencyEntrybyContext( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT(""), SearchContext, FileInfo );
+				ProcessProperty( *PropIt, PropIt->ContainerPtrToValuePtr<void>(Object) );
 			}
+		}
 
-			// Entry already exists, check for conflict.
-			if( ExistingEntry.IsValid() )
+		void ProcessProperty(UProperty* const Property, void* const ValueAddress)
+		{
+			// Property is a struct property.
+			UStructProperty* const StructProperty = Cast<UStructProperty>(Property);
+			if(StructProperty)
 			{
-				// Fix conflict if present and allowed.
-				if( ExistingEntry->Source.Text != ( Data->SourceString.IsValid() ? **(Data->SourceString) : TEXT("") ) )
+				// Iterate over all properties of the struct's class.
+				for (TFieldIterator<UProperty>PropIt(StructProperty->Struct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
 				{
-					if (bInFixBroken)
-					{
-						// Generate new GUID for key.
-						*(Data->Key) = FGuid::NewGuid().ToString();
-
-						// Fixed.
-						NewEntry.Status = EAssetTextGatherStatus::IdentityConflict_Resolved;
-
-						// Conflict resolved, no existing entry.
-						ExistingEntry.Reset();
-					}
-					else
-					{
-						NewEntry.Status = EAssetTextGatherStatus::IdentityConflict;
-						TextPropertyWasValid = false;
-					}
+					ProcessProperty( *PropIt, PropIt->ContainerPtrToValuePtr<void>(ValueAddress) );
 				}
 			}
 
-			// Only add an entry to the manifest if no existing entry exists.
-			if( !( ExistingEntry.IsValid() ) )
+			// Property is an array property.
+			UArrayProperty* const ArrayProperty = Cast<UArrayProperty>(Property);
+			if(ArrayProperty)
 			{
-				// Check for valid string.
-				if( Data->SourceString.IsValid() && !( Data->SourceString->IsEmpty() ) )
+				// Iterate over all objects of the array.
+				FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValueAddress);
+				const int32 ElementCount = ScriptArrayHelper.Num();
+				for(int32 i = 0; i < ElementCount; ++i)
 				{
-					FString SrcLocation = ObjectPath + TEXT(".") + InTextProp->GetName();
+					ProcessProperty( ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(i) );
+				}
+			}
 
-					// Adjust the source location if needed.
+			// Property is a text property.
+			UTextProperty* const TextProp = Cast<UTextProperty>(Property);
+			if(TextProp)
+			{
+				FText* const Text = reinterpret_cast<FText*>(ValueAddress);
+				if( FTextInspector::GetFlags(*Text) & ETextFlag::ConvertedProperty )
+				{
+					ObjectPackage->MarkPackageDirty();
+				}
+
+				bool Fixed = false;
+				if( Commandlet->ProcessTextProperty(TextProp, Text, Object, /*OUT*/Fixed ) )
+				{
+					if( Fixed )
 					{
-						UClass* Class = Object->GetClass();
-						UObject* CDO = Class ? Class->GetDefaultObject() : NULL;
-
-						if( CDO && CDO != Object )
-						{
-							for( TFieldIterator<UTextProperty> PropIt(CDO->GetClass(), EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt )
-							{
-								UTextProperty* TextProp	=  Cast<UTextProperty>( *(PropIt) );
-								FText* DataCDO = TextProp->ContainerPtrToValuePtr<FText>( CDO );
-
-								if( DataCDO->Key == Data->Key || ( DataCDO->Key.Get() && Data->Key.Get() && ( *(DataCDO->Key) == *(Data->Key) ) ) )
-								{
-									SrcLocation = CDO->GetPathName() + TEXT(".") + TextProp->GetName();
-									break;
-								}
-							}
-						}
+						ObjectPackage->MarkPackageDirty();
 					}
-
-					FContext Context;
-					Context.Key = Data->Key.IsValid() ? *Data->Key : TEXT("");
-					Context.SourceLocation = SrcLocation;
-
-					FString EntryDescription = FString::Printf( TEXT("In %s"), *Object->GetFullName());
-					ManifestInfo->AddEntry(EntryDescription, Data->Namespace.Get() ? *Data->Namespace : TEXT(""), Data->SourceString.Get() ? *(Data->SourceString) : TEXT(""), Context );
 				}
 			}
 		}
 
-		// Add to conflict tracker.
-		FConflictTracker::FKeyTable& KeyTable = ConflictTracker.Namespaces.FindOrAdd( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT("") );
-		FConflictTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd( Data->Key.IsValid() ? *(Data->Key) : TEXT("") );
-		EntryArray.Add(NewEntry);
-
-		OutFixed = (NewEntry.Status == EAssetTextGatherStatus::MissingKey_Resolved || NewEntry.Status == EAssetTextGatherStatus::IdentityConflict_Resolved);
-	}
-
-	return TextPropertyWasValid;
+	private:
+		UGatherTextFromAssetsCommandlet* const Commandlet;
+		UObject* const Object;
+		const UPackage* const ObjectPackage;
+		const bool ShouldFixBroken;
+	};
 }
 
 void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >& PackagesToProcess )
@@ -497,7 +446,7 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 
 				if( Blueprint->GeneratedClass != NULL )
 				{
-					ProcessObject( Blueprint->GeneratedClass->GetDefaultObject(), Package );
+					FGatherTextFromObject::Execute(this, Blueprint->GeneratedClass->GetDefaultObject(), Package, bFixBroken);
 				}
 				else
 				{
@@ -510,40 +459,7 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 				ProcessDialogueWave( DialogueWave );
 			}
 
-			ProcessObject( Object, Package );
-		}
-	}
-}
-
-void UGatherTextFromAssetsCommandlet::ProcessObject(UObject* Object, const UPackage* ObjectPackage)
-{
-	// Skip transient objects and those about to be deleted
-	if( Object->HasAnyFlags( RF_Transient | RF_PendingKill ) )
-	{
-		return;
-	}
-
-	FString ObjectPath = Object->GetPathName();
-
-	for (TFieldIterator<UTextProperty> PropIt(Object->GetClass(), EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt)
-	{
-		UTextProperty* TextProp	=  Cast<UTextProperty>( *(PropIt) );
-
-		//To do - Check Source control here to make sure we can fix this asset before adding it, otherwise we'll end up with orphan text in there for assets that cant be fixed.
-
-		FText* Text = TextProp->ContainerPtrToValuePtr<FText>(Object);
-		if( Text->Flags & ETextFlag::ConvertedProperty )
-		{
-			ObjectPackage->MarkPackageDirty();
-		}
-
-		bool Fixed = false;
-		if( ProcessTextProperty(TextProp, Object, ObjectPath, bFixBroken, /*OUT*/Fixed ) )
-		{
-			if( Fixed )
-			{
-				ObjectPackage->MarkPackageDirty();
-			}
+			FGatherTextFromObject::Execute(this, Object, Package, bFixBroken);
 		}
 	}
 }
@@ -583,7 +499,144 @@ void UGatherTextFromAssetsCommandlet::ProcessDialogueWave( const UDialogueWave* 
 	}
 }
 
+bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextProp, FText* Data, UObject* Object, bool& OutFixed)
+{
+	bool TextPropertyWasValid = true;
 
+	OutFixed = false;
+
+	// Transient check.
+	if( Data->Flags & ETextFlag::Transient )
+	{
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Transient text found set to %s in %s  -  %s."), *InTextProp->GetName(), *Object->GetPathName(), *Object->GetName());
+		TextPropertyWasValid = false;
+	}
+	else
+	{
+		FConflictTracker::FEntry NewEntry;
+		NewEntry.ObjectPath = Object->GetPathName();
+		NewEntry.SourceString = Data->GetSourceString();
+		NewEntry.Status = EAssetTextGatherStatus::None;
+
+		// Fix missing key if broken and allowed.
+		TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+		TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Data->DisplayString, Namespace, Key);
+
+		if( !( Key.IsValid() ) || Key->IsEmpty() )
+		{
+			// Key fix.
+			if (bFixBroken)
+			{
+				// Create key if needed.
+				if( !( Key.IsValid() ) )
+				{
+					Key = MakeShareable( new FString() );
+				}
+				// Generate new GUID for key.
+				*(Key) = FGuid::NewGuid().ToString();
+
+				// Fixed.
+				NewEntry.Status = EAssetTextGatherStatus::MissingKey_Resolved;
+			}
+			else
+			{
+				NewEntry.Status = EAssetTextGatherStatus::MissingKey;
+				TextPropertyWasValid = false;
+			}
+		}
+
+		// Must have valid key.
+		if( Key.IsValid() && !( Key->IsEmpty() ) )
+		{
+			FContext SearchContext;
+			SearchContext.Key = Key.IsValid() ? *Key : TEXT("");
+
+			// Find existing entry from manifest or manifest dependencies.
+			TSharedPtr< FManifestEntry > ExistingEntry = ManifestInfo->GetManifest()->FindEntryByContext( Namespace.IsValid() ? *Namespace : TEXT(""), SearchContext );
+			if( !ExistingEntry.IsValid() )
+			{
+				FString FileInfo;
+				ExistingEntry = ManifestInfo->FindDependencyEntrybyContext( Namespace.IsValid() ? *Namespace : TEXT(""), SearchContext, FileInfo );
+			}
+
+			// Entry already exists, check for conflict.
+			if( ExistingEntry.IsValid() )
+			{
+				// Fix conflict if present and allowed.
+				if( ExistingEntry->Source.Text != ( NewEntry.SourceString.IsValid() ? **(NewEntry.SourceString) : TEXT("") ) )
+				{
+					if (bFixBroken)
+					{
+						// Generate new GUID for key.
+						*(Key) = FGuid::NewGuid().ToString();
+
+						// Fixed.
+						NewEntry.Status = EAssetTextGatherStatus::IdentityConflict_Resolved;
+
+						// Conflict resolved, no existing entry.
+						ExistingEntry.Reset();
+					}
+					else
+					{
+						NewEntry.Status = EAssetTextGatherStatus::IdentityConflict;
+						TextPropertyWasValid = false;
+					}
+				}
+			}
+
+			// Only add an entry to the manifest if no existing entry exists.
+			if( !( ExistingEntry.IsValid() ) )
+			{
+				// Check for valid string.
+				if( NewEntry.SourceString.IsValid() && !( NewEntry.SourceString->IsEmpty() ) )
+				{
+					FString SrcLocation = Object->GetPathName() + TEXT(".") + InTextProp->GetName();
+
+					// Adjust the source location if needed.
+					{
+						UClass* Class = Object->GetClass();
+						UObject* CDO = Class ? Class->GetDefaultObject() : NULL;
+
+						if( CDO && CDO != Object )
+						{
+							for( TFieldIterator<UTextProperty> PropIt(CDO->GetClass(), EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt )
+							{
+								UTextProperty* TextProp	=  Cast<UTextProperty>( *(PropIt) );
+								FText* DataCDO = TextProp->ContainerPtrToValuePtr<FText>( CDO );
+								TSharedPtr< FString, ESPMode::ThreadSafe > NamespaceCDO;
+								TSharedPtr< FString, ESPMode::ThreadSafe > KeyCDO;
+								FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DataCDO->DisplayString, NamespaceCDO, KeyCDO);
+
+								if( KeyCDO == Key || ( KeyCDO.Get() && Key.Get() && ( *KeyCDO == *Key ) ) )
+								{
+									SrcLocation = CDO->GetPathName() + TEXT(".") + TextProp->GetName();
+									break;
+								}
+							}
+						}
+					}
+
+					FContext Context;
+					Context.Key = Key.IsValid() ? *Key : TEXT("");
+					Context.SourceLocation = SrcLocation;
+
+					FString EntryDescription = FString::Printf( TEXT("In %s"), *Object->GetFullName());
+					ManifestInfo->AddEntry(EntryDescription, Namespace.Get() ? *Namespace : TEXT(""), NewEntry.SourceString.Get() ? *(NewEntry.SourceString) : TEXT(""), Context );
+				}
+			}
+		}
+
+		// Add to conflict tracker.
+		FConflictTracker::FKeyTable& KeyTable = ConflictTracker.Namespaces.FindOrAdd( Namespace.IsValid() ? *Namespace : TEXT("") );
+		FConflictTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd( Key.IsValid() ? *Key : TEXT("") );
+		EntryArray.Add(NewEntry);
+
+		OutFixed = (NewEntry.Status == EAssetTextGatherStatus::MissingKey_Resolved || NewEntry.Status == EAssetTextGatherStatus::IdentityConflict_Resolved);
+	}
+
+	return TextPropertyWasValid;
+}
 
 int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 {
@@ -801,7 +854,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	for( int32 BatchIndex = 0; BatchIndex < BatchCount; ++BatchIndex )
 	{
 		int32 PackagesInThisBatch = 0;
-		for( PackageIndex; PackageIndex < PackageCount && PackagesInThisBatch < PackagesPerBatchCount; ++PackageIndex )
+		for( ; PackageIndex < PackageCount && PackagesInThisBatch < PackagesPerBatchCount; ++PackageIndex )
 		{
 			FString PackageFileName = PackageFileNamesToLoad[PackageIndex];
 

@@ -110,8 +110,8 @@ public:
 	TMap<FName,int32> SkelMesh2LinkupCache;
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface
 	
 	// UAnimSet interface

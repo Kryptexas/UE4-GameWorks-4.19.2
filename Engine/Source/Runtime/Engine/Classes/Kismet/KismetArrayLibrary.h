@@ -15,6 +15,14 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(FriendlyName = "Add", CompactNodeTitle = "ADD", ArrayParm = "TargetArray|ArrayProperty", ArrayTypeDependentParams = "NewItem", AutoCreateRefTerm = "NewItem"), Category="Utilities|Array")
 	static int32 Array_Add(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProperty, const int32& NewItem);
+	
+	/** 
+	 * Shuffle (randomize) the elements of an array
+	 *
+	 *@param	Array	The array to shuffle
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(FriendlyName = "Shuffle", CompactNodeTitle = "SHUFFLE", ArrayParm = "TargetArray|ArrayProperty"), Category="Utilities|Array")
+	static void Array_Shuffle(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProperty);
 
 	/** 
 	 *Append an array to another array
@@ -150,6 +158,7 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 	// Native functions that will be called by the below custom thunk layers, which read off the property address, and call the appropriate native handler
 	int32 GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const int32& NewItem);
+	void GenericArray_Shuffle(void* TargetArray, const UArrayProperty* ArrayProp);
 	void GenericArray_Append(void* TargetArray, const UArrayProperty* TargetArrayProp, void* SourceArray, const UArrayProperty* SourceArrayProperty);
 	void GenericArray_Insert(void* TargetArray, const UArrayProperty* ArrayProp, const int32& NewItem, int32 Index);
 	void GenericArray_Remove(void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToRemove);
@@ -191,6 +200,17 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
  		*(int32*)Result = GenericArray_Add(ArrayAddr, ArrayProperty, NewItem);
  
 		InnerProp->DestroyValue(StorageSpace);
+	}
+
+	DECLARE_FUNCTION(execArray_Shuffle)
+	{
+		Stack.StepCompiledIn<UArrayProperty>(NULL);
+		void* ArrayAddr = Stack.MostRecentPropertyAddress;
+
+		P_GET_OBJECT(UArrayProperty, ArrayProperty);
+		P_FINISH;
+
+		GenericArray_Shuffle(ArrayAddr, ArrayProperty);
 	}
 
 	DECLARE_FUNCTION(execArray_Append)

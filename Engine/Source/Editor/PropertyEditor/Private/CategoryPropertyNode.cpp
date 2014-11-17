@@ -58,26 +58,29 @@ void FCategoryPropertyNode::InitChildNodes()
 
 	TArray<UProperty*> Properties;
 	// The parent of a category window has to be an object window.
-	FObjectPropertyNode* itemobj = FindObjectItemParent();
-	// Get a list of properties that are in the same category
-	for( TFieldIterator<UProperty> It(itemobj->GetObjectBaseClass()); It; ++It )
+	auto ComplexNode = FindComplexParent();
+	if (ComplexNode)
 	{
-		bool bMetaDataAllowVisible = true;
-		FString MetaDataVisibilityCheckString = It->GetMetaData(TEXT("bShowOnlyWhenTrue"));
-		if (MetaDataVisibilityCheckString.Len())
+		// Get a list of properties that are in the same category
+		for (TFieldIterator<UProperty> It(ComplexNode->GetBaseStructure()); It; ++It)
 		{
-			//ensure that the metadata visibility string is actually set to true in order to show this property
-			// @todo Remove this
-			GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorUserSettingsIni);
-		}
-
-		if (bMetaDataAllowVisible)
-		{
-			// Add if we are showing non-editable props and this is the 'None' category, 
-			// or if this is the right category, and we are either showing non-editable
-			if ( FObjectEditorUtils::GetCategoryFName(*It) == CategoryName && (bShowHiddenProperties || (It->PropertyFlags & CPF_Edit)) )
+			bool bMetaDataAllowVisible = true;
+			FString MetaDataVisibilityCheckString = It->GetMetaData(TEXT("bShowOnlyWhenTrue"));
+			if (MetaDataVisibilityCheckString.Len())
 			{
-				Properties.Add( *It );
+				//ensure that the metadata visibility string is actually set to true in order to show this property
+				// @todo Remove this
+				GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorUserSettingsIni);
+			}
+
+			if (bMetaDataAllowVisible)
+			{
+				// Add if we are showing non-editable props and this is the 'None' category, 
+				// or if this is the right category, and we are either showing non-editable
+				if (FObjectEditorUtils::GetCategoryFName(*It) == CategoryName && (bShowHiddenProperties || (It->PropertyFlags & CPF_Edit)))
+				{
+					Properties.Add(*It);
+				}
 			}
 		}
 	}

@@ -18,7 +18,7 @@ public:
 
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object, ActorComponent), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Script)
-class UScriptComponent : public UActorComponent
+class SCRIPTPLUGIN_API UScriptComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -29,10 +29,10 @@ public:
 	UScriptAsset* Script;
 
 	// Begin UActorComponent interface.
-	virtual void OnRegister() OVERRIDE;
-	virtual void InitializeComponent() OVERRIDE;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void InitializeComponent() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void OnUnregister() override;
 	// Begin UActorComponent interface.
 
 protected:

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleOrientationBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Orientation"))

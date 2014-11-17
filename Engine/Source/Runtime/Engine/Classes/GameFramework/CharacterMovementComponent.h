@@ -6,7 +6,9 @@
  */
 
 #pragma once
-#include "../AI/AITypes.h"
+
+#include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "Interfaces/NetworkPredictionInterface.h"
 #include "CharacterMovementComponent.generated.h"
 
 /** Movement modes for Characters.  */
@@ -22,10 +24,9 @@ enum EMovementMode
 	MOVE_MAX		UMETA(Hidden),
 };
 
-
 // Data about the floor for walking movement.
 USTRUCT(BlueprintType)
-struct FFindFloorResult
+struct ENGINE_API FFindFloorResult
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -136,11 +137,38 @@ struct FRootMotionMovementParams
 	}
 };
 
+/** 
+ * Tick function that calls UCharacterMovementComponent::PreClothTick
+ **/
+USTRUCT()
+struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
 
-UCLASS(dependson=(UNetworkPredictionInterface))
+	/** CharacterMovementComponent that is the target of this tick **/
+	class UCharacterMovementComponent* Target;
+
+	/** 
+	 * Abstract function actually execute the tick. 
+	 * @param DeltaTime - frame time to advance, in seconds
+	 * @param TickType - kind of tick for this frame
+	 * @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	 * @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completion of this task until certain child tasks are complete.
+	 **/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage() override;
+};
+
+UCLASS()
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Post-physics tick function for this character */
+	UPROPERTY()
+	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
 
 protected:
 
@@ -215,13 +243,17 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float GroundFriction;
 
-	/** The maximum ground speed. Also determines maximum lateral speed when falling. */
+	/** The maximum ground speed when walking. Also determines maximum lateral speed when falling. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float MaxWalkSpeed;
 
-	/** Multiplier to max ground speed to use when crouched */
+	/** The maximum ground speed when walking and crouched. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float CrouchedSpeedMultiplier;
+	float MaxWalkSpeedCrouched;
+
+	/** The maximum speed when using Custom movement mode. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	float MaxCustomMovementSpeed;
 
 	/** Collision half-height when crouching (component scale is applied separately) */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadOnly)
@@ -258,7 +290,12 @@ public:
 	UPROPERTY()
 	uint32 bMovementInProgress:1;
 
-	/** If true, high-level movement updates will be wrapped in a movement scope that accumulates updates and defers a bulk of the work until the end. */
+	/**
+	 * If true, high-level movement updates will be wrapped in a movement scope that accumulates updates and defers a bulk of the work until the end.
+	 * When enabled, touch and hit events will not be triggered until the end of multiple moves within an update, which can improve performance.
+	 *
+	 * @see FScopedMovementUpdate
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, AdvancedDisplay)
 	uint32 bEnableScopedMovementUpdates:1;
 
@@ -372,6 +409,10 @@ public:
 	UPROPERTY()
 	uint32 bForceBraking_DEPRECATED:1;
 
+	/** Multiplier to max ground speed to use when crouched */
+	UPROPERTY()
+	float CrouchedSpeedMultiplier_DEPRECATED;
+
 protected:
 
 	/**
@@ -381,9 +422,19 @@ protected:
 	UPROPERTY()
 	FVector Acceleration;
 
-	/** Accumulated momentum added this tick */
+	/**
+	 * Location after last PerformMovement update. Used internally to detect changes in position from outside character movement to try to validate the current floor.
+	 */
 	UPROPERTY()
-	FVector PendingMomentumToApply;
+	FVector LastUpdateLocation;
+
+	/** Accumulated impulse added this tick */
+	UPROPERTY()
+	FVector PendingImpulseToApply;
+
+	/** Accumulated force added this tick */
+	UPROPERTY()
+	FVector PendingForceToApply;
 
 	/**
 	 * Modifier to applied to values such as acceleration and max speed due to analog input.
@@ -395,6 +446,36 @@ protected:
 	virtual float ComputeAnalogInputModifier() const;
 
 public:
+
+	/**
+	 * Compute remaining time step given remaining time and current iterations.
+	 * The last iteration (limited by MaxSimulationIterations) always returns the remaining time, which may violate MaxSimulationTimeStep.
+	 *
+	 * @see MaxSimulationTimeStep
+	 * @see MaxSimulationIterations
+	 */
+	float GetSimulationTimeStep(float RemainingTime, int32 Iterations) const;
+
+	/**
+	 * Max time delta for each discrete simulation step.
+	 * Used primarily in the the more advanced movement modes that break up larger time steps (usually those applying gravity such as falling and walking).
+	 * Lowering this value can address issues with fast-moving objects or complex collision scenarios, at the cost of performance.
+	 *
+	 * WARNING: if (MaxSimulationTimeStep * MaxSimulationIterations) is too low for the min framerate, the last simulation step may exceed MaxSimulationTimeStep to complete the simulation.
+	 * @see MaxSimulationIterations
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0.02", ClampMax="0.50", UIMin="0.02", UIMax="0.50"))
+	float MaxSimulationTimeStep;
+
+	/**
+	 * Max number of iterations used for each discrete simulation step
+	 * Used primarily in the the more advanced movement modes that break up larger time steps (usually those applying gravity such as falling and walking).
+	 * Increasing this value can address issues with fast-moving objects or complex collision scenarios, at the cost of performance.
+	 *
+	 * WARNING: if (MaxSimulationTimeStep * MaxSimulationIterations) is too low for the min framerate, the last simulation step may exceed MaxSimulationTimeStep to complete the simulation.
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="20", UIMin="1", UIMax="20"))
+	int32 MaxSimulationIterations;
 
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
@@ -510,8 +591,8 @@ public:
 	uint32 bFastAttachedMove:1;
 
 	/**
-	 * True to always force floor checks for non-moving Characters.
-	 * Normally floor checks are avoided if possible, but this can be used to force them if there are use-cases where they are being skipped erroneously.
+	 * True to always force floor checks for stationary Characters.
+	 * Normally floor checks are avoided if possible when not moving, but this can be used to force them if there are use-cases where they are being skipped erroneously.
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bAlwaysCheckFloor:1;
@@ -553,6 +634,9 @@ protected:
 
 	/** if set, PostProcessAvoidanceVelocity will be called */
 	uint32 bUseRVOPostProcess : 1;
+
+	/** Flag set in pre-physics update to indicate that based movement should be updated post-physics */
+	uint32 bDeferUpdateBasedMovement : 1;
 
 	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
 	FVector AvoidanceLockVelocity;
@@ -625,36 +709,40 @@ public:
 	virtual void ApplyNetworkMovementMode(const uint8 ReceivedMode);
 
 	//Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void OnUnregister() override;
+	virtual void PostLoad() override;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	//End UActorComponent Interface
 
 	//BEGIN UMovementComponent Interface
-	virtual float GetMaxSpeed() const OVERRIDE;
-	virtual float GetMaxSpeedModifier() const OVERRIDE;
-	virtual void StopActiveMovement() OVERRIDE;
-	virtual bool IsCrouching() const OVERRIDE;
-	virtual bool IsFalling() const OVERRIDE;
-	virtual bool IsMovingOnGround() const OVERRIDE;
-	virtual bool IsSwimming() const OVERRIDE;
-	virtual bool IsFlying() const OVERRIDE;
-	virtual float GetGravityZ() const OVERRIDE;
-	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) OVERRIDE;
-	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) OVERRIDE;
+	virtual float GetMaxSpeed() const override;
+	virtual void StopActiveMovement() override;
+	virtual bool IsCrouching() const override;
+	virtual bool IsFalling() const override;
+	virtual bool IsMovingOnGround() const override;
+	virtual bool IsSwimming() const override;
+	virtual bool IsFlying() const override;
+	virtual float GetGravityZ() const override;
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) override;
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) override;
 	//END UMovementComponent Interface
 
+	/** @return true if the character is in the 'Walking' movement mode. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	bool IsWalking() const;
+
 	//BEGIN UNavMovementComponent Interface
-	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) OVERRIDE;
-	virtual bool CanStopPathFollowing() const OVERRIDE;
+	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	virtual bool CanStopPathFollowing() const override;
 	//END UNaVMovementComponent Interface
 
 	//Begin UPawnMovementComponent Interface
-	virtual void NotifyBumpedPawn(APawn* BumpedPawn) OVERRIDE;
+	virtual void NotifyBumpedPawn(APawn* BumpedPawn) override;
 	//End UPawnMovementComponent Interface
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	/** Make movement impossible (sets movement mode to MOVE_None). */
@@ -681,11 +769,17 @@ public:
 	/** Adjust distance from floor, trying to maintain a slight offset from the floor when walking (based on CurrentFloor). */
 	virtual void AdjustFloorHeight();
 
+	/** Update or defer updating of position based on Base movement */
+	virtual void MaybeUpdateBasedMovement(float DeltaSeconds);
+
 	/** Update position based on Base movement */
 	virtual void UpdateBasedMovement(float DeltaSeconds);
 
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
+
+	/** Update (or defer updating) OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	virtual void MaybeSaveBaseLocation();
 
 	/** Update OldBaseLocation and OldBaseRotation if there is a valid movement base. */
 	virtual void SaveBaseLocation();
@@ -741,13 +835,16 @@ public:
 	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation);
 
 	/** use velocity requested by path following */
-	virtual bool ApplyRequestedMove(FVector& NewVelocity, FVector& NewAcceleration, float DeltaTime, float MaxAccel, float MaxSpeed);
+	virtual bool ApplyRequestedMove(FVector& NewAcceleration, float DeltaTime, float MaxAccel, float MaxSpeed, float& OutRequestedSpeed);
 
 	/** Called if bNotifyApex is true and character has just passed the apex of its jump. */
 	virtual void NotifyJumpApex();
 
-	/** @return new falling velocity from old velocity and acceleration. */
-	virtual FVector NewFallVelocity(FVector OldVelocity, FVector OldAcceleration, float timeTick);
+	/**
+	 * Compute new falling velocity from given velocity and gravity. Applies the limits of the current Physics Volume's TerminalVelocity.
+	 * Note: currently assumes Gravity points downward when enforcing terminal velocity.
+	 */
+	virtual FVector NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime) const;
 
 	/* Determine how deep in water the character is immersed.
 	 * @return float in range 0.0 = not in water, 1.0 = fully immersed
@@ -755,27 +852,38 @@ public:
 	virtual float ImmersionDepth();
 
 	/** 
-	 * Calculates new velocity and acceleration for pawn for this tick, bounds acceleration and velocity, and adding effects of friction.
+	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does *not* apply gravity.
+	 * This is used internally during movement updates. Normally you don't need to call this from outside code, but you might want to use it for custom movement.
 	 *
 	 * @param	DeltaTime						time elapsed since last frame.
-	 * @param	Friction						coefficient of friction when not accelerating, or in the direction opposite of acceleration.
+	 * @param	Friction						coefficient of friction when not accelerating, or in the direction opposite acceleration.
 	 * @param	bFluid							true if moving through a fluid, causing Friction to always be applied regardless of acceleration.
 	 * @param	BrakingDeceleration				deceleration applied when not accelerating, or when exceeding max velocity.
 	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration);
 	
 	/** Compute the max jump height based on the JumpZVelocity velocity and gravity. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxJumpHeight() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	DEPRECATED(4.3, "GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired.")
 	virtual float GetModifiedMaxAcceleration() const;
+	
+	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DeprecatedFunction, DisplayName="GetModifiedMaxAcceleration()", DeprecationMessage="GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired."))
+	virtual float K2_GetModifiedMaxAcceleration() const;
+
+	/** @return Maximum acceleration for the current state. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual float GetMaxAcceleration() const;
 
 	/** @return Current acceleration, computed from input vector each update. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(Keywords="Acceleration GetAcceleration"))
 	FVector GetCurrentAcceleration() const;
 
-	/** @return Modifier [0..1] which affects max speed, based on the magnitude of the input vector. */
+	/** @return Modifier [0..1] based on the magnitude of the last input vector, which is used to modify the acceleration and max speed during movement. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	float GetAnalogInputModifier() const;
 	
@@ -812,7 +920,7 @@ public:
 	void ApplyRepulsionForce(float DeltaTime);
 	
 	/** Applies momentum accumulated through Addmomentum() */
-	void ApplyAccumulatedMomentum(float DeltaSeconds);	
+	void ApplyAccumulatedForces(float DeltaSeconds);	
 
 	/** 
 	 * Handle start swimming functionality
@@ -895,21 +1003,36 @@ public:
 	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL );
 
 	
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) OVERRIDE;
+	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
 
 	/** 
-	 * Add velocity based on imparted momentum. Momentum is accumulated each tick and applied together
+	 * Add impulse to character. Impulses are accumulated each tick and applied together
 	 * so multiple calls to this function will accumulate.
-	 * Note that changing the momentum of characters like this can change the movement mode
+	 * An impulse is an instantaneous force, usually applied once. If you want to continually apply
+	 * forces each frame, use AddForce().
+	 * Note that changing the momentum of characters like this can change the movement mode.
 	 * 
-	 * @param	Momentum			Momentum to apply.
-	 * @param	bMassIndependent	Whether or not the momentum should be divided by mass before application.
+	 * @param	Impulse				Impulse to apply.
+	 * @param	bVelocityChange		Whether or not the impulse is relative to mass.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
-	virtual void AddMomentum( FVector InMomentum, bool bMassIndependent = false );
+	virtual void AddImpulse( FVector Impulse, bool bVelocityChange = false );
+
+	/** 
+	 * Add force to character. Forces are accumulated each tick and applied together
+	 * so multiple calls to this function will accumulate.
+	 * Forces are scaled depending on timestep, so they can be applied each frame. If you want an
+	 * instantaneous force, use AdddImpulse.
+	 * Adding a force always takes the actor's mass into account.
+	 * Note that changing the momentum of characters like this can change the movement mode.
+	 * 
+	 * @param	Force			Force to apply.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void AddForce( FVector Force );
 
 	/**
 	 * Draw important variables on canvas.  Character will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
@@ -965,6 +1088,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	void SetWalkableFloorZ(float InWalkableFloorZ);
 
+	/** Tick function called after physics (sync scene) has finished simulation, before cloth */
+	virtual void PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction);
 
 protected:
 	/** @note Movement update functions should only be called through StartNewPhysics()*/
@@ -986,7 +1111,7 @@ protected:
 	 * @param RampHit:				Hit result of sweep that found the ramp below the capsule
 	 * @param bHitFromLineTrace:	Whether the floor trace came from a line trace
 	 *
-	 * @return If on a walkable surface, this returns a vector that moves parallel to the surface while maintaining horizontal velocity.
+	 * @return If on a walkable surface, this returns a vector that moves parallel to the surface. The magnitude may be scaled if bMaintainHorizontalGroundVelocity is true.
 	 * If a ramp vector can't be computed, this will just return Delta.
 	 */
 	virtual FVector ComputeGroundMovementDelta(const FVector& Delta, const FHitResult& RampHit, const bool bHitFromLineTrace) const;
@@ -1008,25 +1133,22 @@ protected:
 	virtual void MaintainHorizontalGroundVelocity();
 
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
-	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) OVERRIDE;
-
-	/** Overridden to avoid upward adjustments that can go too high when walking. */
-	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const OVERRIDE;
+	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
 
 	/** Don't call for intermediate parts of move! */
-	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) OVERRIDE;
+	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/** Custom version of SlideAlongSurface that handles different movement modes separately; namely during walking physics we might not want to slide up slopes. */
-	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) OVERRIDE;
+	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) override;
 
 	/** Custom version that allows upwards slides when walking if the surface is walkable. */
-	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const OVERRIDE;
+	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
 
 	/**
 	 * Calculate slide on a slope. Has special treatment when falling, to avoid boosting up slopes.
 	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
 	 */
-	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const OVERRIDE;
+	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
 	/**
 	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
@@ -1096,7 +1218,7 @@ protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 	// Enum used to control GetPawnCapsuleExtent behavior
 	enum EShrinkCapsuleExtent
@@ -1132,6 +1254,15 @@ protected:
 	/** Scale input acceleration, based on movement acceleration rate. */
 	virtual FVector ScaleInputAcceleration(const FVector& InputAcceleration) const;
 
+	/**
+	 * Event triggered at the end of a movement update. If scoped movement updates are enabled (bEnableScopedMovementUpdates), this is within such a scope.
+	 * If that is not desired, bind to the CharacterOwner's OnMovementUpdated event instead, as that is triggered after the scoped movement update.
+	 */
+	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity);
+
+	/** Internal function to call OnMovementUpdated delegate on CharacterOwner. */
+	virtual void CallMovementUpdateDelegate(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity);
+
 public:
 	// Movement functions broken out based on owner's network Role.
 	// TickComponent calls the correct version based on the Role.
@@ -1163,22 +1294,22 @@ public:
 	//--------------------------------
 	// Server hook
 	//--------------------------------
-	virtual void SendClientAdjustment() OVERRIDE;
-	virtual void ForcePositionUpdate(float DeltaTime) OVERRIDE;
+	virtual void SendClientAdjustment() override;
+	virtual void ForcePositionUpdate(float DeltaTime) override;
 
 	//--------------------------------
 	// Client hook
 	//--------------------------------
-	virtual void SmoothCorrection(const FVector& OldLocation) OVERRIDE;
+	virtual void SmoothCorrection(const FVector& OldLocation) override;
 
-	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const OVERRIDE;
-	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const OVERRIDE;
+	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
-	virtual bool HasPredictionData_Client() const OVERRIDE { return ClientPredictionData != NULL; }
-	virtual bool HasPredictionData_Server() const OVERRIDE { return ServerPredictionData != NULL; }
+	virtual bool HasPredictionData_Client() const override { return ClientPredictionData != NULL; }
+	virtual bool HasPredictionData_Server() const override { return ServerPredictionData != NULL; }
 
-	virtual void ResetPredictionData_Client() OVERRIDE;
-	virtual void ResetPredictionData_Server() OVERRIDE;
+	virtual void ResetPredictionData_Client() override;
+	virtual void ResetPredictionData_Server() override;
 
 protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;
@@ -1293,6 +1424,9 @@ protected:
 
 public:
 
+	/** Minimum delta time considered when ticking. Delta times below this are not considered. This is a very small non-zero value to avoid potential divide-by-zero in simulation code. */
+	static const float MIN_TICK_TIME;
+
 	/** Minimum acceptable distance for Character capsule to float above floor when walking. */
 	static const float MIN_FLOOR_DIST;
 
@@ -1339,6 +1473,8 @@ public:
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
+	float StartCapsuleRadius;
+	float StartCapsuleHalfHeight;
 
 	// Information after the move has been performed
 	FVector SavedLocation;

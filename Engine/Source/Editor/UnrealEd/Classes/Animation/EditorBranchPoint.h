@@ -23,5 +23,5 @@ public:
 	int32 BranchIndex;
 
 	virtual void InitBranchPoint(int BranchIndexIn);
-	virtual bool ApplyChangesToMontage() OVERRIDE;
+	virtual bool ApplyChangesToMontage() override;
 };

@@ -1,22 +1,24 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	TwoVectors.h: Declares the FTwoVectors class.
+=============================================================================*/
+
 #pragma once
 
-/** A pair of 3D vectors. */
+
+/**
+ * A pair of 3D vectors.
+ */
 class FTwoVectors
 {
 public:
 
-	/**
-	 * Holds the first vector.
-	 */
+	/**  Holds the first vector. */
 	FVector	v1;
 
-	/**
-	 * Holds the second vector.
-	 */
+	/**  Holds the second vector. */
 	FVector	v2;
-
 
 public:
 
@@ -28,18 +30,17 @@ public:
 	/**
 	 * Creates and initializes a new instance with the specified vectors.
 	 *
-	 * @param In1 - The first Vector.
-	 * @param In2 - The second Vector.
+	 * @param In1 The first Vector.
+	 * @param In2 The second Vector.
 	 */
 	FORCEINLINE	FTwoVectors( FVector In1, FVector In2 );
 
 	/**
-	 * Constructor
+	 * Constructor.
 	 *
 	 * @param EForceInit Force Init Enum
 	 */
 	explicit FORCEINLINE FTwoVectors( EForceInit );
-
 
 public:
 
@@ -47,7 +48,6 @@ public:
 	 * Gets result of addition of two pairs of vectors.
 	 *
 	 * @param V The pair to add.
-	 *
 	 * @return Result of addition.
 	 */
 	FORCEINLINE FTwoVectors operator+( const FTwoVectors& V ) const;
@@ -56,7 +56,6 @@ public:
 	 * Gets result of subtraction of two pairs of vectors.
 	 *
 	 * @param V The pair to subtract.
-	 *
 	 * @return Result of subtraction.
 	 */
 	FORCEINLINE FTwoVectors operator-( const FTwoVectors& V ) const;
@@ -65,7 +64,6 @@ public:
 	 * Gets result of scaling pair of vectors.
 	 *
 	 * @param Scale The scaling factor.
-	 *
 	 * @return Result of Scaling.
 	 */
 	FORCEINLINE FTwoVectors operator*( float Scale ) const;
@@ -74,7 +72,6 @@ public:
 	 * Gets result of dividing pair of vectors.
 	 *
 	 * @param Scale What to divide by.
-	 *
 	 * @return Result of division.
 	 */
 	FTwoVectors operator/( float Scale ) const;
@@ -83,7 +80,6 @@ public:
 	 * Gets result of multiplying two pairs of vectors.
 	 *
 	 * @param V The pair to multiply with.
-	 *
 	 * @return Result of multiplication.
 	 */
 	FORCEINLINE FTwoVectors operator*( const FTwoVectors& V ) const;
@@ -92,7 +88,6 @@ public:
 	 * Gets result of division of two pairs of vectors.
 	 *
 	 * @param V The pair to divide by.
-	 *
 	 * @return Result of division.
 	 */
 	FORCEINLINE FTwoVectors operator/( const FTwoVectors& V ) const;
@@ -103,8 +98,7 @@ public:
 	 * Checks two pairs for equality.
 	 *
 	 * @param V The other pair.
-	 *
-	 * @return true if the two pairs are equal, otherwise false.
+	 * @return true if the two pairs are equal, false otherwise..
 	 */
 	bool operator==( const FTwoVectors& V ) const;
 
@@ -112,8 +106,7 @@ public:
 	 * Checks two pairs for inequality.
 	 *
 	 * @param V The other pair.
-	 *
-	 * @return true if the two pairs are different, otherwise false.
+	 * @return true if the two pairs are different, false otherwise..
 	 */
 	bool operator!=( const FTwoVectors& V ) const;
 
@@ -122,8 +115,7 @@ public:
 	 *
 	 * @param V The other pair.
 	 * @param Tolerance Error Tolerance.
-	 *
-	 * @return true if two pairs are equal within specified tolerance, otherwise false.
+	 * @return true if two pairs are equal within specified tolerance, false otherwise..
 	 */
 	bool Equals( const FTwoVectors& V, float Tolerance = KINDA_SMALL_NUMBER ) const;
 
@@ -142,7 +134,6 @@ public:
 	 * Add a pair to this.
 	 *
 	 * @param The pair to add.
-	 *
 	 * @return Copy of the pair after addition.
 	 */
 	FORCEINLINE FTwoVectors operator+=( const FTwoVectors& V );
@@ -151,7 +142,6 @@ public:
 	 * Subtract a pair from this.
 	 *
 	 * @param The pair to subtract.
-	 *
 	 * @return Copy of the pair after subtraction.
 	 */
 	FORCEINLINE FTwoVectors operator-=( const FTwoVectors& V );
@@ -160,7 +150,6 @@ public:
 	 * Scale the pair.
 	 *
 	 * @param Scale What to scale by.
-	 *
 	 * @return Copy of the pair after scaling.
 	 */
 	FORCEINLINE FTwoVectors operator*=( float Scale );
@@ -169,7 +158,6 @@ public:
 	 * Divide the pair.
 	 *
 	 * @param What to divide by.
-	 *
 	 * @return Copy of the pair after division.
 	 */
 	FTwoVectors operator/=( float V );
@@ -178,7 +166,6 @@ public:
 	 * Multiply the pair by another.
 	 *
 	 * @param The other pair.
-	 *
 	 * @return Copy of the pair after multiplication.
 	 */
 	FTwoVectors operator*=( const FTwoVectors& V );
@@ -187,7 +174,6 @@ public:
 	 * Divide the pair by another.
 	 *
 	 * @param The other pair.
-	 *
 	 * @return Copy of the pair after multiplication.
 	 */
 	FTwoVectors operator/=( const FTwoVectors& V );
@@ -201,7 +187,6 @@ public:
 	 * @return Reference to the specified component.
 	 */
     float& operator[]( int32 i );
-
 
 public:
 
@@ -226,7 +211,6 @@ public:
 	 */
 	FString ToString( ) const;
 
-
 public:
 
 	/**
@@ -243,6 +227,9 @@ public:
 	}
 };
 
+
+/* FTwoVectors inline functions
+ *****************************************************************************/
 
 FORCEINLINE FTwoVectors operator*( float Scale, const FTwoVectors& V )
 {

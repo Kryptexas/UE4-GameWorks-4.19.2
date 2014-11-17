@@ -22,28 +22,28 @@ public:
 
 
 	// Begin IHttpBase interface
-	virtual FString GetURL() OVERRIDE;
-	virtual FString GetURLParameter(const FString& ParameterName) OVERRIDE;
-	virtual FString GetHeader(const FString& HeaderName) OVERRIDE;
-	virtual TArray<FString> GetAllHeaders() OVERRIDE;	
-	virtual FString GetContentType() OVERRIDE;
-	virtual int32 GetContentLength() OVERRIDE;
-	virtual const TArray<uint8>& GetContent() OVERRIDE;
+	virtual FString GetURL() override;
+	virtual FString GetURLParameter(const FString& ParameterName) override;
+	virtual FString GetHeader(const FString& HeaderName) override;
+	virtual TArray<FString> GetAllHeaders() override;	
+	virtual FString GetContentType() override;
+	virtual int32 GetContentLength() override;
+	virtual const TArray<uint8>& GetContent() override;
 	// End IHttpBase interface
 
 	// Begin IHttpRequest interface
-	virtual FString GetVerb() OVERRIDE;
-	virtual void SetVerb(const FString& Verb) OVERRIDE;
-	virtual void SetURL(const FString& URL) OVERRIDE;
-	virtual void SetContent(const TArray<uint8>& ContentPayload) OVERRIDE;
-	virtual void SetContentAsString(const FString& ContentString) OVERRIDE;
-	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) OVERRIDE;
-	virtual bool ProcessRequest() OVERRIDE;
-	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() OVERRIDE;
-	virtual FHttpRequestProgressDelegate& OnRequestProgress() OVERRIDE;
-	virtual void CancelRequest() OVERRIDE;
-	virtual EHttpRequestStatus::Type GetStatus() OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual FString GetVerb() override;
+	virtual void SetVerb(const FString& Verb) override;
+	virtual void SetURL(const FString& URL) override;
+	virtual void SetContent(const TArray<uint8>& ContentPayload) override;
+	virtual void SetContentAsString(const FString& ContentString) override;
+	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) override;
+	virtual bool ProcessRequest() override;
+	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() override;
+	virtual FHttpRequestProgressDelegate& OnRequestProgress() override;
+	virtual void CancelRequest() override;
+	virtual EHttpRequestStatus::Type GetStatus() override;
+	virtual void Tick(float DeltaSeconds) override;
 	// End IHttpRequest interface
 
 
@@ -146,18 +146,18 @@ public:
 
 
 	// Begin IHttpBase interface
-	virtual FString GetURL() OVERRIDE;
-	virtual FString GetURLParameter(const FString& ParameterName) OVERRIDE;
-	virtual FString GetHeader(const FString& HeaderName) OVERRIDE;
-	virtual TArray<FString> GetAllHeaders() OVERRIDE;	
-	virtual FString GetContentType() OVERRIDE;
-	virtual int32 GetContentLength() OVERRIDE;
-	virtual const TArray<uint8>& GetContent() OVERRIDE;
+	virtual FString GetURL() override;
+	virtual FString GetURLParameter(const FString& ParameterName) override;
+	virtual FString GetHeader(const FString& HeaderName) override;
+	virtual TArray<FString> GetAllHeaders() override;	
+	virtual FString GetContentType() override;
+	virtual int32 GetContentLength() override;
+	virtual const TArray<uint8>& GetContent() override;
 	// End IHttpBase interface
 
 	// Begin IHttpResponse interface
-	virtual int32 GetResponseCode() OVERRIDE;
-	virtual FString GetContentAsString() OVERRIDE;
+	virtual int32 GetResponseCode() override;
+	virtual FString GetContentAsString() override;
 	// End IHttpResponse interface
 
 	NSHTTPURLResponse* GetResponseObj();

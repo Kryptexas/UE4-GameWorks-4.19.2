@@ -1,7 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavigationTypes.h"
+#include "AI/NavDataGenerator.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationData.generated.h"
+
+class FNavDataGenerator; 
 
 USTRUCT()
 struct FSupportedAreaData
@@ -16,13 +21,15 @@ struct FSupportedAreaData
 
 	UPROPERTY(transient)
 	const UClass* AreaClass;
+
+	FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass = NULL, int32 InAreaID = INDEX_NONE);
 };
 
 /** 
  *	Represents abstract Navigation Data (sub-classed as NavMesh, NavGraph, etc)
  *	Used as a common interface for all navigation types handled by NavigationSystem
  */
-UCLASS(config=Engine, defaultconfig, dependson=UNavigationSystem, NotBlueprintable, abstract)
+UCLASS(config=Engine, defaultconfig, NotBlueprintable, abstract)
 class ENGINE_API ANavigationData : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -41,7 +48,7 @@ class ENGINE_API ANavigationData : public AActor
 	// game-time config
 	//----------------------------------------------------------------------//
 
-	/** Size of the tallest agent that will path with this navmesh. */
+	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
 	UPROPERTY(EditAnywhere, Category=Runtime, config)
 	uint32 bRebuildAtRuntime:1;
 
@@ -52,13 +59,13 @@ class ENGINE_API ANavigationData : public AActor
 	virtual ~ANavigationData();
 
 	// Begin UObject/AActor Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostInitializeComponents() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void Destroyed() OVERRIDE;
+	virtual void Destroyed() override;
 	// End UObject Interface
 		
 	virtual void CleanUp();
@@ -70,9 +77,9 @@ class ENGINE_API ANavigationData : public AActor
 	
 	FORCEINLINE uint16 GetNavDataUniqueID() const { return NavDataUniqueID; }
 
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
-	virtual void RerunConstructionScripts() OVERRIDE;
+	virtual void RerunConstructionScripts() override;
 
 	virtual bool NeedsRebuild() { return false; }
 
@@ -94,7 +101,7 @@ protected:
 public:
 #if WITH_NAVIGATION_GENERATOR 
 	/** Retrieves navmesh's generator, creating one if not already present */
-	class FNavDataGenerator* GetGenerator(NavigationSystem::ECreateIfEmpty CreateIfNone);
+	class FNavDataGenerator* GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone);
 
 	const class FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
 #endif // WITH_NAVIGATION_GENERATOR
@@ -162,7 +169,7 @@ public:
 	// Querying                                                                
 	//----------------------------------------------------------------------//
 	FORCEINLINE TSharedPtr<const FNavigationQueryFilter> GetDefaultQueryFilter() const { return DefaultQueryFilter; }
-	FORCEINLINE const INavigationQueryFilterInterface* GetDefaultQueryFilterImpl() const { return DefaultQueryFilter->GetImplementation(); }	
+	FORCEINLINE const class INavigationQueryFilterInterface* GetDefaultQueryFilterImpl() const { return DefaultQueryFilter->GetImplementation(); }	
 	FORCEINLINE FVector GetDefaultQueryExtent() const { return NavDataConfig.DefaultQueryExtent; }
 
 	/** 
@@ -293,10 +300,10 @@ public:
 	void GetSupportedAreas(TArray<FSupportedAreaData>& Areas) const { Areas = SupportedAreas; }
 
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateSmartLink(class USmartNavLinkComponent* LinkComp);
+	virtual void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Filters
@@ -323,7 +330,7 @@ protected:
 	virtual int32 GetNewAreaID(const UClass* AreaClass) const;
 	
 #if WITH_NAVIGATION_GENERATOR
-	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) PURE_VIRTUAL(ANavigationData::ConstructGenerator, return NULL; );
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) PURE_VIRTUAL(ANavigationData::ConstructGenerator, return NULL; );
 #endif // WITH_NAVIGATION_GENERATOR
 
 protected:
@@ -369,6 +376,9 @@ protected:
 	/** serialized area class - ID mapping */
 	UPROPERTY()
 	TArray<FSupportedAreaData> SupportedAreas;
+
+	/** mapping for SupportedAreas */
+	TMap<const UClass*, int32> AreaClassToIdMap;
 
 	/** whether this instance is registered with Navigation System*/
 	uint32 bRegistered : 1;

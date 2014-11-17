@@ -12,7 +12,7 @@ public class UMG : ModuleRules
             })
 		;
 
-		PublicDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
@@ -20,11 +20,7 @@ public class UMG : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
+				"MovieSceneCore",
 			}
 		);
 	}

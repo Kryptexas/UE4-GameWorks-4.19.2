@@ -197,11 +197,11 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	{
 		if (bAllowTranslateRotateZWidget)
 		{
-			GEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
 		}
-		else if (GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
+		else if (GLevelEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
 		{
-			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 		}
 	}
 	else if (Name == FName(TEXT("bHighlightWithBrackets")))
@@ -276,6 +276,7 @@ UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstruct
 	BuildConfiguration = PPBC_Development;
 	FullRebuild = true;
 	UsePakFile = true;
+	UseOBB_InAPK = false;
 }
 
 
@@ -301,26 +302,5 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		FString Path = StagingDirectory.Path;
 		FPaths::MakePathRelativeTo(Path, FPlatformProcess::BaseDir());
 		StagingDirectory.Path = Path;
-	}
-}
-
-void UProjectPackagingSettings::UpdateBuildConfigurationVisibility()
-{
-	// Find if there are any .target.cs files in the project source directory.
-	TArray<FString> TargetFileNames;
-	IFileManager::Get().FindFiles(TargetFileNames, *(FPaths::GameSourceDir() / TEXT("*.target.cs")), true, false);
-
-	// Get the EProjectPackagingBuildConfigurations enum
-	extern UEnum *Z_Construct_UEnum_UProjectPackagingSettings_EProjectPackagingBuildConfigurations();
-	UEnum *ProjectPackagingConfigEnum = Z_Construct_UEnum_UProjectPackagingSettings_EProjectPackagingBuildConfigurations();
-
-	// Mark the DebugGame value as hidden if it's a content only project.
-	if (TargetFileNames.Num() == 0)
-	{
-		ProjectPackagingConfigEnum->SetMetaData(TEXT("Hidden"), TEXT("1"), PPBC_DebugGame);
-	}
-	else
-	{
-		ProjectPackagingConfigEnum->RemoveMetaData(TEXT("Hidden"), PPBC_DebugGame);
 	}
 }

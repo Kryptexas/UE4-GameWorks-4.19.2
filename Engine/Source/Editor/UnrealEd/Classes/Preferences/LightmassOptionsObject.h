@@ -7,9 +7,12 @@
  */
 
 #pragma once
+
+#include "Engine/EngineTypes.h"
+
 #include "LightmassOptionsObject.generated.h"
 
-UCLASS(hidecategories=Object, dependson=UEngineTypes, editinlinenew)
+UCLASS(hidecategories=Object, editinlinenew)
 class ULightmassOptionsObject : public UObject
 {
 	GENERATED_UCLASS_BODY()

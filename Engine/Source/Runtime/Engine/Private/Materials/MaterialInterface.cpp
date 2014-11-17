@@ -6,6 +6,20 @@
 
 #include "EnginePrivate.h"
 
+//////////////////////////////////////////////////////////////////////////
+
+/** Copies the material's relevance flags to a primitive's view relevance flags. */
+void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const
+{
+	OutViewRelevance.bOpaqueRelevance = bOpaque;
+	OutViewRelevance.bMaskedRelevance = bMasked;
+	OutViewRelevance.bDistortionRelevance = bDistortion;
+	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
+	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 UMaterialInterface::UMaterialInterface(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -28,13 +42,12 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 	{
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
 		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
-		const bool bIsLit = GetLightingModel() != MLM_Unlit;
+		const bool bIsLit = GetShadingModel() != MSM_Unlit;
 		// Determine the material's view relevance.
 		FMaterialRelevance MaterialRelevance;
 		MaterialRelevance.bOpaque = !bIsTranslucent;
 		MaterialRelevance.bMasked = Material->bIsMasked;
 		MaterialRelevance.bDistortion = Material->bUsesDistortion && bIsTranslucent;
-		MaterialRelevance.bUsesSceneColor = MaterialResource->UsesSceneColor();
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
@@ -248,15 +261,15 @@ bool UMaterialInterface::IsTwoSided()const
 	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->IsTwoSided();
 }
 
-EMaterialLightingModel UMaterialInterface::GetLightingModel()const
+EMaterialShadingModel UMaterialInterface::GetShadingModel()const
 {
 	if( IsInGameThread() )
 	{
-		return GetLightingModel_Internal();
+		return GetShadingModel_Internal();
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->GetLightingModel();
+	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->GetShadingModel();
 }
 
 float UMaterialInterface::GetOpacityMaskClipValue_Internal()const
@@ -274,9 +287,9 @@ bool UMaterialInterface::IsTwoSided_Internal()const
 	return false;
 }
 
-EMaterialLightingModel UMaterialInterface::GetLightingModel_Internal()const
+EMaterialShadingModel UMaterialInterface::GetShadingModel_Internal()const
 {
-	return MLM_DefaultLit;
+	return MSM_DefaultLit;
 }
 
 void UMaterialInterface::SetFeatureLevelToCompile(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile)

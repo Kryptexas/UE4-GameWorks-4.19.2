@@ -6,6 +6,8 @@
 
 #include "Slate.h"
 
+class UAnimSet;
+
 /**
  * This below code is to select skeleton from the list 
  */
@@ -42,7 +44,7 @@ public:
 		SMultiColumnTableRow< TSharedPtr<FBoneTrackPair> >::Construct( FSuperRowType::FArguments(), InOwnerTableView );
 	}
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		TSharedPtr<SBorder> Border1, Border2;
 

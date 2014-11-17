@@ -41,7 +41,7 @@ FGlobalBoundShaderStateResource::~FGlobalBoundShaderStateResource()
  * Initializes a global bound shader state with a vanilla bound shader state and required information.
  */
 FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
-	FVertexDeclarationRHIParamRef VertexDeclaration, 
+	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FVertexShaderRHIParamRef VertexShader, 
 	FPixelShaderRHIParamRef PixelShader,
 	FGeometryShaderRHIParamRef GeometryShader
@@ -92,16 +92,8 @@ void FGlobalBoundShaderStateResource::ReleaseRHI()
 	BoundShaderState.SafeRelease();
 }
 
-/**
- * SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
- *
- * @param BoundShaderState - current bound shader state, will be updated if it wasn't a valid ref
- * @param VertexDeclaration - the vertex declaration to use in creating the new bound shader state
- * @param VertexShader - the vertex shader to use in creating the new bound shader state
- * @param PixelShader - the pixel shader to use in creating the new bound shader state
- * @param GeometryShader - the geometry shader to use in creating the new bound shader state (0 if not used)
- */
 void SetGlobalBoundShaderState(
+	FRHICommandListImmediate& RHICmdList,
 	FGlobalBoundShaderState& GlobalBoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,
@@ -115,7 +107,7 @@ void SetGlobalBoundShaderState(
 	PixelShader->VerifyBoundUniformBufferParameters();
 	GeometryShader->VerifyBoundUniformBufferParameters();
 
-	RHISetBoundShaderState(
+	RHICmdList.SetBoundShaderState(
 		GlobalBoundShaderState.GetInitializedRHI(
 			VertexDeclaration,
 			GETSAFERHISHADER_VERTEX(VertexShader),

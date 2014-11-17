@@ -2,6 +2,8 @@
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_Root.h"
+#include "GraphEditorSettings.h"
+
 
 /////////////////////////////////////////////////////
 // FPoseLinkMappingRecord
@@ -43,7 +45,7 @@ UAnimGraphNode_Root::UAnimGraphNode_Root(const FPostConstructInitializePropertie
 
 FLinearColor UAnimGraphNode_Root::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
 FText UAnimGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -92,7 +92,7 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 /**
  * Parse the xml results of an 'svn info' command
  */
-void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot);
+void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutWorkingCopyRoot, FString& OutRepoRoot);
 
 /**
  * Parse the xml results of an 'svn status' command

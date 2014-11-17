@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SReflectorToolTipWidget.h: Declares the SReflectorToolTipWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,6 +19,8 @@ public:
 
 	SLATE_END_ARGS()
 
+public:
+
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs )
 	{
@@ -35,10 +33,10 @@ public:
 
 			// Desired Size
 			+ SGridPanel::Slot(0, 0)
-			[
-				SNew(STextBlock)
-					.Text(LOCTEXT("DesiredSize", "Desired Size"))
-			]
+				[
+					SNew(STextBlock)
+						.Text(LOCTEXT("DesiredSize", "Desired Size"))
+				]
 
 			// Desired Size Value
 			+ SGridPanel::Slot(1, 0)

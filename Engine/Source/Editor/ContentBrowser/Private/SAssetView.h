@@ -15,7 +15,6 @@ class SAssetView : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SAssetView )
 		: _AreRealTimeThumbnailsAllowed(true)
-		, _LabelVisibility(EVisibility::Visible)
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _AllowThumbnailHintLabel(true)
 		, _InitialViewType(EAssetViewType::Tile)
@@ -37,14 +36,8 @@ public:
 		/** Called to check if an asset should be filtered out by external code */
 		SLATE_EVENT( FOnShouldFilterAsset, OnShouldFilterAsset )
 
-		/** Called to when an asset is clicked */
-		SLATE_EVENT( FOnAssetClicked, OnAssetClicked )
-
 		/** Called to when an asset is selected */
 		SLATE_EVENT( FOnAssetSelected, OnAssetSelected )
-
-		/** Called when an asset has begun being dragged by the user */
-		SLATE_EVENT( FOnAssetDragged, OnAssetDragged )
 
 		/** Called when the user double clicks, presses enter, or presses space on an asset */
 		SLATE_EVENT( FOnAssetsActivated, OnAssetsActivated )
@@ -64,9 +57,6 @@ public:
 		/** Called when the user has committed a rename of one or more assets */
 		SLATE_EVENT( FOnAssetRenameCommitted, OnAssetRenameCommitted )
 
-		/** The tooltip to display when the cursor hovers over an asset */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTipForAsset )
-
 		/** The warning text to display when there are no assets to show */
 		SLATE_ATTRIBUTE( FText, AssetShowWarningText )
 
@@ -76,9 +66,6 @@ public:
 		/** Attribute to determine what text should be highlighted */
 		SLATE_ATTRIBUTE( FText, HighlightedText )
 
-		/** Whether to display the name of the asset as a label below the thumbnail */
-		SLATE_ATTRIBUTE( EVisibility, LabelVisibility )
-
 		/** What the label on the asset thumbnails should be */
 		SLATE_ARGUMENT( EThumbnailLabel::Type, ThumbnailLabel )
 
@@ -87,9 +74,6 @@ public:
 
 		/** The filter collection used to further filter down assets returned from the backend */
 		SLATE_ARGUMENT( TSharedPtr<AssetFilterCollectionType>, FrontendFilters )
-
-		/** The filter collection used to further filter down assets that have passed both the backend and frontend filters */
-		SLATE_ARGUMENT( TSharedPtr<AssetFilterCollectionType>, DynamicFilters )
 
 		/** The initial base sources filter */
 		SLATE_ARGUMENT( FSourcesData, InitialSourcesData )
@@ -105,9 +89,6 @@ public:
 
 		/** The thumbnail scale. [0-1] where 0.5 is no scale */
 		SLATE_ATTRIBUTE( float, ThumbnailScale )
-
-		/** Called when the Thumbnail scale changes and is currently bound to a delegate */
-		SLATE_EVENT( FOnThumbnailScaleChanged, OnThumbnailScaleChanged )
 
 		/** Should the toolbar indicating number of selected assets, mode switch buttons, etc... be shown? */
 		SLATE_ARGUMENT( bool, ShowBottomToolbar )
@@ -197,8 +178,14 @@ public:
 	/** Returns all the folders currently selected in the view */
 	TArray<FString> GetSelectedFolders() const;
 
-	/** Requests that the asset view refreshes its visible items. */
-	void RequestListRefresh();
+	/** Requests that the asset view refreshes all it's source items. This is slow and should only be used if the source items change. */
+	void RequestSlowFullListRefresh();
+
+	/** Requests that the asset view refreshes only items that are filtered through frontend sources. This should be used when possible. */
+	void RequestQuickFrontendListRefresh();
+
+	/** Requests that the asset view adds any recently added items in the next update to the filtered asset items */
+	void RequestAddNewAssetsNextFrame();
 
 	/** Saves any settings to config that should be persistent between editor sessions */
 	void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const;
@@ -216,14 +203,14 @@ public:
 	bool IsRenamingAsset() const;
 
 	// SWidget inherited
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) override;
 
 	/** Opens the selected assets or folders, depending on the selection */
 	void OnOpenAssetsOrFolders();
@@ -317,9 +304,6 @@ private:
 	/** Handler for when an asset's property has changed */
 	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
 
-	/** Handler for when any dynamic filters have been changed */
-	void OnDynamicFiltersChanged();
-
 	/** Handler for when any frontend filters have been changed */
 	void OnFrontendFiltersChanged();
 
@@ -376,6 +360,12 @@ private:
 	/** @return true if we are showing real-time thumbnails */
 	bool IsShowingRealTimeThumbnails() const;
 
+
+	/** Toggle whether plugin content folders should be shown or not */
+	void ToggleShowPluginFolders();
+
+	/** @return true when we are showing plugin content folders */
+	bool IsShowingPluginFolders() const;
 
 	/** Toggle whether the engine folder should be shown or not */
 	void ToggleShowEngineFolder();
@@ -521,13 +511,16 @@ private:
 	float GetTileViewItemBaseWidth() const;
 
 	/** Gets the sort mode for the supplied ColumnId */
-	EColumnSortMode::Type GetColumnSortMode(FName ColumnId) const;
+	EColumnSortMode::Type GetColumnSortMode(const FName ColumnId) const;
+
+	/** Gets the sort order for the supplied ColumnId */
+	EColumnSortPriority::Type GetColumnSortPriority(const FName ColumnId) const;
 
 	/** Handler for when a column header is clicked */
-	void OnSortColumnHeader( const FName& ColumnId, EColumnSortMode::Type NewSortMode );
+	void OnSortColumnHeader(const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type NewSortMode);
 
 	/** Handler for when a column header is clicked */
-	bool IsPathInAssetItemsList(FName ObjectPath) const;
+	bool IsPathInAssetItemsList(const FName& ObjectPath) const;
 
 	/** Returns the state of the is working progress bar */
 	TOptional< float > GetIsWorkingProgressBarState() const;
@@ -637,10 +630,12 @@ private:
 	FSourcesData SourcesData;
 	FARFilter BackendFilter;
 	TSharedPtr<AssetFilterCollectionType> FrontendFilters;
-	TSharedPtr<AssetFilterCollectionType> DynamicFilters;
 
-	/** If true, the source items will be refreshed next frame */
-	bool bRefreshSourceItemsRequested;
+	/** If true, the source items will be refreshed next frame. Very slow. */
+	bool bSlowFullListRefreshRequested;
+
+	/** If true, the frontend items will be refreshed next frame. Much faster. */
+	bool bQuickFrontendListRefreshRequested;
 
 	/** The list of assets to sync next frame */
 	TSet<FName> PendingSyncAssets;
@@ -648,11 +643,11 @@ private:
 	/** Should we take focus when the PendingSyncAssets are processed? */
 	bool bPendingFocusOnSync;
 
+	/** Was recursive filtering enabled the last time a full slow refresh performed? */
+	bool bWereItemsRecursivelyFiltered;
+
 	/** Called to check if an asset should be filtered out by external code */
 	FOnShouldFilterAsset OnShouldFilterAsset;
-
-	/** Called when an asset was clicked on in the list */
-	FOnAssetClicked OnAssetClicked;
 
 	/** Called when an asset was selected in the list */
 	FOnAssetSelected OnAssetSelected;
@@ -677,9 +672,6 @@ private:
 
 	/** Called to check if an asset tag should be display in details view. */
 	FOnShouldDisplayAssetTag OnAssetTagWantsToBeDisplayed;
-
-	/** Called when an asset has begun being dragged by the user */
-	FOnAssetDragged OnAssetDragged;
 	
 	/** When true, filtered list items will be sorted next tick. Provided another sort hasn't happened recently or we are renaming an asset */
 	bool bPendingSortFilteredItems;
@@ -719,7 +711,6 @@ private:
 
 	/** The current value for the thumbnail scale from the thumbnail slider */
 	TAttribute< float > ThumbnailScaleSliderValue;
-	FOnThumbnailScaleChanged ThumbnailScaleChanged;
 
 	/** The max and min thumbnail scales as a fraction of the rendered size */
 	float MinThumbnailScale;
@@ -785,9 +776,6 @@ private:
 	/** The text to highlight on the assets */
 	TAttribute< FText > HighlightedText;
 
-	/** The visibility setting for the label below the thumbnail */
-	TAttribute< EVisibility > LabelVisibility;
-
 	/** What the label on the thumbnails should be */
 	EThumbnailLabel::Type ThumbnailLabel;
 
@@ -799,9 +787,6 @@ private:
 
 	/** The current thumbnail hint color and opacity*/
 	FLinearColor ThumbnailHintColorAndOpacity;
-
-	/** A callback for external code to construct the tooltip for an asset */
-	FConstructToolTipForAsset ConstructToolTipForAsset;
 
 	/** The text to show when there are no assets to show */
 	TAttribute< FText > AssetShowWarningText;
@@ -875,9 +860,6 @@ private:
 
 		/** The string we should be be looking for */
 		FString JumpTerm;
-
-		/** Time delay between performing the last jump, and the jump term being reset */
-		static const double JumpDelaySeconds;
 	};
 
 	/** Data for the asset quick-jump */

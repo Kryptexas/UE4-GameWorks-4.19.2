@@ -28,10 +28,10 @@ class UGeomModifier_Lathe : public UGeomModifier_Edit
 
 
 	// Begin UGeomModifier Interface
-	virtual bool Supports() OVERRIDE;
-	virtual void Initialize() OVERRIDE;
+	virtual bool Supports() override;
+	virtual void Initialize() override;
 protected:
-	virtual bool OnApply() OVERRIDE;
+	virtual bool OnApply() override;
 	// End UGeomModifier Interface
 private:
 	void Apply( int32 InTotalSegments, int32 InSegments, EAxis::Type InAxis );

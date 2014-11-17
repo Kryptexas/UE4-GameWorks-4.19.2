@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IGameInstanceInfo.h: Declares the IGameInstanceInfo interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IGameInstanceInfo.
- */
+/** Type definition for shared pointers to instances of IGameInstanceInfo. */
 typedef TSharedPtr<class ISessionInstanceInfo> ISessionInstanceInfoPtr;
 
-/**
- * Type definition for shared references to instances of IGameInstanceInfo.
- */
+/** Type definition for shared references to instances of IGameInstanceInfo. */
 typedef TSharedRef<class ISessionInstanceInfo> ISessionInstanceInfoRef;
 
 
@@ -37,7 +29,7 @@ public:
 	/**
 	 * Executes a console command on this engine instance.
 	 *
-	 * @param CommandString - The command to execute.
+	 * @param CommandString The command to execute.
 	 */
 	virtual void ExecuteCommand( const FString& CommandString ) = 0;
 

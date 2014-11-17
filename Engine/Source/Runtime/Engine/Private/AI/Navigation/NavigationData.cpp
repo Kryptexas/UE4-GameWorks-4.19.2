@@ -1,7 +1,76 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../../Public/AI/NavDataGenerator.h"
+#include "AI/NavDataGenerator.h"
+#include "AI/Navigation/NavAreas/NavAreaMeta.h"
+#include "AI/Navigation/NavigationData.h"
+
+//----------------------------------------------------------------------//
+// FPathFindingQuery
+//----------------------------------------------------------------------//
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+: NavData(InNavData)
+, Owner(InOwner)
+, StartLocation(Start)
+, EndLocation(End)
+, QueryFilter(SourceQueryFilter)
+{
+	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
+	{
+		QueryFilter = NavData->GetDefaultQueryFilter();
+	}
+}
+
+FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
+: NavData(Source.NavData)
+, Owner(Source.Owner)
+, StartLocation(Source.StartLocation)
+, EndLocation(Source.EndLocation)
+, QueryFilter(Source.QueryFilter)
+, NavDataFlags(Source.NavDataFlags)
+{
+	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
+	{
+		QueryFilter = NavData->GetDefaultQueryFilter();
+	}
+}
+
+//----------------------------------------------------------------------//
+// FAsyncPathFindingQuery
+//----------------------------------------------------------------------//
+uint32 FAsyncPathFindingQuery::LastPathFindingUniqueID = INVALID_NAVQUERYID;
+
+FAsyncPathFindingQuery::FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+: FPathFindingQuery(InOwner, InNavData, Start, End, SourceQueryFilter)
+, QueryID(GetUniqueID())
+, OnDoneDelegate(Delegate)
+{
+
+}
+
+FAsyncPathFindingQuery::FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode)
+: FPathFindingQuery(Query)
+, QueryID(GetUniqueID())
+, OnDoneDelegate(Delegate)
+, Mode(QueryMode)
+{
+
+}
+//----------------------------------------------------------------------//
+// FSupportedAreaData
+//----------------------------------------------------------------------//
+FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32 InAreaID)
+	: AreaID(InAreaID), AreaClass(NavAreaClass)
+{
+	if (AreaClass != NULL)
+	{
+		AreaClassName = AreaClass->GetName();
+	}
+	else
+	{
+		AreaClassName = TEXT("Invalid");
+	}
+}
 
 //----------------------------------------------------------------------//
 // FNavDataGenerator
@@ -81,7 +150,7 @@ void ANavigationData::PostInitializeComponents()
 #if WITH_NAVIGATION_GENERATOR
 	if (bRebuildAtRuntime == true && NavDataGenerator.IsValid() == false)
 	{
-		GetGenerator(NavigationSystem::Create);
+		GetGenerator(FNavigationSystem::Create);
 	}
 #endif
 }
@@ -163,7 +232,7 @@ void ANavigationData::PostEditUndo()
 {
 	Super::PostEditUndo();
 #if WITH_NAVIGATION_GENERATOR
-	GetGenerator(NavigationSystem::Create);
+	GetGenerator(FNavigationSystem::Create);
 #endif // WITH_NAVIGATION_GENERATOR
 
 	UWorld* WorldOuter = GetWorld();
@@ -207,10 +276,10 @@ void ANavigationData::CleanUpAndMarkPendingKill()
 
 #if WITH_NAVIGATION_GENERATOR
 
-FNavDataGenerator* ANavigationData::GetGenerator(NavigationSystem::ECreateIfEmpty CreateIfNone)
+FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone)
 {
 	if ((NavDataGenerator.IsValid() == false || NavDataGenerator.GetSharedReferenceCount() <= 0)
-		&& CreateIfNone == NavigationSystem::Create
+		&& CreateIfNone == FNavigationSystem::Create
 		&& (bRebuildAtRuntime == true || GetWorld()->IsGameWorld() == false))
 	{
 		// @todo this is not-that-clear design and is subject to change
@@ -265,6 +334,7 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 		if (SupportedAreas[i].AreaClassName == AreaClassName)
 		{
 			SupportedAreas[i].AreaClass = NavAreaClass;
+			AreaClassToIdMap.Add(NavAreaClass, SupportedAreas[i].AreaID);
 			UE_LOG(LogNavigation, Verbose, TEXT("%s updated area %s with ID %d"), *GetName(), *AreaClassName, SupportedAreas[i].AreaID);
 			return;
 		}
@@ -283,7 +353,8 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 	NewAgentData.AreaClassName = AreaClassName;
 	NewAgentData.AreaID = GetNewAreaID(NavAreaClass);
 	SupportedAreas.Add(NewAgentData);
-	
+	AreaClassToIdMap.Add(NavAreaClass, NewAgentData.AreaID);
+
 	UE_LOG(LogNavigation, Verbose, TEXT("%s registered area %s with ID %d"), *GetName(), *AreaClassName, NewAgentData.AreaID);
 }
 
@@ -301,6 +372,7 @@ void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
 	{
 		if (SupportedAreas[i].AreaClass == NavAreaClass)
 		{
+			AreaClassToIdMap.Remove(NavAreaClass);
 			SupportedAreas.RemoveAt(i);
 			break;
 		}
@@ -367,18 +439,11 @@ bool ANavigationData::IsAreaAssigned(int32 AreaID) const
 
 int32 ANavigationData::GetAreaID(const UClass* AreaClass) const
 {
-	for (int32 i = 0; i < SupportedAreas.Num(); i++)
-	{
-		if (SupportedAreas[i].AreaClass == AreaClass)
-		{
-			return SupportedAreas[i].AreaID;
-		}
-	}
-
-	return -1;
+	const int32* PtrId = AreaClassToIdMap.Find(AreaClass);
+	return PtrId ? *PtrId : INDEX_NONE;
 }
 
-void ANavigationData::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
+void ANavigationData::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
 	// no implementation for abstract class
 }
@@ -400,7 +465,8 @@ void ANavigationData::RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter
 
 uint32 ANavigationData::LogMemUsed() const
 {
-	const uint32 MemUsed = ActivePaths.GetAllocatedSize() + SupportedAreas.GetAllocatedSize();
+	const uint32 MemUsed = ActivePaths.GetAllocatedSize() + SupportedAreas.GetAllocatedSize() +
+		QueryFilters.GetAllocatedSize() + AreaClassToIdMap.GetAllocatedSize();
 
 	UE_LOG(LogNavigation, Display, TEXT("%s: ANavigationData: %u\n    self: %d"), *GetName(), MemUsed, sizeof(ANavigationData));	
 

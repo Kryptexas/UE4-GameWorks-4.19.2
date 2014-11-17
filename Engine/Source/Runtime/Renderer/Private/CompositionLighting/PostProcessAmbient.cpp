@@ -20,6 +20,11 @@ class FPostProcessAmbientPS : public FGlobalShader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	/** Default constructor. */
 	FPostProcessAmbientPS() {}
 
@@ -41,15 +46,15 @@ public:
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		CubemapShaderParameters.SetParameters(ShaderRHI, Entry);
-		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		CubemapShaderParameters.SetParameters(RHICmdList, ShaderRHI, Entry);
+		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 	}
 	
 	// FShader interface.
@@ -78,13 +83,13 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
@@ -97,6 +102,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessAmbientPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	
 
 	uint32 Count = Context.View.FinalPostProcessSettings.ContributingCubemaps.Num();
 	for(uint32 i = 0; i < Count; ++i)
@@ -104,13 +110,15 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 		if(i == 0)
 		{
 			// call it once after setting up the shader data to avoid the warnings in the function
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		}
 
-		PixelShader->SetParameters(Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
+		
+		PixelShader->SetParameters(Context.RHICmdList, Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
 
 		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle( 
+		DrawRectangle(
+			Context.RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -121,7 +129,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 			EDRF_UseTriangleOptimization);
 	}
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessAmbient::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -146,18 +154,18 @@ void FCubemapShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 	AmbientCubemapSampler.Bind(ParameterMap, TEXT("AmbientCubemapSampler"));
 }
 
-void FCubemapShaderParameters::SetParameters(const FPixelShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParameters(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
-	SetParametersTemplate(ShaderRHI,Entry);
+	SetParametersTemplate(RHICmdList, ShaderRHI, Entry);
 }
 
-void FCubemapShaderParameters::SetParameters(const FComputeShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParameters(FRHICommandList& RHICmdList, const FComputeShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
-	SetParametersTemplate(ShaderRHI,Entry);
+	SetParametersTemplate(RHICmdList, ShaderRHI, Entry);
 }
 
 template<typename TShaderRHIRef>
-void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParametersTemplate(FRHICommandList& RHICmdList, const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
 	// floats to render the cubemap
 	{
@@ -172,7 +180,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 		{
 			FLinearColor AmbientCubemapTintMulScaleValue = Entry.AmbientCubemapTintMulScaleValue;
 
-			SetShaderValue(ShaderRHI, AmbientCubemapColor, AmbientCubemapTintMulScaleValue);
+			SetShaderValue(RHICmdList, ShaderRHI, AmbientCubemapColor, AmbientCubemapTintMulScaleValue);
 		}
 
 		{
@@ -183,7 +191,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 			AmbientCubemapMipAdjustValue.Z = MipCount - GDiffuseConvolveMipLevel;
 			AmbientCubemapMipAdjustValue.W = MipCount;
 
-			SetShaderValue(ShaderRHI, AmbientCubemapMipAdjust, AmbientCubemapMipAdjustValue);
+			SetShaderValue(RHICmdList, ShaderRHI, AmbientCubemapMipAdjust, AmbientCubemapMipAdjustValue);
 		}
 	}
 
@@ -191,7 +199,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 	{
 		FTexture* InternalSpec = Entry.AmbientCubemap ? Entry.AmbientCubemap->Resource : GBlackTextureCube;
 
-		SetTextureParameter(ShaderRHI, AmbientCubemap, AmbientCubemapSampler, InternalSpec);
+		SetTextureParameter(RHICmdList, ShaderRHI, AmbientCubemap, AmbientCubemapSampler, InternalSpec);
 	}
 }
 

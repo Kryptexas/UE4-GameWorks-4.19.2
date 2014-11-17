@@ -44,7 +44,7 @@ public:
 	void RegisterComponents(AActor* Actor);
 
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/* Gets the FDeferRegisterComponents singleton. */
 	static FDeferRegisterComponents& Get();

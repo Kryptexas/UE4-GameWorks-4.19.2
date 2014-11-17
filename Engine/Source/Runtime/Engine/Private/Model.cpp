@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Model.h"
 #include "MeshBuild.h"
 
 float UModel::BSPTexelScale = 100.0f;
@@ -422,10 +423,10 @@ SIZE_T UModel::GetResourceSize(EResourceSizeMode::Type Mode)
 IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, 
 	{
 		Class->ClassAddReferencedObjects = &UModel::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( UModel, Polys ) );
-		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin( STRUCT_OFFSET( UModel, Surfs ), sizeof(FBspSurf) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FBspSurf, Material ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FBspSurf, Actor ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UModel, Polys), TEXT("Polys"));
+		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin(STRUCT_OFFSET(UModel, Surfs), TEXT("Surfs"), sizeof(FBspSurf));
+		Class->EmitObjectReference(STRUCT_OFFSET(FBspSurf, Material), TEXT("Material"));
+		Class->EmitObjectReference(STRUCT_OFFSET(FBspSurf, Actor), TEXT("Actor"));
 		Class->EmitStructArrayEnd( SkipIndexIndex );
 	}
 );
@@ -435,9 +436,9 @@ IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API,
 IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, 
 	{
 		Class->ClassAddReferencedObjects = &UModel::AddReferencedObjects;
-		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin( STRUCT_OFFSET( UModel, Surfs ), sizeof(FBspSurf) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FBspSurf, Material ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FBspSurf, Actor ) );
+		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin(STRUCT_OFFSET(UModel, Surfs), TEXT("Surfs"), sizeof(FBspSurf));
+		Class->EmitObjectReference(STRUCT_OFFSET(FBspSurf, Material), TEXT("Material"));
+		Class->EmitObjectReference(STRUCT_OFFSET(FBspSurf, Actor), TEXT("Actor"));
 		Class->EmitStructArrayEnd( SkipIndexIndex );
 	}
 );

@@ -13,36 +13,38 @@
 #include "DetourCommon.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 
-class FRecastQueryFilter : public dtQueryFilter, public INavigationQueryFilterInterface
+class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
 public:
-	virtual void Reset() OVERRIDE;
+	virtual ~FRecastQueryFilter(){}
 
-	virtual void SetAreaCost(uint8 AreaType, float Cost) OVERRIDE;
-	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) OVERRIDE;
-	virtual void SetExcludedArea(uint8 AreaType) OVERRIDE;
-	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) OVERRIDE;
-	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const OVERRIDE;
-	virtual void SetBacktrackingEnabled(const bool bBacktracking) OVERRIDE;
-	virtual bool IsBacktrackingEnabled() const OVERRIDE;
-	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const OVERRIDE;
-	virtual void SetIncludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetIncludeFlags() const OVERRIDE;
-	virtual void SetExcludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetExcludeFlags() const OVERRIDE;
+	virtual void Reset() override;
 
-	virtual class INavigationQueryFilterInterface* CreateCopy() const OVERRIDE { return new FRecastQueryFilter(*this); }
+	virtual void SetAreaCost(uint8 AreaType, float Cost) override;
+	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) override;
+	virtual void SetExcludedArea(uint8 AreaType) override;
+	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) override;
+	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const override;
+	virtual void SetBacktrackingEnabled(const bool bBacktracking) override;
+	virtual bool IsBacktrackingEnabled() const override;
+	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const override;
+	virtual void SetIncludeFlags(uint16 Flags) override;
+	virtual uint16 GetIncludeFlags() const override;
+	virtual void SetExcludeFlags(uint16 Flags) override;
+	virtual uint16 GetExcludeFlags() const override;
+	virtual INavigationQueryFilterInterface* CreateCopy() const override;
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 };
 
-struct FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
+struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
 {
 	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner) {}
-	virtual bool isLinkAllowed(const int32 UserId) const OVERRIDE;
+	virtual bool isLinkAllowed(const int32 UserId) const override;
 
 	UNavigationSystem* NavSys;
 	const UObject* SearchOwner;
@@ -58,7 +60,7 @@ namespace EClusterPath
 }
 
 /** Engine Private! - Private Implementation details of ARecastNavMesh */
-class FPImplRecastNavMesh
+class ENGINE_API FPImplRecastNavMesh
 {
 public:
 
@@ -148,7 +150,7 @@ public:
 	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, bool bBackTracking, TArray<NavNodeRef>& FoundClusters) const;
 
 	//@todo document
-	void GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
+	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
 	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const;
@@ -165,8 +167,16 @@ public:
 	bool GetPolyCenter(NavNodeRef PolyID, FVector& OutCenter) const;
 	/** Retrieves the vertices for the specified polygon. Returns false on error. */
 	bool GetPolyVerts(NavNodeRef PolyID, TArray<FVector>& OutVerts) const;
+	/** Retrieves the flags for the specified polygon. Returns false on error. */
+	bool GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const;
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
+	/** Decode poly ID into tile index and poly index */
+	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
+	/** Retrieves user ID for given offmesh link poly */
+	uint32 GetLinkUserId(NavNodeRef LinkPolyID) const;
+	/** Retrieves start and end point of offmesh link */
+	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
 
 	/** Retrieves center of cluster. Returns false on error. */
 	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
@@ -246,7 +256,7 @@ public:
 	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 
 	/** workhorse function finding portal edges between corridor polys */
-	void GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
+	void GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
 };
 
 #endif	// WITH_RECAST

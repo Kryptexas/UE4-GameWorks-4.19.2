@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ namespace UnrealBuildTool
         static UnrealTargetPlatform OnlyPlatformSpecificFor = UnrealTargetPlatform.Unknown;
 
         /** Are we running for Rocket */
-		static bool bRunningRocket = false;
+		static public bool bRunningRocket = false;
 
 		/** Are we building Rocket */
 		static bool bBuildingRocket = false;
@@ -229,7 +229,7 @@ namespace UnrealBuildTool
 			{
 				if (Predicate(Platform))
 				{
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
 					if ((bCheckValidity == false) || (BuildPlatform != null))
 					{
 						OutPlatforms.Add(Platform);
@@ -343,21 +343,17 @@ namespace UnrealBuildTool
 		/// <returns>true if valid, false if not</returns>
 		static public bool IsValidDesktopPlatform(UnrealTargetPlatform InPlatform)
 		{
-			if (Utils.IsRunningOnMono)
+			switch (ExternalExecution.GetRuntimePlatform())
 			{
-                return InPlatform == UnrealTargetPlatform.Mac || InPlatform == UnrealTargetPlatform.Linux;
+			case UnrealTargetPlatform.Linux:
+				return InPlatform == UnrealTargetPlatform.Linux;
+			case UnrealTargetPlatform.Mac:
+				return InPlatform == UnrealTargetPlatform.Mac;
+			case UnrealTargetPlatform.Win64:
+				return ((InPlatform == UnrealTargetPlatform.Win32) || (InPlatform == UnrealTargetPlatform.Win64));
+			default:
+				throw new BuildException("Invalid RuntimePlatform:" + ExternalExecution.GetRuntimePlatform());
 			}
-			else
-			{
-				if (
-					(InPlatform != UnrealTargetPlatform.Win32) &&
-					(InPlatform != UnrealTargetPlatform.Win64)
-					)
-				{
-					return false;
-				}
-			}
-			return true;
 		}
 
 		/// <summary>
@@ -395,10 +391,10 @@ namespace UnrealBuildTool
                 {
                     if (CheckType.IsClass && !CheckType.IsAbstract)
                     {
-                        if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
+						if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
                         {
                             Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-                            UEBuildPlatform TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+                            var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
                             TempInst.RegisterBuildPlatform();
                         }
                     }
@@ -408,16 +404,16 @@ namespace UnrealBuildTool
 				{
 					if (CheckType.IsClass && !CheckType.IsAbstract)
 					{
-						if (CheckType.IsSubclassOf(typeof(UEToolChain)))
+						if (Utils.ImplementsInterface<IUEToolChain>(CheckType))
 						{
 							Log.TraceVerbose("    Registering tool chain    : {0}", CheckType.ToString());
-							UEToolChain TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+							var TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterToolChain();
 						}
-						else if (CheckType.IsSubclassOf(typeof(UEBuildDeploy)))
+						else if (Utils.ImplementsInterface<IUEBuildDeploy>(CheckType))
 						{
-							Log.TraceVerbose("    Registering build deploy: {0}", CheckType.ToString());
-							UEBuildDeploy TempInst = (UEBuildDeploy)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+							Log.TraceVerbose("    Registering build deploy  : {0}", CheckType.ToString());
+							var TempInst = (UEBuildDeploy)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterBuildDeploy();
 						}
 						else if (CheckType.IsSubclassOf(typeof(UEPlatformProjectGenerator)))
@@ -601,8 +597,8 @@ namespace UnrealBuildTool
 			ECompilationResult Result = ECompilationResult.Succeeded;
 
 			// Reset early so we can access BuildConfiguration even before RunUBT() is called
-			BuildConfiguration.Reset();
-			UEBuildConfiguration.Reset();
+			XmlConfigLoader.Reset<BuildConfiguration>();
+			XmlConfigLoader.Reset<UEBuildConfiguration>();
 
 			Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
 			Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
@@ -718,6 +714,10 @@ namespace UnrealBuildTool
 						{
 							//ConfigName = Arg;
 						}
+                        else if (LowercaseArg == "-obbinapk")
+                        {
+                            UEBuildConfiguration.bOBBinAPK = true;
+                        }
 						else if (LowercaseArg == "-modulewithsuffix")
 						{
 							bSpecificModulesOnly = true;
@@ -755,6 +755,14 @@ namespace UnrealBuildTool
 						else if (LowercaseArg == "-prepfordeploy")
 						{
 							UEBuildConfiguration.bPrepForDeployment = true;
+						}
+						else if (LowercaseArg == "-generateexternalfilelist")
+						{
+							UEBuildConfiguration.bGenerateExternalFileList = true;
+						}
+						else if (LowercaseArg == "-mergeexternalfilelist")
+						{
+							UEBuildConfiguration.bMergeExternalFileList = true;
 						}
 						else if (LowercaseArg == "-generatemanifest")
 						{
@@ -905,7 +913,7 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform, true);
+								var BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform, true);
 								if (BuildPlatform != null)
 								{
 									// Setup environment wasn't called, so set the flag
@@ -917,9 +925,9 @@ namespace UnrealBuildTool
 							// If we build w/ bXGEExport true, we didn't REALLY build at this point, 
 							// so don't bother with doing the PrepTargetForDeployment call. 
 							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
-								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bCleanProject == false))
+								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
-								UEBuildDeploy DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
+								var DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
 								if (DeployHandler != null)
 								{
 									// We need to be able to identify the Target.Type we can derive it from the Arguments.
@@ -1014,9 +1022,6 @@ namespace UnrealBuildTool
 
 			// Reset global configurations
 			ResetAllActions();
-			CPPEnvironment.Reset();
-			BuildConfiguration.Reset();
-			UEBuildConfiguration.Reset();
 
 			ParseBuildConfigurationFlags(Arguments);
 
@@ -1032,7 +1037,7 @@ namespace UnrealBuildTool
 					ResetConfiguration = UnrealTargetConfiguration.Development;
 				}
 			}
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
 
 			// now that we have the platform, we can set the intermediate path to include the platform/architecture name
 			BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString() + BuildPlatform.GetActiveArchitecture());
@@ -1042,6 +1047,8 @@ namespace UnrealBuildTool
 			var Targets = new List<UEBuildTarget>();
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
+
+			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
 
 			try
 			{
@@ -1056,7 +1063,7 @@ namespace UnrealBuildTool
 				}
 
 				bool CreateStub = Utils.ParseCommandLineFlag(Arguments, "-nocreatestub", out ArgumentIndex);
-				if (CreateStub)
+				if (CreateStub || (String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) && ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac))
 				{
 					BuildConfiguration.bCreateStubIPA = false;
 				}
@@ -1082,7 +1089,7 @@ namespace UnrealBuildTool
 					}
 
 					var TargetOutputItems = new List<FileItem>();
-					BuildResult = Target.Build(TargetOutputItems);
+					BuildResult = Target.Build(ToolChain, TargetOutputItems);
 
 					if(BuildResult != ECompilationResult.Succeeded)
 					{
@@ -1145,7 +1152,7 @@ namespace UnrealBuildTool
 				if (BuildResult == ECompilationResult.Succeeded &&
 					(
 						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
-						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject)
+						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList)
 					))
 				{
 					// Plan the actions to execute for the build.
@@ -1158,7 +1165,6 @@ namespace UnrealBuildTool
 							ActionsToExecute.Count
 							);
 
-					UEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
 					ToolChain.PreBuildSync();
 
 					// Execute the actions.
@@ -1171,6 +1177,10 @@ namespace UnrealBuildTool
 						{
 							ToolChain.PostBuildSync(Target);
 						}
+					}
+					else
+					{
+						BuildResult = ECompilationResult.OtherCompilationError;
 					}
 				}
 			}
@@ -1269,29 +1279,15 @@ namespace UnrealBuildTool
                 BuildConfiguration.bForceUnityBuild = true;
             }
 
-            // New Monolithic Graphics drivers replace D3D and are *mostly* API compatible
-            if (Utils.ParseCommandLineFlag(Arguments, "-monolithicdrivers", out ArgumentIndex))
-            {
-				BuildConfiguration.bUseMonolithicGraphicsDrivers = true;
-            }
-            if (Utils.ParseCommandLineFlag(Arguments, "-nomonolithicdrivers", out ArgumentIndex))
-            {
-				BuildConfiguration.bUseMonolithicGraphicsDrivers = false;
-            }
             // New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
             if (Utils.ParseCommandLineFlag(Arguments, "-fastmonocalls", out ArgumentIndex))
             {
-                BuildConfiguration.bUseMonolithicGraphicsDrivers = true;    //can't have fast calls without mono !
                 BuildConfiguration.bUseFastMonoCalls = true;
             }
             if (Utils.ParseCommandLineFlag(Arguments, "-nofastmonocalls", out ArgumentIndex))
             {
                 BuildConfiguration.bUseFastMonoCalls = false;
             }
-			if (BuildConfiguration.bUseMonolithicGraphicsDrivers == false)
-			{
-				BuildConfiguration.bUseFastMonoCalls = false;
-			}
             
             if (Utils.ParseCommandLineFlag(Arguments, "-uniqueintermediate", out ArgumentIndex))
 			{

@@ -55,25 +55,25 @@ public:
 		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
 	}
 
-	void SetCS(const FRenderingCompositePassContext& Context, FIntPoint ThreadGroupCountValue, FIntPoint LeftTopOffsetValue, FIntPoint GatherExtent)
+	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint ThreadGroupCountValue, FIntPoint LeftTopOffsetValue, FIntPoint GatherExtent)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(ShaderRHI, ThreadGroupCount, ThreadGroupCountValue);
-		SetShaderValue(ShaderRHI, LeftTopOffset, LeftTopOffsetValue);
+		SetShaderValue(RHICmdList, ShaderRHI, ThreadGroupCount, ThreadGroupCountValue);
+		SetShaderValue(RHICmdList, ShaderRHI, LeftTopOffset, LeftTopOffsetValue);
 
 		FVector4 HistogramParametersValue(GatherExtent.X, GatherExtent.Y, 0, 0);
-		SetShaderValue(ShaderRHI, HistogramParameters, HistogramParametersValue);
+		SetShaderValue(RHICmdList, ShaderRHI, HistogramParameters, HistogramParametersValue);
 
 		{
 			FVector4 Temp[3];
 
 			FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(Context.View, Temp);
-			SetShaderValueArray(ShaderRHI, EyeAdaptationParams, Temp, 3);
+			SetShaderValueArray(RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
 		}
 	}
 	
@@ -109,28 +109,27 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 
 	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(GetGlobalShaderMap());
 
-	RHISetComputeShader(ComputeShader->GetComputeShader());
-	RHISetRenderTarget(FTextureRHIRef(), FTextureRHIRef());	
+	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
 	
 
 	// set destination
 	check(DestRenderTarget.UAV);
-	RHISetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), DestRenderTarget.UAV);
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), DestRenderTarget.UAV);
 
 	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
 	FIntPoint GatherExtent = (DestRect.Size() - FIntPoint(1, 1)) / 2;
 
 	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(GatherExtent);
 
+	ComputeShader->SetCS(Context.RHICmdList, Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
 	
-	ComputeShader->SetCS(Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
-	
-	DispatchComputeShader(*ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
+	DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
 	// un-set destination
-	RHISetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), NULL);
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), NULL);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FIntPoint FRCPassPostProcessHistogram::ComputeThreadGroupCount(FIntPoint PixelExtent)

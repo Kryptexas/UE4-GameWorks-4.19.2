@@ -613,7 +613,7 @@ TSharedRef<ITableRow> FBlueprintVarActionDetails::OnGenerateWidgetForPropertyLis
 				.AutoWidth()
 			[
 				SNew(SCheckBox)
-					.IsChecked(true)
+					.IsChecked(true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.IsEnabled(false)
 			]
 		];
@@ -637,7 +637,7 @@ bool FBlueprintVarActionDetails::IsABlueprintVariable(UProperty* VariablePropert
 
 bool FBlueprintVarActionDetails::IsALocalVariable(UProperty* VariableProperty) const
 {
-	return Cast<UFunction>(VariableProperty->GetOuter()) != NULL;
+	return VariableProperty && (Cast<UFunction>(VariableProperty->GetOuter()) != NULL);
 }
 
 bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
@@ -2699,7 +2699,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 	TSet<UBlueprint*> ModifiedBlueprints;
 	TSet<UEdGraph*> ModifiedGraphs;
 
-	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) OVERRIDE
+	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) override
 	{
 		if (TunnelNode->InputSinkNode != NULL)
 		{
@@ -2712,7 +2712,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override
 	{
 		MacroInstance->ReconstructNode();
 		if (Blueprint)
@@ -2721,7 +2721,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override
 	{
 		CallSite->Modify();
 		CallSite->ReconstructNode();
@@ -2731,7 +2731,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) override
 	{
 		CallSite->Modify();
 		CallSite->ReconstructNode();
@@ -2755,7 +2755,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) OVERRIDE
+	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) override
 	{
 		UBlueprint* Blueprint = NULL;
 		UEdGraph* Graph = NULL;
@@ -2815,7 +2815,7 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 	TSet<UBlueprint*> ModifiedBlueprints;
 	TSet<UK2Node*> NodesToRename;
 
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override
 	{
 		NodesToRename.Add(MacroInstance);
 		if (Blueprint)
@@ -2824,7 +2824,7 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override
 	{
 		NodesToRename.Add(CallSite);
 		if (Blueprint)
@@ -2896,62 +2896,7 @@ void FBlueprintGraphActionDetails::SetEntryAndResultNodes()
 
 	if (UEdGraph* NewTargetGraph = GetGraph())
 	{
-		// There are a few different potential configurations for editable graphs (FunctionEntry/Result, Tunnel Pairs, etc).
-		// Step through each case until we find one that matches what appears to be in the graph.  This could be improved if
-		// we want to add more robust typing to the graphs themselves
-
-		// Case 1:  Function Entry / Result Pair ------------------
-		TArray<UK2Node_FunctionEntry*> EntryNodes;
-		NewTargetGraph->GetNodesOfClass(EntryNodes);
-
-		if (EntryNodes.Num() > 0)
-		{
-			if (EntryNodes[0]->IsEditable())
-			{
-				FunctionEntryNodePtr = EntryNodes[0];
-
-				// Find a result node
-				TArray<UK2Node_FunctionResult*> ResultNodes;
-				NewTargetGraph->GetNodesOfClass(ResultNodes);
-
-				check(ResultNodes.Num() <= 1);
-				UK2Node_FunctionResult* ResultNode = ResultNodes.Num() ? ResultNodes[0] : NULL;
-				// Note:  we assume that if the entry is editable, the result is too (since the entry node is guaranteed to be there on graph creation, but the result isn't)
-				if( ResultNode )
-				{
-					FunctionResultNodePtr = ResultNode;
-				}
-			}
-		}
-		else
-		{
-			// Case 2:  Tunnel Pair -----------------------------------
-			TArray<UK2Node_Tunnel*> TunnelNodes;
-			NewTargetGraph->GetNodesOfClass(TunnelNodes);
-
-			if (TunnelNodes.Num() > 0)
-			{
-				// Iterate over the tunnel nodes, and try to find an entry and exit
-				for (int32 i = 0; i < TunnelNodes.Num(); i++)
-				{
-					UK2Node_Tunnel* Node = TunnelNodes[i];
-					// Composite nodes should never be considered for function entry / exit, since we're searching for a graph's terminals
-					if (Node->IsEditable() && !Node->IsA(UK2Node_Composite::StaticClass()))
-					{
-						if (Node->bCanHaveOutputs)
-						{
-							ensure(!FunctionEntryNodePtr.IsValid());
-							FunctionEntryNodePtr = Node;
-						}
-						else if (Node->bCanHaveInputs)
-						{
-							ensure(!FunctionResultNodePtr.IsValid());
-							FunctionResultNodePtr = Node;
-						}
-					}
-				}
-			}
-		}
+		FBlueprintEditorUtils::GetEntryAndResultNodes(NewTargetGraph, FunctionEntryNodePtr, FunctionResultNodePtr);
 	}
 	else if (UK2Node_EditablePinBase* Node = GetEditableNode())
 	{
@@ -3317,7 +3262,7 @@ ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsReliableReplicatedF
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
 	if(!CustomEvent)
 	{
-		ESlateCheckBoxState::Undetermined;
+		return ESlateCheckBoxState::Undetermined;
 	}
 
 	uint32 const NetReliableMask = (FUNC_Net | FUNC_NetReliable);
@@ -3380,13 +3325,13 @@ bool FBaseBlueprintGraphActionDetails::IsPinNameUnique(const FString& TestName) 
 	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
 
 	// Check the built in pins
- 	for( TArray<UEdGraphPin*>::TIterator it(FunctionEntryNode->Pins); it; ++it )
- 	{
+	for( TArray<UEdGraphPin*>::TIterator it(FunctionEntryNode->Pins); it; ++it )
+	{
 		if( (*it)->PinName == TestName )
- 		{
- 			return false;
- 		}
- 	}
+		{
+			return false;
+		}
+	}
 
 	// If there is a result node, that isn't the same as the entry node, check it as well
 	if( FunctionResultNode && (FunctionResultNode != FunctionEntryNode) )

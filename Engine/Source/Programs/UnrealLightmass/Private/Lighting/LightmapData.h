@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightmapData.h: Lightmap data definitions.
-=============================================================================*/
-
 #pragma once
 
-#include "../Public/ImportExport.h"
+#include "ImportExport.h"
+
 
 namespace Lightmass
 {

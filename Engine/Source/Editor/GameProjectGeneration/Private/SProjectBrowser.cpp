@@ -7,6 +7,8 @@
 #include "SVerbChoiceDialog.h"
 #include "UProjectInfo.h"
 #include "SourceCodeNavigation.h"
+#include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -23,8 +25,10 @@ struct FProjectItem
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
+	TArray<FName> TargetPlatforms;
+	bool bSupportsAllPlatforms;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
+	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem, TArray<FName> InTargetPlatforms, bool InSupportsAllPlatforms)
 		: Name(InName)
 		, Description(InDescription)
 		, EngineIdentifier(InEngineIdentifier)
@@ -32,6 +36,8 @@ struct FProjectItem
 		, ProjectFile(InProjectFile)
 		, ProjectThumbnail(InProjectThumbnail)
 		, bIsNewProjectItem(InIsNewProjectItem)
+		, TargetPlatforms(InTargetPlatforms)
+		, bSupportsAllPlatforms(InSupportsAllPlatforms)
 	{ }
 
 	/** Check if this project is up to date */
@@ -206,7 +212,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 			.Padding(4, 0)
 			[
 				SNew(SCheckBox)			
-				.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup)
+				.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 				.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
 				.Content()
 				[
@@ -297,7 +303,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
 		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)
-		.OnSelectionChanged(TSlateDelegates<TSharedPtr<FProjectItem>>::FOnSelectionChanged::CreateSP(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName))
+		.OnSelectionChanged(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName)
 		.ItemHeight(ThumbnailSize + ThumbnailBorderPadding + 32)
 		.ItemWidth(ThumbnailSize + ThumbnailBorderPadding)
 	];
@@ -426,7 +432,7 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipPath", "Path"), FText::FromString(ProjectPath) );
 	}
 
-	if (!ProjectItem->IsUpToDate())
+	if(!ProjectItem->IsUpToDate())
 	{
 		FText Description;
 		if(FDesktopPlatformModule::Get()->IsStockEngineRelease(ProjectItem->EngineIdentifier))
@@ -448,6 +454,29 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 			}
 		}
 		AddToToolTipInfoBox(InfoBox, LOCTEXT("EngineVersion", "Engine"), Description);
+	}
+
+	// Create the target platform icons
+	TSharedRef<SHorizontalBox> TargetPlatformIconsBox = SNew(SHorizontalBox);
+	for(const FName& PlatformName : ProjectItem->TargetPlatforms)
+	{
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(PlatformName);
+		check(PlatformInfo);
+
+		TargetPlatformIconsBox->AddSlot()
+		.AutoWidth()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(0, 0, 1, 0))
+		[
+			SNew(SBox)
+			.WidthOverride(20)
+			.HeightOverride(20)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
+			]
+		];
 	}
 
 	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
@@ -477,6 +506,14 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 						SNew(STextBlock)
 						.Text( ProjectItem->Name )
 						.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+					]
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					.Padding(0, 2, 0, 0)
+					[
+						TargetPlatformIconsBox
 					]
 				]
 			]
@@ -611,104 +648,72 @@ FText SProjectBrowser::GetSelectedProjectName() const
 
 FReply SProjectBrowser::FindProjects()
 {
+	enum class EProjectCategoryType : uint8
+	{
+		Sample,
+		UserDefined,
+	};
+
 	ProjectCategories.Empty();
 	CategoriesBox->ClearChildren();
 
-	const FText MyProjectsCategoryName = LOCTEXT("MyProjectsCategoryName", "My Projects");
-	const FText SamplesCategoryName = LOCTEXT("SamplesCategoryName", "Samples");
-
 	// Create a map of parent project folders to their category
-	TMap<FString, FText> ParentProjectFoldersToCategory;
+	TMap<FString, EProjectCategoryType> ProjectFilesToCategoryType;
 
-	// Add the default creation path, in case you've never created a project before or want to include this path anyway
-	ParentProjectFoldersToCategory.Add(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName);
+	// Find all the engine installations
+	TMap<FString, FString> EngineInstallations;
+	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(EngineInstallations);
 
-	// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders
-	const TArray<FString> &CreatedProjectPaths = GEditor->GetGameAgnosticSettings().CreatedProjectPaths;
-	for(int32 Idx = 0; Idx < CreatedProjectPaths.Num(); Idx++)
+	// Add projects from every branch that we know about
+	FString CurrentEngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	for(TMap<FString, FString>::TConstIterator Iter(EngineInstallations); Iter; ++Iter)
 	{
-		FString CreatedProjectPath = CreatedProjectPaths[Idx];
-		FPaths::NormalizeDirectoryName(CreatedProjectPath);
-		ParentProjectFoldersToCategory.Add(CreatedProjectPath, MyProjectsCategoryName);
-	}
-
-	// Create a map of project folders to their category
-	TMap<FString, FText> ProjectFoldersToCategory;
-
-	// Find all the subdirectories of all the parent folders
-	for(TMap<FString, FText>::TConstIterator Iter(ParentProjectFoldersToCategory); Iter; ++Iter)
-	{
-		const FString &ParentProjectFolder = Iter.Key();
-
-		TArray<FString> ProjectFolders;
-		IFileManager::Get().FindFiles(ProjectFolders, *(ParentProjectFolder / TEXT("*")), false, true);
-
-		for(int32 Idx = 0; Idx < ProjectFolders.Num(); Idx++)
-		{
-			ProjectFoldersToCategory.Add(ParentProjectFolder / ProjectFolders[Idx], Iter.Value());
-		}
-	}
-
-	// Add all the launcher installed sample folders
-	TArray<FString> LauncherSampleDirectories;
-	FDesktopPlatformModule::Get()->EnumerateLauncherSampleInstallations(LauncherSampleDirectories);
-	for(int32 Idx = 0; Idx < LauncherSampleDirectories.Num(); Idx++)
-	{
-		ProjectFoldersToCategory.Add(LauncherSampleDirectories[Idx], SamplesCategoryName);
-	}
-
-	// Create a map of all the project files to their category
-	TMap<FString, FText> ProjectFilesToCategory;
-
-	// Add all the folders that the user has opened recently
-	const TArray<FString> &RecentlyOpenedProjectFiles = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles;
-	for (int32 Idx = 0; Idx < RecentlyOpenedProjectFiles.Num(); Idx++)
-	{
-		FString RecentlyOpenedProjectFile = RecentlyOpenedProjectFiles[Idx];
-		FPaths::NormalizeFilename(RecentlyOpenedProjectFile);
-		ProjectFilesToCategory.Add(RecentlyOpenedProjectFile, MyProjectsCategoryName);
-	}
-
-	// Scan the project folders for project files
-	FString ProjectWildcard = FString::Printf(TEXT("*.%s"), *IProjectManager::GetProjectFileExtension());
-	for(TMap<FString, FText>::TConstIterator Iter(ProjectFoldersToCategory); Iter; ++Iter)
-	{
-		const FString &ProjectFolder = Iter.Key();
-
 		TArray<FString> ProjectFiles;
-		IFileManager::Get().FindFiles(ProjectFiles, *(ProjectFolder / ProjectWildcard), true, false);
-
-		for(int32 Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+		if(FDesktopPlatformModule::Get()->EnumerateProjectsKnownByEngine(Iter.Key(), false, ProjectFiles))
 		{
-			ProjectFilesToCategory.Add(ProjectFolder / ProjectFiles[Idx], Iter.Value());
+			for(int Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+			{
+				ProjectFilesToCategoryType.Add(ProjectFiles[Idx], EProjectCategoryType::UserDefined);
+			}
 		}
 	}
 
-	// Add all the discovered non-foreign project files
-	const TArray<FString> &NonForeignProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
-	for(int32 Idx = 0; Idx < NonForeignProjectFiles.Num(); Idx++)
+	// Add all the samples from the launcher
+	TArray<FString> LauncherSampleProjects;
+	FDesktopPlatformModule::Get()->EnumerateLauncherSampleProjects(LauncherSampleProjects);
+	for(int32 Idx = 0; Idx < LauncherSampleProjects.Num(); Idx++)
 	{
-		if(!NonForeignProjectFiles[Idx].Contains(TEXT("/Templates/")))
+		ProjectFilesToCategoryType.Add(LauncherSampleProjects[Idx], EProjectCategoryType::Sample);
+	}
+
+	// Add all the native project files we can find, and automatically filter them depending on their directory
+	const TArray<FString> &NativeProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
+	for(int32 Idx = 0; Idx < NativeProjectFiles.Num(); Idx++)
+	{
+		if(!NativeProjectFiles[Idx].Contains(TEXT("/Templates/")))
 		{
-			const FText &CategoryName = NonForeignProjectFiles[Idx].Contains(TEXT("/Samples/"))? SamplesCategoryName : MyProjectsCategoryName;
-			ProjectFilesToCategory.Add(NonForeignProjectFiles[Idx], CategoryName);
+			const EProjectCategoryType ProjectCategoryType = NativeProjectFiles[Idx].Contains(TEXT("/Samples/")) ? EProjectCategoryType::Sample : EProjectCategoryType::UserDefined;
+			ProjectFilesToCategoryType.Add(NativeProjectFiles[Idx], ProjectCategoryType);
 		}
 	}
 
 	// Normalize all the filenames and make sure there are no duplicates
-	TMap<FString, FText> AbsoluteProjectFilesToCategory;
-	for(TMap<FString, FText>::TConstIterator Iter(ProjectFilesToCategory); Iter; ++Iter)
+	TMap<FString, EProjectCategoryType> AbsoluteProjectFilesToCategory;
+	for(TMap<FString, EProjectCategoryType>::TConstIterator Iter(ProjectFilesToCategoryType); Iter; ++Iter)
 	{
 		FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Iter.Key());
 		AbsoluteProjectFilesToCategory.Add(AbsoluteFile, Iter.Value());
 	}
 
+	const FText MyProjectsCategoryName = LOCTEXT("MyProjectsCategoryName", "My Projects");
+	const FText SamplesCategoryName = LOCTEXT("SamplesCategoryName", "Samples");
+
 	// Add all the discovered projects to the list
 	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
-	for(TMap<FString, FText>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
+	for(TMap<FString, EProjectCategoryType>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
 	{
 		const FString& ProjectFilename = *Iter.Key();
-		const FText& DetectedCategory = Iter.Value();
+		const EProjectCategoryType DetectedCategoryType = Iter.Value();
 		if ( FPaths::FileExists(ProjectFilename) )
 		{
 			FProjectStatus ProjectStatus;
@@ -740,18 +745,42 @@ FReply SProjectBrowser::FindProjects()
 				FText ProjectCategory;
 				if ( ProjectStatus.bSignedSampleProject )
 				{
+					// Signed samples can't override their category name
 					ProjectCategory = SamplesCategoryName;
 				}
 				else
 				{
-					ProjectCategory = DetectedCategory;
+					if(ProjectStatus.Category.IsEmpty())
+					{
+						// Not category specified, so use the category for the detected project type
+						ProjectCategory = (DetectedCategoryType == EProjectCategoryType::Sample) ? SamplesCategoryName : MyProjectsCategoryName;
+					}
+					else
+					{
+						// Use the user defined category
+						ProjectCategory = FText::FromString(ProjectStatus.Category);
+					}
 				}
 
 				FString ProjectEngineIdentifier;
 				bool bIsUpToDate = FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFilename, ProjectEngineIdentifier) && ProjectEngineIdentifier == EngineIdentifier;
 
+				// Work out which platforms this project is targeting
+				TArray<FName> TargetPlatforms;
+				for(const PlatformInfo::FPlatformInfo& PlatformInfo : PlatformInfo::EnumeratePlatformInfoArray())
+				{
+					if(PlatformInfo.IsVanilla() && PlatformInfo.PlatformType == PlatformInfo::EPlatformType::Game && ProjectStatus.IsTargetPlatformSupported(PlatformInfo.PlatformInfoName))
+					{
+						TargetPlatforms.Add(PlatformInfo.PlatformInfoName);
+					}
+				}
+				TargetPlatforms.Sort([](const FName& One, const FName& Two) -> bool
+				{
+					return One < Two;
+				});
+
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem, TargetPlatforms, ProjectStatus.SupportsAllPlatforms() ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}

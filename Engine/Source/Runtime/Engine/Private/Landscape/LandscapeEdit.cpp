@@ -5,10 +5,23 @@ LandscapeEdit.cpp: Landscape editing
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeRenderMobile.h"
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape/LandscapeSplineControlPoint.h"
+#include "Landscape/LandscapeSplineSegment.h"
+#include "Landscape/LandscapeGizmoActiveActor.h"
+#include "Foliage/InstancedFoliageActor.h"
 #include "LevelUtils.h"
 #include "MessageLog.h"
 #include "MapErrors.h"
@@ -17,6 +30,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "ScopedTransaction.h"
 #include "ImageWrapper.h"
 #endif
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY(LogLandscape);
 
@@ -79,7 +93,12 @@ ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMater
 	if( CombinationMaterialInstance == NULL || CombinationMaterialInstance->Parent != LandscapeMaterial || (Proxy && Proxy->GetOutermost() != CombinationMaterialInstance->GetOutermost()) )
 	{
 		FlushRenderingCommands();
-		CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), Proxy ? Proxy->GetOutermost() : GetTransientPackage(), NAME_None, RF_Public);
+		UObject* MICOuter = GetTransientPackage();
+		if (Proxy)
+		{
+			MICOuter = Proxy->GetOutermost();
+		}
+		CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), MICOuter);
 		if (Proxy)
 		{
 			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
@@ -110,7 +129,7 @@ ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMater
 	}
 
 	// Create the instance for this component, that will use the layer combination instance.
-	ULandscapeMaterialInstanceConstant* MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetTransientPackage(), NAME_None, RF_Public);
+	ULandscapeMaterialInstanceConstant* MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetTransientPackage());
 	MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 	MaterialInstance->bIsLayerThumbnail = true;
 
@@ -151,7 +170,7 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 		{
 			FlushRenderingCommands();
 
-			CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+			CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost());
 			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
 			Proxy->MaterialInstanceConstantMap.Add(*LayerKey,CombinationMaterialInstance);
 			CombinationMaterialInstance->SetParentEditorOnly(LandscapeMaterial);
@@ -206,7 +225,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		// Create the instance for this component, that will use the layer combination instance.
 		if( MaterialInstance == NULL || GetOutermost() != MaterialInstance->GetOutermost() )
 		{
-			MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+			MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost());
 		}
 
 		// For undo
@@ -687,7 +706,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		// Move any foliage instances if we created a new collision component.
 		if( OldCollisionComponent && OldCollisionComponent != CollisionComp )
 		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(OldCollisionComponent->GetWorld());
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(OldCollisionComponent->GetWorld());
 			IFA->MoveInstancesToNewComponent(OldCollisionComponent, CollisionComp);
 		}
 	}
@@ -1246,24 +1265,7 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 	int32 WeightmapSizeV = Texture->Source.GetSizeY();
 
 	// Find the maximum mip where each texel's data comes from just one subsection.
-	int32 MaxWholeSubsectionMip = 1;
-	for(int32 Mip=1;;++Mip)
-	{
-		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads+1)>>Mip)-1;
-
-		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip,1);
-		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip,1);
-
-		// Mip must represent at least one quad to store valid weight data
-		if( MipSubsectionSizeQuads > 0 )
-		{
-			MaxWholeSubsectionMip = Mip;
-		}
-		else
-		{
-			break;
-		}
-	}
+	int32 MaxWholeSubsectionMip = FMath::FloorLog2(InSubsectionSizeQuads + 1) - 1;
 
 	// Update the mip where each texel's data comes from just one subsection.
 	for( int32 SubsectionY = 0;SubsectionY < InNumSubsections;SubsectionY++ )
@@ -1382,43 +1384,40 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 	}
 
 	// Handle mips that have texels from multiple subsections
-	for(int32 Mip=1;;++Mip)
+	// not valid weight data, so just average the texels of the previous mip.
+	for (int32 Mip = MaxWholeSubsectionMip + 1;; ++Mip)
 	{
-		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads+1)>>Mip)-1;
+		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads + 1) >> Mip) - 1;
+		checkSlow(MipSubsectionSizeQuads <= 0);
 
-		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip,1);
-		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip,1);
+		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip, 1);
+		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip, 1);
 
-		// Mip must represent at least one quad to store valid weight data
-		if( MipSubsectionSizeQuads <= 0 )
+		int32 PrevMipSizeU = FMath::Max<int32>(WeightmapSizeU >> (Mip - 1), 1);
+		int32 PrevMipSizeV = FMath::Max<int32>(WeightmapSizeV >> (Mip - 1), 1);
+
+		for (int32 Y = 0; Y < MipSizeV; Y++)
 		{
-			int32 PrevMipSizeU = WeightmapSizeU >> (Mip-1);
-			int32 PrevMipSizeV = WeightmapSizeV >> (Mip-1);
-
-			// not valid weight data, so just average the texels of the previous mip.
-			for( int32 Y = 0;Y < MipSizeV;Y++ )
+			for (int32 X = 0; X < MipSizeU; X++)
 			{
-				for( int32 X = 0;X < MipSizeU;X++ )
-				{
-					DataType* TexData = &(TextureMipData[Mip])[ X + Y * MipSizeU ];
+				DataType* TexData = &(TextureMipData[Mip])[X + Y * MipSizeU];
 
-					DataType *PreMipTexData00 = &(TextureMipData[Mip-1])[ (X*2+0) + (Y*2+0)  * PrevMipSizeU ];
-					DataType *PreMipTexData01 = &(TextureMipData[Mip-1])[ (X*2+0) + (Y*2+1)  * PrevMipSizeU ];
-					DataType *PreMipTexData10 = &(TextureMipData[Mip-1])[ (X*2+1) + (Y*2+0)  * PrevMipSizeU ];
-					DataType *PreMipTexData11 = &(TextureMipData[Mip-1])[ (X*2+1) + (Y*2+1)  * PrevMipSizeU ];
+				DataType *PreMipTexData00 = &(TextureMipData[Mip - 1])[(X * 2 + 0) + (Y * 2 + 0)  * PrevMipSizeU];
+				DataType *PreMipTexData01 = &(TextureMipData[Mip - 1])[(X * 2 + 0) + (Y * 2 + 1)  * PrevMipSizeU];
+				DataType *PreMipTexData10 = &(TextureMipData[Mip - 1])[(X * 2 + 1) + (Y * 2 + 0)  * PrevMipSizeU];
+				DataType *PreMipTexData11 = &(TextureMipData[Mip - 1])[(X * 2 + 1) + (Y * 2 + 1)  * PrevMipSizeU];
 
-					AverageTexData<DataType>(TexData, PreMipTexData00, PreMipTexData10, PreMipTexData01, PreMipTexData11);
-				}
-			}
-
-			if( TextureDataInfo )
-			{
-				// These mip sizes are small enough that we may as well just update the whole mip.
-				TextureDataInfo->AddMipUpdateRegion(Mip,0,0,MipSizeU-1,MipSizeV-1);
+				AverageTexData<DataType>(TexData, PreMipTexData00, PreMipTexData10, PreMipTexData01, PreMipTexData11);
 			}
 		}
 
-		if( MipSizeU == 1 && MipSizeV == 1 )
+		if (TextureDataInfo)
+		{
+			// These mip sizes are small enough that we may as well just update the whole mip.
+			TextureDataInfo->AddMipUpdateRegion(Mip, 0, 0, MipSizeU - 1, MipSizeV - 1);
+		}
+
+		if (MipSizeU == 1 && MipSizeV == 1)
 		{
 			break;
 		}
@@ -1708,6 +1707,7 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 
 			// Assign shared properties
 			LandscapeComponent->bCastStaticShadow = bCastStaticShadow;
+			LandscapeComponent->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
 		}
 	}
 
@@ -1749,19 +1749,8 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 			HeightmapInfo.HeightmapSizeV = (1<<FMath::CeilLogTwo( ((HmY==NumHeightmapsY-1) ? FinalComponentsY : ComponentsPerHeightmap)*ComponentSizeVerts ));
 
 			// Construct the heightmap textures
-			HeightmapInfo.HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None/*FName(TEXT("Heightmap"))*/, RF_Public);
-			HeightmapInfo.HeightmapTexture->Source.Init2DWithMipChain(
-				HeightmapInfo.HeightmapSizeU,
-				HeightmapInfo.HeightmapSizeV,
-				TSF_BGRA8
-				);
-			HeightmapInfo.HeightmapTexture->SRGB = false;
-			HeightmapInfo.HeightmapTexture->CompressionNone = true;
-			HeightmapInfo.HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-			HeightmapInfo.HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-			HeightmapInfo.HeightmapTexture->AddressX = TA_Clamp;
-			HeightmapInfo.HeightmapTexture->AddressY = TA_Clamp;
-
+			HeightmapInfo.HeightmapTexture = CreateLandscapeTexture(HeightmapInfo.HeightmapSizeU, HeightmapInfo.HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8);
+			
 			int32 MipSubsectionSizeQuads = SubsectionSizeQuads;
 			int32 MipSizeU = HeightmapInfo.HeightmapSizeU;
 			int32 MipSizeV = HeightmapInfo.HeightmapSizeV;
@@ -2055,14 +2044,7 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 				else
 				{
 					// We couldn't find a suitable place for these layers, so lets make a new one.
-					UTexture2D* WeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-					WeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-					WeightmapTexture->SRGB = false;
-					WeightmapTexture->CompressionNone = true;
-					WeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-					WeightmapTexture->AddressX = TA_Clamp;
-					WeightmapTexture->AddressY = TA_Clamp;
-					WeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+					UTexture2D* WeightmapTexture = CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 					FColor* MipData = (FColor*)WeightmapTexture->Source.LockMip(0);
 
 					int32 ThisAllocationLayers = FMath::Min<int32>(RemainingLayers,4);
@@ -2247,21 +2229,28 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 	GWarn->EndSlowTask();
 }
 
-bool ALandscapeProxy::ExportToRawMesh(FRawMesh& OutRawMesh) const
+bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) const
 {
 	TArray<ULandscapeComponent*> RegisteredLandscapeComponents;
 	GetComponents<ULandscapeComponent>(RegisteredLandscapeComponents);
 	
 	const FIntRect LandscapeSectionRect = GetBoundingRect();
 	const FVector2D LandscapeUVScale = FVector2D(1.f, 1.f)/FVector2D(LandscapeSectionRect.Size());
+
+	// User specified LOD to export
+	int32 LandscapeLODToExport = ExportLOD; 
+	if (InExportLOD != INDEX_NONE)
+	{
+		LandscapeLODToExport = FMath::Clamp<int32>(InExportLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads+1)-1);
+	}
 		
 	// Export data for each component
 	for (auto It = RegisteredLandscapeComponents.CreateConstIterator(); It; ++It)
 	{
 		ULandscapeComponent* Component = (*It);
-		FLandscapeComponentDataInterface CDI(Component, ExportLOD);
-		const int32 ComponentSizeQuadsLOD = ((Component->ComponentSizeQuads+1)>>ExportLOD)-1;
-		const int32 SubsectionSizeQuadsLOD = ((Component->SubsectionSizeQuads+1)>>ExportLOD)-1;
+		FLandscapeComponentDataInterface CDI(Component, LandscapeLODToExport);
+		const int32 ComponentSizeQuadsLOD = ((Component->ComponentSizeQuads+1)>>LandscapeLODToExport)-1;
+		const int32 SubsectionSizeQuadsLOD = ((Component->SubsectionSizeQuads+1)>>LandscapeLODToExport)-1;
 		const FIntPoint ComponentOffsetQuads = Component->GetSectionBase() - LandscapeSectionOffset - LandscapeSectionRect.Min;
 		const FVector2D ComponentUVOffsetLOD = FVector2D(ComponentOffsetQuads)*((float)ComponentSizeQuadsLOD/ComponentSizeQuads);
 		const FVector2D ComponentUVScaleLOD = LandscapeUVScale*((float)ComponentSizeQuads/ComponentSizeQuadsLOD);
@@ -2383,7 +2372,7 @@ FIntRect ALandscapeProxy::GetBoundingRect() const
 		Rect.Include(LandscapeComponents[CompIdx]->GetSectionBase());
 	}
 	
-	if (Rect.Area() > 0)
+	if (Rect.Width() > 0 && Rect.Height() > 0)
 	{
 		Rect.Max+= FIntPoint(ComponentSizeQuads, ComponentSizeQuads);
 		Rect-= LandscapeSectionOffset;
@@ -3428,6 +3417,15 @@ void ALandscapeProxy::RecreateCollisionComponents()
 {
 	// Clear old CollisionComponent containers
 	CollisionComponents.Empty();
+
+	// Clear any Owned Collision Components
+	TArray<ULandscapeHeightfieldCollisionComponent*> CollisionComps;
+	GetComponents(CollisionComps);
+	for (int32 i = 0; i < CollisionComps.Num(); ++i)
+	{
+		RemoveOwnedComponent(CollisionComps[i]);
+	}
+
 	CollisionMipLevel = FMath::Clamp<int32>( CollisionMipLevel, 0, FMath::CeilLogTwo(SubsectionSizeQuads+1)-1 );
 	for (int32 i = 0; i < LandscapeComponents.Num(); ++i)
 	{
@@ -3439,6 +3437,20 @@ void ALandscapeProxy::RecreateCollisionComponents()
 			Comp->HeightmapTexture->Source.GetMipData(CollisionMipData, CollisionMipLevel);
 			Comp->UpdateCollisionHeightData((FColor*)CollisionMipData.GetTypedData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
 		}
+	}
+}
+
+void ULandscapeInfo::RecreateCollisionComponents()
+{
+	if (LandscapeActor.IsValid())
+	{
+		LandscapeActor->RecreateCollisionComponents();
+	}
+
+	for (auto It = Proxies.CreateConstIterator(); It; ++It)
+	{
+		ALandscapeProxy* Proxy = (*It);
+		Proxy->RecreateCollisionComponents();
 	}
 }
 
@@ -3540,7 +3552,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	{
 		RecreateCollisionComponents();
 	}
-	else if( PropertyName == FName(TEXT("bCastStaticShadow")) )
+	else if (PropertyName == FName(TEXT("bCastStaticShadow")) || PropertyName == FName(TEXT("bCastShadowAsTwoSided")))
 	{
 		// Replicate shared properties to all components.
 		for(int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++ )
@@ -3549,6 +3561,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			if( Comp )
 			{
 				Comp->bCastStaticShadow = bCastStaticShadow;
+				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
 			}
 		}
 	}
@@ -3769,7 +3782,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				}
 			}
 		}
-
+				
 		if (ChangedMaterial)
 		{
 			if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
@@ -4170,14 +4183,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 			int32 WeightmapSize = (SubsectionSizeQuads+1) * NumSubsections;
 
 			// We need a new weightmap texture
-			CurrentWeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-			CurrentWeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-			CurrentWeightmapTexture->SRGB = false;
-			CurrentWeightmapTexture->CompressionNone = true;
-			CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-			CurrentWeightmapTexture->AddressX = TA_Clamp;
-			CurrentWeightmapTexture->AddressY = TA_Clamp;
-			CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+			CurrentWeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 			// Alloc dummy mips
 			CreateEmptyTextureMips(CurrentWeightmapTexture);
 			CurrentWeightmapTexture->PostEditChange();
@@ -4359,15 +4365,8 @@ void ULandscapeComponent::InitHeightmapData(TArray<FColor>& Heights, bool bUpdat
 	int32 HeightmapSizeV = (1<<FMath::CeilLogTwo( ComponentSizeVerts ));
 
 	// Height map construction
-	HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-	HeightmapTexture->Source.Init2DWithMipChain(HeightmapSizeU,HeightmapSizeV,TSF_BGRA8);
-	HeightmapTexture->SRGB = false;
-	HeightmapTexture->CompressionNone = true;
-	HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-	HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-	HeightmapTexture->AddressX = TA_Clamp;
-	HeightmapTexture->AddressY = TA_Clamp;
-
+	HeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(HeightmapSizeU, HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8);
+	
 	int32 MipSubsectionSizeQuads = SubsectionSizeQuads;
 	int32 MipSizeU = HeightmapSizeU;
 	int32 MipSizeV = HeightmapSizeV;
@@ -4742,14 +4741,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	}
 
 	int32 WeightmapSize = (SubsectionSizeQuads+1) * NumSubsections;
-	UTexture2D* WeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-	WeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-	WeightmapTexture->SRGB = false;
-	WeightmapTexture->CompressionNone = true;
-	WeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-	WeightmapTexture->AddressX = TA_Clamp;
-	WeightmapTexture->AddressY = TA_Clamp;
-	WeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+	UTexture2D* WeightmapTexture = GetLandscapeActor()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 	CreateEmptyTextureMips(WeightmapTexture);
 
 	{
@@ -4817,7 +4809,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	else // for cooking
 	{
 		UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true); 
-		UMaterialInstanceConstant* MobileMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+		UMaterialInstanceConstant* MobileMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost());
 
 		MobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 
@@ -5010,6 +5002,21 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 
 	// Copy to PlatformData as Compressed
 	PlatformData.InitializeFromUncompressedData(NewPlatformData);
+}
+
+UTexture2D* ALandscapeProxy::CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter) const
+{
+	UObject* TexOuter = OptionalOverrideOuter ? OptionalOverrideOuter : GetOutermost();
+	UTexture2D* NewTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), TexOuter);
+	NewTexture->Source.Init2DWithMipChain(InSizeX, InSizeY, InFormat);
+	NewTexture->SRGB = false;
+	NewTexture->CompressionNone = true;
+	NewTexture->MipGenSettings = TMGS_LeaveExistingMips;
+	NewTexture->AddressX = TA_Clamp;
+	NewTexture->AddressY = TA_Clamp;
+	NewTexture->LODGroup = InLODGroup;
+
+	return NewTexture;
 }
 
 #endif //WITH_EDITOR

@@ -7,7 +7,9 @@ DEFINE_LOG_CATEGORY(LogLogVisualizer);
 
 void FLogVisualizerModule::StartupModule() 
 {
+#if ENABLE_VISUAL_LOG
 	LogVisualizer = new FLogVisualizer();
+#endif
 }
 
 void FLogVisualizerModule::ShutdownModule() 

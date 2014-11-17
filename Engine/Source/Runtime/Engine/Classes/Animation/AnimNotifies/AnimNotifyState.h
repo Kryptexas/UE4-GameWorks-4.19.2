@@ -4,6 +4,8 @@
 #pragma once
 #include "AnimNotifyState.generated.h"
 
+struct FAnimNotifyEvent;
+
 UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowHiddenSelfPins))
 class ENGINE_API UAnimNotifyState : public UObject
 {

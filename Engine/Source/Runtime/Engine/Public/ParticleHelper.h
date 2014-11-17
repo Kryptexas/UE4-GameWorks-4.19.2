@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"
+#include "MaterialShared.h"
 
 #define _ENABLE_PARTICLE_LOD_INGAME_
 
@@ -750,6 +750,7 @@ struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** Mesh rotation data payload										*/
 struct FMeshRotationPayloadData
 {
+	FVector	 InitialOrientation;
 	FVector  Rotation;
 	FVector  RotationRate;
 	FVector  RotationRateBase;
@@ -975,8 +976,25 @@ struct FParticleEventInstancePayload
 struct FEmitterDynamicParameterPayload
 {
 	/** The float4 value to assign to the dynamic parameter. */
-	FVector4 DynamicParameterValue;
+	float DynamicParameterValue[4];
 };
+
+/**
+ *	Helper function for retrieving the dynamic payload of a particle.
+ *
+ *	@param	InDynamicPayloadOffset		The offset to the payload
+ *	@param	InParticle					The particle being processed
+ *	@param	OutDynamicData				The dynamic data from the particle
+ */
+FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
+{
+	checkSlow(InDynamicPayloadOffset > 0);
+	FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
+	OutDynamicData.X = DynPayload->DynamicParameterValue[0];
+	OutDynamicData.Y = DynPayload->DynamicParameterValue[1];
+	OutDynamicData.Z = DynPayload->DynamicParameterValue[2];
+	OutDynamicData.W = DynPayload->DynamicParameterValue[3];
+}
 
 /** Camera offset particle payload */
 struct FCameraOffsetParticlePayload
@@ -1497,7 +1515,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const
 	{
 		checkf(0, TEXT("GetDynamicVertexStride MUST be overridden"));
 		return 0;
@@ -1538,23 +1556,6 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *	@param	bCrosses	If true, render Crosses at particle position; false, render points
 	 */
 	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
-
-	/**
-	 *	Helper function for retrieving the dynamic payload of a particle.
-	 *
-	 *	@param	InDynamicPayloadOffset		The offset to the payload
-	 *	@param	InParticle					The particle being processed
-	 *	@param	OutDynamicData				The dynamic data from the particle
-	 */
-	FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
-	{
-		checkSlow(InDynamicPayloadOffset > 0);
-		FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
-		OutDynamicData.X = DynPayload->DynamicParameterValue.X;
-		OutDynamicData.Y = DynPayload->DynamicParameterValue.Y;
-		OutDynamicData.Z = DynPayload->DynamicParameterValue.Z;
-		OutDynamicData.W = DynPayload->DynamicParameterValue.W;
-	}
 
 	/**
 	 *	Fill index and vertex buffers. Often called from a different thread
@@ -1696,16 +1697,16 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const override
 	{
-		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM3;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
 	}
 
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleVertexDynamicParameter);
 	}
@@ -1756,10 +1757,10 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
 	 *	@param	FrameNumber		The frame number of this pre-render
 	 */
-	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE;
+	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Render thread only draw call
@@ -1768,7 +1769,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
+	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1905,23 +1906,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	void GetInstanceData(void* InstanceData, void* DynamicParameterData, FParticleSystemSceneProxy* Proxy, const FSceneView* View);
 
 	/**
-	 *	Helper function for retrieving the dynamic payload of a particle.
-	 *
-	 *	@param	InDynamicPayloadOffset		The offset to the payload
-	 *	@param	InParticle					The particle being processed
-	 *	@param	OutDynamicData				The dynamic data from the particle
-	 */
-	FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
-	{
-		checkSlow(InDynamicPayloadOffset > 0);
-		FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
-		OutDynamicData.X = DynPayload->DynamicParameterValue.X;
-		OutDynamicData.Y = DynPayload->DynamicParameterValue.Y;
-		OutDynamicData.Z = DynPayload->DynamicParameterValue.Z;
-		OutDynamicData.W = DynPayload->DynamicParameterValue.W;
-	}
-
-	/**
 	 *	Helper function for retrieving the particle transform.
 	 *
 	 *	@param	InParticle					The particle being processed
@@ -1948,17 +1932,17 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber); 
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FMeshParticleInstanceVertex);
 	}
 
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE 
+	virtual int32 GetDynamicParameterVertexStride() const override 
 	{
 		return sizeof(FMeshParticleInstanceVertexDynamicParameter);
 	}
@@ -1966,7 +1950,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the source replay data for this emitter
 	 */
-	virtual const FDynamicSpriteEmitterReplayDataBase* GetSourceData() const OVERRIDE
+	virtual const FDynamicSpriteEmitterReplayDataBase* GetSourceData() const override
 	{
 		return &Source;
 	}
@@ -2018,8 +2002,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	// These don't need to go into the replay data, as they are constant over the life of the emitter
 	/** If true, apply the 'pre-rotation' values to the mesh. */
 	uint32 bApplyPreRotation:1;
-	/** The pitch/roll/yaw to apply in the pre-rotation step */
-	FVector RollPitchYaw;
 	/** If true, then use the locked axis setting supplied. Trumps locked axis module and/or TypeSpecific mesh settings. */
 	uint32 bUseMeshLockedAxis:1;
 	/** If true, then use the camera facing options supplied. Trumps all other settings. */
@@ -2250,7 +2232,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}
@@ -2258,7 +2240,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleBeamTrailVertexDynamicParameter);
 	}
@@ -2433,7 +2415,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}
@@ -2441,7 +2423,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleBeamTrailVertexDynamicParameter);
 	}
@@ -2591,14 +2573,14 @@ public:
 	virtual ~FParticleSystemSceneProxy();
 
 	// FPrimitiveSceneProxy interface.
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return false;
 	}
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual void OnActorPositionChanged() OVERRIDE;
-	virtual void OnTransformChanged() OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual void OnActorPositionChanged() override;
+	virtual void OnTransformChanged() override;
 
 	/**
 	 *	Helper function for determining the LOD distance for a given view.
@@ -2619,7 +2601,7 @@ public:
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber);
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Called when the rendering thread adds the proxy to the scene.
@@ -2740,7 +2722,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	/** @return true if the proxy requires occlusion queries */
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return !MaterialRelevance.bDisableDepthTest;
 	}
@@ -2854,10 +2836,11 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// create a static vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FParticleVertexDynamicParameter), NULL, BUF_Static|BUF_ZeroStride);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FParticleVertexDynamicParameter), BUF_Static|BUF_ZeroStride, CreateInfo);
 		FParticleVertexDynamicParameter* Vertices = (FParticleVertexDynamicParameter*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(FParticleVertexDynamicParameter), RLM_WriteOnly);
 		Vertices[0].DynamicValue[0] = Vertices[0].DynamicValue[1] = Vertices[0].DynamicValue[2] = Vertices[0].DynamicValue[3] = 1.0f;
 		RHIUnlockVertexBuffer(VertexBufferRHI);

@@ -308,6 +308,11 @@ bool UKismetMathLibrary::EqualEqual_FloatFloat(float A, float B)
 	return A == B;
 }	
 
+bool UKismetMathLibrary::NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance)
+{
+	return FMath::IsNearlyEqual(A, B, ErrorTolerance);
+}
+
 bool UKismetMathLibrary::NotEqual_FloatFloat(float A, float B)
 {
 	return A != B;
@@ -519,6 +524,36 @@ float UKismetMathLibrary::FClamp(float V, float A, float B)
 	return FMath::Clamp(V, A, B);
 }	
 
+void UKismetMathLibrary::MaxOfIntArray(const TArray<int32>& IntArray, int32& IndexOfMaxValue, int32& MaxValue)
+{
+	MaxValue = FMath::Max(IntArray, &IndexOfMaxValue);
+}
+
+void UKismetMathLibrary::MinOfIntArray(const TArray<int32>& IntArray, int32& IndexOfMinValue, int32& MinValue)
+{
+	MinValue = FMath::Min<int32>(IntArray, &IndexOfMinValue);
+}
+
+void UKismetMathLibrary::MaxOfFloatArray(const TArray<float>& FloatArray, int32& IndexOfMaxValue, float& MaxValue)
+{
+	MaxValue = FMath::Max(FloatArray, &IndexOfMaxValue);
+}
+
+void UKismetMathLibrary::MinOfFloatArray(const TArray<float>& FloatArray, int32& IndexOfMinValue, float& MinValue)
+{
+	MinValue = FMath::Min(FloatArray, &IndexOfMinValue);
+}
+
+void UKismetMathLibrary::MaxOfByteArray(const TArray<uint8>& ByteArray, int32& IndexOfMaxValue, uint8& MaxValue)
+{
+	MaxValue = FMath::Max(ByteArray, &IndexOfMaxValue);
+}
+
+void UKismetMathLibrary::MinOfByteArray(const TArray<uint8>& ByteArray, int32& IndexOfMinValue, uint8& MinValue)
+{
+	MinValue = FMath::Min(ByteArray, &IndexOfMinValue);
+}
+
 float UKismetMathLibrary::Lerp(float A, float B, float V)
 {
 	return A + V*(B-A);
@@ -652,6 +687,11 @@ FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float Del
 FVector UKismetMathLibrary::RandomUnitVector()
 {
 	return FMath::VRand();
+}
+
+FVector UKismetMathLibrary::RandomPointInBoundingBox(FBox BoundingBox)
+{
+	return FMath::RandPointInBox(BoundingBox);
 }
 
 FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
@@ -1395,6 +1435,11 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 		DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter - RectSideA * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideA * 0.5f + FVector(0,0,10.f), FColor::Green, true,-1, 0, 5.f);
 		DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter - RectSideB * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideB * 0.5f + FVector(0,0,10.f), FColor::Blue, true,-1, 0, 5.f);
 	}
+}
+
+bool UKismetMathLibrary::PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance)
+{
+	return FMath::PointsAreCoplanar(Points, Tolerance);
 }
 
 bool UKismetMathLibrary::LinePlaneIntersection(const FVector& LineStart, const FVector& LineEnd, const FPlane& APlane, float& T, FVector& Intersection)

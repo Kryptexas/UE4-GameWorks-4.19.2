@@ -13,8 +13,8 @@ class UMovieSceneColorSection : public UMovieSceneSection
 	GENERATED_UCLASS_BODY()
 public:
 	/** MovieSceneSection interface */
-	virtual void MoveSection( float DeltaPosition ) OVERRIDE;
-	virtual void DilateSection( float DilationFactor, float Origin ) OVERRIDE;
+	virtual void MoveSection( float DeltaPosition ) override;
+	virtual void DilateSection( float DilationFactor, float Origin ) override;
 
 	/**
 	 * Updates this section

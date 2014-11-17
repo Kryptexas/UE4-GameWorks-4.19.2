@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineMessagesModule.cpp: Implements the FEngineMessagesModule class.
-=============================================================================*/
-
 #include "EngineMessagesPrivatePCH.h"
 
 
@@ -15,11 +11,12 @@ class FEngineMessagesModule
 {
 public:
 
-	virtual void StartupModule( ) OVERRIDE { }
+	// IModuleInterface interface
 
-	virtual void ShutdownModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
+	virtual void ShutdownModule( ) override { }
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}

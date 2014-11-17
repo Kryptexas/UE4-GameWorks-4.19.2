@@ -2,7 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavCollision.h"
-#include "AI/NavigationModifier.h"
+#include "AI/NavigationSystemHelpers.h"
+#include "NavigationModifier.h"
 #include "../Private/AI/Navigation/RecastNavMeshGenerator.h"
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
@@ -57,17 +58,17 @@ private:
 public:
 	FDerivedDataNavCollisionCooker(FName InFormat, UNavCollision* InInstance);
 
-	virtual const TCHAR* GetPluginName() const OVERRIDE
+	virtual const TCHAR* GetPluginName() const override
 	{
 		return TEXT("NavCollision");
 	}
 
-	virtual const TCHAR* GetVersionString() const OVERRIDE
+	virtual const TCHAR* GetVersionString() const override
 	{
 		return TEXT("B89838347A4348138EE337A847529C5C");
 	}
 
-	virtual FString GetPluginSpecificCacheKeySuffix() const OVERRIDE
+	virtual FString GetPluginSpecificCacheKeySuffix() const override
 	{
 		const uint16 Version = 13;
 
@@ -79,12 +80,12 @@ public:
 			);
 	}
 
-	virtual bool IsBuildThreadsafe() const OVERRIDE
+	virtual bool IsBuildThreadsafe() const override
 	{
 		return false;
 	}
 
-	virtual bool Build( TArray<uint8>& OutData ) OVERRIDE;
+	virtual bool Build( TArray<uint8>& OutData ) override;
 
 	/** Return true if we can build **/
 	bool CanBuild()
@@ -219,6 +220,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 		CylinderToWorld.SetTranslation(Origin);
 
 		FAreaNavModifier AreaMod(CylinderCollision[i].Radius, CylinderCollision[i].Height, CylinderToWorld, UseAreaClass);
+		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
 	}
 
@@ -229,6 +231,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 		BoxToWorld.SetTranslation(Origin);
 
 		FAreaNavModifier AreaMod(BoxCollision[i].Extent, BoxToWorld, UseAreaClass);
+		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
 	}
 
@@ -243,6 +246,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 			LastVertIndex = ConvexShapeIndices.IsValidIndex(i + 1) ? ConvexShapeIndices[i + 1] : ConvexCollision.VertexBuffer.Num();
 
 			FAreaNavModifier AreaMod(Verts, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+			AreaMod.SetIncludeAgentHeight(true);
 			Modifier.Add(AreaMod);
 		}
 	}

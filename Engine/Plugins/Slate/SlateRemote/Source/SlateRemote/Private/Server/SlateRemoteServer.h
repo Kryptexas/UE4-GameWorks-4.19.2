@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteServer.h: Declares the FSlateRemoteServer class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -33,7 +29,6 @@ public:
 	 * Starts the server.
 	 *
 	 * @param ServerEndpoint The network endpoint to listen on.
-	 *
 	 * @return true if the server was started, false otherwise.
 	 */
 	bool StartServer( const FIPv4Endpoint& ServerEndpoint );

@@ -17,9 +17,9 @@ public class UnrealLightmass : ModuleRules
 			// Unreallightmass requires GetProcessMemoryInfo exported by psapi.dll. http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
 			PublicAdditionalLibraries.Add("psapi.lib");
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			// On Mac UnrealLightmass is executed locally and communicates with the editor using Messaging module instead of SwarmAgent
+			// On Mac/Linux UnrealLightmass is executed locally and communicates with the editor using Messaging module instead of SwarmAgent
 			// @todo: allow for better plug-in support in standalone Slate apps
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

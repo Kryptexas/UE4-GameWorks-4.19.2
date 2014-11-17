@@ -65,8 +65,7 @@ bool FWordWrapper::ProcessLine()
 			--BreakIndex;			
 		}
 
-		//@todo Use ICU's whitespace functionality [12/5/2013 justin.sargent]
-		while (TChar<TCHAR>::IsWhitespace(String[BreakIndex - 1]))
+		while (FText::IsWhitespace(String[BreakIndex - 1]))
 		{
 			--BreakIndex;
 		}
@@ -78,8 +77,7 @@ bool FWordWrapper::ProcessLine()
 			bHasAddedLine = true;
 		}
 
-		//@todo Use ICU's whitespace functionality [12/5/2013 justin.sargent]
-		while (TChar<TCHAR>::IsWhitespace(String[NextStartIndex]))
+		while (FText::IsWhitespace(String[NextStartIndex]))
 		{
 			++NextStartIndex;
 		}

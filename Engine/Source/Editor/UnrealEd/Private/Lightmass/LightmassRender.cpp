@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-
+#include "Materials/MaterialExpressionWorldPosition.h"
 #include "Programs/UnrealLightmass/Public/LightmassPublic.h"
 #include "Lightmass.h"
 #include "LightmassRender.h"
@@ -218,7 +218,7 @@ public:
 		}
 	}
 
-	virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE
+	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
 		return ReferencedTextures;
 	}
@@ -303,7 +303,7 @@ public:
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
 			EBlendMode BlendMode = MaterialInterface->GetBlendMode();
-			EMaterialLightingModel LightingModel = MaterialInterface->GetLightingModel();
+			EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 			check(ProxyMaterial);
 			FLightmassMaterialCompiler ProxyCompiler(Compiler);
 			switch (PropertyToCompile)
@@ -347,7 +347,7 @@ public:
 				}
 				else if (BlendMode == BLEND_Modulate)
 				{
-					if (LightingModel == MLM_Unlit)
+					if (ShadingModel == MSM_Unlit)
 					{
 						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
 					}
@@ -359,7 +359,7 @@ public:
 				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
 				{
 					int32 ColoredOpacity = -1;
-					if (LightingModel == MLM_Unlit)
+					if (ShadingModel == MSM_Unlit)
 					{
 						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
 					}
@@ -397,11 +397,11 @@ public:
 	 * This mechanism allows derived material classes to create different DDC keys with the same base material.
 	 * For example lightmass exports diffuse and emissive, each of which requires a material resource with the same base material.
 	 */
-	virtual EMaterialShaderMapUsage::Type GetShaderMapUsage() const OVERRIDE { return Usage; }
+	virtual EMaterialShaderMapUsage::Type GetShaderMapUsage() const override { return Usage; }
 
-	virtual FString GetMaterialUsageDescription() const OVERRIDE { return FString::Printf(TEXT("%s FLightmassMaterialRenderer"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
+	virtual FString GetMaterialUsageDescription() const override { return FString::Printf(TEXT("%s FLightmassMaterialRenderer"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	
-	virtual int32 GetMaterialDomain() const OVERRIDE
+	virtual int32 GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -447,7 +447,7 @@ public:
 	}
 	virtual bool IsMasked() const									{ return false; }
 	virtual enum EBlendMode GetBlendMode() const					{ return BLEND_Opaque; }
-	virtual enum EMaterialLightingModel GetLightingModel() const	{ return MLM_Unlit; }
+	virtual enum EMaterialShadingModel GetShadingModel() const		{ return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const					{ return 0.5f; }
 	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FLightmassMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 
@@ -456,7 +456,7 @@ public:
 	 */
 	virtual bool IsPersistent() const { return true; }
 
-	virtual FGuid GetMaterialId() const OVERRIDE 
+	virtual FGuid GetMaterialId() const override 
 	{ 
 		// Reuse the base material's Id
 		// Normally this would cause a bug as the shader map would try to be shared by both, 
@@ -527,7 +527,7 @@ public:
 		OutUniformValue.A = 0.0f;
 
 		EBlendMode BlendMode = MaterialInterface->GetBlendMode();
-		EMaterialLightingModel LightingModel = MaterialInterface->GetLightingModel();
+		EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 		
 		check(Material);
 		bool bExpressionIsNULL = false;
@@ -575,7 +575,7 @@ public:
 				(BlendMode == BLEND_Additive))
 			{
 				bool bColorInputIsNULL = false;
-				if (LightingModel == MLM_Unlit)
+				if (ShadingModel == MSM_Unlit)
 				{
 					bColorInputIsNULL = !IsMaterialInputConnected(Material, MP_EmissiveColor);
 				}
@@ -819,19 +819,19 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
 	check(BaseMaterial);
 
 	EBlendMode BlendMode = InMaterial.GetBlendMode();
-	EMaterialLightingModel LightingModel = InMaterial.GetLightingModel();
- 	if ((LightingModel != MLM_DefaultLit) &&
-		(LightingModel != MLM_Unlit) &&
-		(LightingModel != MLM_Subsurface) &&
-		(LightingModel != MLM_PreintegratedSkin))
+	EMaterialShadingModel ShadingModel = InMaterial.GetShadingModel();
+ 	if ((ShadingModel != MSM_DefaultLit) &&
+		(ShadingModel != MSM_Unlit) &&
+		(ShadingModel != MSM_Subsurface) &&
+		(ShadingModel != MSM_PreintegratedSkin))
 	{
-		UE_LOG(LogLightmassRender, Warning, TEXT("LIGHTMASS: Material has an unsupported lighting model: %d on %s"), 
-			(int32)LightingModel,
+		UE_LOG(LogLightmassRender, Warning, TEXT("LIGHTMASS: Material has an unsupported shading model: %d on %s"), 
+			(int32)ShadingModel,
 			*(InMaterial.GetPathName()));
 	}
 
 	// Set the blend mode
-	checkAtCompileTime(EBlendMode::BLEND_MAX == (EBlendMode)Lightmass::BLEND_MAX, DebugTypeSizesMustMatch);
+	static_assert(EBlendMode::BLEND_MAX == (EBlendMode)Lightmass::BLEND_MAX, "Debug type sizes must match.");
 	OutMaterialData.BlendMode = (Lightmass::EBlendMode)((int32)BlendMode);
 	// Set the two-sided flag
 	OutMaterialData.bTwoSided = (uint32)InMaterial.IsTwoSided();
@@ -931,7 +931,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 			{
 				// At this point, we can't just return false at failure since we have some clean-up to do...
 				Canvas->SetRenderTarget(RenderTarget->GameThread_GetRenderTargetResource());
-				RHIBeginScene();
+
 				// Clear the render target to black
 				// This is necessary because the below DrawTile doesn't write to the first column and first row
 				//@todo - figure out and fix DrawTile issues when rendering a full render target quad
@@ -943,7 +943,6 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 				FlushRenderingCommands();
 				Canvas->SetRenderTarget(NULL);
 				FlushRenderingCommands();
-				RHIEndScene();
 
 				// Read in the data
 				//@todo UE4. Check the format! RenderTarget->Format

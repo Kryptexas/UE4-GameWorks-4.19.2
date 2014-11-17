@@ -10,17 +10,15 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UWidgetTree::RenameWidget(USlateWrapperComponent* Widget, FString& NewName)
-{
-	Widget->Rename(*NewName);
-
-	// TODO Update nodes in the blueprint!
-}
-
-USlateWrapperComponent* UWidgetTree::FindWidget(FString& Name) const
+UWidget* UWidgetTree::FindWidget(const FString& Name) const
 {
 	FString ExistingName;
-	for ( USlateWrapperComponent* Widget : WidgetTemplates )
+
+	// TODO UMG Hacky, remove this find widget function, or make it faster.
+	TArray<UWidget*> Widgets;
+	GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
 	{
 		Widget->GetName(ExistingName);
 		if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
@@ -32,29 +30,68 @@ USlateWrapperComponent* UWidgetTree::FindWidget(FString& Name) const
 	return NULL;
 }
 
-bool UWidgetTree::RemoveWidget(USlateWrapperComponent* Widget)
+UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
-	USlateWrapperComponent* Parent = NULL;
+	UPanelWidget* Parent = Widget->GetParent();
+	if ( Parent != NULL )
+	{
+		OutChildIndex = Parent->GetChildIndex(Widget);
+	}
+	else
+	{
+		OutChildIndex = 0;
+	}
+
+	return Parent;
+}
+
+bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
+{
+	InRemovedWidget->Modify();
 
 	bool bRemoved = false;
 
-	for ( USlateWrapperComponent* Template : WidgetTemplates )
+	UPanelWidget* InRemovedWidgetParent = InRemovedWidget->GetParent();
+	if ( InRemovedWidgetParent )
 	{
-		USlateNonLeafWidgetComponent* NonLeafTemplate = Cast<USlateNonLeafWidgetComponent>(Template);
-		if ( NonLeafTemplate )
+		InRemovedWidgetParent->Modify();
+
+		if ( InRemovedWidgetParent->RemoveChild(InRemovedWidget) )
 		{
-			if ( NonLeafTemplate->RemoveChild(Widget) )
-			{
-				bRemoved = true;
-				break;
-			}
+			bRemoved = true;
 		}
 	}
 
-	if ( bRemoved )
+	if ( InRemovedWidget == RootWidget )
 	{
-		WidgetTemplates.Remove(Widget);
+		RootWidget = NULL;
+		bRemoved = true;
 	}
 
 	return bRemoved;
+}
+
+void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
+{
+	if ( RootWidget )
+	{
+		Widgets.Add(RootWidget);
+		GetChildWidgets(RootWidget, Widgets);
+	}
+}
+
+void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const
+{
+	if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Parent) )
+	{
+		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
+		{
+			if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
+			{
+				Widgets.Add(ChildWidget);
+
+				GetChildWidgets(ChildWidget, Widgets);
+			}
+		}
+	}
 }

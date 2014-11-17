@@ -2,7 +2,11 @@
 
 
 #pragma once
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataMesh.generated.h"
+
+class UParticleEmitter;
 
 UENUM()
 enum EMeshScreenAlignment
@@ -85,17 +89,22 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	UPROPERTY(EditAnywhere, Category=Mesh)
 	uint32 bOverrideMaterial:1;
 
+
+	/** deprecated properties for initial orientation */
+	UPROPERTY()
+	float Pitch_DEPRECATED;
+	UPROPERTY()
+	float Roll_DEPRECATED;
+	UPROPERTY()
+	float Yaw_DEPRECATED;
+
+
 	/** The 'pre' rotation pitch (in degrees) to apply to the static mesh used. */
 	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Pitch;
+	FRawDistributionVector RollPitchYawRange;
 
-	/** The 'pre' rotation roll (in degrees) to apply to the static mesh used. */
-	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Roll;
-
-	/** The 'pre' rotation yaw (in degrees) to apply to the static mesh used. */
-	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Yaw;
+	/** Random stream for the initial rotation distribution */
+	FRandomStream RandomStream;
 
 	/**
 	 *	The axis to lock the mesh on. This overrides TypeSpecific mesh alignment as well as the LockAxis module.
@@ -111,7 +120,7 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	 *		EPAL_ROTATE_Z	 -	Ignored for mesh emitters. Treated as EPAL_NONE.
 	 */
 	UPROPERTY(EditAnywhere, Category=Orientation)
-	TEnumAsByte<enum EParticleAxisLock> AxisLockOption;
+	TEnumAsByte<EParticleAxisLock> AxisLockOption;
 
 	/**
 	 *	If true, then point the X-axis of the mesh towards the camera.
@@ -170,19 +179,24 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+
+	virtual void	Serialize(FArchive& Ar) override;
+
 	// End UObject Interface
 
+	void CreateDistribution();
+
 	// Begin UParticleModule Interface
-	virtual void	SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
+	virtual void	SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	// End UParticleModule Interface
 
 	// Begin UParticleModuleTypeDataBase Interface
-	virtual FParticleEmitterInstance*	CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) OVERRIDE;
-	virtual bool	SupportsSpecificScreenAlignmentFlags() const OVERRIDE {	return true;	}	
-	virtual bool	SupportsSubUV() const OVERRIDE { return true; }
-	virtual bool	IsAMeshEmitter() const OVERRIDE { return true; }
+	virtual FParticleEmitterInstance*	CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
+	virtual bool	SupportsSpecificScreenAlignmentFlags() const override {	return true;	}	
+	virtual bool	SupportsSubUV() const override { return true; }
+	virtual bool	IsAMeshEmitter() const override { return true; }
 	// End UParticleModuleTypeDataBase Interface
 };
 

@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeAttenuation.h"
+#include "Sound/SoundCue.h"
 #include "SubtitleManager.h"
 
 /*-----------------------------------------------------------------------------

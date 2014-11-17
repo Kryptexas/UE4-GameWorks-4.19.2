@@ -11,7 +11,7 @@
 struct FDistortAccumulateVSToPS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
-	float4	PixelPosition	: TEXCOORD5;
+	float4	PixelPosition	: TEXCOORD6;
 	float4	Position		: SV_POSITION;
 };
 

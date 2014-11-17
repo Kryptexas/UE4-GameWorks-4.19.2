@@ -47,24 +47,17 @@ void SButton::Construct( const FArguments& InArgs )
 
 	ContentPadding = InArgs._ContentPadding;
 
-	/* Get pointer to the button style */
-	const FButtonStyle* const ButtonStyle = InArgs._ButtonStyle;
-
-	NormalImage = &ButtonStyle->Normal;
-	HoverImage = &ButtonStyle->Hovered;
-	PressedImage = &ButtonStyle->Pressed;
-
-	BorderPadding = ButtonStyle->NormalPadding;
-	PressedBorderPadding = ButtonStyle->PressedPadding;
+	SetButtonStyle(InArgs._ButtonStyle);
 
 	bIsFocusable = InArgs._IsFocusable;
 
 	OnClicked = InArgs._OnClicked;
 
 	ClickMethod = InArgs._ClickMethod;
+	TouchMethod = InArgs._TouchMethod;
 
-	HoveredSound = InArgs._HoveredSoundOverride.Get(ButtonStyle->HoveredSlateSound);
-	PressedSound = InArgs._PressedSoundOverride.Get(ButtonStyle->PressedSlateSound);
+	HoveredSound = InArgs._HoveredSoundOverride.Get(Style->HoveredSlateSound);
+	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
 }
 
 FMargin SButton::GetCombinedPadding() const
@@ -124,7 +117,7 @@ FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& In
 FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
 	{
 		bIsPressed = true;
 
@@ -140,6 +133,11 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 
 			//You should ALWAYS handle the OnClicked event.
 			ensure(Reply.IsEventHandled() == true);
+		}
+		else if (TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() )
+		{
+			// do not capture the pointer for precise taps
+			// 
 		}
 		else
 		{
@@ -162,13 +160,13 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
 	{
 		bIsPressed = false;
 
 		if( ClickMethod == EButtonClickMethod::MouseDown )
 		{
-			// NOTE: If we're configured to click on mouse-down, then we never capture the mouse thus
+			// NOTE: If we're configured to click on mouse-down/precise-tap, then we never capture the mouse thus
 			//       may never receive an OnMouseButtonUp() call.  We make sure that our bIsPressed
 			//       state is reset by overriding OnMouseLeave().
 		}
@@ -177,9 +175,15 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 			const bool bIsUnderMouse = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
 			if( bIsUnderMouse )
 			{
+				// If we asked for a precide tap, all we need is for the user to have not moved their pointer very far.
+				// Precise taps only occur for mobile devices, 
+				const bool bTriggerForTouchEvent = MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap;
+
 				// If we were asked to allow the button to be clicked on mouse up, regardless of whether the user
 				// pressed the button down first, then we'll allow the click to proceed without an active capture
-				if( ( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() ) && OnClicked.IsBound() == true )
+				const bool bTriggerForMouseEvent = ( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() );
+
+				if( (bTriggerForTouchEvent || bTriggerForMouseEvent) && OnClicked.IsBound() == true )
 				{
 					Reply = OnClicked.Execute();
 				}
@@ -207,6 +211,10 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+	if ( MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.GetCursorDelta().SizeSquared() != 0 )
+	{
+		bIsPressed = false;
+	}
 	return FReply::Unhandled();
 }
 
@@ -227,12 +235,11 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 	// If we're setup to click on mouse-down, then we never capture the mouse and may not receive a
 	// mouse up event, so we need to make sure our pressed state is reset properly here
-	if( ClickMethod == EButtonClickMethod::MouseDown )
+	if( ClickMethod == EButtonClickMethod::MouseDown || ( TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() ) )
 	{
 		bIsPressed = false;
 	}
 }
-
 
 void SButton::PlayPressedSound() const
 {
@@ -256,4 +263,37 @@ FVector2D SButton::ComputeDesiredSize() const
 	{
 		return SBorder::ComputeDesiredSize();
 	}
+}
+
+void SButton::SetContentPadding(const TAttribute<FMargin>& InContentPadding)
+{
+	ContentPadding = InContentPadding;
+}
+
+void SButton::SetHoveredSound(TOptional<FSlateSound> InHoveredSound)
+{
+	HoveredSound = InHoveredSound.Get(Style->HoveredSlateSound);
+}
+
+void SButton::SetPressedSound(TOptional<FSlateSound> InPressedSound)
+{
+	PressedSound = InPressedSound.Get(Style->PressedSlateSound);
+}
+
+void SButton::SetOnClicked(FOnClicked InOnClicked)
+{
+	OnClicked = InOnClicked;
+}
+
+void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
+{
+	/* Get pointer to the button style */
+	Style = ButtonStyle;
+
+	NormalImage = &Style->Normal;
+	HoverImage = &Style->Hovered;
+	PressedImage = &Style->Pressed;
+
+	BorderPadding = Style->NormalPadding;
+	PressedBorderPadding = Style->PressedPadding;
 }

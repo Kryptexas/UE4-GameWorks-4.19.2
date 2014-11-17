@@ -20,19 +20,19 @@ class USteamNetDriver : public UIpNetDriver
 	bool bIsPassthrough;
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	// Begin UIpNetDriver Interface
 
-	virtual class ISocketSubsystem* GetSocketSubsystem() OVERRIDE;
-	virtual bool IsAvailable() const OVERRIDE;
-	virtual bool InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error) OVERRIDE;
-	virtual bool InitConnect(FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error) OVERRIDE;	
-	virtual bool InitListen(FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void TickFlush(float DeltaSeconds) OVERRIDE;
-	virtual bool IsNetResourceValid() OVERRIDE;
+	virtual class ISocketSubsystem* GetSocketSubsystem() override;
+	virtual bool IsAvailable() const override;
+	virtual bool InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error) override;
+	virtual bool InitConnect(FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error) override;	
+	virtual bool InitListen(FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error) override;
+	virtual void Shutdown() override;
+	virtual void TickFlush(float DeltaSeconds) override;
+	virtual bool IsNetResourceValid() override;
 
 	// End UIpNetDriver Interface
 

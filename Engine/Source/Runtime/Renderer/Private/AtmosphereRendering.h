@@ -64,59 +64,20 @@ public:
 	~FAtmosphericFogSceneInfo();
 
 #if WITH_EDITOR
-	void PrecomputeTextures(const FViewInfo* View, FSceneViewFamily* ViewFamily);
+	void PrecomputeTextures(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, FSceneViewFamily* ViewFamily);
 	void StartPrecompute();
 
 private:
 	/** Atmosphere pre-computation related functions */
 	FIntPoint GetTextureSize();
-	inline void DrawQuad(const FIntRect& ViewRect, FShader* VertexShader);
+	inline void DrawQuad(FRHICommandList& RHICmdList, const FIntRect& ViewRect, FShader* VertexShader);
 	void GetLayerValue(int Layer, float& AtmosphereR, FVector4& DhdH);
-	void RenderAtmosphereShaders(const FViewInfo& View, const FIntRect& ViewRect);
-	void PrecomputeAtmosphereData(const FViewInfo* View, FSceneViewFamily& ViewFamily);
+	void RenderAtmosphereShaders(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FIntRect& ViewRect);
+	void PrecomputeAtmosphereData(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, FSceneViewFamily& ViewFamily);
 
-	void ReadPixelsPtr(TRefCountPtr<IPooledRenderTarget> RenderTarget, FColor* OutData, FIntRect InRect);
-	void Read3DPixelsPtr(TRefCountPtr<IPooledRenderTarget> RenderTarget, FFloat16Color* OutData, FIntRect InRect, FIntPoint InZMinMax);
+	void ReadPixelsPtr(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget> RenderTarget, FColor* OutData, FIntRect InRect);
+	void Read3DPixelsPtr(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget> RenderTarget, FFloat16Color* OutData, FIntRect InRect, FIntPoint InZMinMax);
 #endif
-};
-
-/** Shader parameters needed for atmosphere passes. */
-class FAtmosphereShaderTextureParameters
-{
-public:
-	void Bind(const FShaderParameterMap& ParameterMap)
-	{
-		TransmittanceTexture.Bind(ParameterMap,TEXT("AtmosphereTransmittanceTexture"));
-		TransmittanceTextureSampler.Bind(ParameterMap,TEXT("AtmosphereTransmittanceTextureSampler"));
-		IrradianceTexture.Bind(ParameterMap,TEXT("AtmosphereIrradianceTexture"));
-		IrradianceTextureSampler.Bind(ParameterMap,TEXT("AtmosphereIrradianceTextureSampler"));
-		InscatterTexture.Bind(ParameterMap,TEXT("AtmosphereInscatterTexture"));
-		InscatterTextureSampler.Bind(ParameterMap,TEXT("AtmosphereInscatterTextureSampler"));
-	}
-
-	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI, const FSceneView& View) const
-	{
-		if (TransmittanceTexture.IsBound() || IrradianceTexture.IsBound() || InscatterTexture.IsBound())
-		{
-			SetTextureParameter(ShaderRHI, TransmittanceTexture, TransmittanceTextureSampler, 
-				TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereTransmittanceTexture);
-			SetTextureParameter(ShaderRHI, IrradianceTexture, IrradianceTextureSampler, 
-				TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereIrradianceTexture);
-			SetTextureParameter(ShaderRHI, InscatterTexture, InscatterTextureSampler, 
-				TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereInscatterTexture);
-		}
-	}
-
-	friend FArchive& operator<<(FArchive& Ar,FAtmosphereShaderTextureParameters& P);
-
-private:
-	FShaderResourceParameter TransmittanceTexture;
-	FShaderResourceParameter TransmittanceTextureSampler;
-	FShaderResourceParameter IrradianceTexture;
-	FShaderResourceParameter IrradianceTextureSampler;
-	FShaderResourceParameter InscatterTexture;
-	FShaderResourceParameter InscatterTextureSampler;
 };
 
 extern bool ShouldRenderAtmosphere(const FSceneViewFamily& Family);

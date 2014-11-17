@@ -11,7 +11,6 @@ public class D3D11RHI : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject",
 				"Engine",
 				"RHI",
 				"RenderCore",
@@ -21,7 +20,7 @@ public class D3D11RHI : ModuleRules
 
 		AddThirdPartyPrivateStaticDependencies(Target, "DX11");
         AddThirdPartyPrivateStaticDependencies(Target, "NVAPI");
-        //AddThirdPartyPrivateStaticDependencies(Target, "AMD");
+        AddThirdPartyPrivateStaticDependencies(Target, "AMD");
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{

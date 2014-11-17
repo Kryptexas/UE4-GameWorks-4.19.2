@@ -120,7 +120,7 @@ public:
 			UE_LOG( LiveEditorConfigWindow, Log, TEXT("%s Activated"), *(*n) );
 
 			bIsActive = (Name.Get())? FLiveEditorManager::Get().CheckActive( *Name.Get() ) : false;
-			NameView->SetForegroundColor( GetFontColor() );
+			NameView->SetColorAndOpacity( GetFontColor() );
 		}
 		return FReply::Handled();
 	}
@@ -133,7 +133,7 @@ public:
 			UE_LOG( LiveEditorConfigWindow, Log, TEXT("%s DeActivated"), *(*n) );
 
 			bIsActive = (Name.Get())? FLiveEditorManager::Get().CheckActive( *Name.Get() ) : false;
-			NameView->SetForegroundColor( GetFontColor() );
+			NameView->SetColorAndOpacity(GetFontColor());
 		}
 		return FReply::Handled();
 	}
@@ -189,7 +189,7 @@ public:
 	SLATE_BEGIN_ARGS( SLiveEditorDeviceData ) {}
 	SLATE_END_ARGS()
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 

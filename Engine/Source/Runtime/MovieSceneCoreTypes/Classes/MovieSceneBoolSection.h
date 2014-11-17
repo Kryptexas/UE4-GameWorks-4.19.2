@@ -39,8 +39,8 @@ public:
 	/**
 	 * UMovieSceneSection interface 
 	 */
-	virtual void MoveSection( float DeltaPosition ) OVERRIDE;
-	virtual void DilateSection( float DilationFactor, float Origin ) OVERRIDE;
+	virtual void MoveSection( float DeltaPosition ) override;
+	virtual void DilateSection( float DilationFactor, float Origin ) override;
 
 	/** Gets all the keys of this boolean section */
 	FIntegralCurve& GetCurve() { return BoolCurve; }

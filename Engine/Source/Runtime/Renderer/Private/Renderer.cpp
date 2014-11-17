@@ -32,7 +32,7 @@ void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY
 	GSceneRenderTargets.UpdateRHI();
 }
 
-void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
+void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
 {
 	// Create an FViewInfo so we can initialize its RHI resources
 	//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
@@ -40,7 +40,7 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 	View.InitRHIResources();
 
 	const auto FeatureLevel = View.GetFeatureLevel();
-
+	
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
 	//get the blend mode of the material
@@ -53,33 +53,33 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM3)
 			{
-				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 			else
 			{
-				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
 		else
 		{
 			// make sure we are doing opaque drawing
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			// draw the mesh
 			if (bIsHitTesting)
 			{
-				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 			else
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM3)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}
 				else
 				{
-					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}
 			}
 		}	
@@ -158,7 +158,7 @@ void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkSca
 	  bool, bDebugOut, bDebugOut,
 	  FSynthBenchmarkResults&, InOut, InOut,
 	{
-		RendererGPUBenchmark(InOut, DummyView, WorkScale, bDebugOut);
+		RendererGPUBenchmark(RHICmdList, InOut, DummyView, WorkScale, bDebugOut);
 	});
 	FlushRenderingCommands();
 }

@@ -18,23 +18,23 @@ class ALevelBounds : public AActor
 	bool bAutoUpdateBounds;
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 	
 	// Begin AActor interface.
-	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const OVERRIDE;
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return false; }
+	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	// End AActor interface.
 
 	/** @return Bounding box which includes all relevant actors bounding boxes belonging to specified level */
 	ENGINE_API static FBox CalculateLevelBounds(ULevel* InLevel);
 		
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostRegisterAllComponents() OVERRIDE;
-	virtual void PostUnregisterAllComponents() OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostRegisterAllComponents() override;
+	virtual void PostUnregisterAllComponents() override;
 	
 	/** Tells actors that level bounds was changed so actor bounds should be recalculated  */
 	void OnLevelBoundsDirtied();

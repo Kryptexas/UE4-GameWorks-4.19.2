@@ -30,19 +30,19 @@ public:
 		);
 	}
 
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		SHyperlink::OnMouseEnter( MyGeometry, MouseEvent );
 		ViewModel->SetIsHovered( true );
 	}
 
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override
 	{
 		SHyperlink::OnMouseLeave( MouseEvent );
 		ViewModel->SetIsHovered( false );
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		FReply Reply = SHyperlink::OnMouseButtonDown( MyGeometry, MouseEvent );
 		ViewModel->SetIsPressed( bIsPressed );
@@ -50,7 +50,7 @@ public:
 		return Reply;
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		FReply Reply = SHyperlink::OnMouseButtonUp( MyGeometry, MouseEvent );
 		ViewModel->SetIsPressed( bIsPressed );
@@ -58,12 +58,12 @@ public:
 		return Reply;
 	}
 
-	virtual bool IsHovered() const OVERRIDE
+	virtual bool IsHovered() const override
 	{
 		return ViewModel->IsHovered();
 	}
 
-	virtual bool IsPressed() const OVERRIDE
+	virtual bool IsPressed() const override
 	{
 		return ViewModel->IsPressed();
 	}

@@ -4,7 +4,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "Kismet2NameValidators.h"
-#include "K2Node_BaseMCDelegate.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
@@ -65,7 +64,7 @@ public:
 	}
 
 	// Begin INameValidatorInterface
-	virtual EValidatorResult IsValid(FString const& Name, bool bOriginal = false) OVERRIDE
+	virtual EValidatorResult IsValid(FString const& Name, bool bOriginal = false) override
 	{
 		EValidatorResult NameValidity = FKismetNameValidator::IsValid(Name, bOriginal);
 		if ((NameValidity == EValidatorResult::Ok) || (NameValidity == EValidatorResult::ExistingName))
@@ -104,13 +103,9 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::EditableTitle)
+	if (TitleType == ENodeTitleType::EditableTitle || TitleType == ENodeTitleType::ListView)
 	{
 		return FText::FromName(CustomFunctionName);
-	}
-	else if(TitleType == ENodeTitleType::ListView)
-	{
-		return NSLOCTEXT("K2Node", "CustomEvent_Title", "Custom Event");
 	}
 	else
 	{
@@ -120,24 +115,6 @@ FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		Args.Add(TEXT("FunctionName"), FText::FromName(CustomFunctionName));
 		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
 		return FText::Format(NSLOCTEXT("K2Node", "CustomEvent_Name", "{FunctionName}{RPCString}\nCustom Event"), Args);
-	}
-}
-
-FString UK2Node_CustomEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return CustomFunctionName.ToString();
-	}
-	else if(TitleType == ENodeTitleType::ListView)
-	{
-		return TEXT("Custom Event");
-	}
-	else
-	{
-		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
-		return FString::Printf(TEXT("%s\nCustom Event"), *CustomFunctionName.ToString()) + RPCString;
 	}
 }
 
@@ -165,8 +142,9 @@ void UK2Node_CustomEvent::RenameCustomEventCloseToName(int32 StartIndex)
 		const FString NewName = FString::Printf(TEXT("%s_%d"), *BaseName, NameIndex);
 		if (Rename(*NewName, GetOuter(), REN_Test))
 		{
+			UBlueprint* Blueprint = GetBlueprint();
 			CustomFunctionName = FName(NewName.GetCharArray().GetData());
-			Rename(*NewName);
+			Rename(*NewName, GetOuter(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
 			bFoundName = true;
 		}
 	}

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Components.h"
+#include "ActorComponent.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -14,16 +14,26 @@ struct FOverlapInfo
 	FOverlapInfo()
 	{}
 
+	FOverlapInfo(const FHitResult & InSweepResult)
+		: bFromSweep(true), OverlapInfo(InSweepResult)
+	{
+	}
+
 	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE)
-		:Component(InComponent), BodyIndex(InBodyIndex) 
-	{}
+		: bFromSweep(false)
+	{
+		OverlapInfo.Component = InComponent;
+		OverlapInfo.Item = InBodyIndex;
+	}
+	
+	int32 GetBodyIndex() const { return OverlapInfo.Item;  }
 
-	friend bool operator == (const FOverlapInfo& LHS, const FOverlapInfo& RHS) { return LHS.Component == RHS.Component && LHS.BodyIndex == RHS.BodyIndex; }
+	//This function completely ignores SweepResult information. It seems that places that use this function do not care, but it still seems risky
+	friend bool operator == (const FOverlapInfo& LHS, const FOverlapInfo& RHS) { return LHS.OverlapInfo.Component == RHS.OverlapInfo.Component && LHS.OverlapInfo.Item == RHS.OverlapInfo.Item; }
+	bool bFromSweep;
 
-	/** Overlapping component */
-	TWeakObjectPtr<class UPrimitiveComponent> Component;
-	/** BodyIndex of the component that is overlapping */
-	int32 BodyIndex;
+	/** Information for both sweep and overlap queries. Different parts are valid depending on bFromSweep*/
+	FHitResult OverlapInfo;
 };
 
 /** Detail mode for scene component rendering. */
@@ -60,6 +70,8 @@ FORCEINLINE EMoveComponentFlags operator|(EMoveComponentFlags Arg1,EMoveComponen
 FORCEINLINE EMoveComponentFlags operator&(EMoveComponentFlags Arg1,EMoveComponentFlags Arg2)	{ return EMoveComponentFlags(uint32(Arg1) & uint32(Arg2)); }
 FORCEINLINE void operator&=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest & Arg); }
 FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest | Arg); }
+
+DECLARE_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*);
 
 
 /** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */
@@ -175,8 +187,8 @@ private:
 	UFUNCTION()
 	void OnRep_Visibility(bool OldValue);
 
-	virtual void PreNetReceive() OVERRIDE;
-	virtual void PostNetReceive() OVERRIDE;
+	virtual void PreNetReceive() override;
+	virtual void PostNetReceive() override;
 
 public:
 
@@ -429,15 +441,15 @@ public:
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) OVERRIDE FINAL;
-	virtual void DestroyComponent() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
+	virtual void DestroyComponent() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End ActorComponent interface
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostInterpChange(UProperty* PropertyThatChanged) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 protected:
@@ -452,6 +464,7 @@ protected:
 private:
 
 	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false);
+	void UpdateComponentToWorldWithParent(USceneComponent * Parent, bool bSkipPhysicsMove);
 
 
 public:
@@ -613,15 +626,17 @@ public:
 #if WITH_EDITOR
 	/** Called when this component is moved in the editor */
 	virtual void PostEditComponentMove(bool bFinished) {}
-	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+	virtual bool CanEditChange( const UProperty* Property ) const override;
 
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
 #endif // WITH_EDITOR
 
 protected:
 
-	/** Calculate the new ComponentToWorld transform for this component */
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const;
+	/** Calculate the new ComponentToWorld transform for this component.
+		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
+		If Parent is not passed in we use the component's AttachParent*/
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const;
 
 	
 public:
@@ -735,6 +750,8 @@ class ENGINE_API FScopedMovementUpdate : private FNoncopyable
 {
 public:
 	
+	typedef TArray<struct FHitResult, TInlineAllocator<2>> TBlockingHitArray;
+
 	FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates );
 	~FScopedMovementUpdate();
 
@@ -759,6 +776,12 @@ public:
 	/** Returns the list of overlaps at the end location, or null if the list is invalid. */
 	const TArray<struct FOverlapInfo>* GetOverlapsAtEnd() const;
 
+	/** Add blocking hit that will get processed once the move is committed. This is intended for use only by SceneComponent and its derived classes. */
+	void AppendBlockingHit(const FHitResult& Hit);
+	
+	/** Returns the list of pending blocking hits, which will be used for notifications once the move is committed. */
+	const TBlockingHitArray& GetPendingBlockingHits() const;
+
 private:
 
 	/** Notify this scope that the given inner scope completed its update (ie is going out of scope). Only occurs for deferred updates. */
@@ -777,8 +800,13 @@ private:
 	uint32 bDeferUpdates:1;
 	uint32 bHasValidOverlapsAtEnd:1;
 	FTransform InitialTransform;
+	FVector InitialRelativeLocation;
+	FRotator InitialRelativeRotation;
+	FVector InitialRelativeScale;
+
 	TArray<struct FOverlapInfo> PendingOverlaps;
 	TArray<struct FOverlapInfo> OverlapsAtEnd;
+	TBlockingHitArray BlockingHits;
 
 	friend class USceneComponent;
 };
@@ -804,4 +832,14 @@ FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPending
 FORCEINLINE const TArray<struct FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd() const
 {
 	return bHasValidOverlapsAtEnd ? &OverlapsAtEnd : NULL;
+}
+
+FORCEINLINE const FScopedMovementUpdate::TBlockingHitArray& FScopedMovementUpdate::GetPendingBlockingHits() const
+{
+	return BlockingHits;
+}
+
+FORCEINLINE void FScopedMovementUpdate::AppendBlockingHit(const FHitResult& Hit)
+{
+	BlockingHits.Add(Hit);
 }

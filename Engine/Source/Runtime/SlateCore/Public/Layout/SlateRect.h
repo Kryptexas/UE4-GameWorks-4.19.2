@@ -37,7 +37,7 @@ public:
 
 	bool IsValid() const
 	{
-		return Left >= 0 && Right >= 0 && Bottom >=0 && Top >= 0;
+		return !(Left == -1 && Right == -1 && Bottom == -1 && Top == -1) && Right >= Left && Bottom >= Top;
 	}
 
 

@@ -4,6 +4,7 @@
  * Base VehicleSim for the 4W PhysX vehicle class
  */
 #pragma once
+#include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "WheeledVehicleMovementComponent4W.generated.h"
 
 UENUM()
@@ -169,22 +170,22 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	float AckermannAccuracy;
 
 
-	virtual void Serialize(FArchive & Ar) OVERRIDE;
-	virtual void ComputeConstants() OVERRIDE;
+	virtual void Serialize(FArchive & Ar) override;
+	virtual void ComputeConstants() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	/** Allocate and setup the PhysX vehicle */
-	virtual void SetupVehicle() OVERRIDE;
+	virtual void SetupVehicle() override;
 
-	virtual void UpdateSimulation(float DeltaTime) OVERRIDE;
+	virtual void UpdateSimulation(float DeltaTime) override;
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 	/** update simulation data: engine */
 	void UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup);

@@ -6,6 +6,9 @@
 
 #pragma once
 
+#if WITH_ENGINE
+#include "StaticMeshResources.h"
+#endif // WITH_ENGINE
 
 /**
  * Template for Linux target platforms
@@ -40,9 +43,9 @@ public:
 
 	// Begin ITargetPlatform interface
 
-	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE {}
+	virtual void EnableDeviceCheck(bool OnOff) override {}
 
-	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE
+	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override
 	{
 		// TODO: ping all the machines in a local segment and/or try to connect to port 22 of those that respond
 		OutDevices.Reset();
@@ -52,17 +55,17 @@ public:
 		}
 	}
 
-	virtual ECompressionFlags GetBaseCompressionMethod( ) const OVERRIDE
+	virtual ECompressionFlags GetBaseCompressionMethod( ) const override
 	{
 		return COMPRESS_ZLIB;
 	}
 
-	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const OVERRIDE
+	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const override
 	{
 		return true;
 	}
 
-	virtual ITargetDevicePtr GetDefaultDevice( ) const OVERRIDE
+	virtual ITargetDevicePtr GetDefaultDevice( ) const override
 	{
 		if (LocalDevice.IsValid())
 		{
@@ -72,7 +75,7 @@ public:
 		return nullptr;
 	}
 
-	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) OVERRIDE
+	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) override
 	{
 		if (LocalDevice.IsValid() && (DeviceId == LocalDevice->GetId()))
 		{
@@ -83,27 +86,12 @@ public:
 		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
 	}
 
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE
-	{
-		switch (IconType)
-		{
-		case ETargetPlatformIcons::Normal:
-			return FString(TEXT("Launcher/Linux/Platform_Linux_24x"));
-
-		case ETargetPlatformIcons::Large:
-		case ETargetPlatformIcons::XLarge:
-			return FString(TEXT("Launcher/Linux/Platform_Linux_128x"));
-		}
-
-		return FString();
-	}
-
-	virtual bool IsRunningPlatform( ) const OVERRIDE
+	virtual bool IsRunningPlatform( ) const override
 	{
 		return false;
 	}
 
-	bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const OVERRIDE
+	bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
 	{
 		if (Feature == ETargetPlatformFeatures::UserCredentials || Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -114,7 +102,7 @@ public:
 	}
 
 #if WITH_ENGINE
-	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override
 	{
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
@@ -127,17 +115,17 @@ public:
 		}
 	}
 
-	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
 		GetAllPossibleShaderFormats( OutFormats );
 	}
 
-	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const OVERRIDE
+	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
 	}
 
-	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override
 	{
 		if (!IS_DEDICATED_SERVER)
 		{
@@ -146,12 +134,12 @@ public:
 		}
 	}
 
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const OVERRIDE
+	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override
 	{
 		return TextureLODSettings;
 	}
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const OVERRIDE
+	virtual FName GetWaveFormat( class USoundWave* Wave ) const override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 
@@ -160,13 +148,13 @@ public:
 #endif //WITH_ENGINE
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
-	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) OVERRIDE
+	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
 		return DeviceDiscoveredEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
-	virtual FOnTargetDeviceLost& OnDeviceLost( ) OVERRIDE
+	virtual FOnTargetDeviceLost& OnDeviceLost( ) override
 	{
 		return DeviceLostEvent;
 	}

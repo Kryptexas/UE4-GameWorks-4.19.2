@@ -27,6 +27,10 @@ private:
 	UPROPERTY()
 	bool bLegacyGeneratedClassIsAuthoritative;
 
+	/** Blueprint Guid */
+	UPROPERTY()
+	FGuid BlueprintGuid;
+
 public:
 	void SetLegacyGeneratedClassIsAuthoritative()
 	{
@@ -38,8 +42,23 @@ public:
 		return bLegacyGeneratedClassIsAuthoritative;
 	}
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	/** Gets asset registry tags */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+
+	/** Generates a new blueprint Guid, used when creating new blueprints */
+	void GenerateNewGuid()
+	{
+		BlueprintGuid = FGuid::NewGuid();
+	}
+
+	/** Gets the Blueprint Guid */
+	const FGuid& GetBlueprintGuid() const { return BlueprintGuid; }
+
+private:
+	
+	/** Generates a new deterministic guid based on blueprint properties */
+	void GenerateDeterministicGuid();
+
 };

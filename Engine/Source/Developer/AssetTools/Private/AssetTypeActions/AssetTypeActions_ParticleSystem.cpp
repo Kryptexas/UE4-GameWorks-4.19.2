@@ -3,6 +3,7 @@
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/Cascade/Public/CascadeModule.h"
+#include "Particles/ParticleEmitter.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

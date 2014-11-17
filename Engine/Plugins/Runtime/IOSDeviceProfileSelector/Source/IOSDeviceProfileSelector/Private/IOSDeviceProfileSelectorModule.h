@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IOSDeviceProfileSelectorModule.h: Declares the FIOSDeviceProfileSelectorModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -16,13 +12,13 @@ class FIOSDeviceProfileSelectorModule
 public:
 
 	// Begin IDeviceProfileSelectorModule interface
-	virtual const FString GetRuntimeDeviceProfileName() OVERRIDE;
+	virtual const FString GetRuntimeDeviceProfileName() override;
 	// End IDeviceProfileSelectorModule interface
 
 
 	// Begin IModuleInterface interface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface interface
 
 	

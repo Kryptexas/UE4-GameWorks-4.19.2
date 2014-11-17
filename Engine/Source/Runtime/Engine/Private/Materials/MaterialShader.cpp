@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MaterialShader.h: Material shader definitions.
-=============================================================================*/
-
 #include "EnginePrivate.h"
 #include "DiagnosticTable.h"
-#include "MaterialShader.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShaderType.h"
 #include "ShaderCompiler.h"
 #include "DerivedDataCacheInterface.h"
-#include "MeshMaterialShader.h"
 #include "TargetPlatform.h"
 #include "../ShaderDerivedDataVersion.h"
 
@@ -33,19 +29,20 @@ uint32 FMaterialShaderMap::NextCompilingId = 1;
  */
 TMap<TRefCountPtr<FMaterialShaderMap>, TArray<FMaterial*> > FMaterialShaderMap::ShaderMapsBeingCompiled;
 
-/** Converts an EMaterialLightingModel to a string description. */
-FString GetLightingModelString(EMaterialLightingModel LightingModel)
+/** Converts an EMaterialShadingModel to a string description. */
+FString GetShadingModelString(EMaterialShadingModel ShadingModel)
 {
-	FString LightingModelName;
-	switch(LightingModel)
+	FString ShadingModelName;
+	switch(ShadingModel)
 	{
-		case MLM_DefaultLit: LightingModelName = TEXT("MLM_DefaultLit"); break;
-		case MLM_Unlit: LightingModelName = TEXT("MLM_Unlit"); break;
-		case MLM_Subsurface: LightingModelName = TEXT("MLM_Subsurface"); break;
-		case MLM_PreintegratedSkin: LightingModelName = TEXT("MLM_PreintegratedSkin"); break;
-		default: LightingModelName = TEXT("Unknown"); break;
+		case MSM_Unlit:				ShadingModelName = TEXT("MSM_Unlit"); break;
+		case MSM_DefaultLit:		ShadingModelName = TEXT("MSM_DefaultLit"); break;
+		case MSM_Subsurface:		ShadingModelName = TEXT("MSM_Subsurface"); break;
+		case MSM_PreintegratedSkin:	ShadingModelName = TEXT("MSM_PreintegratedSkin"); break;
+		case MSM_ClearCoat:			ShadingModelName = TEXT("MSM_ClearCoat"); break;
+		default: ShadingModelName = TEXT("Unknown"); break;
 	}
-	return LightingModelName;
+	return ShadingModelName;
 }
 
 /** Converts an EBlendMode to a string description. */
@@ -76,12 +73,17 @@ void UpdateMaterialShaderCompilingStats(const FMaterial* Material)
 		default: INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumTransparentMaterialShaders,1); break;
 	}
 
-	switch(Material->GetLightingModel())
+	switch(Material->GetShadingModel())
 	{
-		case MLM_Subsurface: 
-		case MLM_PreintegratedSkin: 
-		case MLM_DefaultLit: INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1); break;
-		case MLM_Unlit: INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumUnlitMaterialShaders,1); break;
+		case MSM_Unlit:
+			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumUnlitMaterialShaders,1);
+			break;
+		case MSM_DefaultLit:
+		case MSM_Subsurface:
+		case MSM_PreintegratedSkin:
+		case MSM_ClearCoat:
+			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1);
+			break;
 		default: break;
 	};
 
@@ -746,7 +748,7 @@ FString GetMaterialShaderMapKeyString(const FMaterialShaderMapId& ShaderMapId, E
 {
 	FName Format = LegacyShaderPlatformToShaderFormat(Platform);
 	FString ShaderMapKeyString = Format.ToString() + TEXT("_") + FString(FString::FromInt(GetTargetPlatformManagerRef().ShaderFormatVersion(Format))) + TEXT("_");
-	ShaderMapAppendKeyString(ShaderMapKeyString);
+	ShaderMapAppendKeyString(Platform, ShaderMapKeyString);
 	ShaderMapId.AppendKeyString(ShaderMapKeyString);
 	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("MATSM"), MATERIALSHADERMAP_DERIVEDDATA_VER, *ShaderMapKeyString);
 }

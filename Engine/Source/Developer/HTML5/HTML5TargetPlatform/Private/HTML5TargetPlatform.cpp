@@ -60,20 +60,13 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 	return NULL;
 }
 
-
-FString FHTML5TargetPlatform::GetIconPath( ETargetPlatformIcons::IconType IconType ) const
+bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
-	switch (IconType)
-	{
-	case ETargetPlatformIcons::Normal:
-		return FString(TEXT("Launcher/HTML5/Platform_HTML5_24x"));
-
-	case ETargetPlatformIcons::Large:
-	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/HTML5/Platform_HTML5_128x"));
-	}
-
-	return FString();
+	bool bHTML5SDKInstalled = false; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+	TCHAR BaseSDKPath[256];
+	FPlatformMisc::GetEnvironmentVariable(TEXT("EMSCRIPTEN"), BaseSDKPath, ARRAY_COUNT(BaseSDKPath));
+	bHTML5SDKInstalled = FString(BaseSDKPath).Len() > 0;
+	return bHTML5SDKInstalled;
 }
 
 
@@ -119,6 +112,7 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	static FName NameBGRA8(TEXT("BGRA8"));
 	static FName NameG8(TEXT("G8"));
 	static FName NameRGBA16F(TEXT("RGBA16F"));
+	static FName NameRGBA8(TEXT("RGBA8"));
 
 	bool bNoCompression = Texture->CompressionNone				// Code wants the texture uncompressed.
 		|| (HasEditorOnlyData() && Texture->DeferCompression)	// The user wishes to defer compression, this is ok for the Editor only.
@@ -168,7 +162,7 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	}
 	else if (Texture->CompressionSettings == TC_VectorDisplacementmap)
 	{
-		TextureFormatName = NameBGRA8;
+		TextureFormatName = NameRGBA8;
 	}
 	else if (Texture->CompressionSettings == TC_Grayscale)
 	{

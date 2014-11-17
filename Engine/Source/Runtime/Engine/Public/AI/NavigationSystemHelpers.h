@@ -4,6 +4,15 @@
 
 #include "AI/Navigation/NavLinkDefinition.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxTriangleMesh;
+	class PxConvexMesh;
+	class PxHeightField;
+}
+#endif // WITH_PHYSX
+
 struct FNavigableGeometryExport
 {
 	virtual ~FNavigableGeometryExport() {}

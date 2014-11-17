@@ -59,7 +59,7 @@ public:
 	void SetMontage(class UAnimMontage * InMontage);
 
 	// SWidget interface
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	void Update();
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPv4Subnet.h: Declares the FIPv4Subnet class.
-=============================================================================*/
-
 #pragma once
 
 

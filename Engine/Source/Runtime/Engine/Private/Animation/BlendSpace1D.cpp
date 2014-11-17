@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
+#include "Animation/BlendSpace1D.h"
 
 UBlendSpace1D::UBlendSpace1D(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

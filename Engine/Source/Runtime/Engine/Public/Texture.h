@@ -7,6 +7,9 @@
 =============================================================================*/
 
 #include "Engine/TextureDefines.h"
+#include "UnrealClient.h"
+
+class UTexture2D;
 
 /** Maximum number of slices in texture source art. */
 #define MAX_TEXTURE_SOURCE_SLICES 6
@@ -163,7 +166,7 @@ struct FTexture2DMipMap
 	}
 
 	/** Serialization. */
-	void Serialize(FArchive& Ar, UObject* Owner, int32 MipIndex);
+	ENGINE_API void Serialize(FArchive& Ar, UObject* Owner, int32 MipIndex);
 
 #if WITH_EDITORONLY_DATA
 	/** Key if stored in the derived data cache. */
@@ -183,8 +186,6 @@ struct FTexture2DMipMap
 class FTextureResource : public FTexture
 {
 public:
-
-	FRenderCommandFence ReleaseFence;
 
 	FTextureResource()
 	{}
@@ -222,11 +223,11 @@ public:
 	/**
 	 * Called when the resource is initialized. This is only called by the rendering thread.
 	 */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	/**
 	 * Called when the resource is released. This is only called by the rendering thread.
 	 */
-	virtual void ReleaseRHI();
+	virtual void ReleaseRHI() override;
 
 	/** Returns the width of the texture in pixels. */
 	virtual uint32 GetSizeX() const;
@@ -403,13 +404,13 @@ public:
 	virtual uint32 GetSizeY() const;
 
 	/** Called when the resource is initialized. This is only called by the rendering thread. */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/** Called when the resource is released. This is only called by the rendering thread. */
-	virtual void ReleaseRHI();
+	virtual void ReleaseRHI() override;
 
 	/** Returns the Texture2DRHI, which can be used for locking/unlocking the mips. */
-	FTexture2DRHIRef GetTexture2DRHI();
+	ENGINE_API FTexture2DRHIRef GetTexture2DRHI();
 
 private:
 	/** The owner of this resource. */
@@ -499,7 +500,7 @@ public:
 	/**
 	* Called when the resource is initialized. This is only called by the rendering thread.
 	*/
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/** Returns the width of the texture in pixels. */
 	virtual uint32 GetSizeX() const
@@ -682,7 +683,7 @@ public:
 	 * Resources that need to initialize after a D3D device reset must implement this function.
 	 * This is only called by the rendering thread.
 	 */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases the dynamic RHI resource and/or RHI render target resources used by this resource.
@@ -690,14 +691,14 @@ public:
 	 * Resources that need to release before a D3D device reset must implement this function.
 	 * This is only called by the rendering thread.
 	 */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 	// FDeferredClearResource interface
 
 	/**
 	 * Clear contents of the render target
 	 */
-	virtual void UpdateResource();
+	virtual void UpdateResource() override;
 
 	// FRenderTarget interface.
 	virtual FIntPoint GetSizeXY() const;
@@ -755,7 +756,7 @@ public:
 	 * Resources that need to initialize after a D3D device reset must implement this function.
 	 * This is only called by the rendering thread.
 	 */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases the dynamic RHI resource and/or RHI render target resources used by this resource.
@@ -763,13 +764,13 @@ public:
 	 * Resources that need to release before a D3D device reset must implement this function.
 	 * This is only called by the rendering thread.
 	 */
-	virtual void ReleaseDynamicRHI();	
+	virtual void ReleaseDynamicRHI() override;
 
 	/**
 	 * Clear contents of the render target. Clears each face of the cube
 	 * This is only called by the rendering thread.
 	 */
-	virtual void UpdateResource();
+	virtual void UpdateResource() override;
 
 	// FRenderTarget interface.
 

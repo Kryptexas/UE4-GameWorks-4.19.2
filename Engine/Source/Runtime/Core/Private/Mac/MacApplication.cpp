@@ -14,6 +14,22 @@
 
 FMacApplication* MacApplication = NULL;
 
+#if WITH_EDITOR
+typedef int32 (*MTContactCallbackFunction)(int32, void*, int32, double, int32);
+extern "C" CFMutableArrayRef MTDeviceCreateList(void);
+extern "C" void MTRegisterContactFrameCallback(void*, MTContactCallbackFunction);
+extern "C" void MTDeviceStart(void*, int);
+
+static int MTContactCallback(int32 Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame)
+{
+	if (MacApplication)
+	{
+		MacApplication->SetIsUsingTrackpad(NumFingers > 0);
+	}
+	return 1;
+}
+#endif
+
 FMacApplication* FMacApplication::CreateMacApplication()
 {
 	MacApplication = new FMacApplication();
@@ -44,7 +60,16 @@ FMacApplication::FMacApplication()
 {
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
-	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){AddPendingEvent(Event);}];
+	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){ ProcessEvent(Event); }];
+
+#if WITH_EDITOR
+	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
+	for (id Device in MultiTouchDevices)
+	{
+		MTRegisterContactFrameCallback((void*)Device, MTContactCallback);
+		MTDeviceStart((void*)Device, 0);
+	}
+#endif
 
 	TextInputMethodSystem = MakeShareable( new FMacTextInputMethodSystem );
 	if(!TextInputMethodSystem->Initialize())
@@ -111,12 +136,6 @@ void FMacApplication::PumpMessages( const float TimeDelta )
 	FPlatformMisc::PumpMessages( true );
 }
 
-void FMacApplication::AddPendingEvent( NSEvent* Event )
-{
-	SCOPED_AUTORELEASE_POOL;
-	PendingEvents.Add( [Event retain] );
-}
-
 void FMacApplication::OnWindowDraggingFinished()
 {
 	if( DraggedWindow )
@@ -172,21 +191,6 @@ bool FMacApplication::IsWindowMovable(FSlateCocoaWindow* Win, bool* OutMovableBy
 		}
 	}
 	return true;
-}
-
-void FMacApplication::ProcessDeferredEvents( const float TimeDelta )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	// Processing some events may result in adding more events and calling this function recursively. To avoid problems,
-	// we make a local copy of pending events and empty the global one.
-	TArray< NSEvent* > Events( PendingEvents );
-	PendingEvents.Empty();
-	for( int32 Index = 0; Index < Events.Num(); Index++ )
-	{
-		ProcessEvent( Events[Index] );
-		[Events[Index] release];
-	}
 }
 
 void FMacApplication::HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
@@ -314,6 +318,12 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 					// Clamp to the current screen and avoid the menu bar and dock to prevent popups and other
 					// assorted potential for mouse abuse.
 					NSRect VisibleFrame = [screen visibleFrame];
+					// Avoid the menu bar & dock disclosure borders at the top & bottom of fullscreen windows
+					if(CurrentEventWindow->GetWindowMode() != EWindowMode::Windowed)
+					{
+						VisibleFrame.origin.y += 5;
+						VisibleFrame.size.height -= 10;
+					}
 					NSRect FullFrame = [screen frame];
 					VisibleFrame.origin.y = (FullFrame.origin.y+FullFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
 					
@@ -430,15 +440,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		
 				NSEventPhase Phase = [Event phase];
 				
-				if( Phase == NSEventPhaseNone || Phase == NSEventPhaseEnded || Phase == NSEventPhaseCancelled )
-				{
-					bUsingTrackpad = false;
-				}
-				else
-				{
-					bUsingTrackpad = true;
-				}
-				
 				if ([Event momentumPhase] != NSEventPhaseNone || [Event phase] != NSEventPhaseNone)
 				{
 					bool bInverted = [Event isDirectionInvertedFromDevice];
@@ -495,7 +496,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 	
 		case NSEventTypeBeginGesture:
 		{
-			bUsingTrackpad = true;
             if( CurrentEventWindow.IsValid() )
 			{
 				MessageHandler->OnBeginGesture();
@@ -509,7 +509,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			{
 				MessageHandler->OnEndGesture();
             }
-			bUsingTrackpad = false;
 #if WITH_EDITOR
 			LastGestureUsed = EGestureEvent::None;
 #endif
@@ -649,7 +648,7 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 							Window = ParentWindow;
 							break;
 						}
-						ParentWindow = [Window parentWindow];
+						ParentWindow = [ParentWindow parentWindow];
 					}
 				}
 				
@@ -1147,7 +1146,7 @@ void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 
 void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 {
-	checkAtCompileTime(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
+	static_assert(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> GestureAttributes;
 	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));

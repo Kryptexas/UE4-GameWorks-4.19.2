@@ -3,6 +3,8 @@
 #include "WorldBrowserPrivatePCH.h"
 #include "SourceControlWindows.h"
 #include "AssetToolsModule.h"
+#include "EditorSupportDelegates.h"
+#include "Matinee/MatineeActor.h"
 
 #include "LevelCollectionModel.h"
 
@@ -21,11 +23,14 @@ FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>
 	, bCanExecuteSCCOpenForAdd(false)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCC(false)
+	, bSelectionHasChanged(true)
 {
 }
 
 FLevelCollectionModel::~FLevelCollectionModel()
 {
+	SaveSettings();
+	
 	Filters->OnChanged().RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
@@ -36,6 +41,8 @@ FLevelCollectionModel::~FLevelCollectionModel()
 
 void FLevelCollectionModel::Initialize()
 {
+	LoadSettings();
+	
 	CurrentWorld = Editor->GetEditorWorldContext().World();
 
 	Filters->OnChanged().AddSP(this, &FLevelCollectionModel::OnFilterChanged);
@@ -44,7 +51,9 @@ void FLevelCollectionModel::Initialize()
 	FEditorSupportDelegates::RedrawAllViewports.AddSP(this, &FLevelCollectionModel::OnRedrawAllViewports);
 	Editor->OnLevelActorAdded().AddSP( this, &FLevelCollectionModel::OnLevelActorAdded);
 	Editor->OnLevelActorDeleted().AddSP( this, &FLevelCollectionModel::OnLevelActorDeleted);
-	
+	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionModel::OnActorSelectionChanged);
+	SelectionChanged.AddSP(this, &FLevelCollectionModel::OnActorOrLevelSelectionChanged);
+
 	PopulateLevelsList();
 }
 
@@ -66,7 +75,7 @@ void FLevelCollectionModel::BindCommands()
 	
 	ActionList.MapAction(Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MoveActorsToSelected_Executed),
-		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsSelectedLevelEditable));
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsValidMoveActorsToLevel));
 		
 	ActionList.MapAction(Commands.World_SaveSelectedLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SaveSelectedLevels_Executed),
@@ -181,9 +190,6 @@ void FLevelCollectionModel::PopulateLevelsList()
 	AllLevelsMap.Empty();
 
 	OnLevelsCollectionChanged();
-	
-	UpdateAllLevels();
-	PopulateFilteredLevelsList();
 }
 
 void FLevelCollectionModel::PopulateFilteredLevelsList()
@@ -234,24 +240,19 @@ void FLevelCollectionModel::Tick( float DeltaTime )
 		{
 			LevelModel->UpdateSimulationStatus(nullptr);
 		}
-		
-		// Traverse streaming levels in all inner worlds and update simulation status for corresponding level models  
-		for (ULevel* Level : GetSimulationWorld()->GetLevels())
+
+		// Traverse streaming levels and update simulation status for corresponding level models
+		for (ULevelStreaming* StreamingLevel : GetSimulationWorld()->StreamingLevels)
 		{
-			UWorld* InnerWorld = CastChecked<UWorld>(Level->GetOuter());
-			
-			for (ULevelStreaming* StreamingLevel : InnerWorld->StreamingLevels)
-			{
-				// Rebuild the original NonPrefixedPackageName so we can find it
-				const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
-				const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
-						+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
+			// Rebuild the original NonPrefixedPackageName so we can find it
+			const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
+			const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
+					+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
 								
-				TSharedPtr<FLevelModel> LevelModel = FindLevelModel(FName(*NonPrefixedPackageName));
-				if (LevelModel.IsValid())
-				{
-					LevelModel->UpdateSimulationStatus(StreamingLevel);
-				}
+			TSharedPtr<FLevelModel> LevelModel = FindLevelModel(FName(*NonPrefixedPackageName));
+			if (LevelModel.IsValid())
+			{
+				LevelModel->UpdateSimulationStatus(StreamingLevel);
 			}
 		}
 	}
@@ -305,23 +306,28 @@ void FLevelCollectionModel::RemoveFilter(const TSharedRef<LevelFilter>& InFilter
 	OnFilterChanged();
 }
 
+bool FLevelCollectionModel::IsFilterActive() const
+{
+	return (AllLevelsList.Num() != FilteredLevelsList.Num());
+}
+
 void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
 {
 	// Clear selection flag from currently selected levels
-	for (auto It = SelectedLevelsList.CreateIterator(); It; ++It)
+	for (auto LevelModel : SelectedLevelsList)
 	{
-		(*It)->SetLevelSelectionFlag(false);
+		LevelModel->SetLevelSelectionFlag(false);
 	}
 	
 	SelectedLevelsList.Empty(); 
 	
 	// Set selection flag to selected levels	
-	for (auto It = InList.CreateConstIterator(); It; ++It)
+	for (auto LevelModel : InList)
 	{
-		if (PassesAllFilters(*It))
+		if (LevelModel.IsValid() && PassesAllFilters(LevelModel))
 		{
-			(*It)->SetLevelSelectionFlag(true);
-			SelectedLevelsList.Add(*It);
+			LevelModel->SetLevelSelectionFlag(true);
+			SelectedLevelsList.Add(LevelModel);
 		}
 	}
 
@@ -518,20 +524,20 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 	}
 
 	// If matinee is opened, and if it belongs to the level being removed, close it
-	if (GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
+	if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
 	{
 		TArray<ULevel*> LevelsToRemove = GetLevelObjectList(InLevelList);
 		
-		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 
 		if (InterpEditMode && InterpEditMode->MatineeActor && LevelsToRemove.Contains(InterpEditMode->MatineeActor->GetLevel()))
 		{
-			GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+			GLevelEditorModeTools().ActivateDefaultMode();
 		}
 	}
-	else if(GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+	else if(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
 	{
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	
@@ -616,7 +622,7 @@ TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 
 bool FLevelCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
 {
-	if (Filters->PassesAllFilters(Item))
+	if (Item->IsPersistent() || Filters->PassesAllFilters(Item))
 	{
 		return true;
 	}
@@ -692,9 +698,9 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	}
 }
 
-FVector FLevelCollectionModel::GetObserverPosition() const
+FMatrix FLevelCollectionModel::GetObserverViewMatrix() const
 {
-	return FVector::ZeroVector;
+	return FMatrix::Identity;
 }
 
 bool FLevelCollectionModel::CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const
@@ -906,6 +912,21 @@ bool FLevelCollectionModel::GetDisplayPathsState() const
 void FLevelCollectionModel::SetDisplayPathsState(bool InDisplayPaths)
 {
 	bDisplayPaths = InDisplayPaths;
+
+	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
+	{
+		(*It)->UpdateDisplayName();
+	}
+}
+
+bool FLevelCollectionModel::GetDisplayActorsCountState() const
+{
+	return bDisplayActorsCount;
+}
+
+void FLevelCollectionModel::SetDisplayActorsCountState(bool InDisplayActorsCount)
+{
+	bDisplayActorsCount = InDisplayActorsCount;
 
 	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
 	{
@@ -1209,7 +1230,7 @@ FLevelModelList FLevelCollectionModel::GetLevelsHierarchy(const FLevelModelList&
 {
 	struct FHierarchyCollector : public FLevelModelVisitor
 	{
-		virtual void Visit(FLevelModel& Item) OVERRIDE
+		virtual void Visit(FLevelModel& Item) override
 		{
 			ResultList.AddUnique(Item.AsShared());
 		}
@@ -1264,6 +1285,30 @@ FBox FLevelCollectionModel::GetVisibleLevelsBoundingBox(const FLevelModelList& I
 const TSharedRef<const FUICommandList> FLevelCollectionModel::GetCommandList() const
 {
 	return CommandList;
+}
+
+const FString ConfigIniSection = TEXT("WorldBrowser");
+
+void FLevelCollectionModel::LoadSettings()
+{
+	// Display paths
+	bool bDisplayPathsSetting = false;
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayPaths"), bDisplayPathsSetting, GEditorUserSettingsIni);
+	SetDisplayPathsState(bDisplayPathsSetting);
+
+	// Display actors count
+	bool bDisplayActorsCountSetting = false;
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), bDisplayActorsCountSetting, GEditorUserSettingsIni);
+	SetDisplayActorsCountState(bDisplayActorsCountSetting);
+}
+	
+void FLevelCollectionModel::SaveSettings()
+{
+	// Display paths
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayPaths"), GetDisplayPathsState(), GEditorUserSettingsIni);
+
+	// Display actors count
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), GetDisplayActorsCountState(), GEditorUserSettingsIni);
 }
 
 void FLevelCollectionModel::RefreshBrowser_Executed()
@@ -1465,7 +1510,7 @@ void FLevelCollectionModel::ExpandSelectedItems_Executed()
 {
 	struct FExpandLevelVisitor : public FLevelModelVisitor
 	{
-		virtual void Visit(FLevelModel& Item) OVERRIDE { Item.SetLevelExpansionFlag(true); }
+		virtual void Visit(FLevelModel& Item) override { Item.SetLevelExpansionFlag(true); }
 	} Expander;
 	
 	for (TSharedPtr<FLevelModel> LevelModel: SelectedLevelsList)
@@ -1540,6 +1585,9 @@ void FLevelCollectionModel::FillSourceControlMenu(FMenuBuilder& InMenuBuilder)
 
 void FLevelCollectionModel::OnLevelsCollectionChanged()
 {
+	UpdateAllLevels();
+	PopulateFilteredLevelsList();
+
 	BroadcastCollectionChanged();
 }
 
@@ -1600,6 +1648,13 @@ void FLevelCollectionModel::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InW
 
 void FLevelCollectionModel::OnRedrawAllViewports()
 {
+	if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
+	{
+		// Editor seems like still compiling shaders, do not request tiles redraw until all shaders complation is finished
+		// Basically redraw only on last event
+		return;
+	}
+	
 	RequestRedrawAllLevels();
 }
 
@@ -1669,6 +1724,55 @@ void FLevelCollectionModel::CacheCanExecuteSourceControlVars() const
 			break;
 		}
 	}
+}
+
+bool FLevelCollectionModel::IsValidMoveActorsToLevel() 
+{
+	static bool bCachedIsValidActorMoveResult = false;
+	if (bSelectionHasChanged)
+	{
+		bSelectionHasChanged = false;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		// you cant move no selected actors to a level
+		if (SelectedActors->Num() == 0)
+		{
+			bCachedIsValidActorMoveResult = false;
+			return false;
+		}
+
+		// are any of the selected actors in the selected levels
+		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		{
+			AActor* Actor = CastChecked<AActor>(*Iter);
+			if (Actor != nullptr)
+			{
+				const ULevel* ActorsLevel = Actor->GetLevel();
+				for (TSharedPtr<FLevelModel> SelectedLevel : SelectedLevelsList)
+				{
+					if (SelectedLevel->GetLevelObject() == ActorsLevel)
+					{
+						bCachedIsValidActorMoveResult = false;
+						return false;
+					}
+				}
+			}
+		}
+
+		bCachedIsValidActorMoveResult = true;
+	}
+			
+	// if non of the selected actors are in the level, just check the level is unlocked
+	return bCachedIsValidActorMoveResult && AreAllSelectedLevelsEditableAndVisible();
+}
+
+void FLevelCollectionModel::OnActorSelectionChanged(UObject* obj)
+{
+	OnActorOrLevelSelectionChanged();
+}
+
+void FLevelCollectionModel::OnActorOrLevelSelectionChanged()
+{
+	bSelectionHasChanged = true;
 }
 
 

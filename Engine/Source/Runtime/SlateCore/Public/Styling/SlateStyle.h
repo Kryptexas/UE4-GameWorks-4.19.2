@@ -19,8 +19,8 @@ public:
 	/** Destructor. */
 	virtual ~FSlateStyleSet();
 
-	virtual const FName& GetStyleSetName() const OVERRIDE;
-	virtual void GetResources(TArray< const FSlateBrush* >& OutResources) const OVERRIDE;
+	virtual const FName& GetStyleSetName() const override;
+	virtual void GetResources(TArray< const FSlateBrush* >& OutResources) const override;
 	virtual void SetContentRoot(const FString& InContentRootDir);
 	virtual FString RootToContentDir(const ANSICHAR* RelativePath, const TCHAR* Extension);
 	virtual FString RootToContentDir(const WIDECHAR* RelativePath, const TCHAR* Extension);
@@ -38,23 +38,23 @@ public:
 	virtual FString RootToCoreContentDir(const WIDECHAR* RelativePath);
 	virtual FString RootToCoreContentDir(const FString& RelativePath);
 
-	virtual float GetFloat(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual FVector2D GetVector(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual const FLinearColor& GetColor(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual const FSlateColor GetSlateColor(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual const FMargin& GetMargin(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
+	virtual float GetFloat(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual FVector2D GetVector(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual const FLinearColor& GetColor(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual const FSlateColor GetSlateColor(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual const FMargin& GetMargin(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
 
-	virtual const FSlateBrush* GetBrush(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = nullptr, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const OVERRIDE;
+	virtual const FSlateBrush* GetBrush(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = nullptr, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const override;
 
-	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier = nullptr) OVERRIDE;
-	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const ANSICHAR* Specifier, UTexture2D* TextureResource, const FName TextureName) OVERRIDE;
-	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, UTexture2D* TextureResource, const FName TextureName) OVERRIDE;
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier = nullptr) override;
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const ANSICHAR* Specifier, UTexture2D* TextureResource, const FName TextureName) override;
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, UTexture2D* TextureResource, const FName TextureName) override;
 
-	virtual FSlateBrush* GetDefaultBrush() const OVERRIDE;
+	virtual FSlateBrush* GetDefaultBrush() const override;
 
-	virtual const FSlateSound& GetSound(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
-	virtual FSlateFontInfo GetFontStyle(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const OVERRIDE;
+	virtual const FSlateSound& GetSound(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
+	virtual FSlateFontInfo GetFontStyle(const FName PropertyName, const ANSICHAR* Specifier = nullptr) const override;
 
 public:
 
@@ -192,9 +192,9 @@ public:
 
 protected:
 
-	virtual const FSlateWidgetStyle* GetWidgetStyleInternal(const FName DesiredTypeName, const FName StyleName) const OVERRIDE;
+	virtual const FSlateWidgetStyle* GetWidgetStyleInternal(const FName DesiredTypeName, const FName StyleName) const override;
 
-	virtual void Log(ISlateStyle::EStyleMessageSeverity Severity, const FText& Message) const OVERRIDE;
+	virtual void Log(ISlateStyle::EStyleMessageSeverity Severity, const FText& Message) const override;
 
 	virtual void LogUnusedBrushResources();
 

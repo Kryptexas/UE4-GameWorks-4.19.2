@@ -36,6 +36,23 @@ namespace EButtonClickMethod
 }
 
 UENUM()
+namespace EButtonTouchMethod
+{
+	/** Ways in which touch interactions trigger a "Clicked" event. */
+	enum Type
+	{
+		/** Most buttons behave this way. */
+		DownAndUp,
+
+		/**
+		 * Inside a list, buttons can only be clicked with precise tap.
+		 * Moving the pointer will scroll the list.
+		 */
+		PreciseTap
+	};
+}
+
+UENUM()
 namespace EFocusMoveDirection
 {
 	/**

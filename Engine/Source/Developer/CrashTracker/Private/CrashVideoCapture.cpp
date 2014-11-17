@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CrashVideoCapture.cpp: Implements the FCrashVideoCapture class.
-=============================================================================*/
-
 #include "CrashTrackerPrivatePCH.h"
 
 
@@ -28,6 +24,10 @@ namespace CrashTrackerConstants
 
 	static const float SecondsToKeyPressFade = 2.f;
 	static const int32 MaxKeyPressesInBuffer = 15;
+
+	// Crash tracker video stream is scaled down by 50% to reduce the about of system resources used while
+	// working in the editor during capture
+	static const float ScreenScaling = 0.5f;
 }
 
 
@@ -298,7 +298,7 @@ void FCrashVideoCapture::Update(float DeltaSeconds)
 					AsyncTask->StartBackgroundTask();
 				}
 				
-				CaptureSlateRenderer->UnmapCrashTrackerBuffer();
+				CaptureSlateRenderer->UnmapVirtualScreenBuffer();
 			}
 			
 			++CurrentFrameCaptureIndex;
@@ -307,8 +307,12 @@ void FCrashVideoCapture::Update(float DeltaSeconds)
 				CurrentFrameCaptureIndex = 0;
 			}
 
-			CaptureSlateRenderer->CopyWindowsToDrawBuffer(StrippedKeyPressBuffer);
-			CaptureSlateRenderer->MapCrashTrackerBuffer(&Buffer[CurrentBufferIndex], &Width, &Height);
+			const bool bPrimaryWorkAreaOnly = false;	// We want all monitors captured for crash reporting
+			const FIntRect VirtualScreen = CaptureSlateRenderer->SetupVirtualScreenBuffer(bPrimaryWorkAreaOnly, CrashTrackerConstants::ScreenScaling, nullptr);
+			Width = VirtualScreen.Width();
+			Height = VirtualScreen.Height();
+			CaptureSlateRenderer->CopyWindowsToVirtualScreenBuffer(StrippedKeyPressBuffer);
+			CaptureSlateRenderer->MapVirtualScreenBuffer(&Buffer[CurrentBufferIndex]);
 
 			CurrentBufferIndex = (CurrentBufferIndex + 1) % 2;
 		}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Messaging.h: Messaging module public header file.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,7 +11,7 @@
 #include "TaskGraphInterfaces.h"
 
 
-/* Public Interfaces
+/* Public Includes
  *****************************************************************************/
 
 #include "IMessageAttachment.h"
@@ -37,7 +33,7 @@
 #include "IMessagingModule.h"
 
 
-/* Public Common
+/* Common
  *****************************************************************************/
 
 #include "FileMessageAttachment.h"

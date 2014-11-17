@@ -5,18 +5,21 @@
 
 #include "SoundDefinitions.h"
 
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
 
 class FStaticMeshComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return UStaticMesh::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(InComponent))
 		{
@@ -32,7 +35,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(InComponent))
 		{
@@ -48,12 +51,12 @@ public:
 class FDestructableMeshComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return UDestructibleMesh::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UDestructibleComponent* DestMeshComp = Cast<UDestructibleComponent>(InComponent))
 		{
@@ -69,7 +72,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UDestructibleComponent* DestMeshComp = Cast<UDestructibleComponent>(InComponent))
 		{
@@ -85,12 +88,12 @@ public:
 class FSkeletalMeshComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return USkeletalMesh::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (USkeletalMeshComponent* SkeletalComp = Cast<USkeletalMeshComponent>(InComponent))
 		{
@@ -106,7 +109,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(InComponent))
 		{
@@ -122,12 +125,12 @@ public:
 class FParticleSystemComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return UParticleSystem::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(InComponent))
 		{
@@ -143,7 +146,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(InComponent))
 		{
@@ -159,12 +162,12 @@ public:
 class FAudioComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return USoundBase::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UAudioComponent* AudioComp = Cast<UAudioComponent>(InComponent))
 		{
@@ -180,7 +183,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UAudioComponent* AudioComp = Cast<UAudioComponent>(InComponent))
 		{
@@ -196,12 +199,12 @@ public:
 class FChildActorComponentBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return UBlueprint::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(InComponent))
 		{
@@ -216,7 +219,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(InComponent))
 		{

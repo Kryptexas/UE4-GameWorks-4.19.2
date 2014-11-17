@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BTService.h"
 
 UBehaviorTreeGraphNode_Service::UBehaviorTreeGraphNode_Service(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -20,13 +21,12 @@ FText UBehaviorTreeGraphNode_Service::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	{
 		return FText::FromString(Service->GetNodeName());
 	}
+	else if (!ClassData.GetClassName().IsEmpty())
+	{
+		return NSLOCTEXT("BehaviorTreeGraphNode", "UnknownNodeClass", "Can't load class!");
+	}
 
 	return Super::GetNodeTitle(TitleType);
-}
-
-FName UBehaviorTreeGraphNode_Service::GetNameIcon() const
-{
-	return FName("BTEditor.Graph.BTNode.Service.Icon");
 }
 
 bool UBehaviorTreeGraphNode_Service::IsSubNode() const

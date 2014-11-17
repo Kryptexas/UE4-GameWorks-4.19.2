@@ -32,9 +32,9 @@ public:
 	void SetOnDropNotification( FSimpleDelegate InOnDropNotification ) { OnDropNotification = InOnDropNotification; }
 
 	/** FDragDropOperation interface */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE;
-	virtual void OnDragged( const class FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
+	virtual void OnDragged( const class FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) override;
 
 public:
 

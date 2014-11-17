@@ -1,10 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Interfaces/Interface_AssetUserData.h"
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */
 #define MAX_STATIC_MESH_LODS 4
+
+// Forward declarations
+class UFoliageType_InstancedStaticMesh;
 
 /*-----------------------------------------------------------------------------
 	Legacy mesh optimization settings.
@@ -88,70 +93,70 @@ struct FStaticMeshOptimizationSettings
 	uint8 ShadingImportance;
 
 
-		FStaticMeshOptimizationSettings()
-		: ReductionMethod( OT_MaxDeviation )
-		, NumOfTrianglesPercentage( 1.0f )
-		, MaxDeviationPercentage( 0.0f )
-		, WeldingThreshold( 0.1f )
-		, bRecalcNormals( true )
-		, NormalsThreshold( 60.0f )
-		, SilhouetteImportance( IL_Normal )
-		, TextureImportance( IL_Normal )
-		, ShadingImportance( IL_Normal )
-		{
-		}
+	FStaticMeshOptimizationSettings()
+	: ReductionMethod( OT_MaxDeviation )
+	, NumOfTrianglesPercentage( 1.0f )
+	, MaxDeviationPercentage( 0.0f )
+	, WeldingThreshold( 0.1f )
+	, bRecalcNormals( true )
+	, NormalsThreshold( 60.0f )
+	, SilhouetteImportance( IL_Normal )
+	, TextureImportance( IL_Normal )
+	, ShadingImportance( IL_Normal )
+	{
+	}
 
-		/** Serialization for FStaticMeshOptimizationSettings. */
-		inline friend FArchive& operator<<( FArchive& Ar, FStaticMeshOptimizationSettings& Settings )
+	/** Serialization for FStaticMeshOptimizationSettings. */
+	inline friend FArchive& operator<<( FArchive& Ar, FStaticMeshOptimizationSettings& Settings )
+	{
+		if( Ar.UE4Ver() < VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS )
 		{
-			if( Ar.UE4Ver() < VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS )
+			Ar << Settings.MaxDeviationPercentage;
+
+			//Remap Importance Settings
+			Ar << Settings.SilhouetteImportance;
+			Ar << Settings.TextureImportance;
+
+			//IL_Normal was previously the first enum value. We add the new index of IL_Normal to correctly offset the old values.
+			Settings.SilhouetteImportance += IL_Normal;
+			Settings.TextureImportance += IL_Normal;
+
+			//Remap NormalMode enum value to new threshold variable.
+			uint8 NormalMode;
+			Ar << NormalMode;
+
+			const float NormalThresholdTable[] =
 			{
-				Ar << Settings.MaxDeviationPercentage;
+				60.0f, // Recompute
+				80.0f, // Recompute (Smooth)
+				45.0f  // Recompute (Hard)
+			};
 
-				//Remap Importance Settings
-				Ar << Settings.SilhouetteImportance;
-				Ar << Settings.TextureImportance;
-
-				//IL_Normal was previously the first enum value. We add the new index of IL_Normal to correctly offset the old values.
-				Settings.SilhouetteImportance += IL_Normal;
-				Settings.TextureImportance += IL_Normal;
-
-				//Remap NormalMode enum value to new threshold variable.
-				uint8 NormalMode;
-				Ar << NormalMode;
-
-				const float NormalThresholdTable[] =
-				{
-					60.0f, // Recompute
-					80.0f, // Recompute (Smooth)
-					45.0f  // Recompute (Hard)
-				};
-
-				if( NormalMode == NM_PreserveSmoothingGroups)
-				{
-					Settings.bRecalcNormals = false;
-				}
-				else
-				{
-					Settings.bRecalcNormals = true;
-					Settings.NormalsThreshold = NormalThresholdTable[NormalMode];
-				}
+			if( NormalMode == NM_PreserveSmoothingGroups)
+			{
+				Settings.bRecalcNormals = false;
 			}
 			else
 			{
-				Ar << Settings.ReductionMethod;
+				Settings.bRecalcNormals = true;
+				Settings.NormalsThreshold = NormalThresholdTable[NormalMode];
+			}
+		}
+		else
+		{
+			Ar << Settings.ReductionMethod;
 			Ar << Settings.MaxDeviationPercentage;
-				Ar << Settings.NumOfTrianglesPercentage;
+			Ar << Settings.NumOfTrianglesPercentage;
 			Ar << Settings.SilhouetteImportance;
 			Ar << Settings.TextureImportance;
-				Ar << Settings.ShadingImportance;
-				Ar << Settings.bRecalcNormals;
-				Ar << Settings.NormalsThreshold;
-				Ar << Settings.WeldingThreshold;
-			}
-
-			return Ar;
+			Ar << Settings.ShadingImportance;
+			Ar << Settings.bRecalcNormals;
+			Ar << Settings.NormalsThreshold;
+			Ar << Settings.WeldingThreshold;
 		}
+
+		return Ar;
+	}
 
 };
 
@@ -398,7 +403,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 #if WITH_EDITORONLY_DATA
 	/** Default settings when using this mesh for instanced foliage */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
-	class UInstancedFoliageSettings* FoliageDefaultSettings;
+	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	/** Importing data and options used for this mesh */
 	UPROPERTY(VisibleAnywhere, editinline, Category=ImportSettings)
@@ -413,7 +418,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The stored camera position to use as a default for the static mesh editor */
@@ -463,16 +468,16 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual void Serialize(FArchive& Ar) OVERRIDE;
-	ENGINE_API virtual void PostLoad() OVERRIDE;
-	ENGINE_API virtual void BeginDestroy() OVERRIDE;
-	ENGINE_API virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
-	ENGINE_API virtual FString GetDesc() OVERRIDE;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	ENGINE_API virtual FString GetDesc() override;
+	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -545,20 +550,20 @@ public:
 	ENGINE_API static void CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >& InOutAssetsWithMissingUVSets, TArray< FString >& InOutAssetsWithBadUVSets, TArray< FString >& InOutAssetsWithValidUVSets, bool bInVerbose = true );
 
 	// Begin Interface_CollisionDataProvider Interface
-	ENGINE_API virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
-	ENGINE_API virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
-	virtual bool WantsNegXTriMesh() OVERRIDE
+	ENGINE_API virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	ENGINE_API virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
+	virtual bool WantsNegXTriMesh() override
 	{
 		return true;
 	}
-	ENGINE_API virtual void GetMeshId(FString& OutMeshId) OVERRIDE;
+	ENGINE_API virtual void GetMeshId(FString& OutMeshId) override;
 	// End Interface_CollisionDataProvider Interface
 
 	// Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
-	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const OVERRIDE;
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	// End IInterface_AssetUserData Interface
 
 

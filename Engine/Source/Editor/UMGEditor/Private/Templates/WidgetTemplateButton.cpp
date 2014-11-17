@@ -15,17 +15,17 @@ FWidgetTemplateButton::FWidgetTemplateButton()
 
 FText FWidgetTemplateButton::GetCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Preset", "Preset");
 }
 
-USlateWrapperComponent* FWidgetTemplateButton::Create(UWidgetTree* Tree)
+UWidget* FWidgetTemplateButton::Create(UWidgetTree* Tree)
 {
-	UButtonComponent* Button = Tree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-	UTextBlockComponent* Text = Tree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
+	UButton* Button = Tree->ConstructWidget<UButton>(UButton::StaticClass());
+	UTextBlock* Text = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 
 	Text->Text = FText::FromString(TEXT("Button Text"));
 	Text->Font.Size = 10;
-	Button->SetContent(Text);
+	Button->AddChild(Text);
 
 	return Button;
 }

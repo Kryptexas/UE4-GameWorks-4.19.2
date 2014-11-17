@@ -8,6 +8,9 @@
 #include "Factories.h"
 #include "BSPOps.h"
 
+#include "Foliage/InstancedFoliageActor.h"
+#include "Foliage/FoliageType.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorObject, Log, All);
 
 /*
@@ -229,29 +232,29 @@ static const TCHAR* ImportProperties(
 				ImportedBrush = 1;
 			}
 		}
-		else if( GetBEGIN(&Str,TEXT("Foliage")) )
+		else if (GetBEGIN(&Str, TEXT("Foliage")))
 		{
 			UStaticMesh* StaticMesh;
 			FName ComponentName;
 			if (SubobjectRoot &&
-				ParseObject<UStaticMesh>( Str, TEXT("StaticMesh="), StaticMesh, ANY_PACKAGE ) &&
+				ParseObject<UStaticMesh>(Str, TEXT("StaticMesh="), StaticMesh, ANY_PACKAGE) &&
 				FParse::Value(Str, TEXT("Component="), ComponentName) )
 			{
-				UActorComponent* ActorComponent = FindObjectFast<UActorComponent>(SubobjectRoot, ComponentName);
+				UPrimitiveComponent* ActorComponent = FindObjectFast<UPrimitiveComponent>(SubobjectRoot, ComponentName);
 
 				if (ActorComponent)
 				{
 					ULevel* ComponentLevel = CastChecked<ULevel>(SubobjectRoot->GetOuter());
 					if (ComponentLevel->IsCurrentLevel())
 					{
-						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(ComponentLevel->OwningWorld);
+						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(ComponentLevel->OwningWorld);
 
 						const TCHAR* StrPtr;
 						FString TextLine;
-						while( FParse::Line( &SourceText, TextLine ) )
+						while (FParse::Line(&SourceText, TextLine))
 						{
 							StrPtr = *TextLine;
-							if( GetEND(&StrPtr,TEXT("Foliage")) )
+							if (GetEND(&StrPtr, TEXT("Foliage")))
 							{
 								break;
 							}
@@ -259,33 +262,34 @@ static const TCHAR* ImportProperties(
 							// Parse the instance properties
 							FFoliageInstance Instance;
 							FString Temp;
-							if( FParse::Value(StrPtr,TEXT("Location="), Temp, false) )
+							if (FParse::Value(StrPtr, TEXT("Location="), Temp, false))
 							{
 								GetFVECTOR(*Temp, Instance.Location);
 							}
-							if( FParse::Value(StrPtr,TEXT("Rotation="), Temp, false) )
+							if (FParse::Value(StrPtr, TEXT("Rotation="), Temp, false))
 							{
-								GetFROTATOR(*Temp, Instance.Rotation,1);
+								GetFROTATOR(*Temp, Instance.Rotation, 1);
 							}
-							if( FParse::Value(StrPtr,TEXT("PreAlignRotation="), Temp, false) )
+							if (FParse::Value(StrPtr, TEXT("PreAlignRotation="), Temp, false))
 							{
-								GetFROTATOR(*Temp, Instance.PreAlignRotation,1);
+								GetFROTATOR(*Temp, Instance.PreAlignRotation, 1);
 							}
-							if( FParse::Value(StrPtr,TEXT("DrawScale3D="), Temp, false) )
+							if (FParse::Value(StrPtr, TEXT("DrawScale3D="), Temp, false))
 							{
 								GetFVECTOR(*Temp, Instance.DrawScale3D);
 							}
-							FParse::Value(StrPtr,TEXT("Flags="),Instance.Flags);
+							FParse::Value(StrPtr, TEXT("Flags="), Instance.Flags);
 
 							Instance.Base = ActorComponent;
 
 							// Add the instance
-							FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
-							if( MeshInfo == NULL ) 
+							FFoliageMeshInfo* MeshInfo;
+							UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh, &MeshInfo);
+							if (Type == NULL)
 							{
-								MeshInfo = IFA->AddMesh(StaticMesh);
+								MeshInfo = IFA->AddMesh(StaticMesh, &Type);
 							}
-							MeshInfo->AddInstance(IFA, StaticMesh, Instance);
+							MeshInfo->AddInstance(IFA, Type, Instance);
 						}
 					}
 				}
@@ -435,7 +439,7 @@ static const TCHAR* ImportProperties(
 				}
 
 				// Propagate object flags to the sub object.
-				const EObjectFlags NewFlags = SubobjectOuter->GetMaskedFlags( RF_PropagateToSubObjects );
+				EObjectFlags NewFlags = SubobjectOuter->GetMaskedFlags( RF_PropagateToSubObjects );
 
 				if (!Archetype) // no override and we didn't find one from the class table, so go with the base
 				{
@@ -474,6 +478,16 @@ static const TCHAR* ImportProperties(
 				}
 				else
 				{
+					// We do not want to set RF_Transactional for construction script created components, so we have to monkey with things here
+					if (NewFlags & RF_Transactional)
+					{
+						UActorComponent* Component = Cast<UActorComponent>(ComponentTemplate);
+						if (Component && Component->bCreatedByConstructionScript)
+						{
+							NewFlags &= ~RF_Transactional;
+						}
+					}
+
 					// Make sure desired flags are set - existing object could be pending kill
 					ComponentTemplate->ClearFlags(RF_AllFlags);
 					ComponentTemplate->SetFlags(NewFlags);

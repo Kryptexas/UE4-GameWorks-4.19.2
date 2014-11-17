@@ -6,7 +6,7 @@
 FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 
 // TODO support ExcludeRect
-void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
+void DrawClearQuadMRT(FRHICommandListImmediate& RHICmdList, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	// Set new states
 	FBlendStateRHIParamRef BlendStateRHI;
@@ -23,7 +23,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 			? TStaticBlendState<>::GetRHI()
 			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
 	}
-		
+	
 	const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
 		(bClearDepth && bClearStencil)
 			? TStaticDepthStencilState<
@@ -43,9 +43,9 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 						>::GetRHI()
 					: TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
-	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
-	RHISetBlendState( BlendStateRHI );
-	RHISetDepthStencilState( DepthStencilStateRHI );
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(BlendStateRHI);
+	RHICmdList.SetDepthStencilState(DepthStencilStateRHI);
 
 	// Set the new shaders
 	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
@@ -95,7 +95,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 		PixelShader = *MRTPixelShader;
 	}
 
-	SetGlobalBoundShaderState(GClearMRTBoundShaderState[FMath::Max(NumClearColors - 1, 0)], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, GClearMRTBoundShaderState[FMath::Max(NumClearColors - 1, 0)], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
 	FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 	FMemory::MemZero(ShaderClearColors);
 
@@ -104,7 +104,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 		ShaderClearColors[i] = ClearColorArray[i];
 	}
 
-	SetShaderValueArray(PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
+	SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
 		
 	{
 		// Draw a fullscreen quad
@@ -139,7 +139,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 			Vertices[8] = OuterVertices[0];
 			Vertices[9] = InnerVertices[0];
 
-			RHIDrawPrimitiveUP(PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]) );
+			DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]) );
 		}
 		else*/
 		{
@@ -149,7 +149,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 			Vertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
 			Vertices[2].Set( -1.0f, -1.0f, Depth, 1.0f );
 			Vertices[3].Set(  1.0f, -1.0f, Depth, 1.0f );
-			RHIDrawPrimitiveUP(PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]) );
+			DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 		}
 	}
 }

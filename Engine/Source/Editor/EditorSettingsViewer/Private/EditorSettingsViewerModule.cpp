@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorSettingsViewerModule.cpp: Implements the FEditorSettingsViewerModule class.
-=============================================================================*/
-
 #include "EditorSettingsViewerPrivatePCH.h"
-#include "InternationalizationSettingsModel.h"
+#include "Tests/AutomationTestSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -21,9 +18,9 @@ class FEditorSettingsViewerModule
 {
 public:
 
-	// Begin ISettingsViewer interface
+	// ISettingsViewer interface
 
-	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) OVERRIDE
+	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) override
 	{
 		FGlobalTabmanager::Get()->InvokeTab(EditorSettingsTabName);
 		ISettingsEditorModelPtr SettingsEditorModel = SettingsEditorModelPtr.Pin();
@@ -39,13 +36,11 @@ public:
 		}
 	}
 
-	// End ISettingsViewer interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 
@@ -63,18 +58,16 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hide);
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(EditorSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 
@@ -83,14 +76,6 @@ protected:
 	 */
 	void RegisterGeneralSettings( ISettingsModule& SettingsModule )
 	{
-		// general settings
-		FSettingsSectionDelegates UserSettingsDelegates;
-		{
-			UserSettingsDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleUserSettingsExport);
-			UserSettingsDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleUserSettingsImport);
-			UserSettingsDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleUserSettingsResetDefaults);
-		}
-
 		// automation settings
 		SettingsModule.RegisterSettings("Editor", "General", "AutomationTest",
 			LOCTEXT("AutomationSettingsName", "Automation"),
@@ -103,8 +88,7 @@ protected:
 		InputBindingDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsExport);
 		InputBindingDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsImport);
 		InputBindingDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
-
-		InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
+		InputBindingDelegates.SaveDelegate = FOnSettingsSectionSave::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsSave);
 
 		FSettingsSectionDelegates RegionAndLanguageDelegates;
 		RegionAndLanguageDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
@@ -119,6 +103,7 @@ protected:
 			RegionAndLanguageDelegates
 		);
 
+		TWeakPtr<SWidget> InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
 		SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
 			LOCTEXT("InputBindingsSettingsName", "Keyboard Shortcuts"),
 			LOCTEXT("InputBindingsSettingsDescription", "Configure keyboard shortcuts to quickly invoke operations."),
@@ -130,8 +115,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "LoadingSaving",
 			LOCTEXT("LoadingSavingSettingsName", "Loading & Saving"),
 			LOCTEXT("LoadingSavingSettingsDescription", "Change how the Editor loads and saves files."),
-			GetMutableDefault<UEditorLoadingSavingSettings>(),
-			UserSettingsDelegates
+			GetMutableDefault<UEditorLoadingSavingSettings>()
 		);
 
 		// @todo thomass: proper settings support for source control module
@@ -141,8 +125,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),
 			LOCTEXT("UserSettingsDescription", "Customize the behavior, look and feel of the editor."),
-			&GEditor->AccessEditorUserSettings(),
-			UserSettingsDelegates
+			&GEditor->AccessEditorUserSettings()
 		);
 
 		// experimental features
@@ -198,6 +181,13 @@ protected:
 			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsDescription", "Change the behavior of the Destructable Mesh Editor."),
 			GetMutableDefault<UDestructableMeshEditorSettings>()
 		);*/
+
+		// graph editors
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "GraphEditor",
+			LOCTEXT("ContentEditorsGraphEditorSettingsName", "Graph Editors"),
+			LOCTEXT("ContentEditorsGraphEditorSettingsDescription", "Customize Anim, Blueprint and Material Editor."),
+			GetMutableDefault<UGraphEditorSettings>()
+		);
 	}
 
 	/**
@@ -226,6 +216,7 @@ protected:
 			// other tools
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "ContentBrowser");
 //			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "DestructableMeshEditor");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "GraphEditor");
 		}
 	}
 
@@ -263,7 +254,7 @@ private:
 	// Show a warning that the editor will require a restart and return its result
 	EAppReturnType::Type ShowRestartWarning(const FText& Title) const
 	{
-		return OpenMsgDlgInt(EAppMsgType::OkCancel, LOCTEXT("ActionRestartMsg", "This action requires the editor to restart; you will be prompted to save any changes. Continue?" ), Title);
+		return OpenMsgDlgInt(EAppMsgType::OkCancel, LOCTEXT("ActionRestartMsg", "Imported settings won't be applied until the editor is restarted. Do you wish to restart now (you will be prompted to save any changes)?" ), Title);
 	}
 
 	// Backup a file
@@ -297,42 +288,6 @@ private:
 			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_Fallback_Notification", "Unsuccessful backup of {SourceFileName} to {BackupFileName}"), Arguments));
 		}
 		EditorErrors.Notify(LOCTEXT("BackupUnsuccessful_Title", "Backup Unsuccessful!"));	
-
-		return false;
-	}
-
-	// Handles exporting the preferences settings to a file.
-	bool HandleUserSettingsExport( const FString& Filename )
-	{
-		FGlobalTabmanager::Get()->SaveAllVisualState();
-		GEditor->SaveEditorUserSettings();
-		return BackupFile(GEditorUserSettingsIni, *Filename);
-	}
-
-	// Handles importing the preferences settings from a file.
-	bool HandleUserSettingsImport( const FString& Filename )
-	{
-		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ImportPreferences_Title", "Import Preferences")))
-		{
-			FUnrealEdMisc::Get().SetConfigRestoreFilename(Filename, GEditorUserSettingsIni);
-			FUnrealEdMisc::Get().RestartEditor(false);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	// Handles resetting the preferences settings to their defaults.
-	bool HandleUserSettingsResetDefaults( )
-	{
-		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ResetPreferences_Title", "Reset Preferences")))
-		{
-			FUnrealEdMisc::Get().ForceDeletePreferences(true);
-			FUnrealEdMisc::Get().RestartEditor(false);
-
-			return true;
-		};
 
 		return false;
 	}
@@ -374,6 +329,17 @@ private:
 		return false;
 	}
 
+	// Handles saving default input bindings.
+	// This only gets called by SSettingsEditor::HandleImportButtonClicked when importing new settings,
+	// and its implementation here is just to flush custom input bindings so that editor shutdown doesn't
+	// overwrite the imported settings just copied across.
+	bool HandleInputBindingsSave()
+	{
+		FInputBindingManager::Get().RemoveUserDefinedGestures();
+		GConfig->Flush(false, GEditorKeyBindingsIni);
+		return true;
+	}
+
 	bool HandleRegionAndLanguageExport(const FString& FileName)
 	{
 		FString CultureName = GetMutableDefault<UInternationalizationSettingsModel>()->GetCultureName();
@@ -404,9 +370,6 @@ private:
 	}
 
 private:
-
-	// Holds a pointer to the input binding editor.
-	TWeakPtr<SWidget> InputBindingEditorPanel;
 
 	// Holds a pointer to the settings editor's view model.
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;

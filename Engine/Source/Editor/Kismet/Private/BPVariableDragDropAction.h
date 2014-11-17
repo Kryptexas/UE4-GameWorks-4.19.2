@@ -13,11 +13,11 @@ public:
 
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged();
-	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) OVERRIDE;
-	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) OVERRIDE;
-	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
-	virtual FReply DroppedOnAction(TSharedRef<struct FEdGraphSchemaAction> Action) OVERRIDE;
-	virtual FReply DroppedOnCategory(FString Category) OVERRIDE;
+	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
+	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) override;
+	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
+	virtual FReply DroppedOnAction(TSharedRef<struct FEdGraphSchemaAction> Action) override;
+	virtual FReply DroppedOnCategory(FString Category) override;
 	// End of FGraphEditorDragDropAction
 
 	static TSharedRef<FKismetVariableDragDropAction> New(FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback)

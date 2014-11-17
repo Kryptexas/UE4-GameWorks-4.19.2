@@ -2,12 +2,20 @@
 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundCue.h"
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
 #include "DisplayDebugHelpers.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "AI/Navigation/NavRelevantComponent.h"
+#include "VisualLog.h"
+#include "Animation/AnimInstance.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);
@@ -53,7 +61,6 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	bActorLabelEditable = true;
 	SpriteScale = 1.0f;
 #endif // WITH_EDITORONLY_DATA
-	bWantsInitialize = true;
 	NetCullDistanceSquared = 225000000.0f;
 	NetDriverName = NAME_GameNetDriver;
 	NetDormancy = DORM_Awake;
@@ -1143,6 +1150,23 @@ AActor* AActor::GetOwner() const
 	return Owner; 
 }
 
+bool AActor::HasNetOwner() const
+{
+	if (Owner == NULL)
+	{
+		// all basic AActors are unable to call RPCs without special AActors as their owners (ie APlayerController)
+		return false;
+	}
+
+	// Find the topmost actor in this owner chain
+	AActor* TopOwner = NULL;
+	for (TopOwner = Owner; TopOwner->Owner; TopOwner = TopOwner->Owner)
+	{
+	}
+
+	return TopOwner->HasNetOwner();
+}
+
 void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
 {
 	if(RootComponent && InParent)
@@ -1566,14 +1590,7 @@ FTransform AActor::ActorToWorld() const
 	FTransform Result = FTransform::Identity;
 	if( RootComponent != NULL )
 	{
-		if( !GetRootComponent()->IsRegistered() )
-		{
-			UE_LOG(LogActor, Log, TEXT("AActor::ActorToWorld (%s) called on RootComponent that is not registered"), *GetPathName());
-		}
-		else
-		{
-			Result = GetRootComponent()->ComponentToWorld;
-		}
+		Result = RootComponent->ComponentToWorld;
 	}
 	else
 	{
@@ -2041,14 +2058,36 @@ UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> Compon
 	return FoundComponent;
 }
 
+TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const
+{
+	if (ComponentClass == UActorComponent::StaticClass())
+	{
+		return OwnedComponents;
+	}
+
+	TArray<UActorComponent*> ValidComponents;
+	if (*ComponentClass)
+	{
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (Component && Component->IsA(ComponentClass))
+			{
+				ValidComponents.Add(Component);
+			}
+		}
+	}
+	
+	return ValidComponents;
+}
+
 void AActor::DisableComponentsSimulatePhysics()
 {
 	TArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
-	for (int32 i = 0; i < Components.Num(); i++)
+	for (UPrimitiveComponent* Component : Components)
 	{
-		Components[i]->SetSimulatePhysics(false);
+		Component->SetSimulatePhysics(false);
 	}
 }
 
@@ -2199,7 +2238,9 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// After this, we can assume all components are created and assembled.
 	if (!bDeferConstruction)
 	{
-		OnConstruction( FTransform(SpawnRotation, SpawnLocation) );
+		// Preserve original root component scale
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation, SpawnScale), NULL );
 		PostActorConstruction();
 	}
 }
@@ -2464,6 +2505,15 @@ void AActor::SetActorScale3D(const FVector& NewScale3D)
 }
 
 
+FVector AActor::GetActorScale3D() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->GetComponentScale();
+	}
+	return FVector(1,1,1);
+}
+
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
@@ -2544,6 +2594,15 @@ void AActor::SetActorRelativeScale3D(FVector NewRelativeScale)
 
 		RootComponent->SetRelativeScale3D(NewRelativeScale);
 	}
+}
+
+FVector AActor::GetActorRelativeScale3D() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->RelativeScale3D;
+	}
+	return FVector(1,1,1);
 }
 
 void AActor::SetActorHiddenInGame( bool bNewHidden )
@@ -2674,12 +2733,12 @@ AWorldSettings * AActor::GetWorldSettings() const
 	return GetWorld()->GetWorldSettings();
 }
 
-void AActor::PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
+void AActor::PlaySoundOnActor(USoundCue* InSoundCue, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
 {
 	UGameplayStatics::PlaySoundAtLocation( this, InSoundCue, GetActorLocation(), VolumeMultiplier, PitchMultiplier );
 }
 
-void AActor::PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
+void AActor::PlaySoundAtLocation(USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
 {
 	UGameplayStatics::PlaySoundAtLocation( this, InSoundCue, (SoundLocation.IsZero() ? GetActorLocation() : SoundLocation), VolumeMultiplier, PitchMultiplier );
 }
@@ -2844,9 +2903,17 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			UPlayer *ClientPlayer = GetNetOwningPlayer();
 			if (ClientPlayer == NULL)
 			{
-				// No owning player, we must absorb
-				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client NonOwner absorbed %s"), *Function->GetName());
-				return FunctionCallspace::Absorbed;
+				// Check if a player ever owned this (topmost owner is playercontroller or beacon)
+				if (HasNetOwner())
+				{
+					// Network object with no owning player, we must absorb
+					DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client without owner absorbed %s"), *Function->GetName());
+					return FunctionCallspace::Absorbed;
+				}
+				
+				// Role authority object calling a client RPC locally (ie AI owned objects)
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace authority non client owner %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
+				return Callspace;
 			}
 			else if (Cast<ULocalPlayer>(ClientPlayer) != NULL)
 			{
@@ -2970,7 +3037,7 @@ void AActor::RegisterAllComponents()
 
 		//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
 		//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
-		RootComponent->Modify();
+		RootComponent->Modify(false);
 
 		check(GetWorld());
 		RootComponent->RegisterComponentWithWorld(GetWorld());
@@ -2986,7 +3053,7 @@ void AActor::RegisterAllComponents()
 		{
 			//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
 			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
-			Component->Modify();
+			Component->Modify(false);
 
 			check(GetWorld());
 			Component->RegisterComponentWithWorld(GetWorld());
@@ -3047,22 +3114,21 @@ void AActor::MarkComponentsAsPendingKill()
 	{
 		UActorComponent* Component = Components[Index];
 
-			// Modify component so undo/ redo works in the editor.
-			if( GIsEditor )
-			{
-				Component->Modify();
-			}
-			Component->OnComponentDestroyed();
-			Component->MarkPendingKill();
+		// Modify component so undo/ redo works in the editor.
+		if( GIsEditor )
+		{
+			Component->Modify();
 		}
+		Component->OnComponentDestroyed();
+		Component->MarkPendingKill();
 	}
+}
 
 void AActor::ReregisterAllComponents()
 {
 	UnregisterAllComponents();
 	RegisterAllComponents();
 }
-
 
 void AActor::UpdateComponentTransforms()
 {

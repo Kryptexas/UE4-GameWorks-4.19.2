@@ -9,7 +9,7 @@
 #include "ObjectEditorUtils.h"
 
 FObjectPropertyNode::FObjectPropertyNode(void)
-	: FPropertyNode()
+	: FComplexPropertyNode()
 	, BaseClass(NULL)
 {
 }

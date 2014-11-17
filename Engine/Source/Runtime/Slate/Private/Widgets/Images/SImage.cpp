@@ -92,3 +92,13 @@ void SImage::SetColorAndOpacity( FLinearColor InColorAndOpacity )
 {
 	ColorAndOpacity = InColorAndOpacity;
 }
+
+void SImage::SetImage(TAttribute<const FSlateBrush*> InImage)
+{
+	Image = InImage;
+}
+
+void SImage::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
+{
+	OnMouseButtonDownHandler = EventHandler;
+}

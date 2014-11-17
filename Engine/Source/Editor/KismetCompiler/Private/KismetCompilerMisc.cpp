@@ -674,11 +674,18 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		NewProperty = NewNamedObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 
-	if( bIsArrayProperty )
+	if (bIsArrayProperty)
 	{
-		// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
-		NewArrayProperty->Inner = NewProperty;
-		NewProperty = NewArrayProperty;
+		if (NewProperty)
+		{
+			// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
+			NewArrayProperty->Inner = NewProperty;
+			NewProperty = NewArrayProperty;
+		}
+		else
+		{
+			NewArrayProperty->MarkPendingKill();
+		}
 	}
 
 	return NewProperty;
@@ -709,16 +716,15 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		Term->AssociatedVarProperty = BoundProperty;
 		Context.NetMap.Add(Net, Term);
 
-		// Read-only variables and variables in const classes are both const
-		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
-		{
-			Term->bIsConst = true;
-		}
-
 		// Check if the property is a local variable and mark it so
 		if( SearchScope == Context.Function && BoundProperty->GetOuter() == Context.Function)
 		{
 			Term->bIsLocal = true;
+		}
+		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		{
+			// Read-only variables and variables in const classes are both const
+			Term->bIsConst = true;
 		}
 
 		// Resolve the context term
@@ -869,12 +875,12 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, Schema(InSchema)
 	, bIsUbergraph(false)
 	, bCannotBeCalledFromOtherKismet(false)
-	, NetFlags(0)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
+	, NetFlags(0)
 	, SourceEventFromStubGraph(NULL)
 {
 	NetNameMap = new FNetNameMapping();

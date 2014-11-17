@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Runtime/Engine/Classes/Engine/Scene.h"
+#include "Engine/Scene.h"
 #include "CameraTypes.generated.h"
 
 //@TODO: Document

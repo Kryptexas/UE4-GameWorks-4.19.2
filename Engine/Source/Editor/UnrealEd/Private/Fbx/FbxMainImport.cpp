@@ -160,6 +160,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bInvertNormalMap = ImportUI->TextureImportData->bInvertNormalMaps;
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
+	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
 	if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
@@ -647,6 +648,10 @@ bool FFbxImporter::ImportFile(FString Filename)
 	{
 		UE_LOG(LogFbx, Log, TEXT("FBX Scene Loaded Succesfully"));
 		CurPhase = IMPORTED;
+		
+		// Release importer now as it is unneeded and in the failure case is part of CleanUp()
+		Importer->Destroy();
+		Importer = NULL;
 	}
 	else
 	{
@@ -656,9 +661,6 @@ bool FFbxImporter::ImportFile(FString Filename)
 		Result = false;
 		CurPhase = NOTSTARTED;
 	}
-	
-	Importer->Destroy();
-	Importer = NULL;
 	
 	return Result;
 }
@@ -693,17 +695,20 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 			// The imported axis system is unknown for obj files
 			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
 			{
-				FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-				const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
-
-				if( Scene->GetGlobalSettings().GetAxisSystem() != UnrealZUp )
+				if (GetImportOptions()->bConvertScene)
 				{
-					// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
-					// but the conversion to left-handed coordinates is not working properly
+					FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+					const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
 
-					// convert axis to Z-up
-					FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
-					UnrealZUp.ConvertScene(Scene);
+					if(Scene->GetGlobalSettings().GetAxisSystem() != UnrealZUp)
+					{
+						// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
+						// but the conversion to left-handed coordinates is not working properly
+
+						// convert axis to Z-up
+						FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+						UnrealZUp.ConvertScene(Scene);
+					}
 				}
 			}
 

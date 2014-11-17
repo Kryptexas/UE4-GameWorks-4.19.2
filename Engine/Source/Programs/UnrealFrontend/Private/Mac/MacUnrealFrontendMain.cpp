@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MacUnrealFrontendMain.mm: Implements the main entry point for MacOS.
-=============================================================================*/
-
 #include "UnrealFrontendMain.h"
+#include "ExceptionHandling.h"
+#include "RequiredProgramMainCPPInclude.h"
 
 
 static FString GSavedCommandLine;
@@ -22,7 +20,7 @@ static FString GSavedCommandLine;
 //handler for the quit apple event used by the Dock menu
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
-    [self OnQuitRequest:self];
+    [self requestQuit:self];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -63,14 +61,9 @@ static FString GSavedCommandLine;
 	[NSApp terminate: self];
 }
 
-- (IBAction)OnQuitRequest:(id)Sender
+- (IBAction)requestQuit:(id)Sender
 {
 	GIsRequestingExit = true;
-}
-
-- (IBAction)OnShowAboutWindow:(id)Sender
-{
-	[NSApp orderFrontStandardAboutPanel: Sender];
 }
 
 @end
@@ -99,5 +92,9 @@ int main( int argc, char *argv[] )
 		GSavedCommandLine += Argument;
 	}
 
-	return NSApplicationMain(argc, (const char**)argv);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[UE4AppDelegate new]];
+	[NSApp run];
+	return 0;
 }

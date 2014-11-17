@@ -5,8 +5,10 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimMontage.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -704,10 +706,11 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 		// check where this function gets called and see how we calculate BlendTime
 		BlendTime = BlendOut;
 
-		if (OnMontageBlendingOutStarted.IsBound())
+		if (UAnimInstance* Inst = AnimInstance.Get())
 		{
-			OnMontageBlendingOutStarted.Execute(Montage, bInterrupted);
+			Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
 		}
+		OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
 	}
 
 	if (BlendTime == 0.0f)
@@ -779,10 +782,11 @@ void FAnimMontageInstance::Terminate()
 	Montage = NULL;
 
 	// terminating, trigger end
-	if (OnMontageEnded.IsBound())
+	if (UAnimInstance* Inst = AnimInstance.Get())
 	{
-		OnMontageEnded.Execute(OldMontage, bInterrupted);
+		Inst->OnMontageEnded.Broadcast(Montage, bInterrupted);
 	}
+	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
 
 bool FAnimMontageInstance::ChangeNextSection(FName SectionName, FName NextSectionName)
@@ -972,14 +976,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 			RefreshNextPrevSections();
 		}
 #endif
-		// If this Montage has no weight, it should be terminated.
-		if( (Weight <= ZERO_ANIMWEIGHT_THRESH) && (DesiredWeight <= ZERO_ANIMWEIGHT_THRESH) )
-		{
-			// nothing else to do
-			Terminate();
-			return;
-		}
-		
+
 		// if no weight, no reason to update, and if not playing, we don't need to advance
 		// this portion is to advance position
 		// If we just reached zero weight, still tick this frame to fire end of animation events.
@@ -1098,6 +1095,14 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 				}
 			}
 		}
+	}
+
+	// If this Montage has no weight, it should be terminated.
+	if ((Weight <= ZERO_ANIMWEIGHT_THRESH) && (DesiredWeight <= ZERO_ANIMWEIGHT_THRESH))
+	{
+		// nothing else to do
+		Terminate();
+		return;
 	}
 
 	// Update curves based on final position.

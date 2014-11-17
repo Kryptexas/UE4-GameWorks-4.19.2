@@ -8,6 +8,68 @@
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Acceleration/ParticleModuleAcceleration.h"
+#include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
+#include "Particles/Acceleration/ParticleModuleAccelerationConstant.h"
+#include "Particles/Acceleration/ParticleModuleAccelerationDrag.h"
+#include "Particles/Acceleration/ParticleModuleAccelerationDragScaleOverLife.h"
+#include "Particles/Acceleration/ParticleModuleAccelerationOverLifetime.h"
+#include "Particles/Attractor/ParticleModuleAttractorPointGravity.h"
+#include "Particles/Attractor/ParticleModuleAttractorLine.h"
+#include "Particles/Attractor/ParticleModuleAttractorParticle.h"
+#include "Particles/Attractor/ParticleModuleAttractorPoint.h"
+#include "Particles/Attractor/ParticleModuleAttractorPointGravity.h"
+#include "Particles/Collision/ParticleModuleCollisionGPU.h"
+#include "Particles/Kill/ParticleModuleKillBase.h"
+#include "Particles/Kill/ParticleModuleKillBox.h"
+#include "Particles/Kill/ParticleModuleKillHeight.h"
+#include "Particles/Light/ParticleModuleLight_Seeded.h"
+#include "Particles/Lifetime/ParticleModuleLifetime_Seeded.h"
+#include "Particles/Location/ParticleModuleLocation.h"
+#include "Particles/Location/ParticleModuleLocationBase.h"
+#include "Particles/Location/ParticleModuleLocationBoneSocket.h"
+#include "Particles/Location/ParticleModuleLocationDirect.h"
+#include "Particles/Location/ParticleModuleLocationEmitter.h"
+#include "Particles/Location/ParticleModuleLocationEmitterDirect.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveBase.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveCylinder.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveCylinder_Seeded.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveSphere.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveSphere_Seeded.h"
+#include "Particles/Location/ParticleModuleLocationPrimitiveTriangle.h"
+#include "Particles/Location/ParticleModuleLocationSkelVertSurface.h"
+#include "Particles/Location/ParticleModuleLocationWorldOffset.h"
+#include "Particles/Location/ParticleModuleLocationWorldOffset_Seeded.h"
+#include "Particles/Location/ParticleModuleLocation_Seeded.h"
+#include "Particles/Location/ParticleModuleSourceMovement.h"
+#include "Particles/Modules/Location/ParticleModulePivotOffset.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "Particles/Rotation/ParticleModuleRotation.h"
+#include "Particles/Rotation/ParticleModuleRotation_Seeded.h"
+#include "Particles/Rotation/ParticleModuleMeshRotation.h"
+#include "Particles/Rotation/ParticleModuleMeshRotation_Seeded.h"
+#include "Particles/Rotation/ParticleModuleRotationOverLifetime.h"
+#include "Particles/RotationRate/ParticleModuleRotationRate.h"
+#include "Particles/RotationRate/ParticleModuleRotationRateMultiplyLife.h"
+#include "Particles/RotationRate/ParticleModuleRotationRate_Seeded.h"
+#include "Particles/RotationRate/ParticleModuleMeshRotationRate.h"
+#include "Particles/RotationRate/ParticleModuleMeshRotationRate_Seeded.h"
+#include "Particles/RotationRate/ParticleModuleMeshRotationRateMultiplyLife.h"
+#include "Particles/RotationRate/ParticleModuleMeshRotationRateOverLife.h"
+#include "Particles/SubUV/ParticleModuleSubUVMovie.h"
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.
@@ -660,7 +722,15 @@ uint32 UParticleModule::PrepRandomSeedInstancePayload(FParticleEmitterInstance* 
 		// Pick a seed to use and initialize it!!!!
 		if (InRandSeedInfo.RandomSeeds.Num() > 0)
 		{
-			InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[0]);
+			if (InRandSeedInfo.bRandomlySelectSeedArray)
+			{
+				int32 Index = FMath::RandRange(0, InRandSeedInfo.RandomSeeds.Num() - 1);
+				InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[Index]);
+			}
+			else
+			{
+				InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[0]);
+			}
 			return 0;
 		}
 	}
@@ -3018,6 +3088,8 @@ FParticleEmitterInstance* UParticleModuleTypeDataMesh::CreateInstance(UParticleE
 
 	Instance->InitParameters(InEmitterParent, InComponent);
 
+	CreateDistribution();
+
 	return Instance;
 }
 
@@ -3028,6 +3100,30 @@ void UParticleModuleTypeDataMesh::SetToSensibleDefaults(UParticleEmitter* Owner)
 		Mesh = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(),NULL,TEXT("/Engine/EngineMeshes/ParticleCube.ParticleCube"),NULL,LOAD_None,NULL);
 	}
 }
+
+void UParticleModuleTypeDataMesh::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION)
+	{
+		FVector oldOrient(Roll_DEPRECATED, Pitch_DEPRECATED, Yaw_DEPRECATED);
+		CreateDistribution();
+		UDistributionVectorUniform* RPYDistribution = Cast<UDistributionVectorUniform>(RollPitchYawRange.Distribution);
+		RPYDistribution->Min = oldOrient;
+		RPYDistribution->Max = oldOrient;
+		RPYDistribution->bIsDirty = true;
+	}
+}
+
+void UParticleModuleTypeDataMesh::CreateDistribution()
+{
+	if (!RollPitchYawRange.Distribution)
+	{
+		RollPitchYawRange.Distribution = NewNamedObject<UDistributionVectorUniform>(this, TEXT("DistributionRollPitchYaw"));
+	}
+}
+
+
 
 #if WITH_EDITOR
 void UParticleModuleTypeDataMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -3125,8 +3221,10 @@ void UParticleModuleKillBox::Update(FParticleEmitterInstance* Owner, int32 Offse
 {
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 
-	FVector CheckLL = LowerLeftCorner.GetValue(Owner->EmitterTime, Owner->Component);
-	FVector CheckUR = UpperRightCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector LL = LowerLeftCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector UR = UpperRightCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector CheckLL = LL.ComponentMin(UR);
+	FVector CheckUR = UR.ComponentMax(LL);
 	if (bAbsolute == false)
 	{
 		CheckLL += Owner->Component->GetComponentLocation();
@@ -4502,7 +4600,7 @@ FParticleEmitterInstance* UParticleModuleTypeDataGpu::CreateInstance(UParticleEm
 		InComponent->Template != NULL ? *InComponent->Template->GetName() : TEXT("NULL"));
 
 	FParticleEmitterInstance* Instance = NULL;
-	if (CurrentRHISupportsGPUParticles())
+	if (RHISupportsGPUParticles(World->Scene->GetFeatureLevel()))
 	{
 		check( InComponent && InComponent->FXSystem );
 		Instance = InComponent->FXSystem->CreateGPUSpriteEmitterInstance( EmitterInfo );

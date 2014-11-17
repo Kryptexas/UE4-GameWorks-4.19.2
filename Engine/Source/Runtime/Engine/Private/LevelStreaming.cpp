@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/LevelStreamingVolume.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
 	#include "Slate.h"
@@ -46,17 +47,16 @@ ULevelStreaming* FStreamLevelAction::FindAndCacheLevelStreamingObject( const FNa
 	// Search for the level object by name.
 	if( LevelName != NAME_None )
 	{
-		const FString SearchShortName = MakeSafeShortLevelName( LevelName, InWorld );
+		const FString SearchPackageName = MakeSafeLevelName( LevelName, InWorld );
 
-		// Iterate over all streaming level objects in world info to find one with matching name.
-		for( int32 LevelIndex=0; LevelIndex < InWorld->StreamingLevels.Num(); LevelIndex++ )
+		for (ULevelStreaming* LevelStreaming : InWorld->StreamingLevels)
 		{
-			ULevelStreaming* LevelStreamingObject = InWorld->StreamingLevels[LevelIndex];
-			if( LevelStreamingObject
-				&& FPackageName::GetShortName(LevelStreamingObject->PackageName) == SearchShortName)
+			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
+			// Like Saved/Autosaves/PackageName
+			if (LevelStreaming && 
+				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
 			{
-				// If we have an exact match go ahead and return it
-				return LevelStreamingObject;
+				return LevelStreaming;
 			}
 		}
 	}
@@ -65,15 +65,26 @@ ULevelStreaming* FStreamLevelAction::FindAndCacheLevelStreamingObject( const FNa
 }
 
 /**
- * Given a level name, returns a shoftlevel name that will work with Play on Editor or Play on Console
+ * Given a level name, returns a level name that will work with Play on Editor or Play on Console
  *
  * @param	InLevelName		Raw level name (no UEDPIE or UED<console> prefix)
  * @param	InWorld			World in which to check for other instances of the name
  */
-FString FStreamLevelAction::MakeSafeShortLevelName( const FName& InLevelName, UWorld* InWorld )
+FString FStreamLevelAction::MakeSafeLevelName( const FName& InLevelName, UWorld* InWorld )
 {
 	// Special case for PIE, the PackageName gets mangled.
-	return InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InLevelName);
+	if (!InWorld->StreamingLevelsPrefix.IsEmpty())
+	{
+		FString PackageName = InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InLevelName);
+		if (!FPackageName::IsShortPackageName(InLevelName))
+		{
+			PackageName = FPackageName::GetLongPackagePath(InLevelName.ToString()) + TEXT("/") + PackageName;
+		}
+		
+		return PackageName;
+	}
+	
+	return InLevelName.ToString();
 }
 /**
 * Handles "Activated" for single ULevelStreaming object.
@@ -237,37 +248,32 @@ void ULevelStreaming::Serialize( FArchive& Ar )
 	}
 }
 
-int32 ULevelStreaming::GetLODIndex(UWorld* PersistentWorld) const
+FName ULevelStreaming::GetLODPackageName() const
 {
-	check(PersistentWorld);
-	auto Entry = PersistentWorld->StreamingLevelsLOD.Find(PackageName);
-	return Entry ? *Entry : INDEX_NONE;
+	return LODPackageNames.IsValidIndex(LevelLODIndex) ? LODPackageNames[LevelLODIndex] : PackageName;
 }
 
-void ULevelStreaming::SetLODIndex(UWorld* PersistentWorld, int32 LODIndex)
+FName ULevelStreaming::GetLODPackageNameToLoad() const
 {
-	check(PersistentWorld);
-	PersistentWorld->StreamingLevelsLOD.Add(PackageName, LODIndex);
-}
-
-FName ULevelStreaming::GetLODPackageName(UWorld* PersistentWorld) const
-{
-	int32 LODCurrentIdx = GetLODIndex(PersistentWorld);
-	return LODPackageNames.IsValidIndex(LODCurrentIdx) ? LODPackageNames[LODCurrentIdx] : PackageName;
-}
-
-FName ULevelStreaming::GetLODPackageNameToLoad(UWorld* PersistentWorld) const
-{
-	int32 LODCurrentIdx = GetLODIndex(PersistentWorld);
-
-	if (LODPackageNames.IsValidIndex(LODCurrentIdx))
+	if (LODPackageNames.IsValidIndex(LevelLODIndex))
 	{
-		return LODPackageNamesToLoad.IsValidIndex(LODCurrentIdx) ? LODPackageNamesToLoad[LODCurrentIdx] : NAME_None;
+		return LODPackageNamesToLoad.IsValidIndex(LevelLODIndex) ? LODPackageNamesToLoad[LevelLODIndex] : NAME_None;
 	}
 	else
 	{
 		return PackageNameToLoad;
 	}
+}
+
+void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
+{ 
+	// Pending level should be unloaded at this point
+	check(PendingUnloadLevel == nullptr);
+	PendingUnloadLevel = LoadedLevel;
+	LoadedLevel = Level;
+
+	// Cancel unloading for this level, in case it was queued for it
+	FLevelStreamingGCHelper::CancelUnloadRequest(LoadedLevel);
 }
 
 void ULevelStreaming::DiscardPendingUnloadLevel(UWorld* PersistentWorld)
@@ -281,7 +287,8 @@ void ULevelStreaming::DiscardPendingUnloadLevel(UWorld* PersistentWorld)
 
 		if (!PendingUnloadLevel->bIsVisible)
 		{
-			SetPendingUnloadLevel(NULL);
+			FLevelStreamingGCHelper::RequestUnload(PendingUnloadLevel);
+			PendingUnloadLevel = nullptr;
 		}
 	}
 }
@@ -301,8 +308,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	}
 	
 	// Package name we want to load
-	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName(PersistentWorld) : PackageName;
-	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad(PersistentWorld) : PackageNameToLoad;
+	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : PackageName;
+	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad() : PackageNameToLoad;
 
 	// Check if currently loaded level is what we want right now
 	if (LoadedLevel != NULL && 
@@ -325,6 +332,17 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	{
 		// Find world object and use its PersistentLevel pointer.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
+
+		// Check for a redirector. Follow it, if found.
+		if ( !World )
+		{
+			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+			if ( World )
+			{
+				LevelPackage = World->GetOutermost();
+			}
+		}
+
 		if (World != NULL)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -380,11 +398,18 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 		else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
 		{
-			UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
-			for (TObjectIterator<UWorld> It; It; ++It)
+			if ( bAllowLevelLoadRequests )
 			{
-				UWorld *W = *It;
-				UE_LOG(LogLevelStreaming, Warning, TEXT("    Loaded World: %s"), *W->GetPathName() );
+				UE_LOG(LogLevelStreaming, Log, TEXT("World to duplicate for PIE '%s' not found. Attempting load."), *NonPrefixedLevelName);
+			}
+			else
+			{
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
+				for (TObjectIterator<UWorld> It; It; ++It)
+				{
+					UWorld *W = *It;
+					UE_LOG(LogLevelStreaming, Warning, TEXT("    Loaded World: %s"), *W->GetPathName() );
+				}
 			}
 		}
 	}
@@ -417,18 +442,17 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			bHasLoadRequestPending = true;
 			
 			ULevel::StreamedLevelsOwningWorld.Add(DesiredPackageName, PersistentWorld);
+			UWorld::WorldTypePreLoadMap.FindOrAdd(DesiredPackageName) = PersistentWorld->WorldType;
+
 			// Kick off async load request.
 			LoadPackageAsync(*DesiredPackageName.ToString(), 
 				FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), 
 				NULL, NAME_None, *PackageNameToLoadFrom
 				).SetPIEInstanceID(PIEInstanceID);
 
-			// Are we sublevel of a persistent level or a sublevel of a streamed-in level?
-			const bool bInnerLevel = PersistentWorld != GetOuter(); 
-
 			// streamingServer: server loads everything?
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
-			if (bBlockOnLoad || (!bInnerLevel && ShouldBeAlwaysLoaded()))
+			if (bBlockOnLoad || ShouldBeAlwaysLoaded())
 			{
 				// Finish all async loading.
 				FlushAsyncLoading( NAME_None );
@@ -451,42 +475,123 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	
 	if( InLoadedPackage )
 	{
-		UPackage* LevelPackage = CastChecked<UPackage>(InLoadedPackage);
+		UPackage* LevelPackage = InLoadedPackage;
 		
 		// Try to find a UWorld object in the level package.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
-		if( Level )
-		{			
-			check(PendingUnloadLevel == NULL);
-			SetLoadedLevel(Level);
 
-			// Broadcast level loaded event to blueprints
-			OnLevelLoaded.Broadcast();
+		if ( World )
+		{
+			ULevel* Level = World->PersistentLevel;
+			if( Level )
+			{
+				check(PendingUnloadLevel == NULL);
+				SetLoadedLevel(Level);
 
-			// Make sure this level will start to render only when it will be fully added to the world
-			if (LODPackageNames.Num() > 0)
-			{
-				Level->bRequireFullVisibilityToRender = true;
-			}
-			
-			// In the editor levels must be in the levels array regardless of whether they are visible or not
-			if (Level->OwningWorld->WorldType == EWorldType::Editor)
-			{
-				Level->OwningWorld->AddLevel(Level);
-#if WITH_EDITOR
-				// We should also at this point, apply the level's editor transform
-				if (!Level->bAlreadyMovedActors)
+				// Broadcast level loaded event to blueprints
+				OnLevelLoaded.Broadcast();
+
+				// Make sure this level will start to render only when it will be fully added to the world
+				if (LODPackageNames.Num() > 0)
 				{
-					FLevelUtils::ApplyEditorTransform(this, false);
-					Level->bAlreadyMovedActors = true;
+					Level->bRequireFullVisibilityToRender = true;
+					// LOD levels should not be visible on server
+					Level->bClientOnlyVisible = LODPackageNames.Contains(InLoadedPackage->GetFName());
 				}
+			
+				// In the editor levels must be in the levels array regardless of whether they are visible or not
+				if (ensure(Level->OwningWorld) && Level->OwningWorld->WorldType == EWorldType::Editor)
+				{
+					Level->OwningWorld->AddLevel(Level);
+#if WITH_EDITOR
+					// We should also at this point, apply the level's editor transform
+					if (!Level->bAlreadyMovedActors)
+					{
+						FLevelUtils::ApplyEditorTransform(this, false);
+						Level->bAlreadyMovedActors = true;
+					}
 #endif // WITH_EDITOR
+				}
+			}
+			else
+			{
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
 			}
 		}
 		else
 		{
-			UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
+			// There could have been a redirector in the package. Attempt to follow it.
+			UObjectRedirector* WorldRedirector = nullptr;
+			UWorld* DestinationWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage, &WorldRedirector);
+			if (DestinationWorld)
+			{
+				// To follow the world redirector for level streaming...
+				// 1) Update all globals that refer to the redirector package by name
+				// 2) Update the PackageNameToLoad to refer to the new package location
+				// 3) If the package name to load was the same as the destination package name...
+				//         ... update the package name to the new package and let the next RequestLevel try this process again.
+				//    If the package name to load was different...
+				//         ... it means the specified package name was explicit and we will just load from another file.
+
+				FName OldDesiredPackageName = FName(*InPackageName);
+				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
+				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
+				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
+
+				// Try again with the destination package to load.
+				// IMPORTANT: check this BEFORE changing PackageNameToLoad, otherwise you wont know if the package name was supposed to be different.
+				const bool bLoadingIntoDifferentPackage = (PackageName != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
+
+				// ... now set PackageNameToLoad
+				PackageNameToLoad = DestinationWorld->GetOutermost()->GetFName();
+
+				if ( PackageNameToLoad != OldDesiredPackageName )
+				{
+					EWorldType::Type* OldPackageWorldType = UWorld::WorldTypePreLoadMap.Find(OldDesiredPackageName);
+					if ( OldPackageWorldType )
+					{
+						UWorld::WorldTypePreLoadMap.FindOrAdd(PackageNameToLoad) = *OldPackageWorldType;
+						UWorld::WorldTypePreLoadMap.Remove(OldDesiredPackageName);
+					}
+				}
+
+				// Now determine if we are loading into the package explicitly or if it is okay to just load the other package.
+				if ( bLoadingIntoDifferentPackage )
+				{
+					// Loading into a new custom package explicitly. Load the destination world directly into the package.
+					// Detach the linker to load from a new file into the same package.
+					ULinkerLoad* PackageLinker = ULinkerLoad::FindExistingLinkerForPackage(LevelPackage);
+					if (PackageLinker)
+					{
+						PackageLinker->Detach(false);
+					}
+
+					// Make sure the redirector is not in the way of the new world.
+					if (WorldRedirector->GetFName() == DestinationWorld->GetFName())
+					{
+						// Pass NULL as the name to make a new unique name and GetTransientPackage() for the outer to remove it from the package.
+						WorldRedirector->Rename(NULL, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+					}
+				}
+				else
+				{
+					// Loading the requested package normally. Fix up the destination world then update the requested package to the destination.
+					if (OwningWorld)
+					{
+						if (DestinationWorld->PersistentLevel)
+						{
+							DestinationWorld->PersistentLevel->OwningWorld = OwningWorld;
+						}
+
+						// In some cases, BSP render data is not created because the OwningWorld was not set correctly.
+						// Regenerate that render data here
+						DestinationWorld->PersistentLevel->InvalidateModelSurface();
+						DestinationWorld->PersistentLevel->CommitModelSurfaces();
+					}
+						
+					PackageName = PackageNameToLoad;
+				}
+			}
 		}
 	}
 	else
@@ -559,13 +664,6 @@ void ULevelStreaming::BroadcastLevelLoadedStatus(UWorld* PersistentWorld, FName 
 			}
 		}
 	}
-
-	// traverse inner worlds as well, skip persistent level
-	for (int32 LevelIdx = 1; LevelIdx < PersistentWorld->GetNumLevels(); ++LevelIdx)
-	{
-		UWorld* InnerWorld = Cast<UWorld>(PersistentWorld->GetLevel(LevelIdx)->GetOuter());
-		BroadcastLevelLoadedStatus(InnerWorld, LevelPackageName, bLoaded);
-	}
 }
 	
 void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName LevelPackageName, bool bVisible)
@@ -583,13 +681,6 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 				(*It)->OnLevelHidden.Broadcast();
 			}
 		}
-	}
-
-	// traverse inner worlds as well, skip persistent level
-	for (int32 LevelIdx = 1; LevelIdx < PersistentWorld->GetNumLevels(); ++LevelIdx)
-	{
-		UWorld* InnerWorld = Cast<UWorld>(PersistentWorld->GetLevel(LevelIdx)->GetOuter());
-		BroadcastLevelVisibleStatus(InnerWorld, LevelPackageName, bVisible);
 	}
 }
 
@@ -727,6 +818,7 @@ ULevelStreaming::ULevelStreaming(const class FPostConstructInitializeProperties&
 	LevelTransform = FTransform::Identity;
 	MinTimeBetweenVolumeUnloadRequests = 2.0f;
 	bDrawOnLevelStatusMap = true;
+	LevelLODIndex = INDEX_NONE;
 }
 
 #if WITH_EDITOR

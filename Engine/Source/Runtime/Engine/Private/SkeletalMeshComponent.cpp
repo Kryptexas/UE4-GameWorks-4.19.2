@@ -13,10 +13,14 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "PhysXASync.h"
+#include "AnimTree.h"
+#include "Animation/AnimNodeBase.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
+#include "GameFramework/Character.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
+TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 0, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
 USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -49,6 +53,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
 	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 	bNeedTeleportAndResetOnceMore = false;
+	ClothBlendWeight = 1.0f;
 #if WITH_CLOTH_COLLISION_DETECTION
 	ClothingCollisionRevision = 0;
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
@@ -60,12 +65,10 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	bEnablePhysicsOnDedicatedServer = false;
 	bEnableUpdateRateOptimizations = false;
 
-#if EXPERIMENTAL_PARALLEL_CODE
-	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
-	PrimaryComponentTick.bRunOnAnyThread = true;	
-#endif
-
 	bTickInEditor = true;
+
+	ParallelEvaluationDelegate = FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &USkeletalMeshComponent::ParallelAnimationEvaluation);
+	ParallelCompletionDelegate = FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &USkeletalMeshComponent::CompleteParallelAnimationEvaluation);
 }
 
 
@@ -203,11 +206,6 @@ void USkeletalMeshComponent::CreateRenderState_Concurrent()
 	// Update bHasValidBodies flag
 	UpdateHasValidBodies();
 
-#if WITH_APEX_CLOTHING
-	//clothing actors will be re-created in TickClothing
-	ReleaseAllClothingResources();
-#endif// #if WITH_APEX_CLOTHING
-
 	Super::CreateRenderState_Concurrent();
 }
 
@@ -216,12 +214,6 @@ void USkeletalMeshComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	InitAnim(false);
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
-	PrimaryComponentTick.bRunOnAnyThread = true;	
-#endif
-
 }
 
 #if CHART_DISTANCE_FACTORS
@@ -486,13 +478,6 @@ void USkeletalMeshComponent::TickPose(float DeltaTime)
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-#if EXPERIMENTAL_PARALLEL_CODE
-	if (ThisTickFunction->TickGroup != TG_ParallelAnimWork)
-	{			
-		UE_LOG(LogAnimation, Warning, TEXT("USkeletalMeshComponent %s is not in TickGroup TG_ParallelAnimWork! Group=%d, GoWide=%d"), *(GetOwner()->GetName()), (int32)ThisTickFunction->TickGroup, ThisTickFunction->bRunOnAnyThread);
-	}
-#endif
-
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update bOldForceRefPose
@@ -531,7 +516,7 @@ static void IntersectBoneIndexArrays(TArray<FBoneIndexType>& Output, const TArra
 }
 
 
-void USkeletalMeshComponent::FillSpaceBases()
+void USkeletalMeshComponent::FillSpaceBases(const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SkelComposeTime);
 
@@ -540,12 +525,11 @@ void USkeletalMeshComponent::FillSpaceBases()
 		return;
 	}
 
-	// right now all this does is to convert to SpaceBases
-	check( SkeletalMesh->RefSkeleton.GetNum() == LocalAtoms.Num() );
-	check( SkeletalMesh->RefSkeleton.GetNum() == SpaceBases.Num() );
-	check( SkeletalMesh->RefSkeleton.GetNum() == BoneVisibilityStates.Num() );
+	// right now all this does is populate DestSpaceBases
+	check(SkeletalMesh->RefSkeleton.GetNum() == SourceAtoms.Num());
+	check( SkeletalMesh->RefSkeleton.GetNum() == DestSpaceBases.Num() );
 
-	const int32 NumBones = LocalAtoms.Num();
+	const int32 NumBones = SourceAtoms.Num();
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 	/** Keep track of which bones have been processed for fast look up */
@@ -553,13 +537,13 @@ void USkeletalMeshComponent::FillSpaceBases()
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 
-	FTransform * LocalTransformsData = LocalAtoms.GetTypedData(); 
-	FTransform * SpaceBasesData = SpaceBases.GetTypedData();
+	const FTransform * LocalTransformsData = SourceAtoms.GetTypedData();
+	FTransform * SpaceBasesData = DestSpaceBases.GetTypedData();
 
 	// First bone is always root bone, and it doesn't have a parent.
 	{
 		check( RequiredBones[0] == 0 );
-		SpaceBases[0] = LocalAtoms[0];
+		DestSpaceBases[0] = SourceAtoms[0];
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 		// Mark bone as processed
@@ -589,6 +573,15 @@ void USkeletalMeshComponent::FillSpaceBases()
 		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
 		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
 	}
+
+	/**
+	 * Normalize rotations.
+	 * We want to remove any loss of precision due to accumulation of error.
+	 * i.e. A componentSpace transform is the accumulation of all of its local space parents. The further down the chain, the greater the error.
+	 * SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
+	 * So this is a good place to make sure all transforms are normalized.
+	 */
+	FAnimationRuntime::NormalizeRotations(DestSpaceBases);
 }
 
 /** Takes sorted array Base and then adds any elements from sorted array Insert which is missing from it, preserving order. */
@@ -685,7 +678,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// TODO UE4
 
 	// Purge invisible bones and their children
-	// this has to be done before mirror table check/phsysics body checks
+	// this has to be done before mirror table check/physics body checks
 	// mirror table/phys body ones has to be calculated
 	if (ShouldUpdateBoneVisibility())
 	{
@@ -748,7 +741,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	CachedSpaceBases.Empty();
 }
 
-void USkeletalMeshComponent::EvaluateAnimation(/*FTransform & ExtractedRootMotionDelta, int32 & bHasRootMotion*/)
+void USkeletalMeshComponent::EvaluateAnimation(TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimBlendTime);
 
@@ -775,34 +768,37 @@ void USkeletalMeshComponent::EvaluateAnimation(/*FTransform & ExtractedRootMotio
 			// can we avoid that copy?
 			if( EvaluationContext.Pose.Bones.Num() > 0 )
 			{
-				LocalAtoms = EvaluationContext.Pose.Bones;
+				OutLocalAtoms = EvaluationContext.Pose.Bones;
+
+				// Make sure rotations are normalized to account for accumulation of errors.
+				FAnimationRuntime::NormalizeRotations(OutLocalAtoms);
 			}
 			else
 			{
-				FAnimationRuntime::FillWithRefPose(LocalAtoms, AnimScriptInstance->RequiredBones);
+				FAnimationRuntime::FillWithRefPose(OutLocalAtoms, AnimScriptInstance->RequiredBones);
 			}
 		}
 		else
 		{
-			FAnimationRuntime::FillWithRefPose(LocalAtoms, AnimScriptInstance->RequiredBones);
+			FAnimationRuntime::FillWithRefPose(OutLocalAtoms, AnimScriptInstance->RequiredBones);
 		}
 
-		UpdateActiveVertexAnims(AnimScriptInstance->MorphTargetCurves, AnimScriptInstance->VertexAnims);
+		OutVertexAnims = UpdateActiveVertexAnims(AnimScriptInstance->MorphTargetCurves, AnimScriptInstance->VertexAnims);
 	}
 	else
 	{
-		LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+		OutLocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
 		// if it's only morph, there is no reason to blend
 		if ( MorphTargetCurves.Num() > 0 )
 		{
 			TArray<struct FActiveVertexAnim> EmptyVertexAnims;
-			UpdateActiveVertexAnims(MorphTargetCurves, EmptyVertexAnims);
+			OutVertexAnims = UpdateActiveVertexAnims(MorphTargetCurves, EmptyVertexAnims);
 		}
 	}
 
 	// Remember the root bone's translation so we can move the bounds.
-	RootBoneTranslation = LocalAtoms[0].GetTranslation() - SkeletalMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
+	OutRootBoneTranslation = OutLocalAtoms[0].GetTranslation() - SkeletalMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
 }
 
 void USkeletalMeshComponent::UpdateSlaveComponent()
@@ -815,132 +811,167 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 
 		if ( MasterSMC->AnimScriptInstance )
 		{
-			UpdateActiveVertexAnims(MasterSMC->AnimScriptInstance->MorphTargetCurves, MasterSMC->AnimScriptInstance->VertexAnims);
+			ActiveVertexAnims = UpdateActiveVertexAnims(MasterSMC->AnimScriptInstance->MorphTargetCurves, MasterSMC->AnimScriptInstance->VertexAnims);
 		}
 	}
 
 	Super::UpdateSlaveComponent();
 }
 
-void USkeletalMeshComponent::RefreshBoneTransforms()
+void USkeletalMeshComponent::PerformAnimationEvaluation(TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
-
+	SCOPE_CYCLE_COUNTER(STAT_PerformAnimEvaluation);
 	// Can't do anything without a SkeletalMesh
 	// Do nothing more if no bones in skeleton.
-	if( !SkeletalMesh || SpaceBases.Num() == 0 )
+	if (!SkeletalMesh || OutSpaceBases.Num() == 0)
 	{
 		return;
 	}
-	
 	AActor * Owner = GetOwner();
 	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
 	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
+	// evaluate pure animations, and fill up LocalAtoms
+	EvaluateAnimation(OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation);
+	// Fill SpaceBases from LocalAtoms
+	FillSpaceBases(OutLocalAtoms, OutSpaceBases);
+}
+
+void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
+{
+	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
+
+	if (!SkeletalMesh || SpaceBases.Num() == 0)
 	{
-		FScopeLockPhysXWriter LockPhysXForWriting;
+		return;
+	}
 
-		// Recalculate the RequiredBones array, if necessary
-		if( !bRequiredBonesUpToDate )
+	AActor * Owner = GetOwner();
+	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
+
+	// Recalculate the RequiredBones array, if necessary
+	if (!bRequiredBonesUpToDate)
+	{
+		RecalcRequiredBones(PredictedLODLevel);
+	}
+
+	//Handle update rate optimization setup
+	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
+	
+	const bool bDoUpdateRateOptimization = bEnableUpdateRateOptimizations && (UpdateRateParams.GetEvaluationRate() > 1);
+	//Dont mark cache as invalid if we aren't performing optimization anyway
+	const bool bInvalidCachedBones = bDoUpdateRateOptimization &&
+									( (LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum())
+									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
+									  || (SpaceBases.Num() != CachedSpaceBases.Num()) );
+
+	const bool bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !UpdateRateParams.ShouldSkipEvaluation();
+	
+	bPTDoInterpolation = bDoUpdateRateOptimization && !bInvalidCachedBones && UpdateRateParams.ShouldInterpolateSkippedFrames();
+	bPTDuplicateToCacheBones = bInvalidCachedBones || (bDoUpdateRateOptimization && bDoEvaluation && !bPTDoInterpolation);
+
+	if (!bDoUpdateRateOptimization)
+	{
+		//If we aren't optimizing clear the cached local atoms
+		CachedLocalAtoms.Empty();
+		CachedSpaceBases.Empty();
+	}
+
+	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread();
+	if (bDoEvaluation && TickFunction && bDoPAE)
+	{
+		if (SkeletalMesh->RefSkeleton.GetNum() != PTLocalAtoms.Num())
 		{
-			RecalcRequiredBones(PredictedLODLevel);
+			// Initialize Parallel Task arrays
+			PTLocalAtoms = LocalAtoms;
+			PTSpaceBases = SpaceBases;
+			PTVertexAnims = ActiveVertexAnims;
 		}
 
-		// Update rate turned off, evaluate every frame.
-		if( !bEnableUpdateRateOptimizations || (UpdateRateParams.GetEvaluationRate() <= 1) )
-		{
-			// evaluate pure animations, and fill up LocalAtoms
-			EvaluateAnimation();
-			// We need the mesh space bone transforms now for renderer to get delta from ref pose:
-			FillSpaceBases();
-			// Invalidate cached bones.
-			CachedLocalAtoms.Empty();
-			CachedSpaceBases.Empty();
-		}
-		else
-		{
-			// figure out if our cache is invalid.
-			const bool bInvalidCachedBones = (LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum()) 
-				|| (LocalAtoms.Num() != CachedLocalAtoms.Num())
-				|| (SpaceBases.Num() != CachedSpaceBases.Num());
+		// start parallel work
+		FGraphEventRef EvaluationTickEvent = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+			(
+			ParallelEvaluationDelegate
+			, TEXT("USkeletalMeshComponent::ParallelAnimationEvaluation")
+			);
 
-			// If cache is invalid, we need to rebuild it. And we can't interpolate.
-			// (same path if we're not interpolating and not skipping a frame).
-			if( bInvalidCachedBones || (!UpdateRateParams.ShouldInterpolateSkippedFrames() && !UpdateRateParams.ShouldSkipEvaluation()) )
+		// set up a task to run on the game thread to accept the results
+		TickCompletionEvent = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+			(
+			ParallelCompletionDelegate
+			, TEXT("USkeletalMeshComponent::CompleteParallelAnimationEvaluation")
+			, EvaluationTickEvent
+			, ENamedThreads::GameThread
+			);
+
+		TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
+
+	}
+	else
+	{
+		if (bDoEvaluation)
+		{
+			if (bPTDoInterpolation)
 			{
-				// evaluate pure animations, and fill up LocalAtoms
-				EvaluateAnimation();
-				// Fill SpaceBases from LocalAtoms
-				FillSpaceBases();
-
-				// Cache bones
-				CachedLocalAtoms = LocalAtoms;
-				CachedSpaceBases = SpaceBases;
+				PerformAnimationEvaluation(CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 			else
 			{
-				// No interpolation, just copy
-				// @todo: if we don't blend any physics, we could even skip the copy.
-				if( !UpdateRateParams.ShouldInterpolateSkippedFrames() )
-				{
-					LocalAtoms = CachedLocalAtoms;
-					SpaceBases = CachedSpaceBases;
-				}
-				else
-				{
-					// If we are not skipping evaluation this frame, refresh cache.
-					if( !UpdateRateParams.ShouldSkipEvaluation() )
-					{
-						// Preserve LocalAtoms and SpaceBases, so we can keep interpolation.
-						Exchange(LocalAtoms, CachedLocalAtoms);
-						Exchange(SpaceBases, CachedSpaceBases);
-
-						// evaluate pure animations, and fill up LocalAtoms
-						EvaluateAnimation();
-						// Fill SpaceBases from LocalAtoms
-						FillSpaceBases();
-
-						Exchange(LocalAtoms, CachedLocalAtoms);
-						Exchange(SpaceBases, CachedSpaceBases);
-					}
-
-					// Interpolate
-					{
-						SCOPE_CYCLE_COUNTER(STAT_InterpolateSkippedFrames);
-						const float Alpha = 0.25f + (1.f / float(FMath::Max(UpdateRateParams.GetEvaluationRate(), 2) * 2));
-						FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
-						FAnimationRuntime::LerpBoneTransforms(SpaceBases, CachedSpaceBases, Alpha, RequiredBones);
-					}
-				}
+				PerformAnimationEvaluation(SpaceBases, LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 		}
+		else if (!bPTDoInterpolation)
+		{
+			LocalAtoms = CachedLocalAtoms;
+			SpaceBases = CachedSpaceBases;
+		}
 
-		// Transforms updated, cached local bounds are now out of date.
-		InvalidateCachedBounds();
-
-		// update physics data from animated data
-		UpdateKinematicBonesToPhysics(false);
-		UpdateRBJointMotors();
+		PostAnimEvaluation(bPTDoInterpolation, bPTDuplicateToCacheBones);
 	}
+
+}
+
+void USkeletalMeshComponent::PostAnimEvaluation(bool bDoInterpolation, bool bDuplicateToCacheBones)
+{
+	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
+	if( bDuplicateToCacheBones )
+	{
+		CachedSpaceBases = SpaceBases;
+		CachedLocalAtoms = LocalAtoms;
+	}
+
+	if( bDoInterpolation )
+	{
+		SCOPE_CYCLE_COUNTER(STAT_InterpolateSkippedFrames);
+		AActor * Owner = GetOwner();
+		const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
+
+		const float Alpha = 0.25f + (1.f / float(FMath::Max(UpdateRateParams.GetEvaluationRate(), 2) * 2));
+		FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
+		FAnimationRuntime::LerpBoneTransforms(SpaceBases, CachedSpaceBases, Alpha, RequiredBones);
+	}
+
+	// Transforms updated, cached local bounds are now out of date.
+	InvalidateCachedBounds();
+
+	// update physics data from animated data
+	UpdateKinematicBonesToPhysics(false, true);
+	UpdateRBJointMotors();
 
 	// @todo anim : hack TTP 224385	ANIM: Skeletalmesh double buffer
 	// this is problem because intermediate buffer changes physics position as well
 	// this causes issue where a half of frame, physics position is fixed with anim pose, and the other half is real simulated position
 	// if you enable physics in tick, since that's before physics update, you'll get animation pose dominating physics pose, which isn't what you want. (Or what you'll see)
 	// so do not update transform if physics is on. This problem will be solved by double buffer, when we keep one buffer for intermediate, and the other buffer for result query
+	if( !IsSimulatingPhysics() )
 	{
-		FScopeLockPhysXReader LockPhysXForReading;
+		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
 
-		if( !IsSimulatingPhysics() )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
-			
-			// New bone positions need to be sent to render thread
-			UpdateComponentToWorld();	
+		// New bone positions need to be sent to render thread
+		UpdateComponentToWorld();
 
-			// animation often change overlap. 
-			UpdateOverlaps();
-		}
+		// animation often change overlap. 
+		UpdateOverlaps();
 	}
 
 	MarkRenderDynamicDataDirty();
@@ -1077,7 +1108,7 @@ void USkeletalMeshComponent::SetForceRefPose(bool bNewForceRefPose)
 	MarkRenderStateDirty();
 }
 
-void USkeletalMeshComponent::SetAnimClass(class UClass* NewClass)
+void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 {
 	if (NewClass != NULL)
 	{

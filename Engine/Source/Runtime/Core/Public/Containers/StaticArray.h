@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StaticArray.h: Static array definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "Containers/ContainerAllocationPolicies.h"
+
 
 /** An array with a static number of elements. */
 template<typename TElement,uint32 NumElements,uint32 Alignment = ALIGNOF(TElement)>

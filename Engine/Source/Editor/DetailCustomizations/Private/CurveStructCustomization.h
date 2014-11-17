@@ -7,26 +7,26 @@
 /**
  * Customizes a RuntimeFloatCurve struct to display a Curve Editor
  */
-class FCurveStructCustomization : public IStructCustomization, public FCurveOwnerInterface
+class FCurveStructCustomization : public IPropertyTypeCustomization, public FCurveOwnerInterface
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 	/**
 	 * Destructor
 	 */
 	virtual ~FCurveStructCustomization();
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 	/** FCurveOwnerInterface interface */
-	virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-	virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
-	virtual UObject* GetOwner() OVERRIDE;
-	virtual void ModifyOwner() OVERRIDE;
-	virtual void MakeTransactional() OVERRIDE;
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual UObject* GetOwner() override;
+	virtual void ModifyOwner() override;
+	virtual void MakeTransactional() override;
 
 private:
 	/**

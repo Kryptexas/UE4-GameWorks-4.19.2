@@ -2,7 +2,7 @@
 
 #include "OpenGLDrvPrivate.h"
 #include "IOSAppDelegate.h"
-#include "EAGLView.h"
+#include "IOSView.h"
 #include "Slate.h"
 
 // This header file gives access to the thread_policy_set function.
@@ -33,7 +33,7 @@ struct FPlatformOpenGLDevice
 		bSingleContext = !GUseThreadedRendering;
 
 		IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-		EAGLView* GLView = AppDelegate.GLView;
+		FIOSView* GLView = AppDelegate.IOSView;
 
 		// EAGL Context (as the rendering one) on the EAGLView
 		check(GLView->Context);
@@ -108,14 +108,23 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 {
 }
 
-void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 {
+	check(Context);
+
+	return (void*)Context->Context;
+}
+
+bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+{
+	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
+
 	// @todo-mobile
 	check(Device->bSingleContext || Context == &Device->RenderingContext);
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	EAGLView* GLView = AppDelegate.GLView;
 
-	[GLView SwapBuffers];
+	[AppDelegate.IOSView SwapBuffers];
+	return true;
 }
 
 void PlatformFlushIfNeeded()
@@ -128,9 +137,7 @@ void PlatformRebindResources(FPlatformOpenGLDevice* Device)
 	if (!Device->bSingleContext)
 	{
 		IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-		EAGLView* GLView = AppDelegate.GLView;
-
-		glBindRenderbuffer(GL_RENDERBUFFER, GLView.OnScreenColorRenderBuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, AppDelegate.IOSView.OnScreenColorRenderBuffer);
 	}
 }
 
@@ -186,7 +193,7 @@ EOpenGLCurrentContext PlatformOpenGLCurrentContext(FPlatformOpenGLDevice* Device
 FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint32 SizeX, uint32 SizeY)
 {
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	EAGLView* GLView = AppDelegate.GLView;
+	FIOSView* GLView = AppDelegate.IOSView;
 
 	uint32 Flags = TexCreate_RenderTargetable;
 	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, GLView.OnScreenColorRenderBuffer, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags);
@@ -266,7 +273,7 @@ bool PlatformContextIsCurrent( uint64 QueryContext )
 void ToggleUpscaleFilter()
 {
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	EAGLView* GLView = AppDelegate.GLView;
+	FIOSView* GLView = AppDelegate.IOSView;
 	CAEAGLLayer* Layer = (CAEAGLLayer*)GLView.layer;
 	if (Layer.magnificationFilter == kCAFilterNearest)
 	{

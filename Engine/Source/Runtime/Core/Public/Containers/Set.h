@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Set.h: Set definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "SparseArray.h"
+
 
 /**
  * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
@@ -147,10 +144,16 @@ public:
 	{}
 
 	/** Initialization constructor. */
-	template <typename InitType>
-	FORCEINLINE TSetElement(const InitType& InValue):
-		Value(InValue)
-	{}
+	template <typename InitType> FORCEINLINE TSetElement(const InitType&  InValue) : Value(         InValue ) {}
+	template <typename InitType> FORCEINLINE TSetElement(      InitType&& InValue) : Value(MoveTemp(InValue)) {}
+
+	/** Copy/move constructors */
+	FORCEINLINE TSetElement(const TSetElement&  Rhs) : Value(         Rhs.Value ), HashNextId(         Rhs.HashNextId ), HashIndex(Rhs.HashIndex) {}
+	FORCEINLINE TSetElement(      TSetElement&& Rhs) : Value(MoveTemp(Rhs.Value)), HashNextId(MoveTemp(Rhs.HashNextId)), HashIndex(Rhs.HashIndex) {}
+
+	/** Copy/move assignment */
+	FORCEINLINE TSetElement& operator=(const TSetElement&  Rhs) { Value =          Rhs.Value ; HashNextId =          Rhs.HashNextId ; HashIndex = Rhs.HashIndex; return *this; }
+	FORCEINLINE TSetElement& operator=(      TSetElement&& Rhs) { Value = MoveTemp(Rhs.Value); HashNextId = MoveTemp(Rhs.HashNextId); HashIndex = Rhs.HashIndex; return *this; }
 
 	/** Serializer. */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar,TSetElement& Element)
@@ -203,6 +206,18 @@ public:
 	:	HashSize(0)
 	{
 		*this = Copy;
+	}
+
+	FORCEINLINE explicit TSet(const TArray<ElementType>& InArray)
+		: HashSize(0)
+	{
+		Append(InArray);
+	}
+
+	FORCEINLINE explicit TSet(TArray<ElementType>&& InArray)
+		: HashSize(0)
+	{
+		Append(MoveTemp(InArray));
 	}
 
 	/** Destructor. */
@@ -418,12 +433,19 @@ public:
 		return ElementId;
 	}
 
-	/** Assignment operator. */
 	void Append(const TArray<ElementType>& InElements)
 	{
-		for(int32 i=0; i<InElements.Num(); i++)
+		for (auto& Element : InElements)
 		{
-			Add(InElements[i]);
+			Add(Element);
+		}
+	}
+
+	void Append(TArray<ElementType>&& InElements)
+	{
+		for (auto& Element : InElements)
+		{
+			Add(MoveTemp(Element));
 		}
 	}
 

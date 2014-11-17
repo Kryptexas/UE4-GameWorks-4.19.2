@@ -122,7 +122,7 @@ public:
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	/**
 	 * A Panel's desired size in the space required to arrange of its children on the screen while respecting all of
@@ -130,9 +130,9 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	FVector2D ComputeDesiredSize() const OVERRIDE;
+	FVector2D ComputeDesiredSize() const override;
 
-	virtual void ResampleData() OVERRIDE;
+	virtual void ResampleData() override;
 
 	/** Preview point that is fed into the blend space to generate output */
 	TAttribute<FVector>	PreviewInput;
@@ -140,18 +140,18 @@ public:
 	/** 
 	 * Mapping function between WidgetPos and GridPos
 	 */
-	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const OVERRIDE;
-	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const OVERRIDE;
+	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
 	 * Snaps a position in editor space to the editor grid
 	 */
-	virtual FVector					SnapEditorPosToGrid(const FVector& InPos) const OVERRIDE;
+	virtual FVector					SnapEditorPosToGrid(const FVector& InPos) const override;
 
 protected:
 	/** Utility functions **/
-	virtual FText GetInputText(const FVector & GridPos) const OVERRIDE;
-	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) OVERRIDE;
+	virtual FText GetInputText(const FVector & GridPos) const override;
+	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) override;
 
 private:
 
@@ -181,7 +181,7 @@ public:
 
 protected:
 
-	virtual TSharedRef<SWidget> MakeDisplayOptionsBox() const OVERRIDE;
+	virtual TSharedRef<SWidget> MakeDisplayOptionsBox() const override;
 
 private:
 

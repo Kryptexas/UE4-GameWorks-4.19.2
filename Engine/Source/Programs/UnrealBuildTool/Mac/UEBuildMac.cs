@@ -67,6 +67,10 @@ namespace UnrealBuildTool
 					return "";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
@@ -78,7 +82,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	string				The debug info extension (i.e. 'pdb')
 		 */
-		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return BuildConfiguration.bGeneratedSYMFile ? ".dsym" : "";
 		}
@@ -145,7 +149,6 @@ namespace UnrealBuildTool
 		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileNetworkProfiler = false;
 			UEBuildConfiguration.bCompileICU = true;
 		}
 
@@ -163,6 +166,11 @@ namespace UnrealBuildTool
 
         public override void ValidateUEBuildConfiguration()
         {
+			if (ProjectFileGenerator.bGenerateProjectFiles && !ProjectFileGenerator.bGeneratingRocketProjectFiles)
+			{
+				// When generating non-Rocket project files we need intellisense generator to include info from all modules, including editor-only third party libs
+				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
+			}
         }
 
 		/**

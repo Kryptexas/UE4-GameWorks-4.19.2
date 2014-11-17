@@ -18,6 +18,8 @@
 // Platform specific compiler pre-setup, must be included before everything else
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsPlatformCompilerPreSetup.h"
+#elif PLATFORM_MAC
+#include "Mac/MacPlatformCompilerPreSetup.h"
 #endif
 
 // Generic versions of the platform abstractions
@@ -37,6 +39,7 @@
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "GenericPlatform/GenericPlatformSurvey.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
+#include "GenericPlatform/GenericPlatformAffinity.h"
 
 // Platform specific include.
 //@port This is where you include your "main" platform header

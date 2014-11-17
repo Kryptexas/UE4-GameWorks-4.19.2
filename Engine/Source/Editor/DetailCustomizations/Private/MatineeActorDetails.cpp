@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
+#include "Matinee/MatineeActor.h"
 #include "MatineeActorDetails.h"
 
 #define LOCTEXT_NAMESPACE "MatineeActorDetails"

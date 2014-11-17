@@ -56,7 +56,7 @@ public:
 	 * @param  InCurrentTime  Current absolute real time
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	
 	// End of SWidget interface
 
@@ -98,8 +98,8 @@ protected:
 	EVisibility GetWidgetVisibility() const;
 
 	/** SEditorViewport interface */
-	virtual TSharedRef<class FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<class SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual TSharedRef<class FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<class SWidget> MakeViewportToolbar() override;
 	virtual void BindCommands();
 private:
 	/** Pointer back to editor tool (owner) */

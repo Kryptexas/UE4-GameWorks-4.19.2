@@ -18,7 +18,7 @@ class AAtmosphericFog : public AInfo
 #endif
 
 #if WITH_EDITOR
-	virtual void PostActorCreated() OVERRIDE;
+	virtual void PostActorCreated() override;
 #endif
 };
 

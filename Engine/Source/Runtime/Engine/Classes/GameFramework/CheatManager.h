@@ -77,6 +77,9 @@ class ENGINE_API UCheatManager : public UObject
 	/** If we should trace complex collision in debug capsule sweeps. Set with DebugCapsuleSweepComplex() */
 	uint32 bDebugCapsuleTraceComplex:1;
 
+	/** Holds information if we used ToggleAILogging cheat to activate AI logging */
+	uint32 bToggleAILogging : 1;
+
 	/** How far debugf trace should go out from player viewpoint */
 	float DebugTraceDistance;
 
@@ -103,6 +106,9 @@ class ENGINE_API UCheatManager : public UObject
 
 	/** Index of the array for current trace to overwrite.  Whenever you capture, this index will be increased **/
 	int32 CurrentTracePawnIndex;
+
+	/** time interval for dumping AI loggs (vlogs) */
+	float DumpAILogsInterval;
 
 	/** Pause the game for Delay seconds. */
 	UFUNCTION(exec)
@@ -156,10 +162,6 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void Summon(const FString& ClassName);
 
-	// Toggle AI ignoring the player.
-	UFUNCTION(exec)
-	virtual void AIIgnorePlayers();
-
 	/** Freeze everything in the level except for players. */
 	UFUNCTION(exec)
 	virtual void PlayersOnly();
@@ -203,9 +205,7 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(reliable, server, WithValidation)
 	virtual void ServerToggleAILogging();
 
-	/** makes various AI logging categories verbose */
-	UFUNCTION(exec)
-	virtual void AILoggingVerbose();
+	void DumpAILogs();
 
 	/** Toggle capsule trace debugging. Will trace a capsule from current view point and show where it hits the world */
 	UFUNCTION(exec)
@@ -296,14 +296,6 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	void SetWorldOrigin();
 
-	/** toggle "always on" GameplayDebuggingComponent's channels*/
-	UFUNCTION(exec)
-	void ToggleGameplayDebugView(const FString& ViewName);
-
-	/** insta-runs EQS query for GameplayDebugComponent selected AI */
-	UFUNCTION(exec)
-	void RunEQS(const FString& QueryName);
-
 	/**
 	 * This will move the player and set their rotation to the passed in values.
 	 * This actually does the location / rotation setting.  Additionally it will set you as ghost as the level may have
@@ -342,6 +334,12 @@ class ENGINE_API UCheatManager : public UObject
 	 * This is not an actor, so we need a stand in for PostInitializeComponents 
 	 */
 	virtual void InitCheatManager();
+
+	/**
+	* Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
+	* asynchronous cleanup process.
+	*/
+	virtual void BeginDestroy() override;
 
 	/** Use the Outer Player Controller to get a World.  */
 	UWorld* GetWorld() const;

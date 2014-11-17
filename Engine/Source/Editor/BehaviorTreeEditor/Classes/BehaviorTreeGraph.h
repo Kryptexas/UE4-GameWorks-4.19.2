@@ -19,13 +19,14 @@ class UBehaviorTreeGraph : public UEdGraph
 	int32 GraphVersion;
 
 	void UpdateBlackboardChange();
-	void UpdateAsset(EDebuggerFlags DebuggerFlags);
+	void UpdateAsset(EDebuggerFlags DebuggerFlags, bool bBumpVersion = true);
 	void UpdateAbortHighlight(struct FAbortDrawHelper& Mode0, struct FAbortDrawHelper& Mode1);
 	void CreateBTFromGraph(class UBehaviorTreeGraphNode* RootEdNode);
 	void RemoveOrphanedNodes();
 	void UpdatePinConnectionTypes();
 	void UpdateDeprecatedNodes();
 	bool UpdateInjectedNodes();
+	bool UpdateUnknownNodeClasses();
 	class UEdGraphNode* FindInjectedNode(int32 Index);
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 	void RebuildExecutionOrder();
@@ -36,7 +37,7 @@ class UBehaviorTreeGraph : public UEdGraph
 protected:
 
 	/** if set, graph modifications won't cause updates in internal tree structure (skipping UpdateAsset)
-	* flag allows freezing update during heavy changes like pasting new nodes */
+	 * flag allows freezing update during heavy changes like pasting new nodes */
 	uint32 bLockUpdates : 1;
 };
 

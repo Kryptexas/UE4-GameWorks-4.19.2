@@ -18,14 +18,14 @@ public:
 	void Construct(const FArguments& InArgs, UAnimStateNodeBase* InNode);
 
 	// SNodePanel::SNode interface
-	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const OVERRIDE;
+	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const override;
 	// End of SNodePanel::SNode interface
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
-	virtual void CreatePinWidgets() OVERRIDE;
-	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) OVERRIDE;
-	virtual TSharedPtr<SToolTip> GetComplexTooltip() OVERRIDE;
+	virtual void UpdateGraphNode() override;
+	virtual void CreatePinWidgets() override;
+	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) override;
+	virtual TSharedPtr<SToolTip> GetComplexTooltip() override;
 	// End of SGraphNode interface
 
 	static void GetStateInfoPopup(UEdGraphNode* GraphNode, TArray<FGraphInformationPopupInfo>& Popups);
@@ -46,9 +46,9 @@ public:
 	void Construct(const FArguments& InArgs, UAnimStateConduitNode* InNode);
 
 	// SNodePanel::SNode interface
-	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const OVERRIDE;
+	virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const override;
 	// End of SNodePanel::SNode interface
 protected:
-	virtual FString GetPreviewCornerText() const OVERRIDE;
-	virtual const FSlateBrush* GetNameIcon() const OVERRIDE;
+	virtual FString GetPreviewCornerText() const override;
+	virtual const FSlateBrush* GetNameIcon() const override;
 };

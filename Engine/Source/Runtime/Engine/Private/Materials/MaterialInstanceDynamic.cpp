@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #include "EnginePrivate.h"
-#include "MaterialInstance.h"
+#include "MaterialInstanceSupport.h"
 
 UMaterialInstanceDynamic::UMaterialInstanceDynamic(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

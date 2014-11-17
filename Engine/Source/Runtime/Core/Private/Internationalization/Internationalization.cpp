@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
 #include "InvariantCulture.h"
@@ -83,7 +83,7 @@ void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs) const
 		if(ICUString)
 		{
 			FString NativeString;
-			ICUUtilities::Convert(*ICUString, NativeString);
+			ICUUtilities::ConvertString(*ICUString, NativeString);
 			TimeZonesIDs.Add( NativeString );
 		}
 	} while( ICUString );
@@ -107,15 +107,15 @@ void FInternationalization::SetCurrentCulture(const FString& Name)
 	}
 }
 
-TSharedRef< FCulture > FInternationalization::GetCurrentCulture() const
+TSharedRef<FCulture, ESPMode::ThreadSafe> FInternationalization::GetCurrentCulture() const
 {
 	return AllCultures[CurrentCultureIndex];
 }
 
-TSharedPtr< FCulture > FInternationalization::GetCulture(const FString& Name) const
+TSharedPtr<FCulture, ESPMode::ThreadSafe> FInternationalization::GetCulture(const FString& Name) const
 {
 	int32 CultureIndex = GetCultureIndex(Name);
-	return CultureIndex != -1 ? AllCultures[CultureIndex] : TSharedPtr<FCulture>();
+	return CultureIndex != -1 ? AllCultures[CultureIndex] : TSharedPtr<FCulture, ESPMode::ThreadSafe>();
 }
 
 int32 FInternationalization::GetCultureIndex(const FString& Name) const
@@ -143,21 +143,22 @@ namespace
 {
 	struct FICUOverrides
 	{
+#if STATS
 		static int64 BytesInUseCount;
 		static int64 CachedBytesInUseCount;
+#endif
 
 		static void* U_CALLCONV Malloc(const void* context, size_t size)
 		{
 			void* Result = FMemory::Malloc(size);
-			int64 MemSizeInBytes = FMemory::GetAllocSize(Result);
-			BytesInUseCount += MemSizeInBytes;
-	#if STATS
+#if STATS
+			BytesInUseCount += FMemory::GetAllocSize(Result);
 			if(FThreadStats::IsThreadingReady() && CachedBytesInUseCount != BytesInUseCount)
 			{
 				SET_MEMORY_STAT(STAT_MemoryICUTotalAllocationSize, BytesInUseCount);
 				CachedBytesInUseCount = BytesInUseCount;
 			}
-	#endif
+#endif
 			return Result;
 		}
 
@@ -168,21 +169,72 @@ namespace
 
 		static void U_CALLCONV Free(const void* context, void* mem)
 		{
-			int64 MemSizeInBytes = FMemory::GetAllocSize(mem);
-			BytesInUseCount -= MemSizeInBytes;
-	#if STATS
+#if STATS
+			BytesInUseCount -= FMemory::GetAllocSize(mem);
 			if(FThreadStats::IsThreadingReady() && CachedBytesInUseCount != BytesInUseCount)
 			{
 				SET_MEMORY_STAT(STAT_MemoryICUTotalAllocationSize, BytesInUseCount);
 				CachedBytesInUseCount = BytesInUseCount;
 			}
-	#endif
+#endif
 			FMemory::Free(mem);
 		}
 	};
 
+#if STATS
 	int64 FICUOverrides::BytesInUseCount = 0;
 	int64 FICUOverrides::CachedBytesInUseCount = 0;
+	static int64 DataFileBytesInUseCount = 0;
+	static int64 CachedDataFileBytesInUseCount = 0;
+#endif
+
+	UBool OpenDataFile(const void* context, void** fileContext, void** contents, const char* path)
+	{
+		FArchive* FileAr = IFileManager::Get().CreateFileReader(StringCast<TCHAR>(path).Get());
+		if(!FileAr)
+		{
+			return FALSE;
+		}
+
+		int64 FileSize = FileAr->TotalSize();
+
+		*fileContext = FileAr;
+		*contents = FICUOverrides::Malloc(nullptr, FileSize);
+
+#if STATS
+		DataFileBytesInUseCount += FMemory::GetAllocSize(*contents);
+		if(FThreadStats::IsThreadingReady() && CachedDataFileBytesInUseCount != DataFileBytesInUseCount)
+		{
+			SET_MEMORY_STAT(STAT_MemoryICUDataFileAllocationSize, DataFileBytesInUseCount);
+			CachedDataFileBytesInUseCount = DataFileBytesInUseCount;
+		}
+#endif
+
+		FileAr->Serialize(*contents, FileSize); 
+
+		delete FileAr;
+
+		return TRUE;
+	}
+
+	void CloseDataFile(const void* context, void* const fileContext, void* const contents)
+	{
+		if(fileContext)
+		{
+			if(contents)
+			{
+#if STATS
+				DataFileBytesInUseCount -= FMemory::GetAllocSize(contents);
+				if(FThreadStats::IsThreadingReady() && CachedDataFileBytesInUseCount != DataFileBytesInUseCount)
+				{
+					SET_MEMORY_STAT(STAT_MemoryICUDataFileAllocationSize, DataFileBytesInUseCount);
+					CachedDataFileBytesInUseCount = DataFileBytesInUseCount;
+				}
+#endif
+				FICUOverrides::Free(nullptr, contents);
+			}
+		}
+	}
 }
 #endif
 
@@ -202,17 +254,36 @@ void FInternationalization::Initialize()
 
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
+
+// Linux needs to have those compiled statically at least until we settle on .so location for deployed/native builds
+#if (IS_PROGRAM || !IS_MONOLITHIC) && !PLATFORM_LINUX
+	LoadDLLs();
+#endif /*IS_PROGRAM || !IS_MONOLITHIC*/
+
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
+
 	FString DataDirectory;
-	DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
-	if( !FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) )
+	const FString DataDirectoryRelativeToContent = FString(TEXT("Localization")) / FString(TEXT("ICU"));
+	IFileManager& FileManager = IFileManager::Get();
+	DataDirectory = FPaths::GameContentDir() / DataDirectoryRelativeToContent; // Try game content directory.
+	if( !FileManager.DirectoryExists(*DataDirectory) )
 	{
-		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::EngineContentDir() / TEXT("Localization");
+		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::GameContentDir() / DataDirectoryRelativeToContent; // Try game content directory with appropriate base.
 	}
-	check( FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) );
+	if( !FileManager.DirectoryExists(*DataDirectory) )
+	{
+		DataDirectory = FPaths::EngineContentDir() / DataDirectoryRelativeToContent; // Try engine content directory.
+	}
+	if( !FileManager.DirectoryExists(*DataDirectory) )
+	{
+		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::EngineContentDir() / DataDirectoryRelativeToContent; // Try engine content directory with appropriate base.
+	}
+	check( FileManager.DirectoryExists(*DataDirectory) );
 	u_setDataDirectory(StringCast<char>(*DataDirectory).Get());
+
+	u_setDataFileFunctions(nullptr, &OpenDataFile, &CloseDataFile, &(ICUStatus));
 	u_init(&(ICUStatus));
-#endif
+#endif /*UE_ENABLE_ICU*/
 
 	PopulateAllCultures();
 
@@ -238,11 +309,96 @@ void FInternationalization::Terminate()
 
 #if UE_ENABLE_ICU
 	u_cleanup();
-#endif
+#if IS_PROGRAM || !IS_MONOLITHIC
+	UnloadDLLs();
+#endif //IS_PROGRAM || !IS_MONOLITHIC
+#endif //UE_ENABLE_ICU
 
 	delete Instance;
 	Instance = nullptr;
 }
+
+#if UE_ENABLE_ICU && (IS_PROGRAM || !IS_MONOLITHIC)
+void FInternationalization::LoadDLLs()
+{
+	// The base directory for ICU binaries is consistent on all platforms.
+	FString ICUBinariesRoot = FPaths::EngineDir() / TEXT("Binaries") / TEXT("ThirdParty") / TEXT("ICU") / TEXT("icu4c-53_1");
+
+#if PLATFORM_WINDOWS
+#if PLATFORM_64BITS
+	const FString PlatformFolderName = TEXT("Win64");
+#elif PLATFORM_32BITS
+	const FString PlatformFolderName = TEXT("Win32");
+#endif //PLATFORM_*BITS
+
+#if _MSC_VER >= 1800
+	const FString VSVersionFolderName = TEXT("VS2013");
+#else
+	const FString VSVersionFolderName = TEXT("VS2012");
+#endif //_MSVC_VER
+
+	// Windows requires support for 32/64 bit and also VC11 and VC12 runtimes.
+	const FString TargetSpecificPath = ICUBinariesRoot / PlatformFolderName / VSVersionFolderName;
+
+	// Windows libraries use a specific naming convention.
+	FString LibraryNameStems[] =
+	{
+		TEXT("dt"),   // Data
+		TEXT("uc"),   // Unicode Common
+		TEXT("in"),   // Internationalization
+		TEXT("le"),   // Layout Engine
+		TEXT("lx"),   // Layout Extensions
+		TEXT("io")	// Input/Output
+	};
+#else
+	// Non-Windows libraries use a consistent naming convention.
+	FString LibraryNameStems[] =
+	{
+		TEXT("data"),   // Data
+		TEXT("uc"),   // Unicode Common
+		TEXT("i18n"),   // Internationalization
+		TEXT("le"),   // Layout Engine
+		TEXT("lx"),   // Layout Extensions
+		TEXT("io")	// Input/Output
+	};
+#if PLATFORM_LINUX
+	const FString TargetSpecificPath = ICUBinariesRoot / TEXT("Linux") / TEXT("x86_64-unknown-linux-gnu");
+#elif PLATFORM_MAC
+	const FString TargetSpecificPath = ICUBinariesRoot / TEXT("Mac");
+#endif //PLATFORM_*
+#endif //PLATFORM_*
+
+#if UE_BUILD_DEBUG && !defined(NDEBUG)
+	const FString LibraryNamePostfix = TEXT("d");
+#else
+	const FString LibraryNamePostfix = TEXT("");
+#endif //DEBUG
+
+	for(FString Stem : LibraryNameStems)
+	{
+#if PLATFORM_WINDOWS
+		FString LibraryName = "icu" + Stem + LibraryNamePostfix + "53" "." "dll";
+#elif PLATFORM_LINUX
+		FString LibraryName = "lib" "icu" + Stem + LibraryNamePostfix + ".53.1" "." "so";
+#elif PLATFORM_MAC
+		FString LibraryName = "lib" "icu" + Stem + LibraryNamePostfix + ".53.1" "." "dylib";
+#endif //PLATFORM_*
+
+		void* DLLHandle = FPlatformProcess::GetDllHandle(*(TargetSpecificPath / LibraryName));
+		check(DLLHandle != nullptr);
+		DLLHandles.Add(DLLHandle);
+	}
+}
+
+void FInternationalization::UnloadDLLs()
+{
+	for( const auto DLLHandle : DLLHandles )
+	{
+		FPlatformProcess::FreeDllHandle(DLLHandle);
+	}
+	DLLHandles.Reset();
+}
+#endif //UE_ENABLE_ICU && (IS_PROGRAM || !IS_MONOLITHIC)
 
 #if ENABLE_LOC_TESTING
 namespace
@@ -394,7 +550,7 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 	}
 }
 
-void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture> >& OutAvailableCultures) const
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures) const
 {
 	OutAvailableCultures.Reset();
 
@@ -411,7 +567,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 			{
 			}
 
-			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 			{
 				if(bIsDirectory)
 				{
@@ -469,11 +625,11 @@ void FInternationalization::PopulateAllCultures(void)
 	const FString DefaultLocaleName = FPlatformMisc::GetDefaultLocale();
 
 	// Find the default locale as a culture, if present..
-	auto FindDefaultPredicate = [DefaultLocaleName](const TSharedRef< FCulture >& Culture) -> bool
+	auto FindDefaultPredicate = [DefaultLocaleName](const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) -> bool
 	{
 		return Culture->GetName() == DefaultLocaleName;
 	};
-	TSharedRef< FCulture>* FoundDefaultCulture = AllCultures.FindByPredicate(FindDefaultPredicate);
+	TSharedRef<FCulture, ESPMode::ThreadSafe>* FoundDefaultCulture = AllCultures.FindByPredicate(FindDefaultPredicate);
 	// If present, set default culture variable.
 	if(FoundDefaultCulture)
 	{

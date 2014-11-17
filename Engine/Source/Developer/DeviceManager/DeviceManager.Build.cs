@@ -20,6 +20,7 @@ public class DeviceManager : ModuleRules
 				"Slate",
 				"SlateCore",
 				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

@@ -11,6 +11,7 @@
 #include "ClassIconFinder.h"
 #include "IUserFeedbackModule.h"
 #include "IDocumentation.h"
+#include "ReferenceViewer.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -92,7 +93,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		NewMajorTab->SetRightContent(UserFeedbackWidget);
 
 		const TSharedRef<FTabManager> NewTabManager = FGlobalTabmanager::Get()->NewTabManager( NewMajorTab.ToSharedRef() );		
-		NewTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( &FLayoutSaveRestore::SaveTheLayout ) );
+		NewTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FAssetEditorToolkit::HandleTabManagerPersistLayout));
 		this->TabManager = NewTabManager;
 
 		NewMajorTab->SetContent
@@ -113,7 +114,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 	
 	if (ToolkitMode == EToolkitMode::Standalone)
 	{
-		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadUserConfigVersionOf(StandaloneDefaultLayout);
+		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, StandaloneDefaultLayout);
 
 		// Actually create the widget content
 		NewStandaloneHost->SetupInitialContent( LayoutToUse, NewMajorTab, bCreateDefaultStandaloneMenu );
@@ -139,7 +140,12 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ) );
-
+	
+	ToolkitCommands->MapAction(
+		FGlobalEditorCommonCommands::Get().ViewReferences,
+		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::ViewReferences_Execute ),
+		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanViewReferences ));
+	
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().OpenDocumentation,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::BrowseDocumentation_Execute ) );
@@ -205,15 +211,20 @@ FText FAssetEditorToolkit::GetToolkitName() const
 
 	check (EditingObject != NULL);
 
-	const bool bDirtyState = EditingObject->GetOutermost()->IsDirty();
+	return GetDescriptionForObject(EditingObject);
+}
+
+FText FAssetEditorToolkit::GetDescriptionForObject(const UObject* InObject)
+{
+	const bool bDirtyState = InObject->GetOutermost()->IsDirty();
 	FString NameString;
-	if(const AActor* ObjectAsActor = Cast<AActor>(EditingObject))
+	if(const AActor* ObjectAsActor = Cast<AActor>(InObject))
 	{
 		NameString = ObjectAsActor->GetActorLabel();
 	}
 	else
 	{
-		NameString = EditingObject->GetName();
+		NameString = InObject->GetName();
 	}
 
 	FFormatNamedArguments Args;
@@ -461,6 +472,29 @@ void FAssetEditorToolkit::BrowseDocumentation_Execute() const
 	IDocumentation::Get()->Open(GetDocumentationLink());
 }
 
+void FAssetEditorToolkit::ViewReferences_Execute()
+{
+	if (ensure( ViewableObjects.Num() > 0))
+	{
+		IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableObjects);
+	}
+}
+
+bool FAssetEditorToolkit::CanViewReferences()
+{
+	ViewableObjects.Empty();
+	for (const auto EditingObject : EditingObjects)
+	{
+		// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
+		if (EditingObject != NULL && EditingObject->IsAsset())
+		{
+			ViewableObjects.Add(EditingObject->GetOuter()->GetFName());
+		}
+	}
+
+	return ViewableObjects.Num() > 0;
+}
+
 FString FAssetEditorToolkit::GetDocumentationLink() const
 {
 	return FString(TEXT("%ROOT%"));
@@ -580,6 +614,7 @@ void FAssetEditorToolkit::FillDefaultAssetMenuCommands( FMenuBuilder& MenuBuilde
 	if( IsActuallyAnAsset() )
 	{
 		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().FindInContentBrowser, "FindInContentBrowser", LOCTEXT("FindInContentBrowser", "Find in Content Browser...") );
+		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewReferences);
 
 		// Add a reimport menu entry for each supported editable object
 		for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
@@ -704,10 +739,10 @@ void FAssetEditorToolkit::RestoreFromLayout(const TSharedRef<FTabManager::FLayou
 	if (HostWidget.Get() != NULL)
 	{
 		// Save the old layout
-		FLayoutSaveRestore::SaveTheLayout(TabManager->PersistLayout());
+		FLayoutSaveRestore::SaveToConfig(GEditorIni, TabManager->PersistLayout());
 
 		// Load the potentially previously saved new layout
-		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadUserConfigVersionOf(NewLayout);
+		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, NewLayout);
 
 		// Apply the new layout
 		HostWidget->RestoreFromLayout(UserConfiguredNewLayout);

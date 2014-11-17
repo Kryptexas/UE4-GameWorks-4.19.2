@@ -77,6 +77,9 @@ public:
 	/** Gets the base class being viewed */
 	virtual const UClass* GetBaseClass() const = 0;
 	
+	/** Gets the base struct being viewed */
+	virtual UStruct* GetBaseStruct() const = 0;
+
 	/**
 	 * Registers a custom detail layout delegate for a specific class in this instance of the details view only
 	 *

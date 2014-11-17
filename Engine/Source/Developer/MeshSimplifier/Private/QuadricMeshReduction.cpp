@@ -10,12 +10,12 @@ class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
 public:
 	// IModuleInterface interface.
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	// IMeshReductionModule interface.
-	virtual class IMeshReduction* GetMeshReductionInterface() OVERRIDE;
-	virtual class IMeshMerging* GetMeshMergingInterface() OVERRIDE;
+	virtual class IMeshReduction* GetMeshReductionInterface() override;
+	virtual class IMeshMerging* GetMeshMergingInterface() override;
 };
 
 
@@ -110,7 +110,7 @@ public:
 class FQuadricSimplifierMeshReduction : public IMeshReduction
 {
 public:
-	virtual const FString& GetVersionString() const OVERRIDE
+	virtual const FString& GetVersionString() const override
 	{
 		static FString Version = TEXT("1.0");
 		return Version;
@@ -605,7 +605,7 @@ private:
 			8.0f,	// Highest
 		};
 
-		checkAtCompileTime( ARRAY_COUNT( ImportanceTable ) == (EMeshFeatureImportance::Highest+1), ImportanceTableSizeMismatch ); // -1 because of TEMP_BROKEN(?)
+		static_assert(ARRAY_COUNT(ImportanceTable) == (EMeshFeatureImportance::Highest + 1), "Importance table size mismatch."); // -1 because of TEMP_BROKEN(?)
 		check(Settings.SilhouetteImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.TextureImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.ShadingImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)

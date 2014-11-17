@@ -5,9 +5,28 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "LevelUtils.h"
 #include "FXSystem.h"
+
+#include "Particles/Camera/ParticleModuleCameraOffset.h"
+#include "Particles/Collision/ParticleModuleCollisionGPU.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
+#include "Particles/Light/ParticleModuleLightBase.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Modules/Location/ParticleModulePivotOffset.h"
+#include "Particles/Orbit/ParticleModuleOrbit.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 /*-----------------------------------------------------------------------------
 FParticlesStatGroup
@@ -2837,45 +2856,54 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
 			FMeshRotationPayloadData* PayloadData	= (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
 			PayloadData->RotationRate				= PayloadData->RotationRateBase;
-			if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
+			if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity
+				|| LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 			{
 				// Determine the rotation to the velocity vector and apply it to the mesh
 				FVector	NewDirection	= Particle.Velocity;
 				
-				//check if an orbit module should affect the velocity...		
-				if (LODLevel->RequiredModule->bOrbitModuleAffectsVelocityAlignment &&
-					LODLevel->OrbitModules.Num() > 0)
+				if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
 				{
-					UParticleModuleOrbit* LastOrbit = SpriteTemplate->LODLevels[0]->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-					check(LastOrbit);
-					
-					uint32 OrbitModuleOffset = *ModuleOffsetMap.Find(LastOrbit);
-					if (OrbitModuleOffset != 0)
+					//check if an orbit module should affect the velocity...		
+					if (LODLevel->RequiredModule->bOrbitModuleAffectsVelocityAlignment &&
+						LODLevel->OrbitModules.Num() > 0)
 					{
-						FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + OrbitModuleOffset);
+						UParticleModuleOrbit* LastOrbit = SpriteTemplate->LODLevels[0]->OrbitModules[LODLevel->OrbitModules.Num() - 1];
+						check(LastOrbit);
+					
+						uint32 OrbitModuleOffset = *ModuleOffsetMap.Find(LastOrbit);
+						if (OrbitModuleOffset != 0)
+						{
+							FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + OrbitModuleOffset);
 
-						FVector OrbitOffset = OrbitPayload.Offset;
-						FVector PrevOrbitOffset = OrbitPayload.PreviousOffset;
-						FVector Location = Particle.Location;
-						FVector OldLocation = Particle.OldLocation;
+							FVector OrbitOffset = OrbitPayload.Offset;
+							FVector PrevOrbitOffset = OrbitPayload.PreviousOffset;
+							FVector Location = Particle.Location;
+							FVector OldLocation = Particle.OldLocation;
 
-						//this should be our current position
-						FVector NewPos = Location + OrbitOffset;	
-						//this should be our previous position
-						FVector OldPos = OldLocation + PrevOrbitOffset;
+							//this should be our current position
+							FVector NewPos = Location + OrbitOffset;	
+							//this should be our previous position
+							FVector OldPos = OldLocation + PrevOrbitOffset;
 
-						NewDirection = NewPos - OldPos;
-					}	
-				}			              
-               
+							NewDirection = NewPos - OldPos;
+						}	
+					}			              
+				}
+				else if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
+				{
+
+					NewDirection = Particle.Location;
+				}
+
 				NewDirection.Normalize();
 				FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
 				FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 				FVector Euler	= Rotation.Euler();
-				PayloadData->Rotation.X	= Euler.X;
-				PayloadData->Rotation.Y	= Euler.Y;
-				PayloadData->Rotation.Z	= Euler.Z;
+				PayloadData->Rotation.X	= PayloadData->InitialOrientation.X + Euler.X;
+				PayloadData->Rotation.Y = PayloadData->InitialOrientation.Y + Euler.Y;
+				PayloadData->Rotation.Z = PayloadData->InitialOrientation.Z + Euler.Z;
 			}
 	    }
 	}
@@ -2892,7 +2920,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 			if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
 			{
 				FMeshRotationPayloadData* PayloadData	 = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				PayloadData->Rotation					+= DeltaTime * PayloadData->RotationRate;
+				PayloadData->Rotation					+= Particle.RelativeTime * PayloadData->RotationRate;
 			}
 		}
 	}
@@ -3055,6 +3083,9 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 {
 	FParticleEmitterInstance::PostSpawn(Particle, InterpolationPercentage, SpawnTime);
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+
+	FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
+
 	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
 	{
 		// Determine the rotation to the velocity vector and apply it to the mesh
@@ -3065,12 +3096,14 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 		FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 		FVector Euler	= Rotation.Euler();
 
-		FMeshRotationPayloadData* PayloadData	= (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
 		PayloadData->Rotation.X	+= Euler.X;
 		PayloadData->Rotation.Y	+= Euler.Y;
 		PayloadData->Rotation.Z	+= Euler.Z;
-		//
 	}
+
+	FVector InitialOrient = MeshTypeData->RollPitchYawRange.GetValue(SpawnTime, 0, 0, &MeshTypeData->RandomStream);
+	PayloadData->InitialOrientation = InitialOrient;
+	PayloadData->Rotation += InitialOrient;
 }
 
 bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)

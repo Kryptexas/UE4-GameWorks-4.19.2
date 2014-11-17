@@ -54,7 +54,7 @@ bool FSurveyTitleLocalStorage::ClearFile(const FString& DLName)
 	return ClearedFile;
 }
 
-bool FSurveyTitleLocalStorage::EnumerateFiles()
+bool FSurveyTitleLocalStorage::EnumerateFiles(const FPagedQuery& Page)
 {
 	if (!IFileManager::Get().DirectoryExists(*RootDirectory))
 	{
@@ -83,11 +83,6 @@ bool FSurveyTitleLocalStorage::EnumerateFiles()
 	TriggerOnEnumerateFilesCompleteDelegates(true);
 
 	return true;
-}
-
-bool FSurveyTitleLocalStorage::EnumerateFiles(int32 Start, int32 Count)
-{
-	return EnumerateFiles();
 }
 
 void FSurveyTitleLocalStorage::GetFileList(TArray<FCloudFileHeader>& InFileHeaders)

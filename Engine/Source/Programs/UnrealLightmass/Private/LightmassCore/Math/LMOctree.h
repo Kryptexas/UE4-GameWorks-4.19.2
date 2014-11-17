@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMOctree.h: Generic octree definition.
-=============================================================================*/
-
 #pragma once
 
 namespace Lightmass

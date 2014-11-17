@@ -42,7 +42,7 @@ public:
 	~FSlateTextureAtlasD3D();
 
 	void InitAtlasTexture( int32 Index );
-	virtual void ConditionalUpdateTexture() OVERRIDE;
+	virtual void ConditionalUpdateTexture() override;
 
 	FSlateD3DTexture* GetAtlasTexture() const { return AtlasTexture; }
 private:

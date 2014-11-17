@@ -21,19 +21,19 @@ public:
 
 	// Begin ISocketSubsystem interface
 
-	virtual TSharedRef<FInternetAddr> CreateInternetAddr( uint32 Address = 0, uint32 Port = 0 ) OVERRIDE;
+	virtual TSharedRef<FInternetAddr> CreateInternetAddr( uint32 Address = 0, uint32 Port = 0 ) override;
 
-	virtual class FSocket* CreateSocket( const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false ) OVERRIDE;
+	virtual class FSocket* CreateSocket( const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false ) override;
 
-	virtual void DestroySocket( class FSocket* Socket ) OVERRIDE;
+	virtual void DestroySocket( class FSocket* Socket ) override;
 
-	virtual ESocketErrors GetHostByName( const ANSICHAR* HostName, FInternetAddr& OutAddr ) OVERRIDE;
+	virtual ESocketErrors GetHostByName( const ANSICHAR* HostName, FInternetAddr& OutAddr ) override;
 
-	virtual bool GetHostName( FString& HostName ) OVERRIDE;
+	virtual bool GetHostName( FString& HostName ) override;
 
-	virtual ESocketErrors GetLastErrorCode( ) OVERRIDE;
+	virtual ESocketErrors GetLastErrorCode( ) override;
 
-	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) OVERRIDE
+	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override
 	{
 		bool bCanBindAll;
 
@@ -42,19 +42,19 @@ public:
 		return true;
 	}
 
-	virtual const TCHAR* GetSocketAPIName( ) const OVERRIDE;
+	virtual const TCHAR* GetSocketAPIName( ) const override;
 
-	virtual bool RequiresChatDataBeSeparate( ) OVERRIDE
+	virtual bool RequiresChatDataBeSeparate( ) override
 	{
 		return false;
 	}
 
-	virtual bool RequiresEncryptedPackets( ) OVERRIDE
+	virtual bool RequiresEncryptedPackets( ) override
 	{
 		return false;
 	}
 
-	virtual ESocketErrors TranslateErrorCode( int32 Code ) OVERRIDE;
+	virtual ESocketErrors TranslateErrorCode( int32 Code ) override;
 
 	// End ISocketSubsystem interface
 

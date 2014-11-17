@@ -6,11 +6,19 @@
 #include "PreviewScene.h"
 #include "ImageUtils.h"
 #include "CascadePreviewViewportClient.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "PhysicsPublic.h"
 
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 
 FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadePreviewViewport> InCascadeViewport)
-	: CascadePtr(InCascade)
+	: FEditorViewportClient(GLevelEditorModeTools())
+	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, CascadePreviewScene(FPreviewScene::ConstructionValues()
 						.SetLightRotation(FRotator(-45.f, 180.f, 0.f))

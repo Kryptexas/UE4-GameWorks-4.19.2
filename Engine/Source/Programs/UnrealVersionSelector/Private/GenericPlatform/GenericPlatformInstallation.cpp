@@ -4,6 +4,7 @@
 #include "GenericPlatformInstallation.h"
 #include "../PlatformInstallation.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "DesktopPlatformModule.h"
 
 bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
 {

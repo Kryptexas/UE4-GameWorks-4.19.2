@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "GameFramework/DefaultPawn.h"
 
 FName ADefaultPawn::MovementComponentName(TEXT("MovementComponent0"));
 FName ADefaultPawn::CollisionComponentName(TEXT("CollisionComponent0"));
@@ -27,7 +28,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	CollisionComponent->CanBeCharacterBase = ECB_No;
+	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
 
 	RootComponent = CollisionComponent;

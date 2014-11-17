@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "RHI.h"
+#include "RHIDefinitions.h"
 #include "RefCounting.h"
+#include "Runtime/Engine/Public/PixelFormat.h" // for EPixelFormat
 
 /** The base type of RHI resources. */
 class RHI_API FRHIResource : public FRefCountedObject
@@ -44,20 +45,77 @@ class FRHIComputeShader : public FRHIResource {};
 // Buffers
 //
 
+/** The layout of a uniform buffer in memory. */
+struct FRHIUniformBufferLayout
+{
+	/** The size of the constant buffer in bytes. */
+	uint32 ConstantBufferSize;
+	/** The offset to the beginning of the resource table. */
+	uint32 ResourceOffset;
+	/** The type of each resource (EUniformBufferBaseType). */
+	TArray<uint8> Resources;
+
+	uint32 GetHash() const
+	{
+		if (!bComputedHash)
+		{
+			uint32 TmpHash = ConstantBufferSize;
+			TmpHash ^= ResourceOffset;
+			uint32 N = Resources.Num();
+			while (N >= 4)
+			{
+				TmpHash ^= (Resources[--N] << 0);
+				TmpHash ^= (Resources[--N] << 8);
+				TmpHash ^= (Resources[--N] << 16);
+				TmpHash ^= (Resources[--N] << 24);
+			}
+			while (N > 0)
+			{
+				TmpHash ^= Resources[--N];
+			}
+			Hash = TmpHash;
+			bComputedHash = true;
+		}
+		return Hash;
+	}
+
+	FRHIUniformBufferLayout() :
+		ConstantBufferSize(0),
+		ResourceOffset(0),
+		Hash(0),
+		bComputedHash(false)
+	{
+	}
+
+private:
+	mutable uint32 Hash;
+	mutable bool bComputedHash;
+};
+
+/** Compare two uniform buffer layouts. */
+inline bool operator==(const FRHIUniformBufferLayout& A, const FRHIUniformBufferLayout& B)
+{
+	return A.ConstantBufferSize == B.ConstantBufferSize
+		&& A.ResourceOffset == B.ResourceOffset
+		&& A.Resources == B.Resources;
+}
+
 class FRHIUniformBuffer : public FRHIResource
 {
 public:
 
 	/** Initialization constructor. */
-	FRHIUniformBuffer(uint32 InSize)
-	: Size(InSize)
+	FRHIUniformBuffer(const FRHIUniformBufferLayout& InLayout)
+	: Layout(&InLayout)
 	{}
 
 	/** @return The number of bytes in the uniform buffer. */
-	uint32 GetSize() const { return Size; }
+	uint32 GetSize() const { return Layout->ConstantBufferSize; }
+	const FRHIUniformBufferLayout& GetLayout() const { return *Layout; }
 
 private:
-	uint32 Size;
+	/** Layout of the uniform buffer. */
+	const FRHIUniformBufferLayout* Layout;
 };
 
 class FRHIIndexBuffer : public FRHIResource
@@ -136,16 +194,30 @@ private:
 // Textures
 //
 
+class RHI_API FLastRenderTimeContainer
+{
+public:
+	FLastRenderTimeContainer() : LastRenderTime(-FLT_MAX) {}
+
+	double GetLastRenderTime() const { return LastRenderTime; }
+	void SetLastRenderTime(double InLastRenderTime) { LastRenderTime = InLastRenderTime; }
+
+private:
+	/** The last time the resource was rendered. */
+	double LastRenderTime;
+};
+
 class RHI_API FRHITexture : public FRHIResource
 {
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture(uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
+	FRHITexture(uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags,FLastRenderTimeContainer* InLastRenderTime)
 	: NumMips(InNumMips)
 	, NumSamples(InNumSamples)
 	, Format(InFormat)
 	, Flags(InFlags)
+	, LastRenderTime(InLastRenderTime ? *InLastRenderTime : DefaultLastRenderTime)
 	{}
 
 	// Dynamic cast methods.
@@ -153,6 +225,7 @@ public:
 	virtual class FRHITexture2DArray* GetTexture2DArray() { return NULL; }
 	virtual class FRHITexture3D* GetTexture3D() { return NULL; }
 	virtual class FRHITextureCube* GetTextureCube() { return NULL; }
+	virtual class FRHITextureReference* GetTextureReference() { return NULL; }
 	
 	/**
 	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
@@ -161,6 +234,18 @@ public:
 	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
 	 */
 	virtual void* GetNativeResource() const
+	{
+		// Override this in derived classes to expose access to the native texture resource
+		return nullptr;
+	}
+
+	/**
+	 * Returns access to the platform-specific native shader resource view pointer.  This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all.
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
+	 */
+	virtual void* GetNativeShaderResourceView() const
 	{
 		// Override this in derived classes to expose access to the native texture resource
 		return nullptr;
@@ -179,15 +264,33 @@ public:
 	uint32 GetNumSamples() const { return NumSamples; }
 
 	/** @return Whether the texture is multi sampled. */
-	bool IsMultisampled() const { return NumSamples > 1; }
+	bool IsMultisampled() const { return NumSamples > 1; }		
 
 	FRHIResourceInfo ResourceInfo;
+
+	/** sets the last time this texture was cached in a resource table. */
+	void SetLastRenderTime(float InLastRenderTime)
+	{
+		LastRenderTime.SetLastRenderTime(InLastRenderTime);
+	}
+
+	/** Returns the last render time container, or NULL if none were specified at creation. */
+	FLastRenderTimeContainer* GetLastRenderTimeContainer()
+	{
+		if (&LastRenderTime == &DefaultLastRenderTime)
+		{
+			return NULL;
+		}
+		return &LastRenderTime;
+	}
 
 private:
 	uint32 NumMips;
 	uint32 NumSamples;
 	EPixelFormat Format;
 	uint32 Flags;
+	FLastRenderTimeContainer& LastRenderTime;
+	FLastRenderTimeContainer DefaultLastRenderTime;
 };
 
 class RHI_API FRHITexture2D : public FRHITexture
@@ -196,7 +299,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,InNumSamples,InFormat,InFlags)
+	: FRHITexture(InNumMips,InNumSamples,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	{}
@@ -222,7 +325,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture2DArray(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -253,7 +356,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture3D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -284,7 +387,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITextureCube(uint32 InSize,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, Size(InSize)
 	{}
 	
@@ -299,12 +402,84 @@ private:
 	uint32 Size;
 };
 
+class RHI_API FRHITextureReference : public FRHITexture
+{
+public:
+	explicit FRHITextureReference(FLastRenderTimeContainer* InLastRenderTime)
+		: FRHITexture(0,0,PF_Unknown,0,InLastRenderTime)
+	{}
+
+	virtual FRHITextureReference* GetTextureReference() override { return this; }
+	inline FRHITexture* GetReferencedTexture() const { return ReferencedTexture.GetReference(); }
+
+protected:
+	void SetReferencedTexture(FRHITexture* InTexture)
+	{
+		ReferencedTexture = InTexture;
+	}
+
+private:
+	TRefCountPtr<FRHITexture> ReferencedTexture;
+};
+
+class RHI_API FRHITextureReferenceNullImpl : public FRHITextureReference
+{
+public:
+	FRHITextureReferenceNullImpl()
+		: FRHITextureReference(NULL)
+	{}
+
+	void SetReferencedTexture(FRHITexture* InTexture)
+	{
+		FRHITextureReference::SetReferencedTexture(InTexture);
+	}
+};
+
 //
 // Misc
 //
 
 class FRHIRenderQuery : public FRHIResource {};
-class FRHIViewport : public FRHIResource {};
+
+class FRHIViewport : public FRHIResource 
+{
+public:
+	/**
+	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all.
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
+	 */
+	virtual void* GetNativeSwapChain() const { return nullptr; }
+	/**
+	 * Returns access to the platform-specific native resource pointer to a backbuffer texture.  This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all.
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
+	 */
+	virtual void* GetNativeBackBufferTexture() const { return nullptr; }
+	/**
+	 * Returns access to the platform-specific native resource pointer to a backbuffer rendertarget. This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all.
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
+	 */
+	virtual void* GetNativeBackBufferRT() const { return nullptr; }
+
+	/**
+	 * Returns access to the platform-specific native window. This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all. 
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason.
+	 * AddParam could represent any additional platform-specific data (could be null).
+	 */
+	virtual void* GetNativeWindow(void** AddParam = nullptr) const { return nullptr; }
+
+	/**
+	 * Sets custom Present handler on the viewport
+	 */
+	virtual void SetCustomPresent(class FRHICustomPresent*) {}
+};
 
 //
 // Views
@@ -346,3 +521,43 @@ public:
 		ArraySliceIndex(InArraySliceIndex)
 	{}
 };
+
+class FRHICustomPresent : public FRHIResource
+{
+public:
+	explicit FRHICustomPresent(FRHIViewport* InViewport) : ViewportRHI(InViewport) {}
+	
+	virtual ~FRHICustomPresent() {} // should release any references to D3D resources.
+	
+	// Called when viewport is resized.
+	virtual void OnBackBufferResize() = 0;
+
+	// @return	true if normal Present should be performed; false otherwise.
+	virtual bool Present(int32 SyncInterval) = 0;
+
+protected:
+	// Weak reference, don't create a circular dependency that would prevent the viewport from being destroyed.
+	FRHIViewport* ViewportRHI;
+};
+DEFINE_RHI_REFERENCE_TYPE(CustomPresent, Resource)
+
+// Template magic to convert an FRHI*Shader to its enum
+template<typename TRHIShader> struct TRHIShaderToEnum {};
+template<> struct TRHIShaderToEnum<FRHIVertexShader>	{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FRHIHullShader>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FRHIDomainShader>	{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FRHIPixelShader>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FRHIGeometryShader>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FRHIComputeShader>	{ enum { ShaderFrequency = SF_Compute }; };
+template<> struct TRHIShaderToEnum<FVertexShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FHullShaderRHIParamRef>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FDomainShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FPixelShaderRHIParamRef>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FGeometryShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FComputeShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Compute }; };
+template<> struct TRHIShaderToEnum<FVertexShaderRHIRef>		{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FHullShaderRHIRef>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FDomainShaderRHIRef>		{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FPixelShaderRHIRef>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FGeometryShaderRHIRef>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FComputeShaderRHIRef>	{ enum { ShaderFrequency = SF_Compute }; };

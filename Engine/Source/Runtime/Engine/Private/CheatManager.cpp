@@ -2,78 +2,12 @@
 
 #include "EnginePrivate.h"
 
-#include "Components/ApplicationLifecycleComponent.h"
-#include "AI/BehaviorTree/BlackboardComponent.h"
-#include "AI/BrainComponent.h"
-#include "AI/BehaviorTree/BehaviorTreeComponent.h"
-#include "Debug/GameplayDebuggingControllerComponent.h"
-#include "Components/InputComponent.h"
-#include "GameFramework/MovementComponent.h"
-#include "Components/SceneComponent.h"
-#include "Components/LightComponentBase.h"
-#include "Components/LightComponent.h"
-#include "Components/PrimitiveComponent.h"
-#include "GameFramework/NavMovementComponent.h"
-#include "GameFramework/PawnMovementComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
-#include "GameFramework/SpectatorPawnMovement.h"
-#include "Vehicles/WheeledVehicleMovementComponent.h"
-#include "Vehicles/WheeledVehicleMovementComponent4W.h"
-#include "GameFramework/ProjectileMovementComponent.h"
-#include "GameFramework/RotatingMovementComponent.h"
-#include "AI/Navigation/NavigationComponent.h"
-#include "AI/Navigation/PathFollowingComponent.h"
-#include "Components/PawnNoiseEmitterComponent.h"
-#include "Components/PawnSensingComponent.h"
-#include "PhysicsEngine/PhysicsHandleComponent.h"
-#include "Atmosphere/AtmosphericFogComponent.h"
-#include "Components/AudioComponent.h"
-#include "Camera/CameraComponent.h"
-#include "Components/ChildActorComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "Components/SkyLightComponent.h"
-#include "AI/Navigation/NavigationGraphNodeComponent.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
-#include "PhysicsEngine/PhysicsThrusterComponent.h"
-#include "Components/PostProcessComponent.h"
-#include "Components/ArrowComponent.h"
-#include "Components/BillboardComponent.h"
-#include "Components/BrushComponent.h"
-#include "Components/DrawFrustumComponent.h"
-#include "AI/EnvironmentQuery/EQSRenderingComponent.h"
-#include "Debug/GameplayDebuggingComponent.h"
-#include "Components/LineBatchComponent.h"
-#include "Components/MaterialBillboardComponent.h"
-#include "Components/MeshComponent.h"
-#include "Components/SkinnedMeshComponent.h"
-#include "Components/DestructibleComponent.h"
-#include "Components/PoseableMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/StaticMeshComponent.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "Components/InteractiveFoliageComponent.h"
-#include "Components/SplineMeshComponent.h"
-#include "Components/ModelComponent.h"
-#include "AI/Navigation/NavLinkRenderingComponent.h"
-#include "AI/Navigation/NavMeshRenderingComponent.h"
-#include "AI/Navigation/NavTestRenderingComponent.h"
-#include "Components/NiagaraComponent.h"
-#include "Components/ShapeComponent.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
-#include "Components/DrawSphereComponent.h"
-#include "Components/TextRenderComponent.h"
-#include "Components/VectorFieldComponent.h"
-#include "PhysicsEngine/RadialForceComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/WindDirectionalSourceComponent.h"
-#include "Components/TimelineComponent.h"
 #include "Slate.h"
 #include "SlateReflector.h"
-#include "AI/NavDataGenerator.h"
+#include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
+#include "VisualLog.h"
+#include "GameFramework/Character.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -86,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	DumpAILogsInterval = 3;
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();
 	DebugCapsuleHalfHeight = 23.0f;
 	DebugCapsuleRadius = 21.0f;
@@ -434,11 +368,6 @@ void UCheatManager::Summon( const FString& ClassName )
 	}
 }
 
-void UCheatManager::AIIgnorePlayers()
-{
-	AAIController::ToggleAIIgnorePlayers();
-}
-
 void UCheatManager::PlayersOnly()
 {
 	check( GetWorld() );
@@ -624,11 +553,50 @@ void UCheatManager::DisableDebugCamera()
 	}
 }
 
-void UCheatManager::InitCheatManager() {}
+void UCheatManager::InitCheatManager() 
+{
+
+}
+
+void UCheatManager::BeginDestroy()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (VisLog && VisLog->IsRecording() && bToggleAILogging)
+	{
+		UWorld *World = GetWorld();
+		if (World)
+		{
+			// clear timer, we'll dump all remaining logs
+			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
+		}
+
+		// stop recording and dump all remaining logs
+		VisLog->SetIsRecording(false);
+		bToggleAILogging = false;
+	}
+#endif
+	Super::BeginDestroy();
+}
 
 bool UCheatManager::ServerToggleAILogging_Validate()
 {
 	return true;
+}
+
+void UCheatManager::DumpAILogs()
+{
+#if ENABLE_VISUAL_LOG
+	UWorld *World = GetWorld();
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (!VisLog || !World)
+	{
+		return;
+	}
+
+	VisLog->DumpRecordedLogs();
+	World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
+#endif
 }
 
 void UCheatManager::ServerToggleAILogging_Implementation()
@@ -640,11 +608,27 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 		return;
 	}
 
-	const bool bWasRecording = VisLog->IsRecording();
-	VisLog->SetIsRecording(!bWasRecording);
-	if (bWasRecording)
+	UWorld *World = GetWorld();
+	if (VisLog->IsRecording())
 	{
-		VisLog->DumpRecordedLogs();
+		// clear timer, we'll dump all remaining logs in a moment
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
+		}
+
+		// stop recording and dump all remaining logs in a moment
+		VisLog->SetIsRecording(false, true);
+		bToggleAILogging = false;
+	}
+	else
+	{
+		if (World)
+		{
+			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
+		}
+		VisLog->SetIsRecording(true, true);
+		bToggleAILogging = true;
 	}
 
 	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
@@ -660,7 +644,8 @@ void UCheatManager::ToggleAILogging()
 		return;
 	}
 
-	if (GetWorld()->GetNetMode() == NM_Client)
+	UWorld *World = GetWorld();
+	if (World && World->GetNetMode() == NM_Client)
 	{
 		FVisualLog* VisLog = FVisualLog::Get();
 		if (VisLog)
@@ -676,16 +661,6 @@ void UCheatManager::ToggleAILogging()
 	}
 #endif
 }
-
-void UCheatManager::AILoggingVerbose()
-{
-	APlayerController* PC = GetOuterAPlayerController();
-	if (PC)
-	{
-		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
-	}
-}
-
 
 #define SAFE_TRACEINDEX_DECREASE(x) ((--x)<0)? 9:(x)
 
@@ -1117,90 +1092,6 @@ void UCheatManager::SetWorldOrigin()
 	
 	FIntPoint NewOrigin = FIntPoint(ViewLocation.X, ViewLocation.Y) + World->GlobalOriginOffset;
 	World->RequestNewWorldOrigin(NewOrigin);
-}
-
-void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
-{
-	static TArray<FString> ViewNames;
-	if (ViewNames.Num() == 0)
-	{
-		const UEnum* ViewlEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIDebugDrawDataView"), true);
-		ViewNames.AddZeroed(EAIDebugDrawDataView::MAX);
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			ViewNames[Index] = ViewlEnum->GetEnumName(Index);
-		}
-	}
-
-	int32 ViewIndex = ViewNames.Find(InViewName);
-	if (ViewIndex != INDEX_NONE)
-	{
-		const bool bIsEnabled = UGameplayDebuggingControllerComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("View %s %s")
-			, *InViewName
-			, bIsEnabled ? TEXT("enabled") : TEXT("disabled")));
-	}
-	else
-	{
-		GetOuterAPlayerController()->ClientMessage(TEXT("Unknown debug view name. Valid options are:"));
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			GetOuterAPlayerController()->ClientMessage(*ViewNames[Index]);
-		}
-	}
-}
-
-void UCheatManager::RunEQS(const FString& QueryName)
-{
-	APlayerController* MyPC = GetOuterAPlayerController();
-	UEnvQueryManager* EQS = GetWorld()->GetEnvironmentQueryManager();
-	if (MyPC && EQS)
-	{
-		AActor* Target = NULL;
-		UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		if (DebugComp)
-		{
-			Target = DebugComp->GetCurrentDebugTarget();
-		}
-
-#if WITH_EDITOR
-		if (Target == NULL && GEditor != NULL)
-		{
-			Target = GEditor->GetSelectedObjects()->GetTop<AActor>();
-
-			// this part should not be needed, but is due to gameplay debugging messed up design
-			if (Target == NULL)
-			{
-				for (FObjectIterator It(UGameplayDebuggingComponent::StaticClass()); It && (Target == NULL); ++It)
-				{
-					UGameplayDebuggingComponent* Comp = ((UGameplayDebuggingComponent*)*It);
-					if (Comp->IsSelected())
-					{
-						Target = Comp->GetOwner();
-					}
-				}
-			}
-		}
-#endif // WITH_EDITOR
-
-		if (Target)
-		{
-			UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
-			
-			if (QueryTemplate)
-			{
-				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-			}
-			else
-			{
-				GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-			}
-		}
-		else
-		{
-			GetOuterAPlayerController()->ClientMessage(TEXT("No debugging target"));
-		}
-	}
 }
 
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )

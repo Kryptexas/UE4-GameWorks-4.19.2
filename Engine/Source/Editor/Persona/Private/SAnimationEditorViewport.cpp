@@ -17,6 +17,7 @@
 #include "AnimationEditorViewportClient.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/LODUtilities.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -583,25 +584,23 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothFixedVertices ) );
 
-	SectionsDisplayMode = ESectionDisplayMode::ShowAll;
-
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowAllSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::ShowAll),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::ShowAll));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowOnlyClothSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::ShowOnlyClothSections),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::ShowOnlyClothSections));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.HideOnlyClothSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::HideOnlyClothSections),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::HideOnlyClothSections));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections));
 
 #endif// #if WITH_APEX_CLOTHING		
 
@@ -1357,6 +1356,11 @@ void SAnimationEditorViewportTabBody::OnLODChanged()
 	{
 		OnSetLODModel( LOD_Auto );
 	}
+
+	if (PersonaPtr.Pin()->PersonaMeshDetailLayout)
+	{
+		PersonaPtr.Pin()->PersonaMeshDetailLayout->ForceRefreshDetails();
+	}
 }
 
 void SAnimationEditorViewportTabBody::OnMuteAudio()
@@ -1676,26 +1680,26 @@ void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 
-	SectionsDisplayMode = DisplayMode;
-
 	if (!PreviewComponent)
 	{
 		return;
 	}
 
+	PreviewComponent->SectionsDisplayMode = DisplayMode;
+
 	switch (DisplayMode)
 	{
-	case ESectionDisplayMode::ShowAll:
+	case UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll:
 		// restore to the original states
 		PreviewComponent->RestoreClothSectionsVisibility();
 		break;
-	case ESectionDisplayMode::ShowOnlyClothSections:
-		// disable all except clothing sections
-		PreviewComponent->ShowOnlyClothSections(true, PreviewComponent->PredictedLODLevel);
+	case UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections:
+		// disable all except clothing sections and shows only cloth sections
+		PreviewComponent->ToggleClothSectionsVisibility(true);
 		break;
-	case ESectionDisplayMode::HideOnlyClothSections:
+	case UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections:
 		// disables only clothing sections
-		PreviewComponent->ShowOnlyClothSections(false, PreviewComponent->PredictedLODLevel);
+		PreviewComponent->ToggleClothSectionsVisibility(false);
 		break;
 	}
 
@@ -1704,8 +1708,16 @@ void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode
 
 bool SAnimationEditorViewportTabBody::IsSectionsDisplayMode(int32 DisplayMode) const
 {
-	return (SectionsDisplayMode == DisplayMode);
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if (ensure(PreviewComponent))
+	{
+		return (PreviewComponent->SectionsDisplayMode == DisplayMode);
+	}
+
+	return false;
 }
+#endif // #if WITH_APEX_CLOTHING
 
 EVisibility SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility() const
 {
@@ -1762,5 +1774,4 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	return FReply::Handled();
 }
 
-#endif // #if WITH_APEX_CLOTHING
 #undef LOCTEXT_NAMESPACE

@@ -9,13 +9,19 @@ void FAssetTypeActions_World::OpenAssetEditor( const TArray<UObject*>& InObjects
 	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		auto World = Cast<UWorld>(*ObjIt);
-		if (World != NULL)
+		if (World != NULL && World != GEditor->GetEditorWorldContext().World())
 		{
-			const FString FileToOpen = FPackageName::LongPackageNameToFilename(World->GetOutermost()->GetName(), FPackageName::GetMapPackageExtension());
-			const bool bLoadAsTemplate = false;
-			const bool bShowProgress = false;
-			const bool bWorldComposition = false;
-			FEditorFileUtils::LoadMap( FileToOpen, bLoadAsTemplate, bShowProgress, bWorldComposition );
+			// If there are any unsaved changes to the current level, see if the user wants to save those first.
+			bool bPromptUserToSave = true;
+			bool bSaveMapPackages = true;
+			bool bSaveContentPackages = true;
+			if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
+			{
+				const FString FileToOpen = FPackageName::LongPackageNameToFilename(World->GetOutermost()->GetName(), FPackageName::GetMapPackageExtension());
+				const bool bLoadAsTemplate = false;
+				const bool bShowProgress = true;
+				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
+			}
 
 			// We can only edit one world at a time... so just break after the first valid world to load
 			break;

@@ -12,34 +12,16 @@
  */
 struct FBoxSphereBounds
 {
-	/**
-	 * Holds the origin of the bounding box and sphere.
-	 */
+	/** Holds the origin of the bounding box and sphere. */
 	FVector	Origin;
 
-	/**
-	 * Holds the extent of the bounding box.
-	 */
+	/** Holds the extent of the bounding box. */
 	FVector BoxExtent;
 
-	/**
-	 * Holds the radius of the bounding sphere.
-	 */
+	/** Holds the radius of the bounding sphere. */
 	float SphereRadius;
 
-
 public:
-
-#if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
-	{
-		checkf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
-		checkf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
-		checkf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
-	}
-#else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
-#endif
 
 	/**
 	 * Default constructor.
@@ -77,8 +59,8 @@ public:
 	/**
 	 * Creates and initializes a new instance from the given Box and Sphere.
 	 *
-	 * @param Box - The bounding box.
-	 * @param Sphere - The bounding sphere.
+	 * @param Box The bounding box.
+	 * @param Sphere The bounding sphere.
 	 */
 	FBoxSphereBounds( const FBox& Box, const FSphere& Sphere )
 	{
@@ -93,7 +75,7 @@ public:
 	 *
 	 * The sphere radius is taken from the extent of the box.
 	 *
-	 * @param Box - The bounding box.
+	 * @param Box The bounding box.
 	 */
 	FBoxSphereBounds( const FBox& Box )
 	{
@@ -120,8 +102,8 @@ public:
 	 *
 	 * The sphere radius is taken from the extent of the box.
 	 *
-	 * @param Points - The points to be considered for the bounding box.
-	 * @param NumPoints - Number of points in the Points array.
+	 * @param Points The points to be considered for the bounding box.
+	 * @param NumPoints Number of points in the Points array.
 	 */
 	FBoxSphereBounds( const FVector* Points, uint32 NumPoints );
 
@@ -131,8 +113,7 @@ public:
 	/**
 	 * Constructs a bounding volume containing both this and B.
 	 *
-	 * @param Other - The other bounding volume.
-	 *
+	 * @param Other The other bounding volume.
 	 * @return The combined bounding volume.
 	 */
 	FORCEINLINE FBoxSphereBounds operator+( const FBoxSphereBounds& Other ) const;
@@ -143,8 +124,7 @@ public:
 	/**
 	 * Calculates the squared distance from a point to a bounding box
 	 *
-	 * @param Point - The point.
-	 *
+	 * @param Point The point.
 	 * @return The distance.
 	 */
 	FORCEINLINE float ComputeSquaredDistanceFromBoxToPoint( const FVector& Point ) const
@@ -168,8 +148,7 @@ public:
 	/**
 	 * Gets the extrema for the bounding box.
 	 *
-	 * @param Extrema - 1 for positive extrema from the origin, else negative
-	 *
+	 * @param Extrema 1 for positive extrema from the origin, else negative
 	 * @return The boxes extrema
 	 */
 	FVector GetBoxExtrema( uint32 Extrema ) const
@@ -195,8 +174,7 @@ public:
 	/**
 	 * Increase the size of the box and sphere by a given size.
 	 *
-	 * @param ExpandAmount - The size to increase by.
-	 *
+	 * @param ExpandAmount The size to increase by.
 	 * @return A new box with the expanded size.
 	 */
 	FORCEINLINE FBoxSphereBounds ExpandBy( float ExpandAmount ) const
@@ -207,8 +185,7 @@ public:
 	/**
 	 * Gets a bounding volume transformed by a matrix.
 	 *
-	 * @param M - The matrix.
-	 *
+	 * @param M The matrix.
 	 * @return The transformed volume.
 	 */
 	CORE_API FBoxSphereBounds TransformBy( const FMatrix& M ) const;
@@ -216,8 +193,7 @@ public:
 	/**
 	 * Gets a bounding volume transformed by a FTransform object.
 	 *
-	 * @param M - The FTransform object.
-	 *
+	 * @param M The FTransform object.
 	 * @return The transformed volume.
 	 */
 	CORE_API FBoxSphereBounds TransformBy( const FTransform & M ) const;
@@ -252,15 +228,24 @@ public:
 		return Result;
 	}
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN( ) const
+	{
+		checkf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
+		checkf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
+		checkf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN( ) const {}
+#endif
 
 public:
 
 	/**
 	 * Serializes the given bounding volume from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param Bounds - The bounding volume to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param Bounds The bounding volume to serialize.
 	 * @return The archive..
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FBoxSphereBounds& Bounds )

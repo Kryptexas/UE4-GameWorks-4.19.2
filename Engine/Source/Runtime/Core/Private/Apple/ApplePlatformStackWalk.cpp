@@ -178,7 +178,7 @@ void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter,
 			FCStringAnsi::Sprintf(FBase, "%p", (void*)DylibInfo.dli_fbase);
 			FCStringAnsi::Sprintf(Address, "%p", (void*)ProgramCounter);
 			
-			execl("/usr/bin/atos", "-nowarning", "-d", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
+			execl("/usr/bin/atos", "-nowarning", "-arch", "x86_64", "-d", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
 			close(FileDesc[1]);
 		}
 		else

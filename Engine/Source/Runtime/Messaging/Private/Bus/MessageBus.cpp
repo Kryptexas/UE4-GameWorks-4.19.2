@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageBus.cpp: Implements the FMessageBus class.
-=============================================================================*/
-
 #include "MessagingPrivatePCH.h"
 
 
@@ -14,7 +10,7 @@ FMessageBus::FMessageBus( const IAuthorizeMessageRecipientsPtr& InRecipientAutho
 	: RecipientAuthorizer(InRecipientAuthorizer)
 {
 	Router = new FMessageRouter();
-	RouterThread = FRunnableThread::Create(Router, TEXT("FMessageBus.Router"), false, false, 128 * 1024, TPri_Normal);
+	RouterThread = FRunnableThread::Create(Router, TEXT("FMessageBus.Router"), 128 * 1024, TPri_Normal, FPlatformAffinity::GetPoolThreadMask());
 
 	check(Router != nullptr);
 }

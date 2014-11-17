@@ -18,11 +18,11 @@ public:
 	FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
 
 	/**
-	 * Given a level name, returns a short level name that will work with Play on Editor or Play on Console
+	 * Given a level name, returns level name that will work with Play on Editor or Play on Console
 	 *
 	 * @param	InLevelName		Raw level name (no UEDPIE or UED<console> prefix)
 	 */
-	static FString MakeSafeShortLevelName( const FName& InLevelName, UWorld* InWorld );
+	static FString MakeSafeLevelName( const FName& InLevelName, UWorld* InWorld );
 
 	/**
 	 * Helper function to potentially find a level streaming object by name and cache the result
@@ -47,11 +47,11 @@ public:
 	 */
 	bool UpdateLevel( ULevelStreaming* LevelStreamingObject );
 
-	virtual void UpdateOperation(FLatentResponse& Response) OVERRIDE;
+	virtual void UpdateOperation(FLatentResponse& Response) override;
 
 #if WITH_EDITOR
 	// Returns a human readable description of the latent operation's current state
-	virtual FString GetDescription() const OVERRIDE;
+	virtual FString GetDescription() const override;
 #endif
 };
 
@@ -97,7 +97,7 @@ class ULevelStreaming : public UObject
 
 	/** This streaming level was not found																						*/
 	uint32 bFailedToLoad:1;
-
+	
 	/** Whether this level should be visible in the Editor																		*/
 	UPROPERTY()
 	uint32 bShouldBeVisibleInEditor:1;
@@ -125,7 +125,7 @@ class ULevelStreaming : public UObject
 	UPROPERTY(EditAnywhere, Category=LevelStreaming)
 	uint32 bDrawOnLevelStatusMap:1;
 
-	/** The level's color; used to make the level easily identifiable in the level browser, for actor level visulization, etc.	*/
+	/** The level color used for visualization. (Show -> Advanced -> Level Coloration) */
 	UPROPERTY(EditAnywhere, Category=LevelStreaming)
 	FColor DrawColor;
 
@@ -144,11 +144,14 @@ class ULevelStreaming : public UObject
 	UPROPERTY()
 	TArray<FString> Keywords;
 
+	/** Requested LOD */
+	int32 LevelLODIndex;
+
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void Serialize( FArchive& Ar ) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	
 	/** Remove duplicates in EditorStreamingVolumes list*/
 	void RemoveStreamingVolumeDuplicates();
@@ -193,14 +196,8 @@ class ULevelStreaming : public UObject
 	class ULevel* GetLoadedLevel() const {	return LoadedLevel; }
 	
 	/** Sets the LoadedLevel value to NULL */
-	void ClearLoadedLevel() { SetLoadedLevel(NULL); }
+	void ClearLoadedLevel() { SetLoadedLevel(nullptr); }
 	
-	/** Gets current streaming level LOD index  */
-	int32 GetLODIndex(UWorld* PersistentWorld) const;	
-
-	/** Sets current streaming level LOD index  */
-	void SetLODIndex(UWorld* PersistentWorld, int32 LODIndex);	
-		
 #if WITH_EDITOR
 	/** Override Pre/PostEditUndo functions to handle editor transform */
 	virtual void PreEditUndo();
@@ -276,10 +273,10 @@ class ULevelStreaming : public UObject
 	
 private:
 	/** @return Name of the LOD level package used for loading.																		*/
-	FName GetLODPackageName(UWorld* PersistentWorld) const;
+	FName GetLODPackageName() const;
 
 	/** @return Name of the LOD package on disk to load to the new package named PackageName, Name_None otherwise					*/
-	FName GetLODPackageNameToLoad(UWorld* PersistentWorld) const;
+	FName GetLODPackageNameToLoad() const;
 
 	/** 
 	 * Try to find loaded level in memory, issue a loading request otherwise
@@ -292,42 +289,9 @@ private:
 	bool RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoadRequests, bool bBlockOnLoad);
 	
 	/** Sets the value of LoadedLevel */
-	void SetLoadedLevel(class ULevel* Level)
-	{ 
-		// Pending level should be unloaded or hidden at this point
-		check(PendingUnloadLevel == nullptr || PendingUnloadLevel->bIsVisible == false || Level == PendingUnloadLevel);
-
-		SetPendingUnloadLevel(LoadedLevel);
-
-		if (LoadedLevel)
-		{
-			LoadedLevel->DecStreamingLevelRefs();
-		}
-
-		LoadedLevel = Level;
-
-		if (LoadedLevel)
-		{
-			LoadedLevel->IncStreamingLevelRefs();
-		}
-	}
-
-	/** Sets the value of PendingUnloadLevel */
-	void SetPendingUnloadLevel(class ULevel* Level)
-	{ 
-		if (PendingUnloadLevel)
-		{
-			PendingUnloadLevel->DecStreamingLevelRefs();
-		}
-
-		PendingUnloadLevel = Level;
-
-		if (PendingUnloadLevel)
-		{
-			PendingUnloadLevel->IncStreamingLevelRefs();
-		}
-	}
-
+	void SetLoadedLevel(class ULevel* Level);
+	
+	/** Hide and queue for unloading previously used level */
 	void DiscardPendingUnloadLevel(UWorld* PersistentWorld);
 
 	/** 
@@ -341,7 +305,7 @@ private:
 	UPROPERTY(transient)
 	class ULevel* LoadedLevel;
 
-	/** Pointer to replaced loaded Level object */
+	/** Pointer to a Level object that was previously active and was replaced with a new LoadedLevel (for LOD switching) */
 	UPROPERTY(transient)
 	class ULevel* PendingUnloadLevel;
 	

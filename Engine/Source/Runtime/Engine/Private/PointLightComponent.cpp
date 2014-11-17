@@ -69,7 +69,7 @@ public:
 	 */
 	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, TArray<FWholeSceneProjectedShadowInitializer, TInlineAllocator<6> >& OutInitializers) const
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+		if (ViewFamily.Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4
 			&& GAllowPointLightCubemapShadows != 0)
 		{
 			FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;
@@ -126,7 +126,7 @@ FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 	return new FPointLightSceneProxy(this);
 }
 
-void UPointLightComponent::SetRadius(float NewRadius)
+void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 {
 	// Only movable lights can change their radius at runtime
 	if (!(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary))

@@ -34,35 +34,34 @@ public:
 	virtual ~FEdModeTileMap();
 
 	// FSerializableObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject
 
 	// FEdMode interface
-	virtual bool UsesToolkits() const OVERRIDE;
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
-	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) OVERRIDE;
+	virtual bool UsesToolkits() const override;
+	virtual void Enter() override;
+	virtual void Exit() override;
+	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) override;
 
-	//	virtual void PostUndo() OVERRIDE;
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE;
-	virtual bool CapturedMouseMove(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) OVERRIDE;
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
-	// 	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE;
-	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) OVERRIDE;
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) OVERRIDE;
-	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) OVERRIDE;
-	// 	virtual bool Select(AActor* InActor, bool bInSelected) OVERRIDE;
-	// 	virtual bool IsSelectionAllowed(AActor* InActor) const OVERRIDE;
-	// 	virtual void ActorSelectionChangeNotify() OVERRIDE;
-	// 	virtual FVector GetWidgetLocation() const OVERRIDE;
+	//	virtual void PostUndo() override;
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
+	virtual bool CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	// 	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override;
+	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override;
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override;
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) override;
+	// 	virtual bool Select(AActor* InActor, bool bInSelected) override;
+	// 	virtual bool IsSelectionAllowed(AActor* InActor) const override;
+	// 	virtual void ActorSelectionChangeNotify() override;
+	// 	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove();
-	virtual bool ShouldDrawWidget() const OVERRIDE;
-	virtual bool UsesTransformWidget() const OVERRIDE;
-	virtual void PeekAtSelectionChangedEvent(UObject* ItemUndergoingChange) OVERRIDE;
-	// 	virtual int32 GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const OVERRIDE;
-	// 	virtual bool DisallowMouseDeltaTracking() const OVERRIDE;
+	virtual bool ShouldDrawWidget() const override;
+	virtual bool UsesTransformWidget() const override;
+	// 	virtual int32 GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;
+	// 	virtual bool DisallowMouseDeltaTracking() const override;
 	// End of FEdMode interface
 
 	void SetActiveTool(ETileMapEditorTool::Type NewTool);
@@ -89,7 +88,7 @@ protected:
 	UPaperTileLayer* GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY) const;
 
 	// Compute a world space ray from the screen space mouse coordinates
-	FViewportCursorLocation CalculateViewRay(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
+	FViewportCursorLocation CalculateViewRay(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 
 	static AActor* GetFirstSelectedActorContainingTileMapComponent();
 
@@ -119,5 +118,6 @@ protected:
 
 	ETileMapEditorTool::Type ActiveTool;
 	ETileMapLayerPaintingMode::Type LayerPaintingMode;
+	mutable FTransform ComponentToWorld;
 };
 

@@ -5,7 +5,13 @@
 #include "EditorUserSettings.h"
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
+#include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
+
+class FAssetData;
+class UAnimSequence;
+class USkeleton;
+class FPoly;
 
 //
 // Things to set in mapSetBrush.
@@ -468,9 +474,6 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY(transient)
 	uint32 bDrawParticleHelpers:1;
 
-	UPROPERTY()
-	TArray<class AGroupActor*> ActiveGroupActors;
-
 	/** Brush builders that have been created in the editor */
 	UPROPERTY(transient)
 	TArray<class UBrushBuilder*> BrushBuilders;	
@@ -566,18 +569,18 @@ public:
 	void BroadcastObjectReimported(UObject* InObject) { ObjectReimportedEvent.Broadcast(InObject); }
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;	
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void FinishDestroy() override;	
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
 	// Begin UEngine interface.
-	virtual void Init(IEngineLoop* InEngineLoop) OVERRIDE;
-	virtual void InitializeObjectReferences() OVERRIDE;
+	virtual void Init(IEngineLoop* InEngineLoop) override;
+	virtual void InitializeObjectReferences() override;
 	// End UEngine interface.
 	
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	bool	CommandIsDeprecated( const TCHAR* CommandStr, FOutputDevice& Ar );
@@ -626,7 +629,7 @@ public:
 	
 
 	/** Get tick rate limitor. */
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) OVERRIDE;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
 
 	/**
 	 * Initializes the Editor.
@@ -640,7 +643,7 @@ public:
 	 */
 	void InitBuilderBrush( UWorld* InWorld );
 
-	virtual void Tick( float DeltaSeconds, bool bIdleMode ) OVERRIDE;
+	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
 
 	/** Returns the global instance of the editor user settings class. */
 	const UEditorUserSettings& GetEditorUserSettings() const;
@@ -692,7 +695,7 @@ public:
 	/**
 	 * Returns whether or not the map build in progressed was cancelled by the user.
 	 */
-	virtual bool GetMapBuildCancelled() const OVERRIDE
+	virtual bool GetMapBuildCancelled() const override
 	{
 		return false;
 	}
@@ -702,7 +705,7 @@ public:
 	 *
 	 * @param InCancelled	New state for the cancelled flag.
 	 */
-	virtual void SetMapBuildCancelled( bool InCancelled ) OVERRIDE
+	virtual void SetMapBuildCancelled( bool InCancelled ) override
 	{
 		// Intentionally empty.
 	}
@@ -712,7 +715,7 @@ public:
 	 *
 	 * @param InActor	Actor that is being drawn.
 	 */
-	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) OVERRIDE;
+	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) override;
 
 	// Execute a command that is safe for rebuilds.
 	virtual bool SafeExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
@@ -902,7 +905,7 @@ public:
 	 * Notifies tools that a set of objects is being replaced with a new set of objects, so if any of the old
 	 * objects are being edited, they should be discarded and replaced with the new instance.
 	 */
-	virtual void NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*>& OldToNewInstanceMap) OVERRIDE;
+	virtual void NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*>& OldToNewInstanceMap) override;
 
 	//
 	// Pivot handling.
@@ -1089,7 +1092,7 @@ public:
 	 *
 	 * @return							Returns the newly created actor with the newly created static mesh.
 	 */
-	AActor* ConvertBrushesToStaticMesh(const FText& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation);
+	AActor* ConvertBrushesToStaticMesh(const FString& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation);
 
 	/**
 	 * Converts passed in light actors into new actors of another type.
@@ -1117,7 +1120,7 @@ public:
 	 * @param	bUseSpecialCases			If true, looks for classes that can be handled by hardcoded conversions
 	 * @param	InStaticMeshPackageName		The name to save the brushes to.
 	 */
-	void DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FText& InStaticMeshPackageName );
+	void DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FString& InStaticMeshPackageName );
 
 	/**
 	 * Sets up for a potentially deferred ConvertActors call, based on if any brushes are being converted to a static mesh. If one (or more)
@@ -1256,7 +1259,7 @@ public:
 	// Selection.
 	virtual void SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden=false) {}
 	virtual bool CanSelectActor(AActor* Actor, bool bInSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const { return true; }
-	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
+	virtual void SelectGroup(class AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
 
 	/**
 	 * Replaces the components in ActorsToReplace with an primitive component in Replacement
@@ -1441,11 +1444,13 @@ public:
 
 	/** 
 	 * Displays a modal message dialog 
+	 * @param	InMessage	Type of the message box
 	 * @param	InText		Message to display
-	 * @param	InMessage		Type of the message box
+	 * @param	InTitle		Title for the message box
 	 * @return	Returns the result of the modal message box
 	 */
-	EAppReturnType::Type OnModalMessageDialog( const FText& InText, EAppMsgType::Type InMessage );
+	EAppReturnType::Type OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle);
+
 	/** 
 	 * Returns whether an object should replace an exisiting one or not 
 	 * @param	Filename		Filename of the package
@@ -1581,6 +1586,13 @@ public:
 	 */
 	bool IsAnyViewportRealtime();
 
+	virtual bool ShouldThrottleCPUUsage() const override;
+
+	/**
+	 * @return true if all windows are hidden (including minimized)                                                         
+	 */
+	bool AreAllWindowsHidden() const;
+
 	/**
 	 *	Returns pointer to a temporary render target.
 	 *	If it has not already been created, does so here.
@@ -1595,12 +1607,12 @@ public:
 	/**
 	 * Handles freezing/unfreezing of rendering
 	 */
-	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 
 	/**
 	 * Handles frezing/unfreezing of streaming
 	 */
-	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 
 	// Editor specific
 
@@ -1769,9 +1781,6 @@ public:
 	 * @param bDisable True if modification should be disabled; false otherwise.
 	 */
 	void DisableDeltaModification(bool bDisable) { bDisableDeltaModification = bDisable; }
-
-	/** called after script compilation to allow for game specific post-compilation steps */
-	virtual void PostScriptCompile() {}
 
 	/**
 	 *	Game-specific function called by Map_Check BEFORE iterating over all actors.
@@ -2122,7 +2131,7 @@ public:
 	 * mostly done to check if PIE is being set up, go GWorld is going to change, and it's not really _the_G_World_
 	 * NOTE: hope this goes away once PIE and regular game triggering are not that separate code paths
 	 */
-	virtual bool IsSettingUpPlayWorld() const OVERRIDE { return EditorWorld != NULL && PlayWorld == NULL; }
+	virtual bool IsSettingUpPlayWorld() const override { return EditorWorld != NULL && PlayWorld == NULL; }
 
 	/**
 	 *	Retrieves the active viewport from the editor.
@@ -2159,6 +2168,13 @@ public:
 	 * @return				true if a PIE session exists and the user refused to end it, false otherwise.
 	 */
 	bool ShouldAbortBecauseOfPIEWorld() const;
+
+	/**
+	 * If an unsaved world exists that would be lost in a map transition, give the user the option to cancel a map load.
+	 *
+	 * @return				true if an unsaved world exists and the user refused to continue, false otherwise.
+	 */
+	bool ShouldAbortBecauseOfUnsavedWorld() const;
 
 	/**
 	 * Assigns a new label to an actor. If the name exists it will be appended with a number to make it unique. Actor labels are only available in development builds.
@@ -2223,16 +2239,16 @@ public:
 	/**
 	 * Returns if this world is a PIE world that has its own viewport (is not using the editor viewport)
 	 */
-	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld) OVERRIDE;
+	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld) override;
 
-	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) OVERRIDE;
+	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) override;
 
 	DECLARE_DELEGATE(FPIEInstanceWindowSwitch);
 
 	/** Sets the delegate for when the focused PIE window is changed */
 	void SetPIEInstanceWindowSwitchDelegate(FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate);
 
-	virtual class UGameViewportClient *	GetNextPIEViewport(UGameViewportClient * CurrentViewport) OVERRIDE;
+	virtual class UGameViewportClient *	GetNextPIEViewport(UGameViewportClient * CurrentViewport) override;
 
 private:
 	//
@@ -2282,9 +2298,9 @@ private:
 	/**
 	 * Creates a PIE world by duplicating the editor world	 
 	 */
-	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) OVERRIDE;
+	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
 
-	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) OVERRIDE;
+	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 
 	/** Creates a PIE world by saving to a temp file and then reloading it */
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
@@ -2396,11 +2412,13 @@ private:
 	 *
 	 * @param	Context		The world to destroy
 	 * @param	CleanseText	Reason for the destruction
+	 * @param	NewWorld	An optional new world to keep in memory after destroying the world referenced in the Context.
+	 *						This world and it's sublevels will remain in memory.
 	 */
-	void EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText );
+	void EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld = nullptr );
 
 	/** Returns the GameViewport widget */
-	virtual TSharedPtr<SViewport> GetGameViewportWidget() const OVERRIDE;
+	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
 
 	/**
 	 * Given a label, attempts to split this into its alpha/numeric parts.
@@ -2447,13 +2465,13 @@ private:
 	/** Updates the project file to auto load and initializes the bLoadTheMostRecentlyLoadedProjectAtStartup flag */
 	void UpdateAutoLoadProject();
 
-	virtual void TriggerStreamingDataRebuild() OVERRIDE;
+	virtual void TriggerStreamingDataRebuild() override;
 
 	/** Remaps a network path for PIE Networking under multiple worlds */
-	virtual bool NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading=true) OVERRIDE;
+	virtual bool NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading=true) override;
 
 	/** Remaps a network path for PIE Networking under multiple worlds */
-	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) OVERRIDE;
+	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) override;
 
 	/** Handles user setting changes. */
 	void HandleSettingChanged( FName Name );
@@ -2533,7 +2551,7 @@ private:
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
 
-	virtual void VerifyLoadMapWorldCleanup() OVERRIDE;
+	virtual void VerifyLoadMapWorldCleanup() override;
 
 	FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate;
 
@@ -2542,8 +2560,15 @@ private:
 
 protected:
 
-	// @todo gmp: temp hack for Rocket demo
-	void PlayOnLocalPc(FString MapNameOverride=FString(), FString URLParms=FString(), FString CmdLineParms=FString(), int32 ResX=0, int32 ResY=0);
+	/**
+	 * Launch a standalone instance on this PC.
+	 *
+	 * @param	MapNameOverride		Map name override
+	 * @param	WindowPos			Postion we want to put the window we create.
+	 * @param	PIENum				PIE instance count
+	 * @param	bIsServer			Is this instance a server.
+	 */
+	void PlayStandaloneLocalPc(FString MapNameOverride = FString(), FIntPoint* WindowPos = NULL, int32 PIENum = 0, bool bIsServer = false);
 
 	void PlayUsingLauncher();
 
@@ -2557,6 +2582,12 @@ protected:
 
 	/** Destroy any online subsystems generated by PIE */
 	void CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers);
+
+	// launch on callbacks
+	void HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr);
+	void HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+	void HandleLaunchCompleted(bool Succeeded, double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 };
 
 

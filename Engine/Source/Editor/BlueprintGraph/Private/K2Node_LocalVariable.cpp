@@ -5,6 +5,9 @@
 #include "Kismet2NameValidators.h"
 #include "ScopedTransaction.h"
 
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_LocalVariable.h"
+
 UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -38,21 +41,6 @@ FText UDEPRECATED_K2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleT
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Title"), FText::FromName(CustomVariableName));
 	return FText::Format(NSLOCTEXT("K2Node", "LocalVariable_Name", "{Title}\nLocal Variable"), Args);
-}
-
-FString UDEPRECATED_K2Node_LocalVariable::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return CustomVariableName.ToString();
-	}
-	else if(TitleType == ENodeTitleType::ListView)
-	{
-		return FString(TEXT("Local ")) + UEdGraphSchema_K2::TypeToString(VariableType);
-	}
-
-	return FString::Printf(TEXT("%s\nLocal Variable"), *CustomVariableName.ToString());
 }
 
 void UDEPRECATED_K2Node_LocalVariable::OnRenameNode(const FString& NewName)

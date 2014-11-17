@@ -43,7 +43,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_NO_EPROCLIM					1
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
-#define PLATFORM_SUPPORTS_JEMALLOC					1
 #define PLATFORM_EXCEPTIONS_DISABLED				1
 
 #define PLATFORM_USES_DYNAMIC_RHI					1
@@ -65,9 +64,11 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("optimize(\"\",off)")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("optimize(\"\",on)")
 
-#define OVERRIDE override
-#define FINAL	 final
 #define ABSTRACT abstract
+
+// DLL export and import definitions
+#define DLLEXPORT			__attribute__((visibility("default")))
+#define DLLIMPORT			__attribute__((visibility("default")))
 
 // Alignment.
 #define GCC_PACK(n)			__attribute__((packed,aligned(n)))

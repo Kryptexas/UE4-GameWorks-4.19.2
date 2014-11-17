@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMainFrameModule.h: Declares the IMainFrameModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -142,15 +138,13 @@ public:
 	/**
 	 * Gets a reference to the search module instance.
 	 *
-	 * @todo gmp - better implementation using dependency injection.
-	 *
+	 * @todo gmp: better implementation using dependency injection.
 	 * @return A reference to the MainFrame module.
 	 */
 	static IMainFrameModule& Get( )
 	{
 		return FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
 	}
-
 
 public:
 

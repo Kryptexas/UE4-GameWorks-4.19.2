@@ -6,6 +6,9 @@
 
 #pragma once
 
+class FPrimitiveDrawInterface;
+class FMaterialRenderProxy;
+
 /** The vertex type used for dynamic meshes. */
 struct FDynamicMeshVertex
 {
@@ -84,10 +87,10 @@ public:
 	ENGINE_API void AddTriangle(int32 V0,int32 V1,int32 V2);
 
 	/** Adds many vertices to the mesh. */
-	int32 AddVertices(const TArray<FDynamicMeshVertex> &InVertices);
+	ENGINE_API int32 AddVertices(const TArray<FDynamicMeshVertex> &InVertices);
 
 	/** Add many indices to the mesh. */
-	void AddTriangles(const TArray<int32> &InIndices);
+	ENGINE_API void AddTriangles(const TArray<int32> &InIndices);
 
 	/**
 	 * Draws the mesh to the given primitive draw interface.

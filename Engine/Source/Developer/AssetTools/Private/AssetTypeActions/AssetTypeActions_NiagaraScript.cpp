@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
+#include "Engine/NiagaraScript.h"
+
 #include "Toolkits/AssetEditorManager.h"
 
 #include "Editor/NiagaraEditor/Public/NiagaraEditorModule.h"

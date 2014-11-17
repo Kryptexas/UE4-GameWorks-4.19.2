@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	KeyStructCustomization.cpp: Implements the FKeyStructCustomization class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "KeyStructCustomization.h"
 #include "ScopedTransaction.h"
@@ -14,16 +10,16 @@
 /* FKeyStructCustomization static interface
  *****************************************************************************/
 
-TSharedRef<IStructCustomization> FKeyStructCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FKeyStructCustomization::MakeInstance( )
 {
 	return MakeShareable(new FKeyStructCustomization);
 }
 
 
-/* IStructCustomization interface
+/* IPropertyTypeCustomization interface
  *****************************************************************************/
 
-void FKeyStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 

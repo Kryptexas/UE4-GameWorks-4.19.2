@@ -21,7 +21,7 @@ public:
 	}
 
 
-	virtual void DoStuff() OVERRIDE
+	virtual void DoStuff() override
 	{
 
 	}

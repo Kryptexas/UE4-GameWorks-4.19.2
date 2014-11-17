@@ -53,9 +53,9 @@ public:
 	}
 
 	/** MovieSceneSection interface */
-	virtual void MoveSection( float DeltaPosition ) OVERRIDE;
-	virtual void DilateSection( float DilationFactor, float Origin ) OVERRIDE;
-	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const OVERRIDE;
+	virtual void MoveSection( float DeltaPosition ) override;
+	virtual void DilateSection( float DilationFactor, float Origin ) override;
+	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
 
 private:
 	/** The sound cue or wave that this section plays */

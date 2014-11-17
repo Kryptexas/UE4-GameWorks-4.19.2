@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerClientPrivatePCH.h: Pre-compiled header file for the ProfilerClient module.
-=============================================================================*/
-
 #pragma once
 
+#include "ProfilerClient.h"
 
-#include "../Public/ProfilerClient.h"
 
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Messaging.h"

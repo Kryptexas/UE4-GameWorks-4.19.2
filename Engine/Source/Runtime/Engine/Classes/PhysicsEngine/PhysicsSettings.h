@@ -32,6 +32,21 @@ struct FPhysicalSurfaceName
 	{}
 };
 
+UENUM()
+namespace EFrictionCombineMode
+{
+	enum Type
+	{
+		//Uses the average friction of materials touching: (a+b) /2
+		Average = 0,	
+		//Uses the minimum friction of materials touching: min(a,b)
+		Min = 1,		
+		//Uses the product of the friction of materials touching: a*b
+		Multiply = 2,	
+		//Uses the maximum friction of materials touching: max(a,b)
+		Max = 3
+	};
+}
 
 /**
  * Implements project settings for the physics sub-system.
@@ -42,15 +57,27 @@ class ENGINE_API UPhysicsSettings
 {
 	GENERATED_UCLASS_BODY()
 
-	/**Default gravity. */
+	/** Default gravity. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultGravityZ;
 
-	/**Enables the use of an async scene */
+	/** Default Terminal Velocity. */
+	UPROPERTY(config, EditAnywhere, Category = Constants)
+	float DefaultTerminalVelocity;
+
+	/** Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;
 
-	/**Max Physics Delta Time to be clamped. */
+	/** Can 2D physics be used (Box2D)? */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bEnable2DPhysics;
+
+	/** Friction combine mode, controls how friction is computed for multiple materials. */
+	UPROPERTY(config, EditAnywhere, Category=Simulation)
+	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
+
+	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
 	float MaxPhysicsDeltaTime;
 
@@ -58,7 +85,7 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	bool bSubstepping;
 
-		/**Max delta time for an individual substep simulation. */
+	/** Max delta time for an individual substep simulation. */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0", editcondition = "bSubStepping"), Category=Framerate)
 	float MaxSubstepDeltaTime;
 
@@ -66,15 +93,15 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "1", UIMin = "1", ClampMax = "16", UIMax = "16", editcondition = "bSubstepping"), Category=Framerate)
 	int32 MaxSubsteps;
 
-	/**Physics delta time smoothing factor for sync scene. */
+	/** Physics delta time smoothing factor for sync scene. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float SyncSceneSmoothingFactor;
 
-	/**Physics delta time smoothing factor for async scene. */
+	/** Physics delta time smoothing factor for async scene. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float AsyncSceneSmoothingFactor;
 
-	/**Physics delta time initial average. */
+	/** Physics delta time initial average. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0013", UIMin = "1.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float InitialAverageFrameRate;
 
@@ -86,11 +113,12 @@ public:
 
 	static UPhysicsSettings * Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
 
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 
-	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+	virtual bool CanEditChange( const UProperty* Property ) const override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/** Load Material Type data from INI file **/
 	/** this changes displayname meta data. That means we won't need it outside of editor*/

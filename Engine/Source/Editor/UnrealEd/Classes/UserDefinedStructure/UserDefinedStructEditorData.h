@@ -44,9 +44,22 @@ struct FStructVariableDescription
 	UPROPERTY()
 	FString ToolTip;
 
+	UPROPERTY()
+	bool bDontEditoOnInstance;
+
+	UPROPERTY()
+	bool bEnable3dWidget;
+
 	UNREALED_API bool SetPinType(const struct FEdGraphPinType& VarType);
 
 	UNREALED_API FEdGraphPinType ToPinType() const;
+
+	FStructVariableDescription()
+		: bIsArray(false)
+		, bInvalidMember(false)
+		, bDontEditoOnInstance(false)
+		, bEnable3dWidget(false)
+	{ }
 };
 
 UCLASS()
@@ -67,8 +80,8 @@ public:
 	FString ToolTip;
 
 	// UObject interface.
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) override;
 	// End of UObject interface.
 
 	uint32 GenerateUniqueNameIdForMemberVariable();

@@ -25,6 +25,7 @@ extern "C" CORE_API HINSTANCE hInstance;
 // SIMD intrinsics
 #include <intrin.h>
 
+#include <stdint.h>
 #include <tchar.h>
 
 #if USING_CODE_ANALYSIS
@@ -55,6 +56,8 @@ using namespace vc_attributes;
 #include "Windows/WindowsPlatformFile.h"
 #include "Windows/WindowsPlatformSurvey.h"
 #include "Windows/WindowsPlatformHttp.h"
+
+typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime
 

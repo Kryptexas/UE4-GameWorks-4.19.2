@@ -43,9 +43,9 @@ class KISMET_API FBlueprintEditorApplicationMode : public FApplicationMode
 public:
 	FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, const bool bRegisterViewport = true, const bool bRegisterDefaultsTab = true);
 
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
-	virtual void PreDeactivateMode() OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
+	virtual void PreDeactivateMode() override;
+	virtual void PostActivateMode() override;
 public:
 
 protected:
@@ -67,8 +67,8 @@ class KISMET_API FBlueprintDefaultsApplicationMode : public FApplicationMode
 public:
 	FBlueprintDefaultsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
+	virtual void PostActivateMode() override;
 public:
 
 protected:
@@ -84,9 +84,9 @@ class KISMET_API FBlueprintComponentsApplicationMode : public FApplicationMode
 public:
 	FBlueprintComponentsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
-	virtual void PreDeactivateMode() OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
+	virtual void PreDeactivateMode() override;
+	virtual void PostActivateMode() override;
 
 	TSharedPtr<FBlueprintEditor> GetBlueprintEditor() const { return MyBlueprintEditor.Pin(); }
 	AActor* GetPreviewActor() const;
@@ -102,7 +102,7 @@ class KISMET_API FBlueprintInterfaceApplicationMode : public FApplicationMode
 public:
 	FBlueprintInterfaceApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 public:
 
 protected:
@@ -117,7 +117,7 @@ class KISMET_API FBlueprintMacroApplicationMode : public FApplicationMode
 public:
 	FBlueprintMacroApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 public:
 
 protected:

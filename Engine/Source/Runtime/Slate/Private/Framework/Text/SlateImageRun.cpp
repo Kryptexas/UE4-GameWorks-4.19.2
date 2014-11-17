@@ -25,7 +25,8 @@ TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FSt
 	return MakeShareable( new FSlateImageRun( InText, InImage, InBaseline, InRange ) );
 }
 
-FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange ) : Text( InText )
+FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange ) 
+	: Text( InText )
 	, Range( InRange )
 	, Image( InImage )
 	, Baseline( InBaseline )
@@ -33,7 +34,8 @@ FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const
 	check( Image != NULL );
 }
 
-FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline ) : Text( InText )
+FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline ) 
+	: Text( InText )
 	, Range( 0, Text->Len() )
 	, Image( InImage )
 	, Baseline( InBaseline )
@@ -49,6 +51,16 @@ FChildren* FSlateImageRun::GetChildren()
 void FSlateImageRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
 {
 	// no widgets
+}
+
+int32 FSlateImageRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const
+{
+	return INDEX_NONE;
+}
+
+FVector2D FSlateImageRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
+{
+	return Block->GetLocationOffset();
 }
 
 int32 FSlateImageRun::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
@@ -68,7 +80,7 @@ TSharedRef< ILayoutBlock > FSlateImageRun::CreateBlock( int32 BeginIndex, int32 
 	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( BeginIndex, EndIndex ), Size, Highlighter );
 }
 
-uint8 FSlateImageRun::GetKerning( int32 CurrentIndex, float Scale ) const 
+int8 FSlateImageRun::GetKerning( int32 CurrentIndex, float Scale ) const 
 {
 	return 0;
 }
@@ -94,3 +106,29 @@ FTextRange FSlateImageRun::GetTextRange() const
 	return Range;
 }
 
+void FSlateImageRun::SetTextRange( const FTextRange& Value )
+{
+	Range = Value;
+}
+
+void FSlateImageRun::Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange)
+{
+	Text = NewText;
+	Range = NewRange;
+}
+
+TSharedRef<IRun> FSlateImageRun::Clone() const
+{
+	return FSlateImageRun::Create(Text, Image, Baseline, Range);
+}
+
+void FSlateImageRun::AppendText(FString& Text) const
+{
+	// Do nothing
+}
+
+void FSlateImageRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+{
+	check(Range.BeginIndex <= PartialRange.BeginIndex);
+	check(Range.EndIndex >= PartialRange.EndIndex);
+}

@@ -34,6 +34,7 @@ void SGraphPreviewer::Construct( const FArguments& InArgs, UEdGraph* InGraphObj 
 			SAssignNew(GraphPanel, SGraphPanel)
 			.GraphObj( EdGraphObj )
 			.IsEditable( false )
+			.ShowGraphStateOverlay(InArgs._ShowGraphStateOverlay)
 			.InitialZoomToFit( true )
 		]
 

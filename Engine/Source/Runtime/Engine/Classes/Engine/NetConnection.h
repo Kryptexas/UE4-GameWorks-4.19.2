@@ -5,9 +5,15 @@
 //
 
 #pragma once
+
 #include "Net/DataBunch.h"
+#include "Engine/Channel.h"
+#include "Engine/Player.h"
+#include "Engine/NetDriver.h"
+
 #include "NetConnection.generated.h"
 
+class FObjectReplicator;
 
 /*-----------------------------------------------------------------------------
 	Types.
@@ -91,7 +97,7 @@ struct DelayedPacket
 #define PING_ACK_DELAY 0.5
 
 
-UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine, dependsOn=UGameEngine)
+UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
 	GENERATED_UCLASS_BODY()
@@ -311,9 +317,9 @@ public:
 
 	// Begin UObject interface.
 
-	ENGINE_API virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 
-	ENGINE_API virtual void FinishDestroy() OVERRIDE;
+	ENGINE_API virtual void FinishDestroy() override;
 
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -322,7 +328,7 @@ public:
 
 	// Begin FExec interface.
 
-	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 
 	// End FExec interface.
 
@@ -513,7 +519,7 @@ public:
 	class UControlChannel* GetControlChannel();
 
 	/** Create a channel. */
-	ENGINE_API UChannel* CreateChannel( enum EChannelType Type, bool bOpenedLocally, int32 ChannelIndex=INDEX_NONE );
+	ENGINE_API UChannel* CreateChannel( EChannelType Type, bool bOpenedLocally, int32 ChannelIndex=INDEX_NONE );
 
 	/** Handle a packet we just received. */
 	void ReceivedPacket( FBitReader& Reader );

@@ -76,7 +76,7 @@ namespace UnrealBuildTool
 			
 			if( !WindowsPlatform.bCompileWithClang )	// @todo clang: These options are not supported with clang-cl yet
 			{
-				if (CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64)
+				if (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
 					// Pack struct members on 8-byte boundaries.
 					Result += " /Zp8";
@@ -154,7 +154,7 @@ namespace UnrealBuildTool
 			//
 			//	Debug
 			//
-			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 			{
 				// Disable compiler optimization.
 				Result += " /Od";
@@ -162,14 +162,14 @@ namespace UnrealBuildTool
 				// Favor code size (especially useful for embedded platforms).
 				Result += " /Os";
 
-				// Allow inline method expansion unless E&C support is requested or inlining is explicitly disabled.
-				if( !BuildConfiguration.bSupportEditAndContinue && CompileEnvironment.Config.bEnableInlining )
+				// Allow inline method expansion unless E&C support is requested
+				if( !BuildConfiguration.bSupportEditAndContinue )
 				{
 					Result += " /Ob2";
 				}
 
-				if ((CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32) || 
-					(CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64))
+				if ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) || 
+					(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64))
 				{
 					// Runtime stack checks are not allowed when compiling for CLR
 					if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLRDisabled)
@@ -187,6 +187,10 @@ namespace UnrealBuildTool
 				if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
 				{
 					Result += " /Ox";
+
+					// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
+					// compile times.  The executable code is not affected at all by this switch, only the debugging information.
+					Result += " /d2Zi+";
 				}
 				
 				// Favor code speed.
@@ -194,22 +198,19 @@ namespace UnrealBuildTool
 
 				// Only omit frame pointers on the PC (which is implied by /Ox) if wanted.
 				if ( BuildConfiguration.bOmitFramePointers == false
-				&& ((CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32) ||
-					(CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64)))
+				&& ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) ||
+					(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)))
 				{
 					Result += " /Oy-";
 				}
 
-				// Allow inline method expansion unless it's explicitly disabled.
-				if( CompileEnvironment.Config.bEnableInlining )
-				{
-					Result += " /Ob2";
-				}
+				// Allow inline method expansion
+				Result += " /Ob2";
 
 				//
 				// LTCG
 				//
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					if( BuildConfiguration.bAllowLTCG )
 					{
@@ -222,13 +223,13 @@ namespace UnrealBuildTool
 			//
 			//	PC
 			//
-			if ((CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32) || 
-				(CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64))
+			if ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) || 
+				(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64))
 			{
 				// SSE options are not allowed when using CLR compilation or the 64 bit toolchain
 				// (both enable SSE2 automatically)
 				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLRDisabled &&
-					CompileEnvironment.Config.TargetPlatform != CPPTargetPlatform.Win64)
+					CompileEnvironment.Config.Target.Platform != CPPTargetPlatform.Win64)
 				{
 					// @todo Clang: Doesn't make sense to the Clang compiler
 					if( !WindowsPlatform.bCompileWithClang )
@@ -264,7 +265,7 @@ namespace UnrealBuildTool
             }
 
             // @todo - find a better place for this. 
-            if (CompileEnvironment.Config.TargetPlatform == CPPTargetPlatform.HTML5)
+            if (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.HTML5)
             {
                 Result += " /EHsc"; 
             }
@@ -285,7 +286,7 @@ namespace UnrealBuildTool
 						// Create debug info suitable for E&C if wanted.
 						if( BuildConfiguration.bSupportEditAndContinue &&
 							// We only need to do this in debug as that's the only configuration that supports E&C.
-							CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+							CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 						{
 							Result += " /ZI";
 						}
@@ -304,7 +305,7 @@ namespace UnrealBuildTool
 			}
 
 			// Specify the appropriate runtime library based on the platform and config.
-			if( CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+			if( CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
 			{
 				Result += " /MDd";
 			}
@@ -419,11 +420,11 @@ namespace UnrealBuildTool
 			//
 			//	PC
 			//
-			if ((LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32) || 
-				(LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64))
+			if ((LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) || 
+				(LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64))
 			{
 				// Set machine type/ architecture to be 64 bit.
-				if (LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64)
+				if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
 					Result += " /MACHINE:x64";
 				}
@@ -447,7 +448,7 @@ namespace UnrealBuildTool
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
 					if( WindowsPlatform.SupportWindowsXP )
 					{
-						Result += LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01";
+						Result += LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01";
 					}
 				}
 
@@ -461,7 +462,7 @@ namespace UnrealBuildTool
 				Result += " /FIXED:No";
 
 				// Option is only relevant with 32 bit toolchain.
-				if (LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32)
+				if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32)
 				{
 					// Disables the 2GB address space limit on 64-bit Windows and 32-bit Windows with /3GB specified in boot.ini
 					Result += " /LARGEADDRESSAWARE";
@@ -475,7 +476,7 @@ namespace UnrealBuildTool
 
 				// E&C can't use /SAFESEH.  Also, /SAFESEH isn't compatible with 64-bit linking
 				if( !BuildConfiguration.bSupportEditAndContinue &&
-					LinkEnvironment.Config.TargetPlatform != CPPTargetPlatform.Win64)
+					LinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Win64)
 				{
 					// Generates a table of Safe Exception Handlers.  Documentation isn't clear whether they actually mean
 					// Structured Exception Handlers.
@@ -513,7 +514,7 @@ namespace UnrealBuildTool
 			//	Shipping & LTCG
 			//
 			if( BuildConfiguration.bAllowLTCG &&
-				LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Use link-time code generation.
 				Result += " /LTCG";
@@ -526,7 +527,7 @@ namespace UnrealBuildTool
 			//
 			//	Shipping binary
 			//
-			if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Generate an EXE checksum.
 				Result += " /RELEASE";
@@ -588,10 +589,10 @@ namespace UnrealBuildTool
 			//
 			//	PC
 			//
-			if (LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win32 || LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64)
+			if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32 || LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 			{
 				// Set machine type/ architecture to be 64 bit.
-				if (LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64)
+				if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
 					Result += " /MACHINE:x64";
 				}
@@ -615,7 +616,7 @@ namespace UnrealBuildTool
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
 					if( WindowsPlatform.SupportWindowsXP )
 					{
-						Result += LinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01";
+						Result += LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01";
 					}
 				}
 			}
@@ -623,7 +624,7 @@ namespace UnrealBuildTool
 			//
 			//	Shipping & LTCG
 			//
-			if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Use link-time code generation.
 				Result += " /LTCG";
@@ -733,11 +734,12 @@ namespace UnrealBuildTool
 					string OriginalPCHHeaderDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath );
 					FileArguments += string.Format(" /I \"{0}\"", OriginalPCHHeaderDirectory);
 
+					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Win64].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced items list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".pch"
+						Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
 							)
 						);
 					CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
@@ -815,11 +817,12 @@ namespace UnrealBuildTool
 
 				if( bEmitsObjectFile )
 				{
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Win64].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
 					FileItem ObjectFile = FileItem.GetItemByPath(
 						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + ".obj"
+							Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 							)
 						);
 					CompileAction.ProducedItems.Add(ObjectFile);
@@ -896,7 +899,7 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = GetVCToolPath(CompileEnvironment.Config.TargetPlatform, CompileEnvironment.Config.TargetConfiguration, "cl");
+				CompileAction.CommandPath = GetVCToolPath(CompileEnvironment.Config.Target.Platform, CompileEnvironment.Config.Target.Configuration, "cl");
 
 				if( !WindowsPlatform.bCompileWithClang )
 				{
@@ -950,7 +953,7 @@ namespace UnrealBuildTool
 			{
 				Action CompileAction = new Action(ActionType.Compile);
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = GetVCToolPath(Environment.Config.TargetPlatform, Environment.Config.TargetConfiguration, "rc");
+				CompileAction.CommandPath = GetVCToolPath(Environment.Config.Target.Platform, Environment.Config.Target.Configuration, "rc");
 				CompileAction.StatusDescription = Path.GetFileName(RCFile.AbsolutePath);
 
 				// Suppress header spew
@@ -958,7 +961,7 @@ namespace UnrealBuildTool
 
 				// If we're compiling for 64-bit Windows, also add the _WIN64 definition to the resource
 				// compiler so that we can switch on that in the .rc file using #ifdef.
-				if (Environment.Config.TargetPlatform == CPPTargetPlatform.Win64)
+				if (Environment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
 					CompileAction.CommandArguments += " /D _WIN64";
 				}
@@ -1037,8 +1040,8 @@ namespace UnrealBuildTool
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
 			LinkAction.CommandPath = GetVCToolPath(
-				LinkEnvironment.Config.TargetPlatform,
-				LinkEnvironment.Config.TargetConfiguration,
+				LinkEnvironment.Config.Target.Platform,
+				LinkEnvironment.Config.Target.Configuration,
 				bIsBuildingLibrary ? "lib" : "link");
 
 			// Get link arguments.
@@ -1174,7 +1177,7 @@ namespace UnrealBuildTool
 			{
 				// Xbox 360 LTCG does not seem to produce those.
 				if (LinkEnvironment.Config.bHasExports &&
-					(LinkEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Shipping))
+					(LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping))
 				{
 					// Write the import library to the output directory for nFringe support.
 					FileItem ImportLibraryFile = FileItem.GetItemByPath(ImportLibraryFilePath);
@@ -1503,18 +1506,7 @@ namespace UnrealBuildTool
 
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-				{
-					throw new BuildException("Visual Studio 2012 must be installed in order to build this target.  However, Visual Studio 2013 was detected.  To compile with Visual Studio 2013, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
-				{
-					throw new BuildException("Visual Studio 2013 must be installed in order to build this target.  However, Visual Studio 2012 was detected.  To compile with Visual Studio 2012, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
-				}
-				else
-				{
-					throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
-				}
+				throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
 			}
 
 			return BaseVSToolPath;

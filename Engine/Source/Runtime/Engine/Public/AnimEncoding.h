@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Animation/AnimSequence.h"
+
 // switches to toggle subsets of the new animation codec system
 #define USE_ANIMATION_CODEC_BATCH_SOLVER 1
 
@@ -48,6 +50,9 @@ struct BoneTrackPair
 #define MAX_BONES 65536 // DesiredBones is passed to the decompression routines as a TArray<FBoneIndexType>, so we know this max is appropriate
 typedef TArray<BoneTrackPair> BoneTrackArray;
 
+
+/** Array of FTransform using the game memory stack */
+typedef TArray< FTransform, TMemStackAllocator<> > FTransformArray;
 
 /**
  * Extracts a single BoneAtom from an Animation Sequence.

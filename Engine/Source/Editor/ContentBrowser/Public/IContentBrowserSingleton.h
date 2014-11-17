@@ -32,36 +32,20 @@ struct FAssetPickerConfig
 	/** The selection mode the picker should use */
 	ESelectionMode::Type SelectionMode;
 
-	/** A pointer to an existing delegate which the AssetView will register a function which clears the current selection */
-	FClearSelectionDelegate* ClearSelectionDelegate;
-
 	/** An array of pointers to existing delegates which the AssetView will register a function which returns the current selection */
 	TArray<FGetCurrentSelectionDelegate*> GetCurrentSelectionDelegates;
-
-	/** A pointer to an existing delegate which the AssetView will register a function which increments the selection */
-	FAdjustSelectionDelegate* AdjustSelectionDelegate;
 
 	/** The asset registry filter to use to cull results */
 	FARFilter Filter;
 
-	/** Dynamic filters that get applied after the backend and frontend filters*/
-	TSharedRef< AssetFilterCollectionType > ExtraFilters;
-
 	/** Custom front end filters to be displayed */
 	TArray< TSharedRef<class FFrontendFilter> > ExtraFrontendFilters;
-
-	/** The text to highlight on assets */
-	TAttribute< FText > HighlightedText;
-
-	/** The label visibility on asset items */
-	TAttribute< EVisibility > LabelVisibility;
 
 	/** The contents of the label on the thumbnail */
 	EThumbnailLabel::Type ThumbnailLabel;
 
 	/** The default scale for thumbnails. [0-1] range */
 	TAttribute< float > ThumbnailScale;
-	FOnThumbnailScaleChanged ThumbnailScaleChanged;
 
 	/** Only display results in these collections */
 	TArray<FCollectionNameType> Collections;
@@ -71,12 +55,6 @@ struct FAssetPickerConfig
 
 	/** The delegate that fires when an asset was selected */
 	FOnAssetSelected OnAssetSelected;
-
-	/** The delegate that fires when an asset is dragged */
-	FOnAssetDragged OnAssetDragged;
-
-	/** The delegate that fires when an asset is clicked on */
-	FOnAssetClicked OnAssetClicked;
 
 	/** The delegate that fires when an asset is double clicked */
 	FOnAssetDoubleClicked OnAssetDoubleClicked;
@@ -96,9 +74,6 @@ struct FAssetPickerConfig
 	/** This delegate will be called in Details view when a new asset registry searchable tag is encountered, to
 	    determine if it should be displayed or not.  If it returns true or isn't bound, the tag will be displayed normally. */
 	FOnShouldDisplayAssetTag OnAssetTagWantsToBeDisplayed;
-
-	/** The delegate that fires to construct the tooltip for the specified asset */
-	FConstructToolTipForAsset ConstructToolTipForAsset;
 
 	/** The default view mode */
 	EAssetViewType::Type InitialAssetViewType;
@@ -124,9 +99,6 @@ struct FAssetPickerConfig
 	/** Indicates if this view is allowed to show classes */
 	bool bCanShowClasses;
 
-	/** Indicates if the 'Show Folders' option should be visible */
-	bool bCanShowFolders;
-
 	/** Indicates if the 'Show Only Assets In Selection' option should be visible */
 	bool bCanShowOnlyAssetsInSelectedFolders;
 
@@ -144,15 +116,11 @@ struct FAssetPickerConfig
 
 	/** Override the default filter context menu layout */
 	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
+
 	FAssetPickerConfig()
 		: SelectionMode( ESelectionMode::Multi )
-		, ClearSelectionDelegate( NULL )
-		, AdjustSelectionDelegate( NULL )
-		, ExtraFilters( MakeShareable( new AssetFilterCollectionType() ) )
-		, HighlightedText()
 		, ThumbnailLabel( EThumbnailLabel::ClassName )
 		, ThumbnailScale(0.25f) // A reasonable scale
-		, ThumbnailScaleChanged()
 		, InitialAssetViewType(EAssetViewType::Tile)
 		, bFocusSearchBoxWhenOpened(true)
 		, bAllowNullSelection(false)
@@ -160,7 +128,6 @@ struct FAssetPickerConfig
 		, bAutohideSearchBar(false)
 		, bAllowDragging(true)
 		, bCanShowClasses(true)
-		, bCanShowFolders(false)
 		, bCanShowOnlyAssetsInSelectedFolders(false)
 		, bCanShowRealTimeThumbnails(false)
 		, bCanShowDevelopersFolder(false)

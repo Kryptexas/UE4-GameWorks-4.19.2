@@ -11,6 +11,6 @@ public:
 	void Construct(const FArguments& InArgs, class UAnimGraphNode_StateMachineBase* InNode);
 protected:
 	// SGraphNodeK2Composite interface
-	virtual UEdGraph* GetInnerGraph() const OVERRIDE;
+	virtual UEdGraph* GetInnerGraph() const override;
 	// End of SGraphNodeK2Composite interface
 };

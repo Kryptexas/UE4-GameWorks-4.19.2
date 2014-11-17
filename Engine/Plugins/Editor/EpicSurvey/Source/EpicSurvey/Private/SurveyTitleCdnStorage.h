@@ -7,26 +7,26 @@
 #include "IHttpRequest.h"
 #include "IHttpResponse.h"
 
-class FSurveyTitleCdnStorage : public IOnlineTitleFile
+DECLARE_LOG_CATEGORY_EXTERN(LogEpicSurvey, Display, All);
+
+class FSurveyTitleCdnStorage : public TSharedFromThis<FSurveyTitleCdnStorage, ESPMode::ThreadSafe>, public IOnlineTitleFile
 {
 public:
 	static IOnlineTitleFilePtr Create( const FString& IndexUrl );
 
 public:
 
-	virtual bool GetFileContents(const FString& DLName, TArray<uint8>& FileContents) OVERRIDE;
+	virtual bool GetFileContents(const FString& DLName, TArray<uint8>& FileContents) override;
 
-	virtual bool ClearFiles() OVERRIDE;
+	virtual bool ClearFiles() override;
 
-	virtual bool ClearFile(const FString& DLName) OVERRIDE;
+	virtual bool ClearFile(const FString& DLName) override;
 
-	virtual bool EnumerateFiles() OVERRIDE;
+	virtual bool EnumerateFiles(const FPagedQuery& Page = FPagedQuery()) override;
 
-	virtual bool EnumerateFiles(int32 Start, int32 Count) OVERRIDE;
+	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) override;
 
-	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) OVERRIDE;
-
-	virtual bool ReadFile(const FString& DLName) OVERRIDE;
+	virtual bool ReadFile(const FString& DLName) override;
 
 private:
 	

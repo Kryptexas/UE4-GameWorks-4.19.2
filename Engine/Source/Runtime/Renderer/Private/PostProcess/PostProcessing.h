@@ -22,7 +22,6 @@ public:
 
 	FRenderingCompositePass* SceneColor;
 	FRenderingCompositePass* SceneDepth;
-	FRenderingCompositePass* GBufferA;
 
 	FRenderingCompositeOutputRef FinalOutput;
 };
@@ -43,12 +42,12 @@ class FPostProcessVS : public FGlobalShader
 	/** to have a similar interface as all other shaders */
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, GetVertexShader(), Context.View);
 	}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 	}
 
 public:
@@ -68,9 +67,9 @@ class FPostProcessing
 {
 public:
 	// @param VelocityRT only valid if motion blur is supported
-	void Process(const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+	void Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
-	void ProcessES2( const FViewInfo& View, bool bUsedFramebufferFetch );
+	void ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bUsedFramebufferFetch);
 };
 
 /** The global used for post processing. */

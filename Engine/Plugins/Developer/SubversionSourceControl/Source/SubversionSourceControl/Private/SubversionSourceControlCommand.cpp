@@ -23,6 +23,7 @@ FSubversionSourceControlCommand::FSubversionSourceControlCommand(const TSharedRe
 	RepositoryName = Provider.GetRepositoryName();
 	UserName = Provider.GetUserName();
 	WorkingCopyRoot = Provider.GetWorkingCopyRoot();
+	RepositoryRoot = Provider.GetRepositoryRoot();
 
 	// password needs to be gotten straight from the input UI, its not stored anywhere else
 	if(SSubversionSourceControlSettings::GetPassword().Len() > 0)

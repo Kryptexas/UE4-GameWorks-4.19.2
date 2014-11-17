@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "ParticleModuleParameterDynamic_Seeded.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Dynamic (Seed)"))
@@ -15,14 +16,14 @@ class UParticleModuleParameterDynamic_Seeded : public UParticleModuleParameterDy
 
 
 	//Begin UParticleModule Interface
-	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
-	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) OVERRIDE;
-	virtual FParticleRandomSeedInfo* GetRandomSeedInfo() OVERRIDE
+	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) override;
+	virtual FParticleRandomSeedInfo* GetRandomSeedInfo() override
 	{
 		return &RandomSeedInfo;
 	}
-	virtual void EmitterLoopingNotify(FParticleEmitterInstance* Owner) OVERRIDE;
+	virtual void EmitterLoopingNotify(FParticleEmitterInstance* Owner) override;
 	//End UParticleModule Interface
 };
 

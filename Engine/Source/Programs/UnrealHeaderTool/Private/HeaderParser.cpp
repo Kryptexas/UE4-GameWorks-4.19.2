@@ -10,6 +10,7 @@
 #include "UObjectAnnotation.h"
 #include "DefaultValueHelper.h"
 #include "IScriptGeneratorPluginInterface.h"
+#include "Manifest.h"
 
 /*-----------------------------------------------------------------------------
 	Constants & declarations.
@@ -2749,34 +2750,7 @@ bool FHeaderParser::GetVarType
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 		VarProperty.ArrayType = EArrayType::Dynamic;
-		RequireSymbol( TEXT(">"), TEXT("'tarray'") );
-	}
-	else if( VarType.Matches(TEXT("TAttribute")) )
-	{
-		RequireSymbol( TEXT("<"), TEXT("'tattribute'") );
-
-		// GetVarType() clears the property flags of the array var, so use dummy 
-		// flags when getting the inner property
-		EObjectFlags InnerFlags;
-		uint64 OriginalVarTypeFlags = VarType.PropertyFlags;
-		VarType.PropertyFlags |= Flags;
-
-		GetVarType(AllClasses, Scope, VarProperty, InnerFlags, Disallow, TEXT("'tattribute'"), &VarType, EPropertyDeclarationStyle::None, VariableCategory );
-		if( VarProperty.Type == CPT_None )
-		{
-			FError::Throwf( TEXT("Unsupported attribute type.") );
-		}
-		else if( VarProperty.bIsAttribute == true )
-		{
-			FError::Throwf( TEXT("Attributes within attributes are not supported") );
-		}
-
-		VarProperty.bIsAttribute = true;
-		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference);
-		VarType.PropertyFlags = OriginalVarTypeFlags;
-	
-		RequireSymbol(TEXT(">"), TEXT("'tattribute'"));
-
+		RequireSymbol( TEXT(">"), TEXT("'tarray'"), ESymbolParseOption::CloseTemplateBracket );
 	}
 	else if ( VarType.Matches(TEXT("FString")) )
 	{
@@ -2849,7 +2823,7 @@ bool FHeaderParser::GetVarType
 			FError::Throwf(TEXT("Expected the name of a previously defined enum"));
 		}
 
-		RequireSymbol(TEXT(">"), VarType.Identifier);
+		RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 	}
 	else if (UEnum* Enum = FindObject<UEnum>( ANY_PACKAGE, VarType.Identifier ))
 	{
@@ -2976,6 +2950,10 @@ bool FHeaderParser::GetVarType
 				if (GetIdentifier(InnerClass))
 				{
 					TempClass = AllClasses.FindScriptClass(InnerClass.Identifier);
+					if (TempClass == nullptr)
+					{
+						FError::Throwf(TEXT("Unrecognized type '%s' (in expression %s<%s>)"), InnerClass.Identifier, VarType.Identifier, InnerClass.Identifier);
+					}
 
 					if (bIsAutoweakPtrTemplate)
 					{
@@ -3012,7 +2990,7 @@ bool FHeaderParser::GetVarType
 					FError::Throwf(TEXT("%s: Missing template type"), VarType.Identifier);
 				}
 
-				RequireSymbol(TEXT(">"), VarType.Identifier);
+				RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 			}
 			else
 			{
@@ -3046,7 +3024,7 @@ bool FHeaderParser::GetVarType
 
 						VarProperty.MetaClass = AllClasses.FindScriptClassOrThrow(Limitor.Identifier);
 
-						RequireSymbol( TEXT(">"), TEXT("'class limitor'") );
+						RequireSymbol( TEXT(">"), TEXT("'class limitor'"), ESymbolParseOption::CloseTemplateBracket );
 					}
 					else
 					{
@@ -3078,6 +3056,9 @@ bool FHeaderParser::GetVarType
 				// Eat the star that indicates this is a pointer to the UObject
 				if (bExpectStar)
 				{
+					// Const after variable type but before pointer symbol
+					MatchIdentifier(TEXT("const"));
+
 					RequireSymbol(TEXT("*"), TEXT("Expected a pointer type"));
 
 					VarProperty.PointerType = EPointerType::Native;
@@ -3120,6 +3101,15 @@ bool FHeaderParser::GetVarType
 			{
 				FError::Throwf(TEXT("Unrecognized type '%s'"), VarType.Identifier );
 			}
+		}
+	}
+
+	if (VariableCategory != EVariableCategory::Member)
+	{
+		// const after the variable type support (only for params)
+		if (MatchIdentifier(TEXT("const")))
+		{
+			Flags |= CPF_ConstParm;
 		}
 	}
 
@@ -3477,7 +3467,6 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			Prev = *It;
 		}
 
-		UProperty* Attribute = NULL;
 		UProperty* Array    = NULL;
 		UObject*   NewScope = Scope;
 		int32      ArrayDim = 1; // 1 = not a static array, 2 = static array
@@ -3490,12 +3479,6 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.ArrayType == EArrayType::Static)
 		{
 			ArrayDim = 2;
-		}
-		else if( VarProperty.bIsAttribute == true )
-		{
-			Attribute = new(Scope,PropertyName,ObjectFlags)UAttributeProperty(FPostConstructInitializeProperties());	
-			NewScope = Attribute;
-			ObjectFlags = RF_Public;
 		}
 
 		if (VarProperty.Type == CPT_Byte)
@@ -3673,24 +3656,6 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			}
 			NewProperty = Array;
 		}
-		else if( Attribute )
-		{
-			check(NewProperty);
-
-			UAttributeProperty* AttributeProp = CastChecked<UAttributeProperty>(Attribute);
-			AttributeProp->Inner = NewProperty;
-	
-			// Copy some of the property flags to the inner property.
-			NewProperty->PropertyFlags |= (VarProperty.PropertyFlags&CPF_PropagateToArrayInner);
-
-			if (NewProperty->PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference))
-			{
-				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
-				VarProperty.PropertyFlags &= ~CPF_InstancedReference; //this was propagated to the inner
-			}
-			NewProperty = Attribute;
-		}
-
 		NewProperty->ArrayDim = ArrayDim;
 		if (ArrayDim == 2)
 		{
@@ -3737,18 +3702,22 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		check( TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface );
 		CurrentAccessSpecifier = AccessSpecifier;
 	}
-	else if (Token.Matches(TEXT("class")) && TopNest->NestType == NEST_GlobalScope)
+	else if (Token.Matches(TEXT("class")) && (TopNest->NestType == NEST_GlobalScope))
 	{
 		if (!bHaveSeenFirstInterfaceClass || bFinishedParsingInterfaceClasses)
+		{
 			return SkipDeclaration(Token);
+		}
 
 		// Make sure the previous class ended with valid nesting.
 		if (bEncounteredNewStyleClass_UnmatchedBrackets)
-			FError::Throwf(TEXT("Missing } at end of class") );
+		{
+			FError::Throwf(TEXT("Missing } at end of class"));
+		}
 
 		// Start parsing the second class
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
-		bHaveSeenSecondInterfaceClass               = true;
+		bHaveSeenSecondInterfaceClass = true;
 		ParseSecondInterfaceClass(AllClasses);
 	}
 	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")))
@@ -3922,7 +3891,8 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 			bEndOfDeclarationFound = true;
 			break;
 		}
-		else if (Token.Matches(OpeningBracket))
+
+		if (Token.Matches(OpeningBracket))
 		{
 			// This is a function definition or class declaration.
 			bDefinitionFound = true;
@@ -3935,6 +3905,11 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 			{
 				bEndOfDeclarationFound = true;
 				break;
+			}
+
+			if (Nest < 0)
+			{
+				FError::Throwf(TEXT("Unexpected '}'. Didn't you miss a semi-colon?"));
 			}
 		}
 		else if (bMacroDeclaration && Nest == 0)
@@ -4133,18 +4108,18 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	TArray<FString> HideFunctions;
 	TArray<FString> AutoExpandCategories;
 	TArray<FString> AutoCollapseCategories;
-	Class->GetHideCategories        (HideCategories);
-	Class->GetShowCategories        (ShowSubCatgories);
-	Class->GetHideFunctions			(HideFunctions);
-	Class->GetAutoExpandCategories  (AutoExpandCategories);
+	Class->GetHideCategories(HideCategories);
+	Class->GetShowCategories(ShowSubCatgories);
+	Class->GetHideFunctions(HideFunctions);
+	Class->GetAutoExpandCategories(AutoExpandCategories);
 	Class->GetAutoCollapseCategories(AutoCollapseCategories);
 
 	// Class attributes.
-	FClassMetaData* ClassData = GScriptHelper->FindClassData(Class);
+	FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
 	check(ClassData);
 
 	// New-style UCLASS() syntax
-	TMap<FName, FString>       MetaData;
+	TMap<FName, FString> MetaData;
 
 	TArray<FPropertySpecifier> SpecifiersFound;
 	ReadSpecifierSetInsideMacro(SpecifiersFound, TEXT("Class"), MetaData);
@@ -4176,8 +4151,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	// Process all of the class specifiers
 	TArray<FString> ClassGroupNames;
-	bool            bWithinSpecified         = false;
-	bool            bDeclaresConfigFile      = false;
+	bool bWithinSpecified = false;
+	bool bDeclaresConfigFile = false;
 	for (const FPropertySpecifier& PropSpecifier : SpecifiersFound)
 	{
 		const FString& Specifier = PropSpecifier.Key;
@@ -4258,6 +4233,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		}
 		else if (Specifier == TEXT("dependsOn"))
 		{
+			FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use proper #include instead."));
+
 			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
 			RequireSpecifierValue(PropSpecifier);
 		}
@@ -4713,7 +4690,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	}
 
 	// Try parsing metadata for the interface
-	FClassMetaData* ClassData = GScriptHelper->FindClassData(Class);
+	FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
 	check(ClassData);
 
 	// Register the metadata
@@ -5101,7 +5078,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 	if (FuncInfo.FunctionFlags & FUNC_Net)
 	{
-		// Network replicated functions are always events, and are only FINAL if sealed
+		// Network replicated functions are always events, and are only final if sealed
 		TypeOfFunction = TEXT("event");
 		bAutomaticallyFinal = false;
 	}
@@ -5230,7 +5207,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	// Process the virtualness
 	if (bSawVirtual)
 	{
-		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
+		// Remove the implicit final, the user can still specifying an explicit final at the end of the declaration
 		bAutomaticallyFinal = false;
 
 		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
@@ -5261,7 +5238,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	}
 
 	// Handle the initial implicit/explicit final
-	// A user can still specify an explicit FINAL after the parameter list as well.
+	// A user can still specify an explicit final after the parameter list as well.
 	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
 	{
 		FuncInfo.FunctionFlags |= FUNC_Final;
@@ -5425,8 +5402,8 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		}
 	}
 
-	// Look for the FINAL macro to indicate this function is sealed
-	if (MatchIdentifier(TEXT("FINAL")))
+	// Look for the final keyword to indicate this function is sealed
+	if (MatchIdentifier(TEXT("final")))
 	{
 		// This is a final (prebinding, non-overridable) function
 		FuncInfo.FunctionFlags |= FUNC_Final;
@@ -5611,6 +5588,15 @@ void FHeaderParser::ValidateMetaDataFormat(UField* Field, const FString& InKey, 
 					FError::Throwf(TEXT("%s doesn't make sense on static method '%s' in a blueprint function library"), *InKey, *Function->GetName());
 				}
 			}
+		}
+	}
+	else if (InKey == TEXT("DevelopmentStatus"))
+	{
+		const FString EarlyAccessValue(TEXT("EarlyAccess"));
+		const FString ExperimentalValue(TEXT("Experimental"));
+		if ((InValue != EarlyAccessValue) && (InValue != ExperimentalValue))
+		{
+			FError::Throwf(TEXT("'%s' metadata was '%s' but it must be %s or %s"), *InKey, *InValue, *ExperimentalValue, *EarlyAccessValue);
 		}
 	}
 }
@@ -6082,7 +6068,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaderForOneClass(FClasses& AllClas
 
 	ECompilationResult::Type Result = ECompilationResult::OtherCompilationError;
 
-	ClassData = GScriptHelper->AddClassData(Class);
+	ClassData = GScriptHelper.AddClassData(Class);
 
 	// Message.
 	if (FParse::Param(FCommandLine::Get(), TEXT("VERBOSE")))
@@ -6341,21 +6327,24 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 
 		// Detect potentially unnecessary usage of dependson.
 		if (DependsOnClass->HasAnyClassFlags(CLASS_Parsed))
-		{
 			continue;
-		}
 
 		// Treat manual dependency on a base class as an error to detect bad habits early on.
 		if (Class->IsChildOf(DependsOnClass))
-		{
 			FError::Throwf(TEXT("%s is derived from %s - please remove the DependsOn"),*Class->GetName(),*DependsOnClass->GetName() );
-		}
 
 		// Check for circular dependency. If the DependsOnClass is dependent on the SubClass, there is one.
-		if (AllClasses.IsDependentOn(DependsOnClass, Class))
+		if (DependsOnClass != Class && AllClasses.IsDependentOn(DependsOnClass, Class))
 		{
-			FError::Throwf(TEXT("Class %s DependsOn(%s) is a circular dependency."),*DependsOnClass->GetName(),*Class->GetName());
+			HeaderParser.Class = Class;
+			HeaderParser.InputLine = GClassDeclarationLineNumber[Class];
+			FError::Throwf(TEXT("Error: Class %s DependsOn(%s) is a circular dependency."),*DependsOnClass->GetName(),*Class->GetName());
 		}
+
+		// Consider all children of the suspect if any of them are dependent on the source, the suspect is
+		// too because it itself is dependent on its children.
+		if (!DependsOnClass->HasAnyClassFlags(CLASS_Interface) && !AllClasses.ContainsClass(DependsOnClass))
+			FError::Throwf(TEXT("Unparsed class '%s' found while validating DependsOn entries for '%s'"), *DependsOnClass->GetName(), *Class->GetName());
 
 		// Find first base class of DependsOnClass that is not a base class of Class.
 		TArray<FClass*> ClassesToParse;
@@ -6445,7 +6434,7 @@ bool FHeaderParser::DependentClassNameFromHeader(const TCHAR* HeaderFilename, FS
 }
 
 // Begins the process of exporting C++ class declarations for native classes in the specified package
-void FHeaderParser::ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders, bool bUseRelativePaths )
+void FHeaderParser::ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders )
 {
 	// Build a list of header filenames
 	TArray<FString>	ClassHeaderFilenames;
@@ -6490,7 +6479,7 @@ void FHeaderParser::ExportNativeHeaders( UPackage* CurrentPackage, FClasses& All
 		}
 
 		// Export native class definitions to package header files.
-		FNativeClassHeaderGenerator(CurrentPackage, AllClasses, bAllowSaveExportedHeaders, bUseRelativePaths);
+		FNativeClassHeaderGenerator(CurrentPackage, AllClasses, bAllowSaveExportedHeaders);
 	}
 }
 
@@ -6581,40 +6570,33 @@ FString FHeaderParser::RequireExactlyOneSpecifierValue(const FPropertySpecifier&
 }
 
 // Exports the class to all vailable plugins
-void ExportClassToScriptPlugins(UClass* Class, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+void ExportClassToScriptPlugins(UClass* Class, const FManifestModule& Module, IScriptGeneratorPluginInterface& ScriptPlugin)
 {
-	for (auto Plugin : ScriptPlugins)
-	{
-		auto ClassHeaderInfo = GClassGeneratedFileMap.FindRef(Class);
-		Plugin->ExportClass(Class, ClassHeaderInfo.SourceFilename, ClassHeaderInfo.GeneratedFilename, ClassHeaderInfo.bHasChanged);
-	}
+	auto ClassHeaderInfo = GClassGeneratedFileMap.FindRef(Class);
+	ScriptPlugin.ExportClass(Class, ClassHeaderInfo.SourceFilename, ClassHeaderInfo.GeneratedFilename, ClassHeaderInfo.bHasChanged);
 }
+
 // Exports class tree to all available plugins
-void ExportClassTreeToScriptPlugins(const FClassTree* Node, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+void ExportClassTreeToScriptPlugins(const FClassTree* Node, const FManifestModule& Module, IScriptGeneratorPluginInterface& ScriptPlugin)
 {
 	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
 	{
 		auto ChildNode = Node->GetChild(ChildIndex);
-		ExportClassToScriptPlugins(ChildNode->GetClass(), ScriptPlugins);
+		ExportClassToScriptPlugins(ChildNode->GetClass(), Module, ScriptPlugin);
 	}
 
 	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
 	{
 		auto ChildNode = Node->GetChild(ChildIndex);
-		ExportClassTreeToScriptPlugins(ChildNode, ScriptPlugins);
+		ExportClassTreeToScriptPlugins(ChildNode, Module, ScriptPlugin);
 	}
 }
 
 // Parse all headers for classes that are inside CurrentPackage.
-ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* CurrentPackage, bool bAllowSaveExportedHeaders, bool bUseRelativePaths, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FClasses& ModuleClasses, FFeedbackContext* Warn, UPackage* CurrentPackage, const FManifestModule& Module, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
-
-	// Object which represents all parsed classes
-	FClasses AllClasses(CurrentPackage);
-
-	AllClasses.Validate();
 
 	// Create the header parser and register it as the warning context.
 	// Note: This must be declared outside the try block, since the catch block will log into it.
@@ -6622,7 +6604,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 	Warn->SetContext(&HeaderParser);
 
 	// Set up a filename for the error context if we don't even get as far parsing a class
-	HeaderParser.Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GClassSourceFileMap[AllClasses.GetRootClass()]);
+	HeaderParser.Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GClassSourceFileMap[ModuleClasses.GetRootClass()]);
 
 	// Hierarchically parse all classes.
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
@@ -6633,7 +6615,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 		// Parse the headers
 		const bool bParseSubclasses = true;
 
-		Result = FHeaderParser::ParseHeaders(AllClasses, HeaderParser, AllClasses.GetRootClass(), bParseSubclasses);
+		Result = FHeaderParser::ParseHeaders(ModuleClasses, HeaderParser, ModuleClasses.GetRootClass(), bParseSubclasses);
 
 		// Export the autogenerated code wrappers
 		if (Result == ECompilationResult::Succeeded)
@@ -6643,7 +6625,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 			// from the feedback context.
 			Warn->SetContext(NULL);
 
-			ExportNativeHeaders(CurrentPackage, AllClasses, bAllowSaveExportedHeaders, bUseRelativePaths);
+			ExportNativeHeaders(CurrentPackage, ModuleClasses, Module.SaveExportedHeaders);
 
 			// Done with header generation
 			if (HeaderParser.LinesParsed > 0)
@@ -6668,9 +6650,15 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 
 	if (Result == ECompilationResult::Succeeded && ScriptPlugins.Num())
 	{
-		auto RootNode = &AllClasses.GetClassTree();
-		ExportClassToScriptPlugins(RootNode->GetClass(), ScriptPlugins);
-		ExportClassTreeToScriptPlugins(&AllClasses.GetClassTree(), ScriptPlugins);
+		auto RootNode = &ModuleClasses.GetClassTree();
+		for (auto Plugin : ScriptPlugins)
+		{
+			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType))
+			{
+				ExportClassToScriptPlugins(RootNode->GetClass(), Module, *Plugin);
+				ExportClassTreeToScriptPlugins(RootNode, Module, *Plugin);
+			}
+		}
 	}
 
 	return Result;
@@ -7213,7 +7201,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			}
 			if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::UpVector")))
 			{
-				OutForm = FString::Printf(TEXT("(X=%3.3f,Y=%3.3f,Z=%3.3f)"),
+				OutForm = FString::Printf(TEXT("%f,%f,%f"),
 					FVector::UpVector.X, FVector::UpVector.Y, FVector::UpVector.Z);
 			}
 			FString Parameters;
@@ -7226,7 +7214,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 				FVector Vector;
 				if(FDefaultValueHelper::ParseVector(Parameters, Vector))
 				{
-					OutForm = FString::Printf(TEXT("(X=%3.3f,Y=%3.3f,Z=%3.3f)"),
+					OutForm = FString::Printf(TEXT("%f,%f,%f"),
 						Vector.X, Vector.Y, Vector.Z);
 				}
 			}
@@ -7247,7 +7235,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 				FRotator Rotator;
 				if(FDefaultValueHelper::ParseRotator(Parameters, Rotator))
 				{
-					OutForm = FString::Printf(TEXT("(P=%f,Y=%f,R=%f)"),
+					OutForm = FString::Printf(TEXT("%f,%f,%f"),
 						Rotator.Pitch, Rotator.Yaw, Rotator.Roll);
 				}
 			}

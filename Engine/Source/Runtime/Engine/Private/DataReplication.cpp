@@ -9,6 +9,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
+#include "Engine/ActorChannel.h"
 
 class FNetSerializeCB : public INetSerializeCB
 {
@@ -155,6 +156,14 @@ void FObjectReplicator::InitWithObject( UObject * InObject, UNetConnection * InC
 
 	SetObject( InObject );
 
+	if ( GetObject() == NULL )
+	{
+		// This may seem weird that we're checking for NULL, but the SetObject above will wrap this object with TWeakObjectPtr
+		// If the object is pending kill, it will switch to NULL, we're just making sure we handle this invalid edge case
+		UE_LOG( LogNet, Error, TEXT( "InitWithObject: Object == NULL" ) );
+		return;
+	}
+
 	ObjectClass					= InObject->GetClass();
 	Connection					= InConnection;
 	RemoteFunctions				= NULL;
@@ -204,16 +213,17 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 {
 	check( OwningChannel == NULL );
 
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "StartReplicating: Object == NULL" ) );
+		return;
+	}
+
 	OwningChannel = InActorChannel;
 
 	// Cache off netGUID so if this object gets deleted we can close it
-	ObjectNetGUID = OwningChannel->Connection->PackageMap->GetObjectNetGUID( GetObject() );
-
-	if ( !ObjectNetGUID.IsValid() )
-	{
-		ObjectNetGUID = OwningChannel->Connection->PackageMap->AssignNewNetGUID( GetObject() );
-		check( !ObjectNetGUID.IsDefault() && ObjectNetGUID.IsValid() );
-	}
+	ObjectNetGUID = OwningChannel->Connection->Driver->GuidCache->GetOrAssignNetGUID( GetObject() );
+	check( !ObjectNetGUID.IsDefault() && ObjectNetGUID.IsValid() );
 
 	// Allocate retirement list.
 	// SetNum now constructs, so this is safe
@@ -297,6 +307,12 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 {
 	UObject * Object = GetObject();
 
+	if ( Object == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ReceivedNak: Object == NULL" ) );
+		return;
+	}
+
 	if ( Object != NULL && ObjectClass != NULL )
 	{
 		RepLayout->ReceivedNak( RepState, NakPacketId );
@@ -354,8 +370,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 
 bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped )
 {
-	UObject *		Object		= GetObject();
-	UPackageMap *	PackageMap	= OwningChannel->Connection->PackageMap;
+	UObject * Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -363,9 +378,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 		return false;
 	}
 
+	UPackageMap * PackageMap = OwningChannel->Connection->PackageMap;
+
 	const bool bIsServer = ( OwningChannel->Connection->Driver->ServerConnection == NULL );
 
-	FClassNetCache * ClassCache = PackageMap->GetClassNetCache( ObjectClass );
+	FClassNetCache * ClassCache = OwningChannel->Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
 
 	if ( ClassCache == NULL )
 	{
@@ -753,6 +770,12 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 void FObjectReplicator::PostReceivedBunch()
 {
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "PostReceivedBunch: Object == NULL" ) );
+		return;
+	}
+
 	// Call PostNetReceive
 	const bool bIsServer = (OwningChannel->Connection->Driver->ServerConnection == NULL);
 	if (!bIsServer && bHasReplicatedProperties)
@@ -930,6 +953,12 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 {
 	UObject * Object = GetObject();
 
+	if ( Object == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ReplicateProperties: Object == NULL" ) );
+		return false;
+	}
+
 	check( Object );
 	check( OwningChannel );
 	check( RepLayout.IsValid() );
@@ -981,7 +1010,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	if ( WroteImportantData )
 	{
-		OwningChannel->EndContentBlock( Object, Bunch, OwningChannelConnection->PackageMap->GetClassNetCache( ObjectClass ) );
+		OwningChannel->EndContentBlock( Object, Bunch, OwningChannelConnection->Driver->NetCache->GetClassNetCache( ObjectClass ) );
 	}
 
 	return WroteImportantData;
@@ -989,6 +1018,12 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 void FObjectReplicator::ForceRefreshUnreliableProperties()
 {
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ForceRefreshUnreliableProperties: Object == NULL" ) );
+		return;
+	}
+
 	check( !bOpenAckCalled );
 
 	RepLayout->OpenAcked( RepState );
@@ -998,6 +1033,12 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 
 void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReliable )
 {
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "PostSendBunch: Object == NULL" ) );
+		return;
+	}
+
 	RepLayout->PostReplicate( RepState, PacketRange, bReliable ? true : false );
 
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
@@ -1074,6 +1115,12 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 
 bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
 {
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ReadyForDormancy: Object == NULL" ) );
+		return true;		// Technically, we don't want to hold up dormancy, but the owner needs to clean us up, so we warn
+	}
+
 	// Can't go dormant until last update produced no new property updates
 	if ( !bLastUpdateEmpty )
 	{
@@ -1103,6 +1150,12 @@ bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
 
 void FObjectReplicator::StartBecomingDormant()
 {
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "StartBecomingDormant: Object == NULL" ) );
+		return;
+	}
+
 	bLastUpdateEmpty = false; // Ensure we get one more attempt to update properties
 }
 

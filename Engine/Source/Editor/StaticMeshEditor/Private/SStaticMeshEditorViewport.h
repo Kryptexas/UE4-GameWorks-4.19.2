@@ -20,7 +20,7 @@ public:
 	~SStaticMeshEditorViewport();
 	
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	/** Constructs, destroys, and updates preview mesh components based on the preview static mesh's sockets. */
@@ -69,11 +69,11 @@ public:
 
 protected:
 	/** SEditorViewport interface */
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual EVisibility OnGetViewportContentVisibility() const OVERRIDE;
-	virtual void BindCommands() OVERRIDE;
-	virtual void OnFocusViewportToSelection() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual EVisibility OnGetViewportContentVisibility() const override;
+	virtual void BindCommands() override;
+	virtual void OnFocusViewportToSelection() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 private:
 	/** Determines the visibility of the viewport. */
 	bool IsVisible() const;

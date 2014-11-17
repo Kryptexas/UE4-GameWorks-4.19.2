@@ -7,7 +7,7 @@ public class NVAPI : ModuleRules
 	{
 		Type = ModuleType.External;
 
-        string nvApiPath = UEBuildConfiguration.UEThirdPartyDirectory + "NVIDIA/nvapi/";
+        string nvApiPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/nvapi/";
         PublicSystemIncludePaths.Add(nvApiPath);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)

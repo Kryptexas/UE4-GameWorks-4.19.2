@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BuildOptions.h: Lighting options definitions.
-=============================================================================*/
-
 #pragma once
 
 namespace Lightmass

@@ -51,7 +51,7 @@ void SWrapBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 	}
 }
 
-void SWrapBox::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SWrapBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const float MyPreferredWidth = PreferredWidth.Get();
 

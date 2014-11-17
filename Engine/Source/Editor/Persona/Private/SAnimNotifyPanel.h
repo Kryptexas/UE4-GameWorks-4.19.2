@@ -106,7 +106,7 @@ public:
 	/**Handler for when a notify node drag has been initiated */
 	FReply OnNotifyNodeDragStarted(TArray<TSharedPtr<SAnimNotifyNode>> NotifyNodes, TSharedRef<SWidget> Decorator, const FVector2D& ScreenCursorPos, const FVector2D& ScreenNodePosition, const bool bDragOnMarker);
 
-	virtual float GetSequenceLength() const OVERRIDE {return Sequence->SequenceLength;}
+	virtual float GetSequenceLength() const override {return Sequence->SequenceLength;}
 
 	void CopySelectedNotifiesToClipboard() const;
 	void OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
@@ -140,7 +140,7 @@ private:
 	void OnGenericDelete();
 
 	/** We support keyboard focus to detect when we should process key commands like delete */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}

@@ -43,19 +43,6 @@ public:
 	 */
 	static void ResetLevelFilenames();	
 
-	
-	////////////////////////////////////////////////////////////////////////////
-	// World
-
-	/**
-	 * Prompts the user to save the current map if necessary, the presents a load dialog and
-	 * loads a new map if selected by the user.
-	 */
-	static UNREALED_API void OpenWorld();
-
-	////////////////////////////////////////////////////////////////////////////
-
-
 	////////////////////////////////////////////////////////////////////////////
 	// Loading
 
@@ -68,10 +55,8 @@ public:
 	/**
 	 * Prompts the user to save the current map if necessary, the presents a load dialog and
 	 * loads a new map if selected by the user.
-	 * 
-	 * @param	bWorldComposition	Whether we should load new map as persistent level for world composition
 	 */
-	static UNREALED_API void LoadMap(bool bWorldComposition = false);
+	static UNREALED_API void LoadMap();
 
 	/**
 	 * Loads the specified map.  Does not prompt the user to save the current map.
@@ -81,10 +66,8 @@ public:
 	 * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
 	 *							preventing the map saving over the original file.
 	 * @param	bShowProgress	Whether to show a progress dialog as the map loads
-	 *
-	 * @param	bWorldComposition	Whether to create a world composition by reading level packages from this map folder
 	 */
-	static UNREALED_API void LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true, bool bWorldComposition = false);
+	static UNREALED_API void LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Saving
@@ -122,18 +105,22 @@ public:
 	 *
 	 * @param	AbsoluteAutosaveDir			Autosave directory.
 	 * @param	AutosaveIndex				Integer prepended to autosave filenames..
+	 * @param	bForceIfNotInList			Should the save be forced if the package is dirty, but not in DirtyPackagesForAutoSave?
+	 * @param	DirtyPackagesForAutoSave	A set of packages that are considered by the auto-save system to be dirty, you should check this to see if a package needs saving
 	 */
-	static bool AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex);
+	static bool AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave);
 
 	/**
 	 * Saves all asset packages to the specified directory.
 	 *
 	 * @param	AbsoluteAutosaveDir			Autosave directory.
 	 * @param	AutosaveIndex				Integer prepended to autosave filenames.
+	 * @param	bForceIfNotInList			Should the save be forced if the package is dirty, but not in DirtyPackagesForAutoSave?
+	 * @param	DirtyPackagesForAutoSave	A set of packages that are considered by the auto-save system to be dirty, you should check this to see if a package needs saving
 	 *
 	 * @return	true if one or more packages were autosaved; false otherwise
 	 */
-	static bool AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex);
+	static bool AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave);
 
 	/**
 	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set, optionally prompting the user to select which packages to save)

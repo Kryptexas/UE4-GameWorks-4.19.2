@@ -850,12 +850,34 @@ FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void * Ptr )
  */
 FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void * Ptr )
 {
-    uint16x8_t u16x8 = (uint16x8_t)vcvtq_u32_f32( VectorMin( Vec, Vec255 ) );
-    uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );
-    u8x8 = vuzp_u8( u8x8, u8x8 ).val[0];
+	uint16x8_t u16x8 = (uint16x8_t)vcvtq_u32_f32( VectorMin( Vec, Vec255 ) );
+	uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );
+	u8x8 = vuzp_u8( u8x8, u8x8 ).val[0];
 	uint32_t buf[2];
 	vst1_u8( (uint8_t *)buf, u8x8 );
 	*(uint32_t *)Ptr = buf[0]; 
+}
+
+/**
+ * Converts the 4 floats in the vector to 4 fp16 and stores based off bool to [un]aligned memory.
+ *
+ * @param Vec			Vector containing 4 floats
+ * @param Ptr			Memory pointer to store the 4 fp16's.
+ */
+template <bool bAligned>
+FORCEINLINE void VectorStoreHalf4(VectorRegister Vec, void* RESTRICT Ptr)
+{
+	float16x4_t f16x4 = (float16x4_t)vcvt_f16_f32(Vec);
+	if (bAligned)
+	{
+		vst1_u8( (uint8_t *)Ptr, f16x4 );
+	}
+	else
+	{
+		uint32_t buf[2];
+		vst1_u8( (uint8_t *)buf, f16x4 );
+		*(uint32_t *)Ptr = buf[0]; 
+	}
 }
 
 /**
@@ -867,9 +889,9 @@ FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void * Ptr )
  */
 FORCEINLINE int32 VectorAnyGreaterThan( VectorRegister Vec1, VectorRegister Vec2 )
 {
-    uint16x8_t u16x8 = (uint16x8_t)vcgtq_f32( Vec1, Vec2 );
-    uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );
-    u8x8 = vuzp_u8( u8x8, u8x8 ).val[0];
+	uint16x8_t u16x8 = (uint16x8_t)vcgtq_f32( Vec1, Vec2 );
+	uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );
+	u8x8 = vuzp_u8( u8x8, u8x8 ).val[0];
 	uint32_t buf[2];
 	vst1_u8( (uint8_t *)buf, u8x8 );
 	return (int32)buf[0]; // each byte of output corresponds to a component comparison

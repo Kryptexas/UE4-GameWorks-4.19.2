@@ -3,14 +3,13 @@
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagsGraphPanelPinFactory.h"
 #include "GameplayTagContainerCustomization.h"
-
-
+#include "GameplayTagCustomization.h"
 
 class FGameplayTagsEditorModule : public IGameplayTagsEditorModule
 {
 	// Begin IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface
 };
 
@@ -20,7 +19,8 @@ void FGameplayTagsEditorModule::StartupModule()
 {
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterStructPropertyLayout("GameplayTagContainer", FOnGetStructCustomizationInstance::CreateStatic(&FGameplayTagContainerCustomization::MakeInstance));
+	PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagContainerCustomization::MakeInstance));
+	PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomization::MakeInstance));
 
 	TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
 	FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);

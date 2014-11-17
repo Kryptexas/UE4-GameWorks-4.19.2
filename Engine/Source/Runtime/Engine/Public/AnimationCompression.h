@@ -8,6 +8,7 @@
 #define __ANIMATIONCOMPRESSION_H__
 
 #include "FloatPacker.h"
+#include "Animation/AnimSequence.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimationCompression, Log, All);
 

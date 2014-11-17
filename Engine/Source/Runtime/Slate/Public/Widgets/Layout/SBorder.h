@@ -86,38 +86,47 @@ public:
 	/** Clears out the content for the border */
 	void ClearContent();
 
-	/** Gets the color and opacity of the background image of this border. */
-	FSlateColor GetBorderBackgroundColor()
-	{
-		return BorderBackgroundColor.Get();
-	}
-
 	/** Sets the color and opacity of the background image of this border. */
-	void SetBorderBackgroundColor( const TAttribute<FSlateColor>& InColorAndOpacity )
-	{
-		BorderBackgroundColor = InColorAndOpacity;
-	}
+	void SetBorderBackgroundColor(const TAttribute<FSlateColor>& InColorAndOpacity);
 
 	/** Set the desired size scale multiplier */
-	FVector2D GetDesiredSizeScale()
-	{
-		return DesiredSizeScale.Get();
-	}
+	void SetDesiredSizeScale(const TAttribute<FVector2D>& InDesiredSizeScale);
+	
+	/** See HAlign argument */
+	void SetHAlign(EHorizontalAlignment HAlign);
 
-	/** Set the desired size scale multiplier */
-	void SetDesiredSizeScale( const TAttribute<FVector2D>& InDesiredSizeScale )
-	{
-		DesiredSizeScale = InDesiredSizeScale;
-	}
+	/** See VAlign argument */
+	void SetVAlign(EVerticalAlignment VAlign);
+
+	/** See Padding attribute */
+	void SetPadding(const TAttribute<FMargin>& InPadding);
+
+	/** See ShowEffectWhenDisabled attribute */
+	void SetShowEffectWhenDisabled(const TAttribute<bool>& InShowEffectWhenDisabled);
+
+	/** See BorderImage attribute */
+	void SetBorderImage(const TAttribute<const FSlateBrush*>& InBorderImage);
+
+	/** See OnMouseButtonDown event */
+	void SetOnMouseButtonDown(FPointerEventHandler EventHandler);
+
+	/** See OnMouseButtonUp event */
+	void SetOnMouseButtonUp(FPointerEventHandler EventHandler);
+
+	/** See OnMouseMove event */
+	void SetOnMouseMove(FPointerEventHandler EventHandler);
+
+	/** See OnMouseDoubleClick event */
+	void SetOnMouseDoubleClick(FPointerEventHandler EventHandler);
 
 public:
 	// SWidget interface
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FVector2D ComputeDesiredSize() const override;
 	// End of SWidget interface
 
  protected:

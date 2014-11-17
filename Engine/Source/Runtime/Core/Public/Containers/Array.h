@@ -735,6 +735,24 @@ public:
 		return NULL;
 	}
 	/**
+	 * Filters the elements in the array based on a predicate functor. 
+	 * @param  Pred The functor to apply to each element.
+	 * @return      TArray with the same type as this object which contains the subset of elements for which the functor returns true.
+	 */
+	template <typename Predicate>
+	TArray<ElementType> FilterByPredicate(Predicate Pred)
+	{
+		TArray<ElementType> FilterResults;
+		for (ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
+		{
+			if (Pred(*Data))
+			{
+				FilterResults.Add(*Data);
+			}
+		}
+		return FilterResults;
+	}
+	/**
 	 * @return		true if found
 	 */
 	bool Contains( const ElementType& Item ) const
@@ -2417,7 +2435,7 @@ public:
 		const int32 Index = Super::AddUninitialized( Count );
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		return Index;
 	}
@@ -2426,14 +2444,14 @@ public:
 		Super::InsertUninitialized( Index, Count );
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
 	void RemoveAt( int32 Index, int32 Count=1 )
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, -1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, -1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		Super::RemoveAt( Index, Count );
 	}
@@ -2441,7 +2459,7 @@ public:
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->ArrayNum, -1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->ArrayNum, -1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		Super::Empty( Slack );
 	}
@@ -2500,13 +2518,13 @@ public:
 	void ModifyItem( int32 Index )
 	{
 		if( GUndo )
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 	}
 	void ModifyAllItems()
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->Num(), 0, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->Num(), 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
 	friend FArchive& operator<<( FArchive& Ar, TTransArray& A )
@@ -2516,6 +2534,10 @@ public:
 		return Ar;
 	}
 protected:
+	static void DefaultConstructItem( void* TPtr )
+	{
+		new (TPtr) T;
+	}
 	static void SerializeItem( FArchive& Ar, void* TPtr )
 	{
 		Ar << *(T*)TPtr;

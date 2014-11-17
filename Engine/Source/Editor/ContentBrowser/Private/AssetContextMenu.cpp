@@ -10,6 +10,7 @@
 #include "Editor/UnrealEd/Public/FileHelpers.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Toolkits/AssetEditorManager.h"
+#include "Toolkits/ToolkitManager.h"
 #include "ConsolidateWindow.h"
 #include "ReferenceViewer.h"
 
@@ -21,6 +22,7 @@
 #include "KismetEditorUtilities.h"
 #include "AssetToolsModule.h"
 #include "ComponentAssetBroker.h"
+#include "Merge.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -31,6 +33,7 @@ FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCCHistory(false)
 	, bCanExecuteSCCRevert(false)
+	, bCanExecuteSCCMerge(false)
 	, bCanExecuteSCCSync(false)
 	, AssetView(InAssetView)
 {
@@ -404,6 +407,19 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 				);
 		}
 
+		if (CanExecuteSCCMerge())
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("SCCMerge", "Merge"),
+				LOCTEXT("SCCMergeTooltip", "Initiates a three-way merge of an asset."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteSCCMerge),
+				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteSCCMerge)
+				)
+				);
+		}
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCRefresh", "Refresh"),
 			LOCTEXT("SCCRefreshTooltip", "Updates the source control status of the asset."),
@@ -449,7 +465,6 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 					)
 				);
 		}
-
 	}
 	else
 	{
@@ -531,12 +546,6 @@ void FAssetContextMenu::GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRed
 {
 	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num(); ++AssetIdx)
 	{
-		if (!SelectedAssets[AssetIdx].IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(SelectedAssets[AssetIdx].ObjectPath.ToString()))
-		{
-			// Don't load assets in map packages
-			continue;
-		}
-
 		if (SkipRedirectors && (SelectedAssets[AssetIdx].AssetClass == UObjectRedirector::StaticClass()->GetFName()))
 		{
 			// Don't operate on Redirectors
@@ -809,12 +818,6 @@ void FAssetContextMenu::ExecuteDelete()
 		for( auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
 			const FAssetData& AssetData = *AssetIt;
-
-			if( !AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset( AssetData.ObjectPath.ToString() ) )
-			{
-				// Don't load assets in map packages
-				continue;
-			}
 
 			if( AssetData.AssetClass == UObjectRedirector::StaticClass()->GetFName() )
 			{
@@ -1119,6 +1122,24 @@ void FAssetContextMenu::ExecuteSCCRevert()
 	FSourceControlWindows::PromptForRevert(PackageNames);
 }
 
+void FAssetContextMenu::ExecuteSCCMerge()
+{
+	TArray<FString> PackageNames;
+	GetSelectedPackageNames(PackageNames);
+
+	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num(); ++AssetIdx)
+	{
+		const FAssetData& Asset = SelectedAssets[AssetIdx];
+		UObject* Object = Asset.GetAsset();
+
+		if( Object )
+		{
+			IMerge::Get().Merge(*Cast<UBlueprint>(Object));
+		}
+	}
+
+}
+
 void FAssetContextMenu::ExecuteSCCSync()
 {
 	TArray<FString> PackageNames;
@@ -1249,6 +1270,13 @@ bool FAssetContextMenu::CanExecuteSCCRevert() const
 	return bCanExecuteSCCRevert;
 }
 
+bool FAssetContextMenu::CanExecuteSCCMerge() const
+{
+	bool bEnableMerge = false;
+	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bEnableMerge, GEngineIni);
+	return bCanExecuteSCCMerge && bEnableMerge;
+}
+
 bool FAssetContextMenu::CanExecuteSCCSync() const
 {
 	return bCanExecuteSCCSync;
@@ -1344,6 +1372,7 @@ void FAssetContextMenu::CacheCanExecuteVars()
 	bCanExecuteSCCCheckIn = false;
 	bCanExecuteSCCHistory = false;
 	bCanExecuteSCCRevert = false;
+	bCanExecuteSCCMerge = false;
 	bCanExecuteSCCSync = false;
 
 	for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
@@ -1385,10 +1414,15 @@ void FAssetContextMenu::CacheCanExecuteVars()
 					bCanExecuteSCCSync = true;
 				}
 
-				if ( SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+				if ( SourceControlState->CanCheckIn() )
 				{
 					bCanExecuteSCCCheckIn = true;
 					bCanExecuteSCCRevert = true;
+				}
+
+				if( SourceControlState->IsConflicted() && SourceControlState->IsCurrent() )
+				{
+					bCanExecuteSCCMerge = true;
 				}
 			}
 		}

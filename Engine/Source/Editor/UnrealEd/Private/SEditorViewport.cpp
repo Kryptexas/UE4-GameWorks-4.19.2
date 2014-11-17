@@ -305,7 +305,7 @@ void SEditorViewport::BindCommands()
 
 EVisibility SEditorViewport::OnGetViewportContentVisibility() const
 {
-	return GEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::Visible;
+	return GLevelEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 void SEditorViewport::OnToggleRealtime()
@@ -377,6 +377,11 @@ void SEditorViewport::OnScreenCaptureForProjectThumbnail()
 		const FString ScreenshotFilename = FPaths::Combine(*FPaths::GameDir(), *BaseFilename);
 		UThumbnailManager::CaptureProjectThumbnail(Client->Viewport, ScreenshotFilename, true);
 	}
+}
+
+EVisibility SEditorViewport::GetTransformToolbarVisibility() const
+{
+	return (Client->GetWidgetMode() != FWidget::WM_None) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 bool SEditorViewport::IsWidgetModeActive( FWidget::EWidgetMode Mode ) const

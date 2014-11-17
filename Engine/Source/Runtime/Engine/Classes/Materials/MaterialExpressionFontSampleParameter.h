@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionFontSample.h"
 #include "MaterialExpressionFontSampleParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
@@ -22,9 +23,14 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	FName Group;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
+#if WITH_EDITOR
+	virtual bool CanRenameNode() const override { return true; }
+	virtual FString GetEditableName() const override;
+	virtual void SetEditableName(const FString& NewName) override;
+#endif
 	// End UMaterialExpression Interface
 	
 	/**
@@ -32,7 +38,7 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	*/
 	virtual void SetDefaultFont();
 	
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}

@@ -1,13 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImageWrapperPrivatePCH.h: Pre-compiled header file for the ImageWrapper module.
-=============================================================================*/
-
 #pragma once
 
-
-#include "../Public/ImageWrapper.h"
+#include "ImageWrapper.h"
 
 
 /* Dependencies

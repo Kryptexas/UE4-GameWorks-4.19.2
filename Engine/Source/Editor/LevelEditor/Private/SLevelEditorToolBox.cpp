@@ -20,7 +20,10 @@ void SLevelEditorToolBox::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	LevelEditor = OwningLevelEditor;
 
-	GEditor->AccessEditorUserSettings().OnUserSettingChanged().AddSP( this, &SLevelEditorToolBox::HandleUserSettingsChange );
+	// Important: We use a raw binding here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
+
+	GEditor->AccessEditorUserSettings().OnUserSettingChanged().AddRaw( this, &SLevelEditorToolBox::HandleUserSettingsChange );
 
 	ChildSlot
 	[
@@ -70,6 +73,11 @@ void SLevelEditorToolBox::HandleUserSettingsChange( FName PropertyName )
 	UpdateModeToolBar();
 }
 
+void SLevelEditorToolBox::OnEditorModeCommandsChanged()
+{
+	UpdateModeToolBar();
+}
+
 void SLevelEditorToolBox::UpdateModeToolBar()
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
@@ -83,28 +91,15 @@ void SLevelEditorToolBox::UpdateModeToolBar()
 
 		const FLevelEditorModesCommands& Commands = LevelEditorModule.GetLevelEditorModesCommands();
 
-		TArray<FEdMode*> Modes;
-		GEditorModeTools().GetModes( Modes );
-
-		struct FCompareEdModeByPriority
-		{
-			FORCEINLINE bool operator()( const FEdMode& A, const FEdMode& B ) const
-			{
-				return A.GetPriorityOrder() < B.GetPriorityOrder();
-			}
-		};
-
-		Modes.Sort( FCompareEdModeByPriority() );
-
-		for ( FEdMode* Mode : Modes )
+		for ( const FEditorModeInfo& Mode : FEditorModeRegistry::Get().GetSortedModeInfo() )
 		{
 			// If the mode isn't visible don't create a menu option for it.
-			if ( !Mode->IsVisible() )
+			if ( !Mode.bVisible )
 			{
 				continue;
 			}
 
-			FName EditorModeCommandName = FName( *( FString( "EditorMode." ) + Mode->GetID().ToString() ) );
+			FName EditorModeCommandName = FName( *( FString( "EditorMode." ) + Mode.ID.ToString() ) );
 
 			TSharedPtr<FUICommandInfo> EditorModeCommand =
 				FInputBindingManager::Get().FindCommandInContext( Commands.GetContextName(), EditorModeCommandName );
@@ -118,8 +113,7 @@ void SLevelEditorToolBox::UpdateModeToolBar()
 			const FUIAction* UIAction = EditorModeTools.GetTopCommandList()->GetActionForCommand( EditorModeCommand );
 			if ( ensure( UIAction ) )
 			{
-				EditorModeTools.AddToolBarButton( EditorModeCommand, Mode->GetID(), Mode->GetName(), Mode->GetName(), Mode->GetIcon(), Mode->GetID() );// , EUserInterfaceActionType::ToggleButton );
-				//EditorModeTools.AddToolBarButton( *UIAction, Mode->GetID(), Mode->GetName(), Mode->GetName(), Mode->GetIcon(), EUserInterfaceActionType::ToggleButton );
+				EditorModeTools.AddToolBarButton( EditorModeCommand, Mode.ID, Mode.Name, Mode.Name, Mode.IconBrush, Mode.ID );// , EUserInterfaceActionType::ToggleButton );
 			}
 		}
 	}

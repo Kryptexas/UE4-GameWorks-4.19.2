@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CPUSolver.h: CPU solver interface
-=============================================================================*/
-
-
 #pragma once
 
 #ifndef CPUSOLVER_H

@@ -108,7 +108,7 @@ public:
 	void OnGroupByTagChanged(ESlateCheckBoxState::Type NewState);
 	void OnGroupByOwnerChanged(ESlateCheckBoxState::Type NewState);
 	void FilterTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
-	void OnSortByChanged(const FName& ColumnName, EColumnSortMode::Type NewSortMode);
+	void OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode);
 	// Table delegates
 	TSharedRef<ITableRow> QueryTreeGenerateRow(TSharedPtr<FQueryTreeItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnGetChildrenForQueryGroup( TSharedPtr<FQueryTreeItem> InItem, TArray<TSharedPtr<FQueryTreeItem> >& OutChildren );

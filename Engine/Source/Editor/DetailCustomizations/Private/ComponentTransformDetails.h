@@ -26,13 +26,13 @@ public:
 	 */
 	void CacheTransform();
 
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE {}
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual bool RequiresTick() const OVERRIDE { return true; }
-	virtual FName GetName() const OVERRIDE { return NAME_None; }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual void SetOnRebuildChildren( FSimpleDelegate OnRebuildChildren ) OVERRIDE{}
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override {}
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual bool RequiresTick() const override { return true; }
+	virtual FName GetName() const override { return NAME_None; }
+	virtual bool InitiallyCollapsed() const override { return false; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual void SetOnRebuildChildren( FSimpleDelegate OnRebuildChildren ) override{}
 
 private:
 	/** @return Whether the transform details panel should be enabled (editable) or not (read-only / greyed out) */

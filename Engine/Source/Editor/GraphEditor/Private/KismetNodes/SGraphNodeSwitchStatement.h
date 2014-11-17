@@ -11,11 +11,11 @@ public:
 	void Construct(const FArguments& InArgs, UK2Node_Switch* InNode);
 
 	// SGraphNode interface
-	virtual void CreatePinWidgets() OVERRIDE;
+	virtual void CreatePinWidgets() override;
 
 protected:
-	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) OVERRIDE;
-	virtual EVisibility IsAddPinButtonVisible() const OVERRIDE;
-	virtual FReply OnAddPin() OVERRIDE;
+	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) override;
+	virtual EVisibility IsAddPinButtonVisible() const override;
+	virtual FReply OnAddPin() override;
 	// End of SGraphNode interface
 };

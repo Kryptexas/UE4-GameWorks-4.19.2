@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWorkerPrivatePCH.h: Pre-compiled header file for the AutomationWorker module.
-=============================================================================*/
-
 #pragma once
-
 
 #include "AutomationWorker.h"
 
@@ -19,7 +14,9 @@
 #if WITH_ENGINE
 	#include "Engine.h"
 	#include "ImageUtils.h"
+	#include "AutomationCommon.h"
 #endif
+
 
 /* Private includes
  *****************************************************************************/

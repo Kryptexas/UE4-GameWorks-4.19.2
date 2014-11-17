@@ -28,36 +28,36 @@ public:
 	/**
 	 * Overridden function to get the derived object node
 	 */
-	virtual FItemPropertyNode* AsItemPropertyNode() OVERRIDE { return this; }
+	virtual FItemPropertyNode* AsItemPropertyNode() override { return this; }
 
 	/** Display name override to use instead of the property name */
-	void SetDisplayNameOverride( const FString& InDisplayNameOverride ) OVERRIDE;
+	void SetDisplayNameOverride( const FString& InDisplayNameOverride ) override;
 
 	/**
 	 * @return The formatted display name for the property in this node                                                              
 	 */
-	FString GetDisplayName() const OVERRIDE;
+	FString GetDisplayName() const override;
 
 	/**
 	 * Sets the tooltip override to use instead of the property tooltip
 	 */
-	virtual void SetToolTipOverride( const FString& InToolTipOverride ) OVERRIDE;
+	virtual void SetToolTipOverride( const FString& InToolTipOverride ) override;
 
 	/**
 	 * @return The tooltip for the property in this node                                                              
 	 */
-	virtual FString GetToolTipText() const OVERRIDE;
+	virtual FString GetToolTipText() const override;
 
 protected:
 	/**
 	 * Overridden function for special setup
 	 */
-	virtual void InitExpansionFlags() OVERRIDE;
+	virtual void InitExpansionFlags() override;
 
 	/**
 	 * Overridden function for Creating Child Nodes
 	 */
-	virtual void InitChildNodes() OVERRIDE;
+	virtual void InitChildNodes() override;
 
 private:
 	/** Display name override to use instead of the property name */

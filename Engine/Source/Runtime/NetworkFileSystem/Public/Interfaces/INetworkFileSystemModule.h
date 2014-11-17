@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	INetworkFileSystemModule.h: Declares the INetworkFileSystemModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,9 +20,11 @@ struct FShaderRecompileData
 	TArray<uint8>* MeshMaterialMaps;
 	TArray<FString> MaterialsToLoad;
 	TArray<uint8> SerializedShaderResources;
+	bool bCompileChangedShaders;
 
 	FShaderRecompileData() :
-		ShaderPlatform(-1)
+		ShaderPlatform(-1),
+		bCompileChangedShaders(true)
 	{}
 
 	FShaderRecompileData& operator=(const FShaderRecompileData& Other)
@@ -37,10 +35,12 @@ struct FShaderRecompileData
 		MeshMaterialMaps = Other.MeshMaterialMaps;
 		MaterialsToLoad = Other.MaterialsToLoad;
 		SerializedShaderResources = Other.SerializedShaderResources;
+		bCompileChangedShaders = Other.bCompileChangedShaders;
 
 		return *this;
 	}
 };
+
 
 /**
  * Delegate type for handling shader recompilation requests from a network client.
@@ -59,15 +59,14 @@ public:
 	/**
 	 * Creates a new network file server.
 	 *
-	 * @param InPort - The port number to bind to (-1 = default port, 0 = any available port).
-	 * @param Streaming - Whether it should be a streaming server.
-	 * @param InFileRequestDelegate - An optional delegate to be invoked when a file is requested by a client.
-	 * @param InRecompileShadersDelegate - An optional delegate to be invoked when shaders need to be recompiled.
+	 * @param InPort The port number to bind to (-1 = default port, 0 = any available port).
+	 * @param Streaming Whether it should be a streaming server.
+	 * @param InFileRequestDelegate An optional delegate to be invoked when a file is requested by a client.
+	 * @param InRecompileShadersDelegate An optional delegate to be invoked when shaders need to be recompiled.
 	 *
-	 * @return The new file server, or NULL if creation failed.
+	 * @return The new file server, or nullptr if creation failed.
 	 */
-	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port = -1, const FFileRequestDelegate* InFileRequestDelegate = NULL, const FRecompileShadersDelegate* InRecompileShadersDelegate = NULL ) const = 0;
-
+	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port = -1, const FFileRequestDelegate* InFileRequestDelegate = nullptr, const FRecompileShadersDelegate* InRecompileShadersDelegate = nullptr ) const = 0;
 
 public:
 

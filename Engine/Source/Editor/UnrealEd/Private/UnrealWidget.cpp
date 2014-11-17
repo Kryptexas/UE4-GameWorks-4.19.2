@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SnappingUtils.h"
+#include "DynamicMeshBuilder.h"
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 
@@ -216,7 +217,7 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 
 	if( bDrawWidget )
 	{
-		const bool bDisabled = EditorModeTools ? (EditorModeTools->IsModeActive(FBuiltinEditorModes::EM_Default) && GEditor->HasLockedActors() ) : false;
+		const bool bDisabled = EditorModeTools ? (EditorModeTools->IsDefaultModeActive() && GEditor->HasLockedActors() ) : false;
 		PDI->SetHitProxy( new HWidgetAxis( InAxis, bDisabled) );
 
 		const float AxisLength = AXIS_LENGTH + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
@@ -952,7 +953,7 @@ void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewp
 			{
 				if( CurrentAxis == EAxisList::ZRotation )
 				{
-					FVector Axis = Axis = FVector( 0, 0, 1 );
+					FVector Axis = FVector( 0, 0, 1 );
 					Axis = InputCoordSystem.TransformVector( Axis );
 
 					const float RotationSpeed = GetRotationSpeed();
@@ -1743,6 +1744,6 @@ EAxisList::Type FWidget::GetAxisToDraw( EWidgetMode WidgetMode ) const
 
 bool FWidget::IsWidgetDisabled() const
 {
-	return EditorModeTools ? (EditorModeTools->IsModeActive(FBuiltinEditorModes::EM_Default) && GEditor->HasLockedActors()) : false;
+	return EditorModeTools ? (EditorModeTools->IsDefaultModeActive() && GEditor->HasLockedActors()) : false;
 }
 

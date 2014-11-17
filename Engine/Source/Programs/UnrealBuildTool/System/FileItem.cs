@@ -177,6 +177,17 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Determines the appropriate encoding for a string: either ASCII or UTF-8.
+		/// </summary>
+		/// <param name="Str">The string to test.</param>
+		/// <returns>Either System.Text.Encoding.ASCII or System.Text.Encoding.UTF8, depending on whether or not the string contains non-ASCII characters.</returns>
+		private static Encoding GetEncodingForString(string Str)
+		{
+			// If the string length is equivalent to the encoded length, then no non-ASCII characters were present in the string.
+			return (Encoding.UTF8.GetByteCount(Str) == Str.Length) ? Encoding.ASCII : Encoding.UTF8;
+		}
+
 		/**
 		 * Creates a text file with the given contents.  If the contents of the text file aren't changed, it won't write the new contents to
 		 * the file to avoid causing an action to be considered outdated.
@@ -189,7 +200,7 @@ namespace UnrealBuildTool
 			// Only write the file if its contents have changed.
 			if (!File.Exists(AbsolutePath) || Utils.ReadAllText(AbsolutePath) != Contents)
 			{
-				File.WriteAllText(AbsolutePath, Contents);
+				File.WriteAllText(AbsolutePath, Contents, GetEncodingForString(Contents));
 			}
 
 			return GetItemByPath(AbsolutePath);

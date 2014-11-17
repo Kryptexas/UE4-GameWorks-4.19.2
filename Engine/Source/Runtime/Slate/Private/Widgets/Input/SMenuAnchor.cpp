@@ -120,6 +120,20 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 	bDismissedThisTick = false;
 }
 
+void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
+{
+	ChildSlot
+		.Padding(0)
+		[
+			InContent
+		];
+}
+
+void SMenuAnchor::SetMenuContent(TSharedRef<SWidget> InMenuContent)
+{
+	MenuContent = InMenuContent;
+}
+
 /**
  * Open or close the popup
  *
@@ -277,4 +291,27 @@ SMenuAnchor::SMenuAnchor()
 	, bDismissedThisTick( false )
 	, Method(CreateNewWindow)
 {
+}
+
+SMenuAnchor::~SMenuAnchor()
+{
+	TSharedPtr<SWindow> PopupWindow = PopupWindowPtr.Pin();
+	if (PopupWindow.IsValid())
+	{
+		// Close the Popup window.
+		if (Method == CreateNewWindow)
+		{
+			// Request that the popup be closed.
+			PopupWindow->RequestDestroyWindow();
+		}
+		// Close the popup overlay
+		else if (Method == UseCurrentWindow && PopupLayerSlot != NULL)
+		{
+			PopupWindow->RemovePopupLayerSlot(PopupLayerSlot->GetWidget());
+		}
+		
+		// We no longer have a popup open, so reset all the tracking state associated.
+		PopupWindowPtr.Reset();
+		PopupLayerSlot = NULL;
+	}
 }

@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformOutputDevices.cpp: Generic implementations of OutputDevices platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "FeedbackContextAnsi.h"
+
 
 FString								FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 {

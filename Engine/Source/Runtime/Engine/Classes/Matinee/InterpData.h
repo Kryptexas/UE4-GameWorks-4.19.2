@@ -96,8 +96,8 @@ class UInterpData : public UObject
 
 
 	// Begin UObject interface
-	virtual void PostLoad(void) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostLoad(void) override;
+	virtual void PostInitProperties() override;
 	// End UObject interface
 
 	/** Search through all InterpGroups in this InterpData to find a group whose GroupName matches the given name. Returns INDEX_NONE if group not found. */

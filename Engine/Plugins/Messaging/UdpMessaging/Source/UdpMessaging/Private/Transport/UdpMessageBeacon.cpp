@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageHelloSender.h: Implements the FUdpMessageHelloSender class.
-=============================================================================*/
-
 #include "UdpMessagingPrivatePCH.h"
 
 
@@ -28,7 +24,7 @@ FUdpMessageBeacon::FUdpMessageBeacon(FSocket* InSocket, const FGuid& InSocketId,
 	EndpointLeftEvent = FPlatformProcess::CreateSynchEvent();
 	MulticastAddress = InMulticastEndpoint.ToInternetAddr();
 
-	Thread = FRunnableThread::Create(this, TEXT("FUdpMessageBeacon"), false, false, 128 * 1024, TPri_AboveNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FUdpMessageBeacon"), 128 * 1024, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
 }
 
 

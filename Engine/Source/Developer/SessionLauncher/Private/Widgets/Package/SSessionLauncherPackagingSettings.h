@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherPackagingSettings.h: Declares the SSessionLauncherPackagingSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherPackagingSettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -26,23 +21,20 @@ public:
 	 */
 	~SSessionLauncherPackagingSettings( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 private:
 
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
-
 
 private:
 

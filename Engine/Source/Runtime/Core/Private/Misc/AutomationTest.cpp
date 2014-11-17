@@ -417,10 +417,21 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 
 bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 {
-	if (Path.Contains(TEXT("/TestMaps/")))
+	static TArray<FString> TestLevelFolders;
+	if ( TestLevelFolders.Num() == 0 )
 	{
-		return false;
+		GConfig->GetArray( TEXT("/Script/Engine.AutomationTestSettings"), TEXT("TestLevelFolders"), TestLevelFolders, GEngineIni);
 	}
+
+	for ( const FString& Folder : TestLevelFolders )
+	{
+		const FString PatternToCheck = FString::Printf(TEXT("/%s/"), *Folder);
+		if ( Path.Contains(*PatternToCheck) )
+		{
+			return false;
+		}
+	}
+
 	FString DevelopersPath = FPaths::GameDevelopersDir().LeftChop(1);
 	return bDeveloperDirectoryIncluded || bVisualCommandletFilterOn || !Path.StartsWith(DevelopersPath);
 }
@@ -434,6 +445,27 @@ void FAutomationTestFramework::SetDeveloperDirectoryIncluded(const bool bInDevel
 void FAutomationTestFramework::SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn)
 {
 	bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
+}
+
+FOnTestScreenshotCaptured& FAutomationTestFramework::OnScreenshotCaptured()
+{
+	return TestScreenshotCapturedDelegate;
+}
+
+void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots )
+{
+	bScreenshotsEnabled = bInScreenshotsEnabled;
+	bUseFullSizeScreenShots = bInUseFullSizeScreenshots;
+}
+
+bool FAutomationTestFramework::IsScreenshotAllowed() const
+{
+	return bScreenshotsEnabled;
+}
+
+bool FAutomationTestFramework::ShouldUseFullSizeScreenshots() const
+{
+	return bUseFullSizeScreenShots;
 }
 
 void FAutomationTestFramework::PrepForAutomationTests()
@@ -597,6 +629,7 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
 ,	bVisualCommandletFilterOn(false)
+,	bUseFullSizeScreenShots(false)
 ,	NetworkRoleIndex(0)
 {
 }

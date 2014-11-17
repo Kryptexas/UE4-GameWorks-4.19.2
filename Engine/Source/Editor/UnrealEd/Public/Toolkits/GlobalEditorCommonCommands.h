@@ -10,7 +10,7 @@ class UNREALED_API FGlobalEditorCommonCommands : public TCommands< FGlobalEditor
 public:
 	FGlobalEditorCommonCommands();
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	static void MapActions(TSharedRef<FUICommandList>& ToolkitCommands);
 
@@ -22,5 +22,6 @@ public:
 	TSharedPtr<FUICommandInfo> SummonControlTabNavigation;
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialog;
 	TSharedPtr<FUICommandInfo> OpenDocumentation;
+	TSharedPtr<FUICommandInfo> ViewReferences;
 };
 

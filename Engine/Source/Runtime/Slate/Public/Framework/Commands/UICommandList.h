@@ -62,6 +62,14 @@ public:
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
 
 	/**
+	 * Checks to see whether a command info is already mapped to an action
+	 * 
+	 * @param InUICommandInfo	The command info to check
+	 * @return true if the command info is mapped to an action
+	 */
+	bool IsCommandInfoMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const;
+
+	/**
 	 * Append commands in InCommandsToAppend to this command list.
 	 */
 	void Append( const TSharedRef<FUICommandList>& InCommandsToAppend );
@@ -120,6 +128,17 @@ public:
 	 * @return true if an action was processed
 	 */
 	bool ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const;
+
+	/**
+	 * Processes any UI commands which are activated by the specified key, modifier keys state and input event
+	 *
+	 * @param Key				The current key that is pressed
+	 * @param ModifierKeysState	Pressed state of keys that are commonly used as modifiers
+	 * @param bRepeat			True if input is repeating (held)
+	 *
+	 * @return true if an action was processed
+	 */
+	bool ProcessCommandBindings( const FKey Key, const FModifierKeysState& ModifierKeysState, const bool bRepeat ) const;
 
 	/** Sets the delegate that determines if this UICommandList is capable of producing an action for the supplied command */
 	void SetCanProduceActionForCommand( const FCanProduceActionForCommand& NewCanProduceActionForCommand ) { CanProduceActionForCommand = NewCanProduceActionForCommand; }

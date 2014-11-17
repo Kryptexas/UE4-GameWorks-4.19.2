@@ -17,6 +17,7 @@ public class Engine : ModuleRules
 				"Runtime/Online/OnlineSubsystem/Public",
 				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Developer/SynthBenchmark/Public",
+                "Runtime/Engine/Private",
 			}
 		);
 
@@ -50,7 +51,8 @@ public class Engine : ModuleRules
 				"AssetRegistry", // Here until FAssetData is moved to engine
 				"EngineMessages",
 				"EngineSettings",
-				"SynthBenchmark",
+				"SynthBenchmark",                
+                "AIModule",
 			}
 		);
 
@@ -62,7 +64,9 @@ public class Engine : ModuleRules
 				"SlateReflector",
 				"VectorVM",
 			}
-		);
+        );
+
+        CircularlyReferencedDependentModules.Add("AIModule");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
@@ -138,6 +142,7 @@ public class Engine : ModuleRules
 			    new string[] {
 				    "CrashTracker",
 				    "ImageWrapper",
+					"GameLiveStreaming"
 			    }
 		    );
         }
@@ -154,11 +159,20 @@ public class Engine : ModuleRules
 
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
-			PublicDependencyModuleNames.Add("UnrealEd");	// @todo api: Only public because of WITH_EDITOR and UNREALED_API
-			CircularlyReferencedDependentModules.Add("UnrealEd");
+                
+			PublicDependencyModuleNames.AddRange(
+                new string[] {
+                    "UnrealEd", 
+                    "Kismet"
+                }
+            );	// @todo api: Only public because of WITH_EDITOR and UNREALED_API
 
-			//PrivateDependencyModuleNames.Add("BlueprintGraph");
-			//CircularlyReferencedDependentModules.Add("BlueprintGraph");
+			CircularlyReferencedDependentModules.AddRange(
+                new string[] {
+                    "UnrealEd",
+                    "Kismet"
+                }
+            );
 
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 			PrivateIncludePaths.Add("Developer/TextureCompressor/Public");
@@ -166,10 +180,7 @@ public class Engine : ModuleRules
 
 		SetupModulePhysXAPEXSupport(Target);
 
-		if (UEBuildConfiguration.bCompileNetworkProfiler)
-		{
-			Definitions.Add("USE_NETWORK_PROFILER=1");
-		}
+		SetupModuleBox2DSupport(Target);
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
@@ -199,6 +210,10 @@ public class Engine : ModuleRules
                     "VorbisFile"
                     );
         }
+		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
+		{
+			PublicDependencyModuleNames.Add("HTML5JS");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -207,6 +222,7 @@ public class Engine : ModuleRules
 				"Vorbis",
 				"libOpus"
 				);
+			PublicFrameworks.AddRange(new string[] { "AVFoundation", "CoreVideo", "CoreMedia" });
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
@@ -230,8 +246,8 @@ public class Engine : ModuleRules
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "Recast");
-			Definitions.Add("WITH_RECAST=1");
+            PrivateDependencyModuleNames.Add("Navmesh");
+            Definitions.Add("WITH_RECAST=1");
 		}
 		else
 		{
@@ -239,21 +255,6 @@ public class Engine : ModuleRules
 			// that import us also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
-		}
-
-		if ((UEBuildConfiguration.bCompileSpeedTree == true) &&
-			(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32))
-		{
-			AddThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
-
-			// Because we test WITH_SPEEDTREE in public UnrealEd header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  SpeedTree is a private dependency
-			// module, so it's definitions won't propagate to modules that import UnrealEd.
-			Definitions.Add("WITH_SPEEDTREE=1");
-		}
-		else
-		{
-			Definitions.Add("WITH_SPEEDTREE=0");
 		}
 	}
 }

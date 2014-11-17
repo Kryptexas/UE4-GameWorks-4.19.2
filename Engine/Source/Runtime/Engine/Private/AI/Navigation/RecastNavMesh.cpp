@@ -2,6 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "RecastHelpers.h"
+#include "AI/Navigation/NavAreas/NavArea_Null.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
@@ -83,7 +87,10 @@ public:
 private:
 	FConditionalScopeLock();
 	FConditionalScopeLock(FConditionalScopeLock* InScopeLock);
-	FConditionalScopeLock& operator= (FConditionalScopeLock& InScopeLock) { return *this; }
+	FConditionalScopeLock& operator= (FConditionalScopeLock& InScopeLock) 
+	{ 
+		return *this; 
+	}
 
 	FCriticalSection* SyncObject;
 	bool bLock;
@@ -258,6 +265,10 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 		RecastNavMeshImpl = new FPImplRecastNavMesh(this);
 		DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
 		TickHelper.Owner = this;
+
+		// add default and null areas up front
+		SupportedAreas.Add(FSupportedAreaData(UNavArea_Null::StaticClass(), RECAST_NULL_AREA));
+		SupportedAreas.Add(FSupportedAreaData(UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA));
 	}
 }
 
@@ -803,6 +814,35 @@ FColor ARecastNavMesh::GetAreaIDColor(uint8 AreaID) const
 	return DefArea ? DefArea->DrawColor : NavDataConfig.Color;
 }
 
+void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const
+{
+	// initialize costs for sorting
+	float AreaCosts[RECAST_MAX_AREAS];
+	float AreaFixedCosts[RECAST_MAX_AREAS];
+	DefaultQueryFilter->GetAllAreaCosts(AreaCosts, AreaFixedCosts, RECAST_MAX_AREAS);
+
+	for (int32 Idx = 0; Idx < Areas.Num(); Idx++)
+	{
+		FAreaNavModifier& AreaMod = Areas[Idx];
+		const int32 AreaId = GetAreaID(AreaMod.GetAreaClass());
+		if (AreaId >= 0 && AreaId < RECAST_MAX_AREAS)
+		{
+			AreaMod.Cost = AreaCosts[AreaId];
+			AreaMod.FixedCost = AreaFixedCosts[AreaId];
+		}
+	}
+
+	struct FNavAreaSortPredicate
+	{
+		FORCEINLINE bool operator()(const FAreaNavModifier& A, const FAreaNavModifier& B) const
+		{
+			return A.Cost != B.Cost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
+		}
+	};
+
+	Areas.Sort(FNavAreaSortPredicate());
+}
+
 void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh)
 {
 	if (!Ar.IsLoading() 
@@ -1007,7 +1047,7 @@ int32 ARecastNavMesh::GetNavMeshTilesCount() const
 	return NumTiles;
 }
 
-void ARecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
+void ARecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
 {
 	check(PathCorridor != NULL && PathCorridorEdges != NULL);
 
@@ -1150,10 +1190,9 @@ NavNodeRef ARecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Ex
 	return PolyRef;
 }
 
-void ARecastNavMesh::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
+void ARecastNavMesh::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
-	TSubclassOf<UNavArea> AreaClass = LinkComp->IsEnabled() ? LinkComp->GetEnabledArea() : LinkComp->GetDisabledArea();
-	UpdateNavigationLinkArea(LinkComp->GetLinkId(), AreaClass);
+	UpdateNavigationLinkArea(CustomLink->GetLinkId(), CustomLink->GetLinkAreaClass());
 }
 
 void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const
@@ -1214,6 +1253,47 @@ uint32 ARecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	}
 
 	return AreaID;
+}
+
+bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const
+{
+	bool bFound = false;
+	if (RecastNavMeshImpl)
+	{
+		uint8 AreaType = RECAST_DEFAULT_AREA;
+		bFound = RecastNavMeshImpl->GetPolyData(PolyID, PolyFlags, AreaType);
+		if (bFound)
+		{
+			const UClass* AreaClass = GetAreaClass(AreaType);
+			const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+			AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
+		}
+	}
+
+	return bFound;
+}
+
+bool ARecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
+{
+	bool bFound = false;
+	if (RecastNavMeshImpl)
+	{
+		bFound = RecastNavMeshImpl->GetPolyTileIndex(PolyID, PolyIndex, TileIndex);
+	}
+
+	return bFound;
+}
+
+bool ARecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const
+{
+	bool bSuccess = false;
+	if (RecastNavMeshImpl)
+	{
+		SECTION_LOCK_TILES;
+		bSuccess = RecastNavMeshImpl->GetLinkEndPoints(LinkPolyID, PointA, PointB);
+	}
+
+	return bSuccess;
 }
 
 bool ARecastNavMesh::GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const
@@ -1442,7 +1522,11 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 		
 	FPathFindingResult Result;
 	Result.Path = Self->CreatePathInstance<FNavMeshPath>();
-	
+
+	FNavMeshPath* NavMeshPath = (FNavMeshPath*)Result.Path.Get();
+	NavMeshPath->Filter = Query.QueryFilter;
+	NavMeshPath->ApplyFlags(Query.NavDataFlags);
+
 	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
 	{
 		Result.Path->PathPoints.Reset();
@@ -1455,8 +1539,8 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 
 		if(Query.QueryFilter.IsValid())
 		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation,
-				*((FNavMeshPath*)(Result.Path.Get())), *(Query.QueryFilter.Get()), Query.Owner.Get());
+			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation, *NavMeshPath,
+				*(Query.QueryFilter.Get()), Query.Owner.Get());
 		}
 		else
 		{
@@ -1483,6 +1567,10 @@ FPathFindingResult ARecastNavMesh::FindHierarchicalPath(const FNavAgentPropertie
 	FPathFindingResult Result;
 	Result.Path = Self->CreatePathInstance<FNavMeshPath>();
 
+	FNavMeshPath* NavMeshPath = (FNavMeshPath*)Result.Path.Get();
+	NavMeshPath->Filter = Query.QueryFilter;
+	NavMeshPath->ApplyFlags(Query.NavDataFlags);
+
 	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
 	{
 		Result.Path->PathPoints.Reset();
@@ -1496,9 +1584,7 @@ FPathFindingResult ARecastNavMesh::FindHierarchicalPath(const FNavAgentPropertie
 		bool bUseFallbackSearch = false;
 		if (bCanUseHierachicalPath)
 		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindClusterPath(Query.StartLocation, Query.EndLocation,
-				*((FNavMeshPath*)(Result.Path.Get())));
-
+			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindClusterPath(Query.StartLocation, Query.EndLocation, *NavMeshPath);
 			if (Result.Result == ENavigationQueryResult::Error)
 			{
 				bUseFallbackSearch = true;
@@ -1512,8 +1598,8 @@ FPathFindingResult ARecastNavMesh::FindHierarchicalPath(const FNavAgentPropertie
 
 		if (bUseFallbackSearch)
 		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation,
-				*((FNavMeshPath*)(Result.Path.Get())), *(Query.QueryFilter.Get()), Query.Owner.Get());
+			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation, *NavMeshPath,
+				*(Query.QueryFilter.Get()), Query.Owner.Get());
 		}
 	}
 
@@ -1778,7 +1864,7 @@ void ARecastNavMesh::PostEditChangeProperty( struct FPropertyChangedEvent& Prope
 			}
 
 #if WITH_NAVIGATION_GENERATOR
-			FNavDataGenerator* Generator = GetGenerator(NavigationSystem::DontCreate);
+			FNavDataGenerator* Generator = GetGenerator(FNavigationSystem::DontCreate);
 			if (Generator != NULL)
 			{
 				Generator->Generate();
@@ -1828,5 +1914,21 @@ const class FRecastQueryFilter* ARecastNavMesh::GetNamedFilter(ERecastNamedFilte
 
 #undef INITIALIZE_NAVQUERY
 
+void ARecastNavMesh::UpdateNavObject()
+{
+	OnNavMeshUpdate.Broadcast();
+}
+
 #endif	//WITH_RECAST
 
+bool ARecastNavMesh::HasValidNavmesh() const
+{
+#if WITH_RECAST
+	if (RecastNavMeshImpl && RecastNavMeshImpl->DetourNavMesh)
+	{
+		return true;
+	}
+#endif // WITH_RECAST
+
+	return false;
+}

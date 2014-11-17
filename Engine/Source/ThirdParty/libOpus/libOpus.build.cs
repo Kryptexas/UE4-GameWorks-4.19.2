@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class libOpus : ModuleRules
 {
@@ -10,8 +11,8 @@ public class libOpus : ModuleRules
 		string OpusVersion = "1.1";
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libOpus/opus-" + OpusVersion + "/include");
-		string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "libOpus/opus-" + OpusVersion + "/";
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libOpus/opus-" + OpusVersion + "/include");
+		string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libOpus/opus-" + OpusVersion + "/";
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
@@ -46,7 +47,7 @@ public class libOpus : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			LibraryPath += "Linux/CentOS6/";
+            LibraryPath += "Linux/" + Target.Architecture;
             PublicLibraryPaths.Add(LibraryPath);
             PublicAdditionalLibraries.Add("opus");
 		}

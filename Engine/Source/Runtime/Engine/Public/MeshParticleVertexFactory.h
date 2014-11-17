@@ -138,7 +138,7 @@ public:
 	void Copy(const FMeshParticleVertexFactory& Other);
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	static bool SupportsTessellationShaders() { return true; }
 

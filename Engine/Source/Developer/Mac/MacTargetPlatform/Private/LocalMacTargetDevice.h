@@ -27,12 +27,12 @@ public:
 
 public:
 
-	virtual bool Connect( ) OVERRIDE
+	virtual bool Connect( ) override
 	{
 		return true;
 	}
 
-	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) OVERRIDE
+	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) override
 	{
 		OutAppId = TEXT("");
 
@@ -61,33 +61,33 @@ public:
 	virtual void Disconnect( )
 	{ }
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const OVERRIDE
+	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
 	{
 		return ETargetDeviceTypes::Desktop;
 	}
 
-	virtual FTargetDeviceId GetId( ) const OVERRIDE
+	virtual FTargetDeviceId GetId( ) const override
 	{
 		return FTargetDeviceId(TargetPlatform.PlatformName(), GetName());
 	}
 
-	virtual FString GetName( ) const OVERRIDE
+	virtual FString GetName( ) const override
 	{
 		return FPlatformProcess::ComputerName();
 	}
 
-	virtual FString GetOperatingSystemName( ) OVERRIDE
+	virtual FString GetOperatingSystemName( ) override
 	{
 		return TEXT("OS X");
 	}
 
-	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) OVERRIDE
+	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) override
 	{
 		// @todo Mac: implement process snapshots
 		return 0;
 	}
 
-	virtual const class ITargetPlatform& GetTargetPlatform( ) const OVERRIDE
+	virtual const class ITargetPlatform& GetTargetPlatform( ) const override
 	{
 		return TargetPlatform;
 	}
@@ -97,12 +97,12 @@ public:
 		return true;
 	}
 
-	virtual bool IsDefault( ) const OVERRIDE
+	virtual bool IsDefault( ) const override
 	{
 		return true;
 	}
 
-	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type Target, const FString& Params, uint32* OutProcessId ) OVERRIDE
+	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type Target, const FString& Params, uint32* OutProcessId ) override
 	{
 		// build executable path
 		FString PlatformName = TEXT("Mac");
@@ -119,17 +119,17 @@ public:
 		return ProcessHandle.Close();
 	}
 
-	virtual bool PowerOff( bool Force ) OVERRIDE
+	virtual bool PowerOff( bool Force ) override
 	{
 		return false;
 	}
 
-	virtual bool PowerOn( ) OVERRIDE
+	virtual bool PowerOn( ) override
 	{
 		return false;
 	}
 
-	virtual bool Reboot( bool bReconnect = false ) OVERRIDE
+	virtual bool Reboot( bool bReconnect = false ) override
 	{
 #if PLATFORM_MAC
 		NSAppleScript* Script = [[NSAppleScript alloc] initWithSource:@"tell application \"System Events\" to restart"];
@@ -139,13 +139,13 @@ public:
 		return true;
 	}
 
-	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) OVERRIDE
+	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override
 	{
 		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, OutProcessId, 0, NULL, NULL);
 		return ProcessHandle.Close();
 	}
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const OVERRIDE
+	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override
 	{
 		switch (Feature)
 		{
@@ -163,22 +163,22 @@ public:
 		return false;
 	}
 
-	virtual bool SupportsSdkVersion( const FString& VersionString ) const OVERRIDE
+	virtual bool SupportsSdkVersion( const FString& VersionString ) const override
 	{
 		// @todo filter SDK versions
 		return true;
 	}
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) OVERRIDE
+	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override
 	{
 	}
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) OVERRIDE
+	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override
 	{
 		return false;
 	}
 
-	virtual bool TerminateProcess( const int32 ProcessId ) OVERRIDE
+	virtual bool TerminateProcess( const int32 ProcessId ) override
 	{
 		return false;
 	}

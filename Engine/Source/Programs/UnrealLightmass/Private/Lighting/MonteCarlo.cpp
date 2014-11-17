@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MonteCarlo.cpp: Utilities for Monte Carlo Integration.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "MonteCarlo.h"
 

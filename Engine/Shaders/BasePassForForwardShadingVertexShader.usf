@@ -6,6 +6,9 @@
 
 #define IS_FORWARD_BASEPASS_VERTEX_SHADER 1
 
+// @todo urban: branch was: #define FORCE_FLOATS 1
+#define FORCE_FLOATS METAL_PROFILE
+
 #include "Common.usf"
 #include "BasePassForForwardShadingCommon.usf"
 #include "Material.usf"

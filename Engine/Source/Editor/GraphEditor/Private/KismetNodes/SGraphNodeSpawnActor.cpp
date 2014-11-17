@@ -40,7 +40,7 @@ class SGraphPinActorBasedBlueprintClass : public SGraphPinObject
 	{
 	public:
 
-		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) OVERRIDE
+		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 		{
 			if(NULL != InClass)
 			{
@@ -51,7 +51,7 @@ class SGraphPinActorBasedBlueprintClass : public SGraphPinObject
 			return false;
 		}
 
-		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) OVERRIDE
+		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 		{
 			const bool bActorBased = InUnloadedClassData->IsChildOf(AActor::StaticClass());
 			return bActorBased;
@@ -60,9 +60,9 @@ class SGraphPinActorBasedBlueprintClass : public SGraphPinObject
 
 protected:
 
-	virtual FText GetDefaultComboText() const OVERRIDE { return LOCTEXT( "DefaultComboText", "Select Blueprint" ); }
+	virtual FText GetDefaultComboText() const override { return LOCTEXT( "DefaultComboText", "Select Blueprint" ); }
 
-	virtual TSharedRef<SWidget> GenerateAssetPicker() OVERRIDE
+	virtual TSharedRef<SWidget> GenerateAssetPicker() override
 	{
 		FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
 

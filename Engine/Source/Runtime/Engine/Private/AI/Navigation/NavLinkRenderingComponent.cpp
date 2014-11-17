@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../../Public/AI/NavLinkRenderingProxy.h"
+#include "AI/NavLinkRenderingProxy.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
 
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent
@@ -24,7 +25,45 @@ UNavLinkRenderingComponent::UNavLinkRenderingComponent(const class FPostConstruc
 
 FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	return FBoxSphereBounds( FVector::ZeroVector, FVector(512), 512 ).TransformBy(LocalToWorld);
+	AActor* LinkOwnerActor = Cast<AActor>(GetOwner());
+	INavLinkHostInterface* LinkOwnerHost = InterfaceCast<INavLinkHostInterface>(GetOwner());
+
+	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
+	{
+		FBox BoundingBox(0);
+		const FTransform LocalToWorld = LinkOwnerActor->ActorToWorld();
+		TArray<TSubclassOf<UNavLinkDefinition> > NavLinkClasses;
+		TArray<FNavigationLink> SimpleLinks;
+		TArray<FNavigationSegmentLink> DummySegmentLinks;
+
+		if (LinkOwnerHost->GetNavigationLinksClasses(NavLinkClasses))
+		{
+			for (int32 NavLinkClassIdx = 0; NavLinkClassIdx < NavLinkClasses.Num(); ++NavLinkClassIdx)
+			{
+				if (NavLinkClasses[NavLinkClassIdx] != NULL)
+				{
+					const TArray<FNavigationLink>& Links = UNavLinkDefinition::GetLinksDefinition(NavLinkClasses[NavLinkClassIdx]);
+					for (const auto& Link : Links)
+					{
+						BoundingBox += Link.Left;
+						BoundingBox += Link.Right;
+					}
+				}
+			}
+		}
+		if (LinkOwnerHost->GetNavigationLinksArray(SimpleLinks, DummySegmentLinks))
+		{
+			for (const auto& Link : SimpleLinks)
+			{
+				BoundingBox += Link.Left;
+				BoundingBox += Link.Right;
+			}
+		}
+
+		return FBoxSphereBounds(BoundingBox).TransformBy(LocalToWorld);
+	}
+
+	return FBoxSphereBounds();
 }
 
 FPrimitiveSceneProxy* UNavLinkRenderingComponent::CreateSceneProxy()
@@ -133,7 +172,7 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 	
 	if (StepHeights.Num() == 0)
 	{
-		StepHeights.Add(NavigationSystem::FallbackAgentHeight / 2);
+		StepHeights.Add(FNavigationSystem::FallbackAgentHeight / 2);
 	}
 
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshPointLinks.Num(); ++LinkIndex)
@@ -224,5 +263,5 @@ uint32 FNavLinkRenderingProxy::GetMemoryFootprint( void ) const
 
 uint32 FNavLinkRenderingProxy::GetAllocatedSize( void ) const 
 { 
-	return( FPrimitiveSceneProxy::GetAllocatedSize() + OffMeshPointLinks.Num() + OffMeshSegmentLinks.Num() ); 
+	return(FPrimitiveSceneProxy::GetAllocatedSize() + OffMeshPointLinks.GetAllocatedSize() + OffMeshSegmentLinks.GetAllocatedSize());
 }

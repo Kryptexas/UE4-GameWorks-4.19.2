@@ -2,15 +2,31 @@
 
 #pragma once
 
+class UActorComponent;
+class AActor;
+
 /** Base class for component instance cached data of a particular type. */
 class FComponentInstanceDataBase
 {
 public:
+	FComponentInstanceDataBase()
+		: SourceComponentTypeSerializedIndex(-1)
+	{}
+
+	FComponentInstanceDataBase(const UActorComponent* SourceComponent);
+
 	virtual ~FComponentInstanceDataBase()
 	{}
 
-	/** Return the type name of this data */
-	virtual FName GetDataTypeName() const = 0;
+	virtual bool MatchesComponent(const UActorComponent* Component) const;
+
+protected:
+	/** The name of the source component */
+	FName SourceComponentName;
+
+	/** The index of the source component in its owner's serialized array 
+		when filtered to just that component type */
+	int32 SourceComponentTypeSerializedIndex;
 };
 
 /** 
@@ -23,22 +39,15 @@ public:
 	FComponentInstanceDataCache() {}
 
 	/** Constructor that also populatees cache from Actor */
-	FComponentInstanceDataCache(AActor* InActor)
-	{
-		GetFromActor(InActor, *this);
-	}
+	FComponentInstanceDataCache(const AActor* InActor);
 
 	/** Add some new instance data to the cache */
 	void AddInstanceData(TSharedPtr<FComponentInstanceDataBase> NewData);
 
-	/** Get all instance data of a particular type */
-	void GetInstanceDataOfType(FName TypeName, TArray< TSharedPtr<FComponentInstanceDataBase> >& OutData) const;
-
-	/** Util to iterate over components and get data from each */
-	static void GetFromActor(AActor* Actor, FComponentInstanceDataCache& Cache);
-
 	/** Util to iterate over components and apply data to each */
-	void ApplyToActor(AActor* Actor);
+	void ApplyToActor(AActor* Actor) const;
+
+	bool HasInstanceData() const { return TypeToDataMap.Num() > 0; }
 
 private:
 	/** Map of data type name to data of that type */

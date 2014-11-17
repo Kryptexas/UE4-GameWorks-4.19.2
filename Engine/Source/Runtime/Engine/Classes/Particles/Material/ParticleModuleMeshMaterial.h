@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Material/ParticleModuleMaterialBase.h"
 #include "ParticleModuleMeshMaterial.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Mesh Material"))
@@ -15,8 +16,8 @@ class UParticleModuleMeshMaterial : public UParticleModuleMaterialBase
 
 
 	//Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
 	//End UParticleModule Interface
 };
 

@@ -24,7 +24,7 @@ void SUniformGridPanel::Construct( const FArguments& InArgs )
 }
 
 
-void SUniformGridPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const FVector2D CellSize(AllottedGeometry.Size.X / NumColumns, AllottedGeometry.Size.Y / NumRows);
 	const FMargin& CurrentSlotPadding(SlotPadding.Get());
@@ -96,6 +96,19 @@ SUniformGridPanel::FSlot& SUniformGridPanel::AddSlot( int32 Column, int32 Row )
 	return NewSlot;
 }
 
+bool SUniformGridPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
+{
+	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
+	{
+		if ( SlotWidget == Children[SlotIdx].Widget )
+		{
+			Children.RemoveAt(SlotIdx);
+			return true;
+		}
+	}
+	
+	return false;
+}
 
 void SUniformGridPanel::ClearChildren()
 {

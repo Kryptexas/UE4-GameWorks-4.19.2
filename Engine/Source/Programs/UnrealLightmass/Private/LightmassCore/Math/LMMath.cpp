@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMMath.h: Some implementation of LM math functionality
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LMCore.h"
 

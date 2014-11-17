@@ -10,6 +10,6 @@ public:
 	virtual ~FSlateSoundDevice(){}
 
 private:
-	virtual void PlaySound(const FSlateSound& Sound, int32 UserIndex = 0) const OVERRIDE;	
-	virtual float GetSoundDuration(const FSlateSound& Sound) const OVERRIDE;
+	virtual void PlaySound(const FSlateSound& Sound, int32 UserIndex = 0) const override;	
+	virtual float GetSoundDuration(const FSlateSound& Sound) const override;
 };

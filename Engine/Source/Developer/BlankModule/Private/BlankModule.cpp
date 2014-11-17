@@ -6,8 +6,8 @@
 class FBlankModule : public IBlankModule
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };
 
 IMPLEMENT_MODULE( FBlankModule, BlankModule )

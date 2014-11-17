@@ -1,24 +1,20 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Ticker.h: Efficient scheduled delegate manager	
-=============================================================================*/
-
 #pragma once
 
 #include "Delegate.h"
 
 
 /**
-  * Ticker delegates return true to automatically reschedule at the same delay or false for one-shot.
-  * You will not get more than one fire per "frame", which is just a FTicker::Tick call.
-  * Argument is DeltaTime
-**/
+ * Ticker delegates return true to automatically reschedule at the same delay or false for one-shot.
+ * You will not get more than one fire per "frame", which is just a FTicker::Tick call.
+ * Argument is DeltaTime
+ */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FTickerDelegate, float);
 
 /**
-  * Ticker class. Fires delegates after a delay.
-**/
+ * Ticker class. Fires delegates after a delay.
+ */
 class FTicker
 {
 public:
@@ -32,10 +28,10 @@ public:
 	}
 
 	/**
-	  * Add a new ticker with a given delay / interval
-	  * @param InDelegate	delegate to fire after the delay
-	  * @param InDelay		Delay until next fire; 0 means "next frame"
-	**/
+	 * Add a new ticker with a given delay / interval
+	 * @param InDelegate	delegate to fire after the delay
+	 * @param InDelay		Delay until next fire; 0 means "next frame"
+	 */
 	void AddTicker(const FTickerDelegate& InDelegate, float InDelay = 0.0f)
 	{
 		FElement Ticker(CurrentTime + InDelay, InDelay, InDelegate);
@@ -59,9 +55,9 @@ public:
 	}
 
 	/**
-	  * Fire all tickers who have passed their delay and reschedule the ones that return true
-	  * @param DeltaTime	time that has passed since the last tick call
-	**/
+	 * Fire all tickers who have passed their delay and reschedule the ones that return true
+	 * @param DeltaTime	time that has passed since the last tick call
+	 */
 	void Tick(float DeltaTime)
 	{
 		if (!PriorityQueue.Num())
@@ -90,8 +86,8 @@ public:
 private:
 
 	/**
-	  * Element of the priority queue
-	**/
+	 * Element of the priority queue
+	 */
 	struct FElement
 	{
 		/** Time that this delegate must not fire before **/
@@ -165,8 +161,8 @@ public:
 	 */
 	virtual bool Tick(float DeltaTime) = 0;
 
-private:
+private:	
+
 	/** Delegate for callbacks to Tick */
 	FTickerDelegate TickDelegate;
 };
-

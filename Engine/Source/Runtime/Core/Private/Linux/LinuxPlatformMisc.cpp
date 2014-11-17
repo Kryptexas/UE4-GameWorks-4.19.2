@@ -83,10 +83,13 @@ void FLinuxMisc::NormalizePath(FString& InPath)
 	if (InPath.Contains(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
 	{
 		static bool bHaveHome = false;
-		static TCHAR CachedResult[ PlatformMiscLimits::MaxUserHomeDirLength ] = TEXT("~");	// init with a default value that changes nothing
+		static TCHAR CachedResult[PlatformMiscLimits::MaxUserHomeDirLength];
 
 		if (!bHaveHome)
 		{
+			CachedResult[0] = TEXT('~');	// init with a default value that changes nothing
+			CachedResult[1] = TEXT('\0');
+
 			//  get user $HOME var first
 			const char * VarValue = secure_getenv("HOME");
 			if (NULL != VarValue)
@@ -174,50 +177,50 @@ uint32 FLinuxMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMap
 
 	uint32 NumMappings = 0;
 
-	if ( KeyCodes && KeyNames && (MaxMappings > 0) )
+	if (KeyCodes && KeyNames && (MaxMappings > 0))
 	{
-		ADDKEYMAP( SDL_SCANCODE_BACKSPACE, TEXT("BackSpace") );
-		ADDKEYMAP( SDL_SCANCODE_TAB, TEXT("Tab") );
-		ADDKEYMAP( SDL_SCANCODE_RETURN, TEXT("Enter") );
-		ADDKEYMAP( SDL_SCANCODE_RETURN2, TEXT("Enter") );
-		ADDKEYMAP( SDL_SCANCODE_KP_ENTER, TEXT("Enter") );
-		ADDKEYMAP( SDL_SCANCODE_PAUSE, TEXT("Pause") );
+		ADDKEYMAP(SDL_SCANCODE_BACKSPACE, TEXT("BackSpace"));
+		ADDKEYMAP(SDL_SCANCODE_TAB, TEXT("Tab"));
+		ADDKEYMAP(SDL_SCANCODE_RETURN, TEXT("Enter"));
+		ADDKEYMAP(SDL_SCANCODE_RETURN2, TEXT("Enter"));
+		ADDKEYMAP(SDL_SCANCODE_KP_ENTER, TEXT("Enter"));
+		ADDKEYMAP(SDL_SCANCODE_PAUSE, TEXT("Pause"));
 
-		ADDKEYMAP( SDL_SCANCODE_ESCAPE, TEXT("Escape") );
-		ADDKEYMAP( SDL_SCANCODE_SPACE, TEXT("SpaceBar") );
-		ADDKEYMAP( SDL_SCANCODE_PAGEUP, TEXT("PageUp") );
-		ADDKEYMAP( SDL_SCANCODE_PAGEDOWN, TEXT("PageDown") );
-		ADDKEYMAP( SDL_SCANCODE_END, TEXT("End") );
-		ADDKEYMAP( SDL_SCANCODE_HOME, TEXT("Home") );
+		ADDKEYMAP(SDL_SCANCODE_ESCAPE, TEXT("Escape"));
+		ADDKEYMAP(SDL_SCANCODE_SPACE, TEXT("SpaceBar"));
+		ADDKEYMAP(SDL_SCANCODE_PAGEUP, TEXT("PageUp"));
+		ADDKEYMAP(SDL_SCANCODE_PAGEDOWN, TEXT("PageDown"));
+		ADDKEYMAP(SDL_SCANCODE_END, TEXT("End"));
+		ADDKEYMAP(SDL_SCANCODE_HOME, TEXT("Home"));
 
-		ADDKEYMAP( SDL_SCANCODE_LEFT, TEXT("Left") );
-		ADDKEYMAP( SDL_SCANCODE_UP, TEXT("Up") );
-		ADDKEYMAP( SDL_SCANCODE_RIGHT, TEXT("Right") );
-		ADDKEYMAP( SDL_SCANCODE_DOWN, TEXT("Down") );
+		ADDKEYMAP(SDL_SCANCODE_LEFT, TEXT("Left"));
+		ADDKEYMAP(SDL_SCANCODE_UP, TEXT("Up"));
+		ADDKEYMAP(SDL_SCANCODE_RIGHT, TEXT("Right"));
+		ADDKEYMAP(SDL_SCANCODE_DOWN, TEXT("Down"));
 
-		ADDKEYMAP( SDL_SCANCODE_INSERT, TEXT("Insert") );
-		ADDKEYMAP( SDL_SCANCODE_DELETE, TEXT("Delete") );
+		ADDKEYMAP(SDL_SCANCODE_INSERT, TEXT("Insert"));
+		ADDKEYMAP(SDL_SCANCODE_DELETE, TEXT("Delete"));
 
-		ADDKEYMAP( SDL_SCANCODE_F1, TEXT("F1") );
-		ADDKEYMAP( SDL_SCANCODE_F2, TEXT("F2") );
-		ADDKEYMAP( SDL_SCANCODE_F3, TEXT("F3") );
-		ADDKEYMAP( SDL_SCANCODE_F4, TEXT("F4") );
-		ADDKEYMAP( SDL_SCANCODE_F5, TEXT("F5") );
-		ADDKEYMAP( SDL_SCANCODE_F6, TEXT("F6") );
-		ADDKEYMAP( SDL_SCANCODE_F7, TEXT("F7") );
-		ADDKEYMAP( SDL_SCANCODE_F8, TEXT("F8") );
-		ADDKEYMAP( SDL_SCANCODE_F9, TEXT("F9") );
-		ADDKEYMAP( SDL_SCANCODE_F10, TEXT("F10") );
-		ADDKEYMAP( SDL_SCANCODE_F11, TEXT("F11") );
-		ADDKEYMAP( SDL_SCANCODE_F12, TEXT("F12") );
+		ADDKEYMAP(SDL_SCANCODE_F1, TEXT("F1"));
+		ADDKEYMAP(SDL_SCANCODE_F2, TEXT("F2"));
+		ADDKEYMAP(SDL_SCANCODE_F3, TEXT("F3"));
+		ADDKEYMAP(SDL_SCANCODE_F4, TEXT("F4"));
+		ADDKEYMAP(SDL_SCANCODE_F5, TEXT("F5"));
+		ADDKEYMAP(SDL_SCANCODE_F6, TEXT("F6"));
+		ADDKEYMAP(SDL_SCANCODE_F7, TEXT("F7"));
+		ADDKEYMAP(SDL_SCANCODE_F8, TEXT("F8"));
+		ADDKEYMAP(SDL_SCANCODE_F9, TEXT("F9"));
+		ADDKEYMAP(SDL_SCANCODE_F10, TEXT("F10"));
+		ADDKEYMAP(SDL_SCANCODE_F11, TEXT("F11"));
+		ADDKEYMAP(SDL_SCANCODE_F12, TEXT("F12"));
 
-        ADDKEYMAP( SDL_SCANCODE_CAPSLOCK, TEXT("CapsLock") );
-        ADDKEYMAP( SDL_SCANCODE_LCTRL, TEXT("LeftControl") );
-        ADDKEYMAP( SDL_SCANCODE_LSHIFT, TEXT("LeftShift") );
-        ADDKEYMAP( SDL_SCANCODE_LALT, TEXT("LeftAlt") );
-        ADDKEYMAP( SDL_SCANCODE_RCTRL, TEXT("RightControl") );
-        ADDKEYMAP( SDL_SCANCODE_RSHIFT, TEXT("RightShift") );
-        ADDKEYMAP( SDL_SCANCODE_RALT, TEXT("RightAlt") );
+        ADDKEYMAP(SDL_SCANCODE_CAPSLOCK, TEXT("CapsLock"));
+        ADDKEYMAP(SDL_SCANCODE_LCTRL, TEXT("LeftControl"));
+        ADDKEYMAP(SDL_SCANCODE_LSHIFT, TEXT("LeftShift"));
+        ADDKEYMAP(SDL_SCANCODE_LALT, TEXT("LeftAlt"));
+        ADDKEYMAP(SDL_SCANCODE_RCTRL, TEXT("RightControl"));
+        ADDKEYMAP(SDL_SCANCODE_RSHIFT, TEXT("RightShift"));
+        ADDKEYMAP(SDL_SCANCODE_RALT, TEXT("RightAlt"));
 	}
 
 	check(NumMappings < MaxMappings);
@@ -541,7 +544,7 @@ bool FLinuxCrashContext::GetInfoForAddress(void * Address, const char **OutFunct
 	Dwarf_Unsigned Addr = reinterpret_cast< Dwarf_Unsigned >( Address ), LineNumber = 0;
 	const char * SrcFile = NULL;
 
-	checkAtCompileTime(sizeof(Dwarf_Unsigned) >= sizeof(Address), _Dwarf_Unsigned_type_should_be_long_enough_to_represent_pointers_Check_libdwarf_bitness);
+	static_assert(sizeof(Dwarf_Unsigned) >= sizeof(Address), "Dwarf_Unsigned type should be long enough to represent pointers. Check libdwarf bitness.");
 
 	int ReturnCode = DW_DLV_OK;
 	Dwarf_Error ErrorInfo;
@@ -746,7 +749,7 @@ namespace
 	void WriteUTF16String(FArchive* ReportFile, const TCHAR * UTFString4BytesChar, uint32 NumChars)
 	{
 		check(UTFString4BytesChar != NULL || NumChars == 0);
-		checkAtCompileTime(sizeof(TCHAR) == 4, _PlatformTCHARIsNot4BytesRevisitThisFunction);
+		static_assert(sizeof(TCHAR) == 4, "Platform TCHAR is not 4 bytes. Revisit this function.");
 
 		for (uint32 Idx = 0; Idx < NumChars; ++Idx)
 		{
@@ -949,7 +952,8 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 #if !IS_PROGRAM
 
 	// create a crash-specific directory
-	FString CrashInfoFolder = FString::Printf(TEXT("crashinfo-%s-pid-%d"), FApp::GetGameName(), getpid());
+	FString CrashInfoFolder = FString::Printf(TEXT("crashinfo-%s-pid-%d-%s-%s"), FApp::GetGameName(), getpid(), 
+		*FDateTime::Now().ToString(), *FGuid::NewGuid().ToString());
 	FString CrashInfoAbsolute = FPaths::ConvertRelativePathToFull(CrashInfoFolder);
 	if (IFileManager::Get().MakeDirectory(*CrashInfoFolder))
 	{
@@ -970,7 +974,13 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 
 		// try launching the tool and wait for its exit, if at all
 		const TCHAR * RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: painfully hard-coded
+		if (!FPaths::FileExists(RelativePathToCrashReporter))
+		{
+			RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: even more painfully hard-coded
+		}
 
+		// show on the console
+		printf("Starting %s\n", StringCast<ANSICHAR>(RelativePathToCrashReporter).Get());
 		FProcHandle RunningProc = FPlatformProcess::CreateProc(RelativePathToCrashReporter, *(CrashInfoAbsolute + TEXT("/")), true, false, false, NULL, 0, NULL, NULL);
 		if (FPlatformProcess::IsProcRunning(RunningProc))
 		{
@@ -988,6 +998,8 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 				{
 					break;
 				}
+
+				FPlatformProcess::Sleep(1.0f);
 			};
 		}
 	}

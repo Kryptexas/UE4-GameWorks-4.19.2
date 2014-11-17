@@ -127,7 +127,7 @@ public:
 	 *
 	 * @return byte array of size GetSize()
 	 */
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return (uint8*)&UniqueNetId;
 	}
@@ -137,7 +137,7 @@ public:
 	 *
 	 * @return size in bytes of the id representation
 	 */
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return sizeof(uint64);
 	}
@@ -147,7 +147,7 @@ public:
 	 *
 	 * @return true if this is a well formed ID, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return UniqueNetId != 0 && CSteamID(UniqueNetId).IsValid();
 	}
@@ -157,7 +157,7 @@ public:
 	 *
 	 * @return data in string form 
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("%llu"), UniqueNetId);
 	}
@@ -168,7 +168,7 @@ public:
 	 *
 	 * @return id in string form 
 	 */
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		CSteamID SteamID(UniqueNetId);
 		if (SteamID.IsLobby())
@@ -278,12 +278,12 @@ public:
  		return false;
  	}
 
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return NULL;
 	}
 
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return sizeof(uint64) + 
 			sizeof(ESteamSession::Type) +
@@ -292,7 +292,7 @@ public:
 			sizeof(FUniqueNetIdSteam);
 	}
 
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		switch (SessionType)
 		{
@@ -309,12 +309,12 @@ public:
 		}
 	}
 
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return SessionId.ToString();
 	}
 
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		return FString::Printf(TEXT("HostIP: %s SteamP2P: %s Type: %s SessionId: %s"), 
 			HostAddr.IsValid() ? *HostAddr->ToString(true) : TEXT("INVALID"), 
@@ -322,7 +322,7 @@ public:
 			ESteamSession::ToString(SessionType), *SessionId.ToDebugString());
 	}
 
-	virtual const FUniqueNetId& GetSessionId() const OVERRIDE
+	virtual const FUniqueNetId& GetSessionId() const override
 	{
 		return SessionId;
 	}
@@ -370,7 +370,7 @@ public:
 	 *
 	 * @return byte array of size GetSize()
 	 */
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return (uint8*)&SharedContentHandle;
 	}
@@ -380,7 +380,7 @@ public:
 	 *
 	 * @return size in bytes of the id representation
 	 */
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return sizeof(UGCHandle_t);
 	}
@@ -390,7 +390,7 @@ public:
 	 *
 	 * @return true if this is a well formed ID, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return SharedContentHandle != k_UGCHandleInvalid;
 	}
@@ -400,7 +400,7 @@ public:
 	 *
 	 * @return data in string form 
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("%lld"), SharedContentHandle);
 	}
@@ -411,7 +411,7 @@ public:
 	 *
 	 * @return handle in string form 
 	 */
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		return FString::Printf(TEXT("0x%llX"), SharedContentHandle);
 	}

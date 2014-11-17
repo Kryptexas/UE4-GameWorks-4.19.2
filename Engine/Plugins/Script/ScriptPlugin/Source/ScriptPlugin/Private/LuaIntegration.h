@@ -22,11 +22,11 @@ public:
 	FLuaContext();
 
 	// FScriptContextBase interface
-	virtual bool Initialize(UScriptComponent* Owner) OVERRIDE;
-	virtual void BeginPlay() OVERRIDE;
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual void Destroy() OVERRIDE;
-	virtual bool CanTick() OVERRIDE;
+	virtual bool Initialize(UScriptComponent* Owner) override;
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void Destroy() override;
+	virtual bool CanTick() override;
 };
 
 struct FLuaUtils

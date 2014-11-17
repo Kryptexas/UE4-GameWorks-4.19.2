@@ -1,16 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformString.cpp: Generic implementations of string functions
-=============================================================================*/
-
 #include "CorePrivate.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformString, Log, All);
 
 template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<ANSICHAR>() { return TEXT("ANSICHAR"); }
 template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<WIDECHAR>() { return TEXT("WIDECHAR"); }
 template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<UCS2CHAR>() { return TEXT("UCS2CHAR"); }
+
 
 void* FGenericPlatformString::Memcpy(void* Dest, const void* Src, SIZE_T Count)
 {

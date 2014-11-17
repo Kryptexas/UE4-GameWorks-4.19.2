@@ -39,13 +39,4 @@ FText UAnimGraphNode_SpringBone::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	}
 }
 
-FString UAnimGraphNode_SpringBone::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString Result = GetControllerDescription().ToString();
-	Result += (TitleType == ENodeTitleType::ListView) ? TEXT(" - ") : TEXT("\n");
-	Result += FString::Printf(TEXT("Bone: %s"), *Node.SpringBone.BoneName.ToString());
-	return Result;
-}
-
 #undef LOCTEXT_NAMESPACE

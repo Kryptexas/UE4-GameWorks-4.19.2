@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealFrontendMain.h: Declares the UnrealFrontend application's main loop.
-=============================================================================*/
-
 #pragma once
 
 #include "Core.h"
@@ -15,8 +11,7 @@
 /**
  * The application's main function.
  *
- * @param CommandLine - The application command line.
- *
+ * @param CommandLine The application command line.
  * @return Application's exit value.
  */
 int32 UnrealFrontendMain( const TCHAR* CommandLine );

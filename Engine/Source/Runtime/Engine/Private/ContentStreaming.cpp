@@ -92,7 +92,7 @@ TArray<IStreamingManager::FSlaveLocation> IStreamingManager::SlaveLocations;
 bool IStreamingManager::bPendingRemoveViews = false;
 
 /** The lightmap used by the currently selected component (toggledebugcamera), if it's a static mesh component. */
-extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
+extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 
 /** Whether the texture pool size has been artificially lowered for testing. */
 bool GIsOperatingWithReducedTexturePool = false;
@@ -127,6 +127,28 @@ static TAutoConsoleVariable<float> CVarStreamingBoost(
 	TEXT(">1.0: increase wanted mip levels"),
 	ECVF_Default
 	);
+
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
+static TAutoConsoleVariable<int32> CVarSetTextureStreamingEnabled(
+	TEXT("r.TextureStreaming"),
+	1,
+	TEXT("Allows to define if texture streaming is enabled, can be changed at run time.\n")
+	TEXT("0: off\n")
+	TEXT("1: on (default)"),
+	ECVF_Default | ECVF_RenderThreadSafe);
+#endif
+
+static TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize(
+	TEXT("r.Streaming.UseFixedPoolSize"),
+	0,
+	TEXT("If non-zero, do not allow the pool size to change at run time."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
+	TEXT("r.Streaming.PoolSize"),
+	-1,
+	TEXT("-1: Default texture pool size, otherwise the size in MB\n"),
+	ECVF_Scalability);
 
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
 #define MAX_STREAMINGDISTANCE	10000.0f
@@ -257,7 +279,8 @@ struct FStreamingTexture
 		MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
 		STAT( MaxAllowedOptimalMips = MaxAllowedMips );
 		STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
-		LastRenderTime = (FApp::GetCurrentTime() > Texture->Resource->LastRenderTime) ? float( FApp::GetCurrentTime() - Texture->Resource->LastRenderTime ) : 0.0f;
+		float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
+		LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
 		MinDistance = MAX_STREAMINGDISTANCE;
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (ForceLoadRefCount > 0);
 		TextureLODBias = Texture->GetCachedLODBias();
@@ -341,10 +364,10 @@ struct FStreamingTexture
 	 * @param MipCount	Number of mip-maps to account for
 	 * @return			Total amount of memory used for the specified mip-maps, in bytes
 	 */
-	int32 GetSize( int32 MipCount ) const
+	int32 GetSize( int32 InMipCount ) const
 	{
-		check( MipCount >= 0 && MipCount <= MAX_TEXTURE_MIP_COUNT );
-		return TextureSizes[ MipCount - 1 ];
+		check(InMipCount >= 0 && InMipCount <= MAX_TEXTURE_MIP_COUNT);
+		return TextureSizes[ InMipCount - 1 ];
 	}
 
 	/**
@@ -848,9 +871,9 @@ struct FTextureStreamingStats
  */
 struct FStreamingContext
 {
-	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bCollectTextureStats )
+	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )
 	{
-		Reset( bProcessEverything, IndividualStreamingTexture, bCollectTextureStats );
+		Reset( bProcessEverything, IndividualStreamingTexture, bInCollectTextureStats );
 	}
 
 	/**
@@ -1555,8 +1578,7 @@ FStreamingManagerCollection::FStreamingManagerCollection()
 	// Disable texture streaming if that was requested (needs to happen before the call to ProcessNewlyLoadedUObjects, as that can load textures)
 	if( FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
 	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
-		CVar->Set(0);
+		CVarSetTextureStreamingEnabled.AsVariable()->Set(0);
 	}
 #endif
 
@@ -1969,10 +1991,7 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 
 #if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TextureStreaming"));
-		check(CVar);
-
-		bUseTextureStreaming = CVar->GetValueOnGameThread() != 0;
+		bUseTextureStreaming = CVarSetTextureStreamingEnabled.GetValueOnGameThread() != 0;
 	}
 
 	if( !GRHISupportsTextureStreaming || IsRunningDedicatedServer() )
@@ -2088,13 +2107,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 	{
 		OriginalTexturePoolSize =  int64(PoolSizeCVar) * 1024ll * 1024ll;
 		GTexturePoolSize = OriginalTexturePoolSize;
-	}
-	else if ( GReadTexturePoolSizeFromIni )
-	{
-		// Read the texture pool size straight from the .ini
-		OriginalTexturePoolSize = int64(PoolSizeIniSetting) * 1024ll * 1024ll;
-		GTexturePoolSize = OriginalTexturePoolSize;
-	}
+	}	
 	else if ( GPoolSizeVRAMPercentage )
 	{
 		// If GPoolSizeVRAMPercentage is set, the pool size has already been calculated and we're not reading it from the .ini
@@ -2198,7 +2211,7 @@ void FStreamingManagerTexture::CancelForcedResources()
 				StreamingTexture.InstanceRemovedTimestamp = -FLT_MAX;
 				if ( StreamingTexture.Texture->Resource )
 				{
-					StreamingTexture.Texture->Resource->LastRenderTime = -FLT_MAX;
+					StreamingTexture.Texture->InvalidateLastRenderTimeForStreaming();
 				}
 #if STREAMING_LOG_CANCELFORCED
 				UE_LOG(LogContentStreaming, Log, TEXT("Canceling forced texture: %s (had %.1f seconds left)"), *StreamingTexture.Texture->GetFullName(), TimeLeft );
@@ -2295,18 +2308,15 @@ struct FTextureStreamingCompare
  *	@param RequiredMemorySize	- Amount of memory to try to free up, in bytes
  *	@param bSucceeded			- [out] Upon return, whether it succeeded or not
  **/
-void Renderthread_StreamOutTextureData( TArray<FTextureSortElement>* InCandidateTextures, int32 RequiredMemorySize, volatile bool* bSucceeded )
+void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int32 RequiredMemorySize, volatile bool* bSucceeded)
 {
 	*bSucceeded = false;
-
-	RHIBeginScene();
-
 	// only for debugging?
 	FTextureMemoryStats OldStats;
-	RHIGetTextureMemoryStats(OldStats);
+	RHICmdList.GetTextureMemoryStats(OldStats);
 
 	// Makes sure that texture memory can get freed up right away.
-	RHIBlockUntilGPUIdle();
+	RHICmdList.BlockUntilGPUIdle();
 
 	FTextureSortElement* CandidateTextures = InCandidateTextures->GetTypedData();
 
@@ -2362,8 +2372,6 @@ void Renderthread_StreamOutTextureData( TArray<FTextureSortElement>* InCandidate
 
 	// Return the result.
 	*bSucceeded = SavedMemory >= RequiredMemorySize;
-
-	RHIEndScene();
 }
 
 /**
@@ -2438,7 +2446,7 @@ bool FStreamingManagerTexture::StreamOutTextureData( int32 RequiredMemorySize )
 		int32,RequiredMemorySize,RequiredMemorySize,
 		volatile bool*,bSucceeded,&bSucceeded,
 	{
-		Renderthread_StreamOutTextureData( CandidateTextures, RequiredMemorySize, bSucceeded );
+		Renderthread_StreamOutTextureData(RHICmdList, CandidateTextures, RequiredMemorySize, bSucceeded);
 	});
 
 	// Block until the command has finished executing.
@@ -3647,11 +3655,8 @@ void FStreamingManagerTexture::StreamTexturesUnlimited( FStreamingContext& Conte
 
 void FStreamingManagerTexture::CheckUserSettings()
 {	
-	static const auto CVarStreamingTexturePoolSize = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.PoolSize"));
-	int32 PoolSizeSetting = CVarStreamingTexturePoolSize ? CVarStreamingTexturePoolSize->GetValueOnGameThread() : -1;
-
-	static const auto CVarUseFixedStreamingTexturePoolSize = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.UseFixedPoolSize"));
-	int32 FixedPoolSizeSetting = CVarUseFixedStreamingTexturePoolSize ? CVarUseFixedStreamingTexturePoolSize->GetValueOnGameThread() : -1;
+	int32 PoolSizeSetting = CVarStreamingPoolSize.GetValueOnGameThread();
+	int32 FixedPoolSizeSetting = CVarStreamingUseFixedPoolSize.GetValueOnGameThread();
 
 	if (FixedPoolSizeSetting == 0)
 	{
@@ -4099,11 +4104,13 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 		if ( !WantedMips.IsHandled() || bShouldAlsoUseLastRenderTime )
 		{
 			// Try the handler for textures that has recently lost instance locations.
-			float HandlerDistance = FLT_MAX;
-			FFloatMipLevel HandlerWantedMips = GetWantedMipsForOrphanedTexture( StreamingTexture, HandlerDistance );
-			WantedMips = FMath::Max( WantedMips, HandlerWantedMips );
-			MinDistance = FMath::Min( MinDistance, HandlerDistance );
-			STAT( PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips ) );
+			{
+				float HandlerDistance = FLT_MAX;
+				FFloatMipLevel HandlerWantedMips = GetWantedMipsForOrphanedTexture(StreamingTexture, HandlerDistance);
+				WantedMips = FMath::Max(WantedMips, HandlerWantedMips);
+				MinDistance = FMath::Min(MinDistance, HandlerDistance);
+				STAT(PerfectWantedMips = FMath::Max(PerfectWantedMips, HandlerWantedMips));
+			}
 
 			// Still wasn't handled? Use the LastRenderTime handler as last resort.
 			if (!WantedMips.IsHandled() || bShouldAlsoUseLastRenderTime )
@@ -4962,7 +4969,7 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
  *
  * @param InvestigateTextureName	Partial name to match textures against
  */
-void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTextureName )
+void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateTextureName )
 {
 	bTriggerInvestigateTexture = false;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -4970,7 +4977,7 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 	{
 		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
 		FString TextureName = StreamingTexture.Texture->GetFullName();
-		if ( TextureName.Contains( InvestigateTextureName) )
+		if (TextureName.Contains(InInvestigateTextureName))
 		{
 			UTexture2D* Texture2D = StreamingTexture.Texture;
 			ETextureStreamingType StreamType = StreamingTexture.GetStreamingType();
@@ -5097,9 +5104,9 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 									}
 								}
 								int32 IntWantedMipCount = WantedMipCount.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, false);
-								int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
+								int32 WantedMip = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
 								UE_LOG(LogContentStreaming, Log, TEXT("Static: Wanted=%dx%d, Distance=%.1f, TexelFactor=%.2f, Radius=%5.1f, Position=(%d,%d,%d)%s"),
-									Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY,
+									Texture2D->PlatformData->Mips[WantedMip].SizeX, Texture2D->PlatformData->Mips[WantedMip].SizeY,
 									MinDistance, TexelFactor, Radius, int32(Center.X), int32(Center.Y), int32(Center.Z),
 									bInside ? TEXT(" [all mips]") : TEXT(""));
 							}

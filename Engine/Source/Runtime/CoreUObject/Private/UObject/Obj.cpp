@@ -337,6 +337,11 @@ void UObject::PostEditUndo()
 	}
 }
 
+void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	UObject::PostEditUndo();
+}
+
 #endif // WITH_EDITOR
 
 bool UObject::CanCreateInCurrentContext(UObject* Template)
@@ -394,6 +399,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 				UObject* Obj = *It;
 
 				// if this object is the correct type and its archetype is this object, add it to the list
+				CA_SUPPRESS(6011)
 				if ( Obj != this && Obj->IsA(GetClass()) && Obj->IsBasedOnArchetype(this) && !Obj->IsPendingKill() )
 				{
 					Instances.Add(Obj);
@@ -565,36 +571,28 @@ void UObject::ConditionalPostLoad()
 {
 	if( HasAnyFlags(RF_NeedPostLoad) )
 	{
-		if( GetLinker() )
-		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			checkSlow(!DebugPostLoad.Contains(this));
-			DebugPostLoad.Add(this);
+		checkSlow(!DebugPostLoad.Contains(this));
+		DebugPostLoad.Add(this);
 #endif
-			ClearFlags( RF_NeedPostLoad );
+		ClearFlags( RF_NeedPostLoad );
 
-			UObject* ObjectArchetype = GetArchetype();
-			if ( ObjectArchetype != NULL )
-			{
-				//make sure our archetype executes ConditionalPostLoad first.
-				ObjectArchetype->ConditionalPostLoad();
-			}
+		UObject* ObjectArchetype = GetArchetype();
+		if ( ObjectArchetype != NULL )
+		{
+			//make sure our archetype executes ConditionalPostLoad first.
+			ObjectArchetype->ConditionalPostLoad();
+		}
 
-			ConditionalPostLoadSubobjects();
-			PostLoad();
+		ConditionalPostLoadSubobjects();
+		PostLoad();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if( DebugPostLoad.Contains(this) )
-			{
-				UE_LOG(LogObj, Fatal, TEXT("%s failed to route PostLoad.  Please call Super::PostLoad() in your <className>::PostLoad() function. "), *GetFullName() );
-			}
-#endif
-		}
-		else
+		if( DebugPostLoad.Contains(this) )
 		{
-			UE_LOG(LogObj, Log, TEXT("%s did not route PostLoad, because it didn't have a linker"), *GetFullName());
-			ClearFlags( RF_NeedPostLoad|RF_NeedPostLoadSubobjects );
+			UE_LOG(LogObj, Fatal, TEXT("%s failed to route PostLoad.  Please call Super::PostLoad() in your <className>::PostLoad() function. "), *GetFullName() );
 		}
+#endif
 	}
 }
 
@@ -926,7 +924,7 @@ public:
 	}
 
 	// Begin FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty) OVERRIDE
+	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty) override
 	{
 		// Only care about unique default subobjects that are outside of the referencing object's outer chain.
 		// Also ignore references to subobjects if they share the same Outer.
@@ -939,8 +937,8 @@ public:
 			ObjectArray.Add(InObject);
 		}
 	}
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE { return true; }
-	virtual bool IsIgnoringTransient() const OVERRIDE { return true; }
+	virtual bool IsIgnoringArchetypeRef() const override { return true; }
+	virtual bool IsIgnoringTransient() const override { return true; }
 	// End FReferenceCollector interface.
 
 protected:
@@ -2048,7 +2046,11 @@ static void ShowIntrinsicClasses( FOutputDevice& Ar )
 static void ShowClasses( UClass* Class, FOutputDevice& Ar, int32 Indent )
 {
 	Ar.Logf( TEXT("%s%s (%d)"), FCString::Spc(Indent), *Class->GetName(), Class->GetPropertiesSize() );
-	for( auto Obj : TObjectRange<UClass>() )
+
+	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
+	// errors if the analyzer is enabled.
+	TObjectRange<UClass> Range;
+	for( auto Obj : Range )
 	{
 		if( Obj->GetSuperClass() == Class )
 		{
@@ -2183,6 +2185,7 @@ void UObject::RetrieveReferencers( TArray<FReferencerInformation>* OutInternalRe
 		int32 Count = ArFind.GetCount(Referencers);
 		if ( Count > 0 )
 		{
+			CA_SUPPRESS(6011)
 			if ( Object->IsIn(this) )
 			{
 				if (OutInternalReferencers != NULL)
@@ -3706,7 +3709,11 @@ void MarkObjectsToDisregardForGC()
 	// Iterate over all class objects and force the default objects to be created. Additionally also
 	// assembles the token reference stream at this point. This is required for class objects that are
 	// not taken into account for garbage collection but have instances that are.
-	for( auto* Class : TObjectRange<UClass>() )
+	
+	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
+	// errors if the analyzer is enabled.
+	TObjectRange<UClass> Range;
+	for( auto* Class : Range )
 	{
 		// Force the default object to be created.
 		Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
@@ -3774,4 +3781,27 @@ void UObject::PreNetReceive()
 void UObject::PostNetReceive()
 {
 
+}
+
+/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
+bool UObject::IsNameStableForNetworking() const
+{
+	return IsDefaultSubobject() || HasAnyFlags( RF_WasLoaded | RF_DefaultSubObject | RF_Native );
+}
+
+/** IsFullNameStableForNetworking means an object can be referred to its full path name over the network */
+bool UObject::IsFullNameStableForNetworking() const
+{
+	if ( GetOuter() != NULL && !GetOuter()->IsNameStableForNetworking() )
+	{
+		return false;	// If any outer isn't stable, we can't consider the full name stable
+	}
+
+	return IsNameStableForNetworking();
+}
+
+/** IsSupportedForNetworking means an object can be referenced over the network */
+bool UObject::IsSupportedForNetworking() const
+{
+	return IsFullNameStableForNetworking();
 }

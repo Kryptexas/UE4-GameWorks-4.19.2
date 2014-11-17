@@ -12,10 +12,10 @@ public:
 	virtual ~FTestVoice();
 
 	// FTickerObjectBase
-	virtual bool Tick(float DeltaTime) OVERRIDE;
+	virtual bool Tick(float DeltaTime) override;
 
 	// FSelfRegisteringExec
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	void Test();
 

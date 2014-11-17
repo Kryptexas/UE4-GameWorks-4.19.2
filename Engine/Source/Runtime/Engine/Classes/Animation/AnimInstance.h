@@ -2,13 +2,36 @@
 
 #pragma once
 
-#include "AnimMontage.h"
-#include "AnimSequence.h"
 #include "AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "AnimSequence.h"
+#include "AnimStateMachineTypes.h"
+
 #include "AnimInstance.generated.h"
 
 struct FBoneContainer;
+struct FAnimMontageInstance;
 class  USkeletalMesh;
+class UAnimMontage;
+
+DECLARE_DELEGATE_TwoParams(FOnMontageEnded, class UAnimMontage*, bool /*bInterrupted*/)
+DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, class UAnimMontage*, bool /*bInterrupted*/)
+
+/**
+* Delegate for when Montage is completed, whether interrupted or finished
+* Weight of this montage is 0.f, so it stops contributing to output pose
+*
+* bInterrupted = true if it was not property finished
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
+
+/**
+* Delegate for when Montage started to blend out, whether interrupted or finished
+* DesiredWeight of this montage becomes 0.f, but this still contributes to the output pose
+*
+* bInterrupted = true if it was not property finished
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageBlendingOutStartedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
 
 /** Enum for controlling which reference frame a controller is applied in. */
 UENUM()
@@ -212,7 +235,7 @@ struct FSlotEvaluationPose
 	}
 };
 
-UCLASS(transient, Blueprintable, hideCategories=AnimInstance, DependsOn(UAnimStateMachineTypes), BlueprintType)
+UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -275,16 +298,16 @@ public:
 	void ClearSlotNodeWeights();
 	bool IsActiveSlotNode(FName SlotNodeName) const;
 
-protected:
 	// kismet event functions
 
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	virtual class APawn* TryGetPawnOwner();
+
+protected:
 	/** Returns the owning actor of this AnimInstance */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	class AActor* GetOwningActor();
-
-	UFUNCTION(BlueprintPure, Category="Animation")
-	virtual class APawn* TryGetPawnOwner();
-
+	
 	// Returns the skeletal mesh component that has created this AnimInstance
 	UFUNCTION(BlueprintPure, Category="Animation")
 	class USkeletalMeshComponent* GetOwningComponent();
@@ -406,12 +429,14 @@ public:
 	float CalculateDirection(const FVector & Velocity, const FRotator & BaseRotation);
 
 	//--- AI communication start ---//
-	/** locks indicated AI resources of animated pawn */
-	UFUNCTION(BlueprintCallable, Category="Animation", BlueprintAuthorityOnly)
+	/** locks indicated AI resources of animated pawn
+	 *	DEPRECATED. Use LockAIResourcesWithAnimation instead */
+	UFUNCTION(BlueprintCallable, Category = "Animation", BlueprintAuthorityOnly, Meta=(DeprecatedFunction, DeprecationMessage="Use LockAIResourcesWithAnimation instead"))
 	void LockAIResources(bool bLockMovement, bool LockAILogic);
 
-	/** unlocks indicated AI resources of animated pawn. Will unlock only animation-locked resources */
-	UFUNCTION(BlueprintCallable, Category="Animation", BlueprintAuthorityOnly)
+	/** unlocks indicated AI resources of animated pawn. Will unlock only animation-locked resources.
+	 *	DEPRECATED. Use UnlockAIResourcesWithAnimation instead */
+	UFUNCTION(BlueprintCallable, Category = "Animation", BlueprintAuthorityOnly, Meta=(DeprecatedFunction, DeprecationMessage="Use UnlockAIResourcesWithAnimation instead"))
 	void UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic);
 	//--- AI communication end ---//
 
@@ -453,8 +478,10 @@ public:
 	/** Animation Notifies that has been triggered in the latest tick **/
 	TArray<const struct FAnimNotifyEvent *> AnimNotifies;
 
-	/** Currently Active AnimNotifyState */
-	TArray<const struct FAnimNotifyEvent *> ActiveAnimNotifyState;
+	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
+		call NotifyEnd on the event after a deletion in the editor. After this the event
+		is removed correctly. */
+	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
 	/** AnimMontage instances that are running currently 
 	 * - only one is primarily active, but the other ones are blending out 
@@ -500,7 +527,7 @@ public:
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
 
-	virtual class UWorld* GetWorld() const OVERRIDE;
+	virtual class UWorld* GetWorld() const override;
 
 	/** Add anim notifier **/
 	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);
@@ -518,6 +545,15 @@ public:
 	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded);
 	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut);
 	FOnMontageBlendingOutStarted* Montage_GetBlendingOutDelegate();
+
+
+	/** Called when a montage starts blending out, whether interrupted or finished */
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageBlendingOutStartedMCDelegate OnMontageBlendingOut;
+	
+	/** Called when a montage has ended, whether interrupted or finished*/
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageEndedMCDelegate OnMontageEnded;
 
 public:
 	/** Get Current Montage Position */

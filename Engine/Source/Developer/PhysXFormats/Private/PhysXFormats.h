@@ -64,7 +64,7 @@ public:
 		: Data(InData)
 	{}
 
-	virtual PxU32 write(const void* Src, PxU32 Count) OVERRIDE
+	virtual PxU32 write(const void* Src, PxU32 Count) override
 	{
 		check(Data);
 		check(Src);

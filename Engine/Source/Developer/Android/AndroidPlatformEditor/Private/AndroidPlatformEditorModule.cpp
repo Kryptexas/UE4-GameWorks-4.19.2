@@ -12,11 +12,11 @@
 class FAndroidPlatformEditorModule : public IModuleInterface
 {
 	// IModuleInterface interface
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Register the settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout(
+		PropertyModule.RegisterCustomClassLayout(
 			UAndroidRuntimeSettings::StaticClass()->GetFName(),
 			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidTargetSettingsCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
@@ -33,7 +33,7 @@ class FAndroidPlatformEditorModule : public IModuleInterface
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 

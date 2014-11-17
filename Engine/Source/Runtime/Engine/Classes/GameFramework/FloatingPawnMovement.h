@@ -13,12 +13,12 @@ class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 	GENERATED_UCLASS_BODY()
 
 	//Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	//End UActorComponent Interface
 
 	//Begin UMovementComponent Interface
-	virtual float GetMaxSpeed() const OVERRIDE { return MaxSpeed; }
-	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) OVERRIDE;
+	virtual float GetMaxSpeed() const override { return MaxSpeed; }
+	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
 	//End UMovementComponent Interface
 
 	/** Maximum velocity magnitude allowed for the controlled Pawn. */

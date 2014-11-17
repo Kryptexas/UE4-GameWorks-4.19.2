@@ -141,7 +141,7 @@ bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)
 
 EVersionComparison::Type FEngineVersion::GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent::Type *OutComponent)
 {
-	EVersionComponent::Type LocalComponent;
+	EVersionComponent::Type LocalComponent = EVersionComponent::Minor;
 	auto& Component = OutComponent ? *OutComponent : LocalComponent;
 
 	// Compare major versions

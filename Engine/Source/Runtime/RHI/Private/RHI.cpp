@@ -64,6 +64,11 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
  * RHI configuration settings.
  */
 
+static TAutoConsoleVariable<int32> ResourceTableCachingCvar(
+	TEXT("rhi.ResourceTableCaching"),
+	1,
+	TEXT("If 1, the RHI will cache resource table contents within a frame. Otherwise resource tables are rebuilt for every draw call.")
+	);
 static TAutoConsoleVariable<int32> GSaveScreenshotAfterProfilingGPUCVar(
 	TEXT("RHI.SaveScreenshotAfterProfilingGPU"),
 	1,
@@ -134,6 +139,8 @@ bool GSupportsEmulatedVertexInstancing = false;
 bool GVertexElementsCanShareStreamOffset = true;
 bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
+bool GSupportsDepthBoundsTest = false;
+bool GRHISupportsBaseVertexIndex = true;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -147,7 +154,6 @@ FVertexElementTypeSupportInfo GVertexElementTypeSupport;
 RHI_API int32 volatile GCurrentTextureMemorySize = 0;
 RHI_API int32 volatile GCurrentRendertargetMemorySize = 0;
 RHI_API int64 GTexturePoolSize = 0 * 1024 * 1024;
-RHI_API bool GReadTexturePoolSizeFromIni = false;
 RHI_API int32 GPoolSizeVRAMPercentage = 0;
 
 RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num] = {SP_NumPlatforms,SP_NumPlatforms,SP_NumPlatforms,SP_NumPlatforms};
@@ -171,6 +177,11 @@ RHI_API EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM5;
 /** The maximum feature level supported on this machine */
 ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
+RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel()
+{
+	return GMaxRHIFeatureLevel;
+}
+
 RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType)
 {
 	GMaxRHIFeatureLevel = InType;
@@ -184,7 +195,7 @@ FName FeatureLevelNames[] =
 	FName(TEXT("SM5")),
 };
 
-checkAtCompileTime(ARRAY_COUNT(FeatureLevelNames) == ERHIFeatureLevel::Num, MissingEntryFromFeatureLevelNames);
+static_assert(ARRAY_COUNT(FeatureLevelNames) == ERHIFeatureLevel::Num, "Missing entry from feature level names.");
 
 RHI_API bool GetFeatureLevelFromName(FName Name, ERHIFeatureLevel::Type& OutFeatureLevel)
 {
@@ -225,6 +236,7 @@ static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
+static FName NAME_SF_METAL(TEXT("SF_METAL"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -256,6 +268,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_OPENGL_ES2_WEBGL;
 	case SP_OPENGL_ES2_IOS:
 		return NAME_OPENGL_ES2_IOS;
+	case SP_METAL:
+		return NAME_SF_METAL;
 	default:
 		check(0);
 		return NAME_PCD3D_SM5;
@@ -276,6 +290,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_OPENGL_ES2)		return SP_OPENGL_ES2;
 	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
 	if (ShaderFormat == NAME_OPENGL_ES2_IOS)	return SP_OPENGL_ES2_IOS;
+	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
 	return SP_NumPlatforms;
 }
 

@@ -88,7 +88,7 @@ public:
 
 private:
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 	{
 		const FVector2D WindowDesktopPosition = (ensure(OwnerWindow.IsValid()))
 			? OwnerWindow.Pin()->GetPositionInScreen()
@@ -135,7 +135,7 @@ private:
 		}
 	}
 
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		return FVector2D(100,100);
 	}
@@ -147,7 +147,7 @@ private:
 	 * provides layout information about the child it stores. In that case
 	 * GetChildren should simply return the TPanelChildren<Slot>. See StackPanel for an example.
 	 */
-	virtual FChildren* GetChildren() OVERRIDE
+	virtual FChildren* GetChildren() override
 	{
 		return &Children;
 	}
@@ -354,10 +354,26 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 		// @todo mainframe: Should be measured from actual title bar content widgets.  Don't use a hard-coded size!
 		TitleBarSize = SWindowDefs::DefaultTitleBarSize;
 
+		EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
+		EHorizontalAlignment TitleContentAlignment;
+
+		if (TitleAlignment == EWindowTitleAlignment::Left)
+		{
+			TitleContentAlignment = HAlign_Left;
+		}
+		else if (TitleAlignment == EWindowTitleAlignment::Center)
+		{
+			TitleContentAlignment = HAlign_Center;
+		}
+		else
+		{
+			TitleContentAlignment = HAlign_Right;
+		}
+
 		MainWindowArea->AddSlot()
 			.AutoHeight()
 			[
-				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, HAlign_Center, TitleBar)
+				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
 			];
 	}
 	else
@@ -669,6 +685,7 @@ void SWindow::Resize( FVector2D NewSize )
 			InitialDesiredSize = NewSize;
 		}
 	}
+	SetCachedSize(NewSize); 
 }
 
 FSlateRect SWindow::GetFullScreenInfo() const
@@ -1023,6 +1040,12 @@ bool SWindow::IsWindowMaximized() const
 	return NativeWindow->IsMaximized();
 }
 
+bool SWindow::IsWindowMinimized() const
+{
+	return NativeWindow->IsMinimized();
+}
+
+
 /** Maximize the window if bInitiallyMaximized is set */
 void SWindow::InitialMaximize()
 {
@@ -1230,7 +1253,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 		}
 
 		FWidgetPath WidgetToFocusPath;
-		if( FSlateApplicationBase::Get().FindPathToWidgetVirtual( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
+		if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
 		{
 			FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
 		}

@@ -2,10 +2,13 @@
 
 #include "NetworkFilePrivatePCH.h"
 #include "NetworkPlatformFile.h"
-#include "Sockets.h"
 #include "MultichannelTCP.h"
 #include "DerivedDataCacheInterface.h"
 #include "PackageName.h"
+
+
+#include "HTTPTransport.h"
+#include "TCPTransport.h"
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	#include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"
@@ -22,11 +25,14 @@ FNetworkPlatformFile::FNetworkPlatformFile()
 	, InnerPlatformFile(NULL)
 	, bIsUsable(false)
 	, FileServerPort(DEFAULT_FILE_SERVING_PORT)
-	, FileSocket(NULL)
-	, MCSocket(NULL)
-	, FinishedAsyncReadUnsolicitedFiles(NULL)
-	, FinishedAsyncWriteUnsolicitedFiles(NULL)
+	, Transport(NULL)
 {
+#if !USE_HTTP_FOR_NFS
+	Transport = new FTCPTransport(); 
+#else
+	Transport = new FHTTPTransport(); 	
+#endif 
+
 }
 
 bool FNetworkPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
@@ -48,10 +54,13 @@ bool FNetworkPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 			// get a working one.
 			for (int32 HostIpIndex = 0; !bResult && HostIpIndex < HostIpList.Num(); ++HostIpIndex)
 			{
-				bResult = InitializeInternal(Inner, *HostIpList[HostIpIndex]);				
+				bResult = Transport->Initialize( *HostIpList[HostIpIndex] ) && InitializeInternal(Inner, *HostIpList[HostIpIndex]);		
+				if (bResult)
+					break;
 			}
 		}
 	}
+
 	return bResult;
 }
 
@@ -77,36 +86,24 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Logs"));
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Sandboxes"));
 
-	ISocketSubsystem* SSS = ISocketSubsystem::Get();
+	FNetworkFileArchive Payload(NFS_Messages::Heartbeat); 
+	FArrayReader Out;
+	if (!SendPayloadAndReceiveResponse(Payload,Out))
+		bIsUsable = true; 
 
-	// convert the string to a ip addr structure
-	TSharedRef<FInternetAddr> Addr = SSS->CreateInternetAddr(0, FileServerPort);
-	bool bIsValid;
 
-	Addr->SetIp(HostIP, bIsValid);
-
-	if (bIsValid)
-	{
-		// create the socket
-		FileSocket = SSS->CreateSocket(NAME_Stream, TEXT("FNetworkPlatformFile tcp"));
-		
-		// try to connect to the server
-		if (FileSocket->Connect(*Addr) == false)
-		{
-			// on failure, shut it all down
-			SSS->DestroySocket(FileSocket);
-			FileSocket = NULL;
-			UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to connect to file server at %s:%d."), HostIP, (int32)DEFAULT_FILE_SERVING_PORT);
-		}
-	}
-
-	// was the socket opened?
-	bIsUsable = FileSocket != NULL;
-	if (bIsUsable)
+	// lets see we can test whether the server is up. 
+	if (Out.Num())
 	{
 		FCommandLine::AddToSubprocessCommandline( *FString::Printf( TEXT("-FileHostIP=%s"), HostIP ) );
+		bIsUsable = true; 
 	}
 	return bIsUsable;
+}
+
+bool FNetworkPlatformFile::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out)
+{
+	return Transport->SendPayloadAndReceiveResponse( In, Out );
 }
 
 void FNetworkPlatformFile::InitializeAfterSetActive()
@@ -114,10 +111,6 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 	double NetworkFileStartupTime = 0.0;
 	{
 		SCOPE_SECONDS_COUNTER(NetworkFileStartupTime);
-
-#if USE_MCSOCKET_FOR_NFS
-		MCSocket = new FMultichannelTcpSocket(FileSocket, 64 * 1024 * 1024);
-#endif
 
 		// send the filenames and timestamps to the server
 		FNetworkFileArchive Payload(NFS_Messages::GetFileList);
@@ -127,11 +120,8 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 		FArrayReader Response;
 		if (!SendPayloadAndReceiveResponse(Payload, Response))
 		{
-			// on failure, shut it all down
-			delete MCSocket;
-			MCSocket = NULL;
-			ISocketSubsystem::Get()->DestroySocket(FileSocket);
-			FileSocket = NULL;
+			delete Transport; 
+			return; 
 		}
 		else
 		{
@@ -294,17 +284,9 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 
 FNetworkPlatformFile::~FNetworkPlatformFile()
 {
-	if (FileSocket != NULL 
-		&& !GIsRequestingExit) // the socket subsystem is probably already gone, so it will crash if we clean up
+	if (!GIsRequestingExit) // the socket subsystem is probably already gone, so it will crash if we clean up
 	{
-		delete FinishedAsyncReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
-		FinishedAsyncReadUnsolicitedFiles = NULL;
-		delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing 
-		FinishedAsyncWriteUnsolicitedFiles = NULL;
-		// kill the socket
-		delete MCSocket;
-		MCSocket = NULL;
-		ISocketSubsystem::Get()->DestroySocket(FileSocket);
+		delete Transport; // close our sockets.
 	}
 }
 
@@ -653,11 +635,7 @@ bool FNetworkPlatformFile::SendMessageToServer(const TCHAR* Message, IPlatformFi
 		Handler->FillPayload(Payload);
 
 		FArrayReader Response;
-#if USE_MCSOCKET_FOR_NFS
-		if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-		if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FSocket(FileSocket)) == false)
-#endif
+		if (!SendPayloadAndReceiveResponse(Payload, Response))
 		{
 			return false;
 		}
@@ -686,8 +664,6 @@ bool FNetworkPlatformFile::SendMessageToServer(const TCHAR* Message, IPlatformFi
 }
 
 
-//@todo, this should really be a member of FNetworkPlatformFile
-static FThreadSafeCounter OutstandingAsyncWrites;
 
 class FAsyncNetworkWriteWorker : public FNonAbandonableTask
 {
@@ -783,10 +759,7 @@ public:
 		}
 		if (Event)
 		{
-			if (!OutstandingAsyncWrites.Decrement())
-			{
 				Event->Trigger(); // last file, fire trigger
-			}
 		}
 	}
 	/** Give the name for external event viewers
@@ -807,64 +780,52 @@ void SyncWriteFile(FArchive* Archive, const FString& Filename, FDateTime ServerT
 	(new FAutoDeleteAsyncTask<FAsyncNetworkWriteWorker>(*Filename, Archive, ServerTimeStamp, &InnerPlatformFile, NullEvent))->StartSynchronousTask();
 }
 
-void AsyncWriteFile(FArchive* Archive, const FString& Filename, FDateTime ServerTimeStamp, IPlatformFile& InnerPlatformFile, FScopedEvent* Event = NULL)
-{
-	(new FAutoDeleteAsyncTask<FAsyncNetworkWriteWorker>(*Filename, Archive, ServerTimeStamp, &InnerPlatformFile, Event))->StartBackgroundTask();
-}
-
-void AsyncReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, FScopedEvent* InEvent, IPlatformFile& InInnerPlatformFile, 
-							  FScopedEvent* InAllDoneEvent, FString& InServerEngineDir, FString& InServerGameDir)
+void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile, FString& InServerEngineDir, FString& InServerGameDir)
 {
 	class FAsyncReadUnsolicitedFile : public FNonAbandonableTask
 	{
 	public:
 		int32 NumUnsolictedFiles;
 		FNetworkPlatformFile& NetworkFile;
-		FScopedEvent* Event;
 		IPlatformFile& InnerPlatformFile;
-		FScopedEvent* AllDoneEvent;
 		FString ServerEngineDir;
 		FString ServerGameDir;
 
-		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, FScopedEvent* In_Event, IPlatformFile* In_InnerPlatformFile, 
-			FScopedEvent* In_AllDoneEvent, FString& In_ServerEngineDir, FString& In_ServerGameDir)
+		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, IPlatformFile* In_InnerPlatformFile, FString& In_ServerEngineDir, FString& In_ServerGameDir)
 			: NumUnsolictedFiles(In_NumUnsolictedFiles)
 			, NetworkFile(*In_NetworkFile)
-			, Event(In_Event)
 			, InnerPlatformFile(*In_InnerPlatformFile)
-			, AllDoneEvent(In_AllDoneEvent)
 			, ServerEngineDir(In_ServerEngineDir)
 			, ServerGameDir(In_ServerGameDir)
 		{
-			check(Event);
-			check(AllDoneEvent);
 		}
 		
 		/** Write the file  */
 		void DoWork()
 		{
-			check(!OutstandingAsyncWrites.GetValue());
-			OutstandingAsyncWrites.Add(NumUnsolictedFiles);
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
 				FArrayReader* UnsolictedResponse = new FArrayReader;
-				if (!NetworkFile.ReceivePayload(*UnsolictedResponse))
+				FNetworkFileArchive Payload(NFS_Messages::Heartbeat); 
+				if (!NetworkFile.SendPayloadAndReceiveResponse(Payload,*UnsolictedResponse))
 				{
 					UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Receive failure!"));
 					return;
 				}
 				FString UnsolictedReplyFile;
 				*UnsolictedResponse << UnsolictedReplyFile;
-				FNetworkPlatformFile::ConvertServerFilenameToClientFilename(UnsolictedReplyFile, ServerEngineDir, ServerGameDir);
 
-				// get the server file timestamp
-				FDateTime UnsolictedServerTimeStamp;
-				*UnsolictedResponse << UnsolictedServerTimeStamp;
+				if (!UnsolictedReplyFile.IsEmpty())
+				{
+					FNetworkPlatformFile::ConvertServerFilenameToClientFilename(UnsolictedReplyFile, ServerEngineDir, ServerGameDir);
+					// get the server file timestamp
+					FDateTime UnsolictedServerTimeStamp;
+					*UnsolictedResponse << UnsolictedServerTimeStamp;
 
-				// write the file by pulling out of the FArrayReader
-				AsyncWriteFile(UnsolictedResponse, UnsolictedReplyFile, UnsolictedServerTimeStamp, InnerPlatformFile, AllDoneEvent);
+					// write the file by pulling out of the FArrayReader
+					SyncWriteFile(UnsolictedResponse, UnsolictedReplyFile, UnsolictedServerTimeStamp, InnerPlatformFile);
+				}
 			}
-			Event->Trigger();
 		}
 		/** Give the name for external event viewers
 		* @return	the name to display in external event viewers
@@ -874,7 +835,7 @@ void AsyncReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& 
 			return TEXT("FAsyncReadUnsolicitedFile");
 		}
 	};
-	(new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, InEvent, &InInnerPlatformFile, InAllDoneEvent, InServerEngineDir, InServerGameDir))->StartBackgroundTask();
+	 (new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerGameDir))->StartSynchronousTask();
 }
 
 /**
@@ -895,11 +856,6 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 			return;
 		}
 	}
-
-	delete FinishedAsyncReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
-	FinishedAsyncReadUnsolicitedFiles = NULL;
-	delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing 
-	FinishedAsyncWriteUnsolicitedFiles = NULL;
 
 	FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -989,9 +945,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	if (NumUnsolictedFiles)
 	{
-		FinishedAsyncReadUnsolicitedFiles = new FScopedEvent;
-		FinishedAsyncWriteUnsolicitedFiles = new FScopedEvent;
-		AsyncReadUnsolicitedFile(NumUnsolictedFiles, *this, FinishedAsyncReadUnsolicitedFiles, *InnerPlatformFile, FinishedAsyncWriteUnsolicitedFiles, ServerEngineDir, ServerGameDir);
+		ReadUnsolicitedFile(NumUnsolictedFiles, *this, *InnerPlatformFile, ServerEngineDir, ServerGameDir);
 	}
 
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
@@ -1077,34 +1031,7 @@ void FNetworkPlatformFile::PerformHeartbeat()
 	}
 }
 
-bool FNetworkPlatformFile::ReceivePayload(FArrayReader& OutPayload)
-{
-	if (MCSocket)
-	{
-		return FNFSMessageHeader::ReceivePayload(OutPayload, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-	}
-	return FNFSMessageHeader::ReceivePayload(OutPayload, FSimpleAbstractSocket_FSocket(FileSocket));
-}
 
-bool FNetworkPlatformFile::WrapAndSendPayload(const TArray<uint8>& Payload)
-{
-	if (MCSocket)
-	{
-		return FNFSMessageHeader::WrapAndSendPayload(Payload, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-	}
-	return FNFSMessageHeader::WrapAndSendPayload(Payload, FSimpleAbstractSocket_FSocket(FileSocket));
-}
-
-bool FNetworkPlatformFile::SendPayloadAndReceiveResponse(const TArray<uint8>& Payload, class FArrayReader& Response)
-{
-	if (!WrapAndSendPayload(Payload))
-	{
-		return false;
-	}
-	delete FinishedAsyncReadUnsolicitedFiles; // wait here for any async unsolicited files to finish being read from the network before we start to read again
-	FinishedAsyncReadUnsolicitedFiles = NULL;
-	return ReceivePayload(Response);
-}
 
 void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir)
 {
@@ -1124,7 +1051,7 @@ void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& Filena
 class FNetworkFileModule : public IPlatformFileModule
 {
 public:
-	virtual IPlatformFile* GetPlatformFile() OVERRIDE
+	virtual IPlatformFile* GetPlatformFile() override
 	{
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FNetworkPlatformFile());
 		return AutoDestroySingleton.GetOwnedPointer();

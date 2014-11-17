@@ -296,12 +296,12 @@ void FPropertyTable::SetOrientation( EPropertyTableOrientation::Type InOrientati
 
 bool FPropertyTable::CanSelectCells() const
 {
-	return ( SelectionUnit | EPropertyTableSelectionUnit::Cell ) != 0;
+	return ( SelectionUnit & EPropertyTableSelectionUnit::Cell ) != 0;
 }
 
 bool FPropertyTable::CanSelectRows() const
 {
-	return ( SelectionUnit | EPropertyTableSelectionUnit::Row ) != 0;
+	return ( SelectionUnit & EPropertyTableSelectionUnit::Row ) != 0;
 }
 
 void FPropertyTable::SetSelectionMode( const ESelectionMode::Type Mode )
@@ -330,7 +330,7 @@ EColumnSortMode::Type FPropertyTable::GetColumnSortMode( const TSharedRef< class
 	return EColumnSortMode::None;
 }
 
-void FPropertyTable::SortByColumnWithId( const FName& ColumnId, EColumnSortMode::Type SortMode )
+void FPropertyTable::SortByColumnWithId( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type SortMode )
 {
 	for( auto ColumnIter = Columns.CreateIterator(); ColumnIter; ++ColumnIter )
 	{
@@ -416,7 +416,7 @@ void FPropertyTable::PasteTextAtCell( const FString& Text, const TSharedRef< IPr
 
 	// Parse row strings into individual cell strings
 	TArray<FString> CellStrings;
-	RowStrings[CurrentRowIdx++].ParseIntoArray(&CellStrings, TEXT("\t"), true);
+	RowStrings[CurrentRowIdx++].ParseIntoArray(&CellStrings, TEXT("\t"), false);
 
 	// Get the maximum paste operations before displaying the slow task
 	int32 NumPasteOperationsBeforeWarning = GEditor->AccessEditorUserSettings().PropertyMatrix_NumberOfPasteOperationsBeforeWarning;

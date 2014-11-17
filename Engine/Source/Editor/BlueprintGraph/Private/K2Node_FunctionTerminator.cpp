@@ -10,5 +10,5 @@ UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const class FPostConstruc
 
 FLinearColor UK2Node_FunctionTerminator::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().FunctionTerminatorNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->FunctionTerminatorNodeTitleColor;
 }

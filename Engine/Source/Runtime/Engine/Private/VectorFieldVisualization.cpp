@@ -10,6 +10,8 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "SceneManagement.h"
 #include "FXSystem.h"
@@ -26,19 +28,19 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FVectorFieldVisualizationParameters,TEXT("Vector
 class FVectorFieldVisualizationVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
-	virtual void Bind( const FShaderParameterMap& ParameterMap ) OVERRIDE
+	virtual void Bind( const FShaderParameterMap& ParameterMap ) override
 	{
 		VectorFieldTexture.Bind(ParameterMap, TEXT("VectorFieldTexture"));
 		VectorFieldTextureSampler.Bind(ParameterMap, TEXT("VectorFieldTextureSampler"));
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << VectorFieldTexture;
 		Ar << VectorFieldTextureSampler;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE;
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
 
@@ -58,14 +60,14 @@ public:
 
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float4,0));
+		Elements.Add(FVertexElement(0, 0, VET_Float4, 0, sizeof(FVector4)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -81,9 +83,10 @@ class FDummyVertexBuffer : public FVertexBuffer
 {
 public:
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FVector4) * 2, NULL, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FVector4) * 2, BUF_Static, CreateInfo);
 		FVector4* DummyContents = (FVector4*)RHILockVertexBuffer(VertexBufferRHI,0,sizeof(FVector4)*2,RLM_WriteOnly);
 		DummyContents[0] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		DummyContents[1] = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -154,20 +157,20 @@ void FVectorFieldVisualizationVertexFactory::SetParameters(
 	const FVectorFieldVisualizationParameters& InUniformParameters,
 	FTexture3DRHIParamRef InVectorFieldTextureRHI )
 {
-	UniformBuffer = FVectorFieldVisualizationBufferRef::CreateUniformBufferImmediate(InUniformParameters, UniformBuffer_SingleUse);
+	UniformBuffer = FVectorFieldVisualizationBufferRef::CreateUniformBufferImmediate(InUniformParameters, UniformBuffer_SingleFrame);
 	VectorFieldTextureRHI = InVectorFieldTextureRHI;
 }
 
 /**
  * Set vertex factory shader parameters.
  */
-void FVectorFieldVisualizationVertexFactoryShaderParameters::SetMesh(FShader* Shader,const FVertexFactory* InVertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
+void FVectorFieldVisualizationVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* InVertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
 {
 	FVectorFieldVisualizationVertexFactory* VertexFactory = (FVectorFieldVisualizationVertexFactory*)InVertexFactory;
 	FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 	FSamplerStateRHIParamRef SamplerStatePoint = TStaticSamplerState<SF_Point>::GetRHI();
-	SetUniformBufferParameter(VertexShaderRHI, Shader->GetUniformBufferParameter<FVectorFieldVisualizationParameters>(), VertexFactory->UniformBuffer);
-	SetTextureParameter(VertexShaderRHI, VectorFieldTexture, VectorFieldTextureSampler, SamplerStatePoint, VertexFactory->VectorFieldTextureRHI);
+	SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FVectorFieldVisualizationParameters>(), VertexFactory->UniformBuffer);
+	SetTextureParameter(RHICmdList, VertexShaderRHI, VectorFieldTexture, VectorFieldTextureSampler, SamplerStatePoint, VertexFactory->VectorFieldTextureRHI);
 }
 
 IMPLEMENT_VERTEX_FACTORY_TYPE(FVectorFieldVisualizationVertexFactory,"VectorFieldVisualizationVertexFactory",true,false,true,false,false);

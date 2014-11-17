@@ -16,6 +16,9 @@
 #include "GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
 #include "SlateReflector.h"
+#include "SDockTab.h"
+#include "ToolkitManager.h"
+#include "TargetPlatform.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -35,11 +38,10 @@ FLevelEditorModule::FLevelEditorModule()
 	{
 	}
 
-TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
+TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab) .TabRole(ETabRole::MajorTab) .ContentPadding( FMargin(0,2,0,0) );
-	LevelEditorModule.SetLevelEditorInstanceTab(LevelEditorTab);
+	SetLevelEditorInstanceTab(LevelEditorTab);
 	TSharedPtr< SWindow > OwnerWindow = InArgs.GetOwnerWindow();
 	
 	if ( !OwnerWindow.IsValid() )
@@ -52,11 +54,11 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 	{
 		TSharedPtr<SLevelEditor> LevelEditorTmp;
 		LevelEditorTab->SetContent( SAssignNew(LevelEditorTmp, SLevelEditor ) );
-		LevelEditorModule.SetLevelEditorInstance(LevelEditorTmp);
+		SetLevelEditorInstance(LevelEditorTmp);
 		LevelEditorTmp->Initialize( LevelEditorTab, OwnerWindow.ToSharedRef() );
 
-		GEditorModeTools().DeactivateAllModes();
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Placement);
+		GLevelEditorModeTools().SetDefaultMode( FBuiltinEditorModes::EM_Placement );
+		GLevelEditorModeTools().DeactivateAllModes();
 	}
 
 	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
@@ -141,7 +143,7 @@ void FLevelEditorModule::StartupModule()
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateStatic( &SpawnLevelEditor ) )
+	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateRaw( this, &FLevelEditorModule::SpawnLevelEditor ) )
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsCategory());
@@ -151,7 +153,7 @@ void FLevelEditorModule::StartupModule()
 
 	// Figure out if we recompile the level editor.
 	FString SourcePath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Source/Editor/LevelEditor/Private"));
-	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath);
+	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath) && !GEngineVersion.IsPromotedBuild();
 }
 
 /**
@@ -159,6 +161,8 @@ void FLevelEditorModule::StartupModule()
  */
 void FLevelEditorModule::ShutdownModule()
 {
+	IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().RemoveAll(this);
+
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
 
@@ -236,14 +240,51 @@ void FLevelEditorModule::SummonLevelBrowser()
 	LevelEditorInstance->InvokeTab("LevelEditorLevelBrowser");
 }
 
+void FLevelEditorModule::SummonWorldBrowserHierarchy()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserHierarchy");
+}
+
+void FLevelEditorModule::SummonWorldBrowserDetails()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserDetails");
+}
+
+void FLevelEditorModule::SummonWorldBrowserComposition()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserComposition");
+}
+
 // @todo remove when world-centric mode is added
-void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> Sequencer)
+void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> SequencerAssetEditor )
 {
 	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 	{
+		struct Local
+		{
+			static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> InSequencerAssetEditor )
+			{
+				InSequencerAssetEditor.Pin()->CloseWindow();
+			}
+		};
+		
 		TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
-		LevelEditorInstance->InvokeTab("Sequencer");
-		LevelEditorInstance->SequencerTab->SetContent(Sequencer.ToSharedRef());
+
+		if( SequencerWidget.IsValid() && SequencerAssetEditor.IsValid() )
+		{
+			LevelEditorInstance->InvokeTab("Sequencer");
+			LevelEditorInstance->SequencerTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateStatic( &Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>( SequencerAssetEditor ) ) );
+			LevelEditorInstance->SequencerTab->SetContent(SequencerWidget.ToSharedRef());
+		}
+		else
+		{
+			LevelEditorInstance->SequencerTab.Reset();
+		}
+
+	
 	}
 }
 
@@ -257,7 +298,7 @@ void FLevelEditorModule::FocusPIEViewport()
 {
 	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
 	if( LevelEditorInstance.IsValid() && LevelEditorTabManager.IsValid() && LevelEditorInstance->HasActivePlayInEditorViewport() )
-		{
+	{
 		FGlobalTabmanager::Get()->DrawAttentionToTabManager( LevelEditorTabManager.ToSharedRef() );
 	}
 }
@@ -348,7 +389,9 @@ void FLevelEditorModule::SetLevelEditorTabManager( const TSharedPtr<SDockTab>& O
 	if (OwnerTab.IsValid())
 	{
 		LevelEditorTabManager = FGlobalTabmanager::Get()->NewTabManager(OwnerTab.ToSharedRef());
-		LevelEditorTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( FLayoutSaveRestore::SaveTheLayout ) );
+		LevelEditorTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FLevelEditorModule::HandleTabManagerPersistLayout));
+
+		TabManagerChangedEvent.Broadcast();
 	}
 }
 
@@ -453,7 +496,15 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction( Commands.BrowseAPIReference, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BrowseAPIReference ) );
 	ActionList.MapAction( Commands.BrowseViewportControls, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BrowseViewportControls ) );
 	ActionList.MapAction( Commands.NewLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel_CanExecute ) );
-	ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	{
+		ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevelPickingDialog ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+		ActionList.MapAction( Commands.LegacyOpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	}
+	else
+	{
+		ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	}
 	ActionList.MapAction( Commands.Save, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Save ) );
 	ActionList.MapAction( Commands.SaveAs, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAs ), DefaultExecuteAction );
 	ActionList.MapAction( Commands.SaveAllLevels, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAllLevels ) );
@@ -510,7 +561,13 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::FindInContentBrowser_Clicked )
 		);
-						
+
+	ActionList.MapAction( 
+		FGlobalEditorCommonCommands::Get().ViewReferences, 
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ViewReferences_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewReferences )
+		);
+
 	ActionList.MapAction( 
 		Commands.SnapCameraToActor, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("CAMERA SNAP") ) )

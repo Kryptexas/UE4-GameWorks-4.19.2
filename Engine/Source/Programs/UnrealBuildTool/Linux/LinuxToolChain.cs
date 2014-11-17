@@ -16,6 +16,11 @@ namespace UnrealBuildTool.Linux
             return ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Linux;
         }
 
+        protected static bool UsingClang()
+        {
+            return !String.IsNullOrEmpty(ClangPath);
+        }
+
         private string Which(string name)
         {
             Process proc = new Process();
@@ -60,7 +65,8 @@ namespace UnrealBuildTool.Linux
 
                 BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
 
-                // set up the path to our toolchains
+                // set up the path to our toolchains (FIXME: support switching per architecture)
+                GCCPath = "";
                 ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
                 ArPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ar.exe");
                 RanlibPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ranlib.exe");
@@ -95,6 +101,7 @@ namespace UnrealBuildTool.Linux
             //Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
             Result += " -mmmx -msse -msse2";            // allows use of SIMD intrinsics
             Result += " -fno-math-errno";               // do not assume that math ops have side effects
+            Result += " -fno-rtti";                     // no run-time type info
 
             if (String.IsNullOrEmpty(ClangPath))
             {
@@ -133,7 +140,7 @@ namespace UnrealBuildTool.Linux
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
 
             // shipping builds will cause this warning with "ensure", so disable only in those case
-            if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+            if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
             {
                 Result += " -Wno-unused-value";
 
@@ -142,9 +149,9 @@ namespace UnrealBuildTool.Linux
                 Result += " -fomit-frame-pointer";
                 Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
             }
-            else if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            else if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
             {
-		Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
+                Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
             }
 
             // debug info
@@ -156,13 +163,13 @@ namespace UnrealBuildTool.Linux
                 Result += " -fstack-protector";
                 //Result += " -fsanitize=address";  // Preferred clang tool for detecting address based errors but unusable for some reason with Module.Engine.7_of_42.cpp
             }
-            else if (CompileEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
+            else if (CompileEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -gline-tables-only"; // include debug info for meaningful callstacks
             }
 
             // optimization level
-            if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
             {
                 Result += " -O0";
             }
@@ -180,10 +187,13 @@ namespace UnrealBuildTool.Linux
 
             // assume we will not perform 32 bit builds on Linux, so define
             // _LINUX64 in any case
-            Result += " -D _LINUX64";
+            Result += " -D_LINUX64";
             if (CrossCompiling())
             {
-                Result += " -target x86_64-unknown-linux-gnu";        // Set target triple
+                if (UsingClang())
+                {
+                    Result += String.Format(" -target {0}", CompileEnvironment.Config.Target.Architecture);        // Set target triple
+                }
                 Result += String.Format(" --sysroot={0}", BaseLinuxPath);
             }
 
@@ -239,7 +249,7 @@ namespace UnrealBuildTool.Linux
             string Result = "";
 
             // debugging symbols
-            if (LinkEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
+            if (LinkEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -rdynamic";   // needed for backtrace_symbols()...
             }
@@ -269,7 +279,10 @@ namespace UnrealBuildTool.Linux
 
             if (CrossCompiling())
             {
-                Result += " -target x86_64-unknown-linux-gnu";        // Set target triple
+                if (UsingClang())
+                {
+                    Result += String.Format(" -target {0}", LinkEnvironment.Config.Target.Architecture);        // Set target triple
+                }
                 string SysRootPath = BaseLinuxPath.TrimEnd(new char[] { '\\', '/' });
                 Result += String.Format(" \"--sysroot={0}\"", SysRootPath);
             }
@@ -339,7 +352,8 @@ namespace UnrealBuildTool.Linux
             {
                 // Add the precompiled header file's path to the include path so Clang can find it.
                 // This needs to be before the other include paths to ensure Clang uses it instead of the source header file.
-                PCHArguments += string.Format(" -include \"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(".gch", ""));
+				var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Linux].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+                PCHArguments += string.Format(" -include \"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, ""));
             }
 
             // Add include paths to the argument list.
@@ -408,11 +422,12 @@ namespace UnrealBuildTool.Linux
 
                 if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
                 {
+					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Linux].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
                     // Add the precompiled header file to the produced item list.
                     FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
                         Path.Combine(
                             CompileEnvironment.Config.OutputDirectory,
-                            Path.GetFileName(SourceFile.AbsolutePath) + ".gch"
+                            Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
                             )
                         );
 
@@ -430,11 +445,12 @@ namespace UnrealBuildTool.Linux
                         CompileAction.PrerequisiteItems.Add(CompileEnvironment.PrecompiledHeaderFile);
                     }
 
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Linux].GetBinaryExtension(UEBuildBinaryType.Object);
                     // Add the object file to the produced item list.
                     FileItem ObjectFile = FileItem.GetItemByPath(
                         Path.Combine(
                             CompileEnvironment.Config.OutputDirectory,
-                            Path.GetFileName(SourceFile.AbsolutePath) + ".o"
+                            Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
                             )
                         );
                     CompileAction.ProducedItems.Add(ObjectFile);
@@ -447,7 +463,7 @@ namespace UnrealBuildTool.Linux
                 FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
                 CompileAction.WorkingDirectory = Path.GetFullPath(".");
-                if (String.IsNullOrEmpty(ClangPath))
+                if (!UsingClang())
                 {
                     CompileAction.CommandPath = GCCPath;
                 }
@@ -602,6 +618,30 @@ namespace UnrealBuildTool.Linux
             // Add the additional arguments specified by the environment.
             LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
             LinkAction.CommandArguments.Replace("\\", "/");
+
+            // prepare a linker script
+            string LinkerScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, "remove-sym.ldscript");
+            if (!Directory.Exists(LinkEnvironment.Config.LocalShadowDirectory))
+            {
+                Directory.CreateDirectory(LinkEnvironment.Config.LocalShadowDirectory);
+            }
+            if (File.Exists(LinkerScriptPath))
+            {
+                File.Delete(LinkerScriptPath);
+            }
+
+            using (StreamWriter Writer = File.CreateText(LinkerScriptPath))
+            {
+                Writer.WriteLine("UE4 {");
+                Writer.WriteLine("  global: *;");
+                Writer.WriteLine("  local: _Znwm;");
+                Writer.WriteLine("         _Znam;");
+                Writer.WriteLine("         _ZdaPv;");
+                Writer.WriteLine("         _ZdlPv;");
+                Writer.WriteLine("};");
+            };
+
+            LinkAction.CommandArguments += string.Format(" -Wl,--version-script=\"{0}\"", LinkerScriptPath);
 
             // Only execute linking on the local PC.
             LinkAction.bCanExecuteRemotely = false;

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageTransport.h: Declares the FUdpMessageTransport class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -31,35 +27,31 @@ public:
 
 public:
 
-	// Begin ITransportMessages interface
+	// ITransportMessages interface
 
-	virtual FName GetDebugName( ) const OVERRIDE
+	virtual FName GetDebugName( ) const override
 	{
 		return "UdpMessageTransport";
 	}
 
-	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) OVERRIDE
+	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) override
 	{
 		return MessageReceivedDelegate;
 	}
 
-	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered( ) OVERRIDE
+	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered( ) override
 	{
 		return NodeDiscoveredDelegate;
 	}
 
-	virtual FOnMessageTransportNodeLost& OnNodeLost( ) OVERRIDE
+	virtual FOnMessageTransportNodeLost& OnNodeLost( ) override
 	{
 		return NodeLostDelegate;
 	}
 
-	virtual bool StartTransport( ) OVERRIDE;
-
-	virtual void StopTransport( ) OVERRIDE;
-
-	virtual bool TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients ) OVERRIDE;
-
-	// End ITransportMessages interface
+	virtual bool StartTransport( ) override;
+	virtual void StopTransport( ) override;
+	virtual bool TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients ) override;
 
 private:
 

@@ -7,9 +7,27 @@
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
 
+#include "BlueprintEditorUtils.h"
+
+#include "ScopedTransaction.h"
+#include "TextFilter.h"
+
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"
 
 #include "AssetTypeActions_Base.h"
-#include "AssetTypeActions_Blueprint.h"
+
+#include "DesignerExtension.h"
+#include "VerticalSlotExtension.h"
+#include "HorizontalSlotExtension.h"
+#include "CanvasSlotExtension.h"
+#include "UniformGridSlotExtension.h"
+
+#include "DetailCustomizations.h"
+#include "CanvasSlotCustomization.h"
+
+#include "WidgetTemplate.h"
+#include "WidgetTemplateDragDropOp.h"
+
+#include "WidgetBlueprintEditorUtils.h"

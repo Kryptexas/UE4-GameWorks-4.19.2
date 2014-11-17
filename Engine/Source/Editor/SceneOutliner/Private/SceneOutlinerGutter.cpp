@@ -19,7 +19,7 @@ public:
 	TUniquePtr<FScopedTransaction> UndoTransaction;
 
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return SNullWidget::NullWidget;
 	}
@@ -66,8 +66,19 @@ public:
 
 private:
 
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+	{
+		if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			UndoTransaction.Reset(new FScopedTransaction(LOCTEXT("SetActorVisibility", "Set Actor Visibility")));
+			SetIsVisible(!IsVisible());
+		}
+
+		return FReply::Handled();
+	}
+
 	/** Start a new drag/drop operation for this widget */
-	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 		{
@@ -80,7 +91,7 @@ private:
 	}
 
 	/** If a visibility drag drop operation has entered this widget, set its actor to the new visibility state */
-	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
 	{
 		auto VisibilityOp = DragDropEvent.GetOperationAs<FVisibilityDragDropOp>();
 		if (VisibilityOp.IsValid())
@@ -90,7 +101,7 @@ private:
 	}
 
 	/** Called when the mouse button is pressed down on this widget */
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
 		{
@@ -106,7 +117,7 @@ private:
 	}
 
 	/** Process a mouse up message */
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 		{
@@ -118,7 +129,7 @@ private:
 	}
 
 	/** Called when this widget had captured the mouse, but that capture has been revoked for some reason. */
-	virtual void OnMouseCaptureLost() OVERRIDE
+	virtual void OnMouseCaptureLost() override
 	{
 		UndoTransaction.Reset();
 	}

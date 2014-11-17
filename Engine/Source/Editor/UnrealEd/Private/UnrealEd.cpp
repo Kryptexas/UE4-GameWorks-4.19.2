@@ -17,6 +17,7 @@
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
 
+#include "DesktopPlatformModule.h"
 #include "GameProjectGenerationModule.h"
 #include "AssetEditorManager.h"
 
@@ -27,12 +28,17 @@ UUnrealEdEngine* GUnrealEd;
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEd, Log, All);
 
 /**
- * Provides access to the FEditorModeTools singleton.
+ * Provides access to the FEditorModeTools for the level editor
  */
-class FEditorModeTools& GEditorModeTools()
+class FEditorModeTools& GLevelEditorModeTools()
 {
 	static FEditorModeTools* EditorModeToolsSingleton = new FEditorModeTools;
 	return *EditorModeToolsSingleton;
+}
+
+FEditorModeTools& GEditorModeTools()
+{
+	return GLevelEditorModeTools();
 }
 
 FLevelEditorViewportClient* GCurrentLevelEditingViewportClient = NULL;
@@ -61,6 +67,20 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 		return 0;
 	}
 
+	// Let the analytics know that the editor has started
+	if ( FEngineAnalytics::IsAvailable() )
+	{
+		IDesktopPlatform* const DesktopPlatform = FDesktopPlatformModule::Get();
+		if ( DesktopPlatform )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), DesktopPlatform->GetMachineId().ToString(EGuidFormats::Digits).ToLower()));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AccountID"), DesktopPlatform->GetEpicAccountId()));
+
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.ProgramStarted"), EventAttributes);
+		}
+	}
+
 	// Initialize the misc editor
 	FUnrealEdMisc::Get().OnInit();
 
@@ -69,6 +89,13 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 
 	// Set up the actor folders singleton
 	FActorFolders::Init();
+
+	if ( !GEditorGameAgnosticIni.IsEmpty() )
+	{
+		// If we have a game agnostic ini config, ensure that the benchmark has been loaded for it
+		GEditor->AccessGameAgnosticSettings().LoadScalabilityBenchmark();
+		GEditor->SaveGameAgnosticSettings();
+	}
 
 	// =================== CORE EDITOR INIT FINISHED ===================
 
@@ -138,15 +165,15 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 
 void EditorExit()
 {
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
-		GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
+		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	// Save out any config settings for the editor so they don't get lost
 	GEditor->SaveConfig();
-	GEditorModeTools().SaveConfig();
+	GLevelEditorModeTools().SaveConfig();
 
 	// Clean up the actor folders singleton
 	FActorFolders::Cleanup();

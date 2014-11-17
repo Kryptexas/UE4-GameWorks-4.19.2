@@ -91,14 +91,31 @@ class ENGINE_API AGameSession : public AInfo
 	/** Unregister a player from the online service session	 */
 	virtual void UnregisterPlayer(APlayerController* ExitingPlayer);
 
-	/** Forcibly remove KickedPlayer from the server */
+	/** 
+	 * Forcibly remove player from the server
+	 *
+	 * @param KickedPlayer player to kick
+	 * @param KickReason text reason to display to player
+	 *
+	 * @return true if player was able to be kicked, false otherwise
+	 */
 	virtual bool KickPlayer(class APlayerController* KickedPlayer, const FText& KickReason);
+
+	/**
+	 * Forcibly remove player from the server and ban them permanently
+	 *
+	 * @param BannedPlayer player to ban
+	 * @param KickReason text reason to display to player
+	 *
+	 * @return true if player was able to be banned, false otherwise
+	 */
+	virtual bool BanPlayer(class APlayerController* BannedPlayer, const FText& BanReason);
 
 	/** Gracefully tell all clients then local players to return to lobby */
 	virtual void ReturnToMainMenuHost();
 
 	/** 
-	* called after a seamless level transition has been completed on the *new* GameMode
+	 * called after a seamless level transition has been completed on the *new* GameMode
 	 * used to reinitialize players already in the game as they won't have *Login() called on them
 	 */
 	virtual void PostSeamlessTravel();

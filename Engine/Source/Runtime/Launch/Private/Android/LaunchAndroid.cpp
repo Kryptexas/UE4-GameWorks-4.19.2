@@ -99,6 +99,24 @@ static ASensorEventQueue * SensorQueue = NULL;
 static const int32_t SensorDelayGame = 1;
 // Time decay sampling rate.
 static const float SampleDecayRate = 0.85f;
+// Event for coordinating pausing of the main and event handling threads to prevent background spinning
+static FEvent* EventHandlerEvent = NULL;
+
+// Wait for Java onCreate to complete before resume main init
+static volatile bool GResumeMainInit = false;
+static volatile bool GEventHandlerInitialized = false;
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
+{
+	GResumeMainInit = true;
+
+	// now wait for event handler to be set up before returning
+	while (!GEventHandlerInitialized)
+	{
+		FPlatformProcess::Sleep(0.01f);
+		FPlatformMisc::MemoryBarrier();
+	}
+}
+
 
 void UpdateGameInterruptions()
 {
@@ -139,6 +157,7 @@ void UpdateGameInterruptions()
 		}
 		else
 		{
+			UE_LOG(LogAndroid, Display, TEXT("Acquiring Thread Ownership"));
 			RHIAcquireThreadOwnership();
 		}
 	}
@@ -241,12 +260,23 @@ int32 AndroidMain(struct android_app* state)
 		IgnoredGamepadKeyCodes.Add(IgnoredGamepadKeyCodesList[i]);
 	}
 
-	// wait a moment for the data from the activity to be set
-	FPlatformProcess::Sleep(1.0f);
+	// wait for java activity onCreate to finish
+	while (!GResumeMainInit)
+	{
+		FPlatformProcess::Sleep(0.01f);
+		FPlatformMisc::MemoryBarrier();
+	}
 
 	// read the command line file
 	InitCommandLine();
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Final commandline: %s\n"), FCommandLine::Get());
+
+	EventHandlerEvent = FPlatformProcess::CreateSynchEvent();
+	FPlatformMisc::LowLevelOutputDebugString(L"Created sync event");
+	FAppEventManager::GetInstance()->SetEventHandlerEvent(EventHandlerEvent);
+
+	// ready for onCreate to complete
+	GEventHandlerInitialized = true;
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
@@ -302,8 +332,7 @@ static void* AndroidEventThreadWorker( void* param )
 {
 	struct android_app* state = (struct android_app*)param;
 
-	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
 
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering event processing thread engine entry point");
 
@@ -342,13 +371,11 @@ static void* AndroidEventThreadWorker( void* param )
 	//continue to process events until the engine is shutting down
 	while (!GIsRequestingExit)
 	{
-		static int count = 1;
-		//LOGD("Event process loop #%d", count);
-		count++;
+		FPlatformMisc::LowLevelOutputDebugString(L"AndroidEventThreadWorker");
 
 		AndroidProcessEvents(state);
 
-		sleep(EventRefreshRate);
+		sleep(EventRefreshRate);		// this is really 0 since it takes int seconds.
 	}
 
 	UE_LOG(LogAndroid, Log, TEXT("Exiting"));
@@ -374,11 +401,13 @@ static void AndroidProcessEvents(struct android_app* state)
 	int32 current_gyroscope_sample_count = 0;
 	static FVector last_accelerometer(0, 0, 0);
 
-	while((ident = ALooper_pollAll(0, &fdesc, &events, (void**)&source)) >= 0)
+	while((ident = ALooper_pollAll(-1, &fdesc, &events, (void**)&source)) >= 0)
 	{
 		// process this event
 		if (source)
+		{
 			source->process(state, source);
+		}
 
 		// process sensor events
 		if (ident == LOOPER_ID_USER)
@@ -634,7 +663,13 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 #if !UE_BUILD_SHIPPING
 			if ((pointerCount >= 4) && (type == TouchBegan))
 			{
-				GShowConsoleWindowNextTick = true;
+				bool bShowConsole = true;
+				GConfig->GetBool(TEXT("/Script/Engine.InputSettings"), TEXT("bShowConsoleOnFourFingerTap"), bShowConsole, GInputIni);
+
+				if (bShowConsole)
+				{
+					GShowConsoleWindowNextTick = true;
+				}
 			}
 #endif
 		}
@@ -854,6 +889,9 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_ON_PAUSE);
 		break;
 	}
+
+	if ( EventHandlerEvent )
+		EventHandlerEvent->Trigger();
 }
 
 //Native-defined functions
@@ -869,11 +907,26 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv*
 	jenv->ReleaseStringUTFChars(commandString, javaChars);
 }
 
-//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled(String commandString);"
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled();"
 extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnabled(JNIEnv* jenv, jobject thiz)
 {
 	bool bEnabled = false;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
 	UE_LOG(LogOnline, Log, TEXT("Checking whether Google Play is enabled. bEnableGooglePlaySupport = %d"), bEnabled);
 	return bEnabled;
+}
+
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel )
+{
+	const char *javaAndroidVersion = jenv->GetStringUTFChars(androidVersion, 0 );
+	FString UEAndroidVersion = FString(UTF8_TO_TCHAR( javaAndroidVersion ));
+
+	const char *javaPhoneMake = jenv->GetStringUTFChars(phoneMake, 0 );
+	FString UEPhoneMake = FString(UTF8_TO_TCHAR( javaPhoneMake ));
+
+	const char *javaPhoneModel = jenv->GetStringUTFChars(phoneModel, 0 );
+	FString UEPhoneModel = FString(UTF8_TO_TCHAR( javaPhoneModel ));
+
+	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel );
 }

@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleVectorFieldBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Vector Field"))

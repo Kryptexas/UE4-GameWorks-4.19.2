@@ -2,21 +2,15 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
-#include "Kismet/KismetAIHelperLibrary.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "AIController.h"
 
 AFunctionalAITest::AFunctionalAITest( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, CurrentSpawnSetIndex(INDEX_NONE)
+	, bSingleSetRun(false)
 {
-	/*struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
-
-		FConstructorStatics()
-			: Texture(TEXT("/Engine/EditorResources/S_FTest"))
-		{
-		}
-	};*/
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -36,12 +30,13 @@ void AFunctionalAITest::BeginPlay()
 			UE_LOG(LogFunctionalTest, Log, TEXT("Removing disabled spawn set \'%s\'."), *SpawnSets[Index].Name.ToString());
 			SpawnSets.RemoveAt(Index, 1, false);
 		}
-		else if (SpawnSet.FallbackSpawnLocation != NULL)
+		else
 		{
-			// update all spawn info that doesn't have spawn location set
+			// update all spawn info that doesn't have spawn location set, and set spawn set name
 			for (int32 SpawnIndex = 0; SpawnIndex < SpawnSet.SpawnInfoContainer.Num(); ++SpawnIndex)
 			{
 				FAITestSpawnInfo& SpawnInfo = SpawnSet.SpawnInfoContainer[SpawnIndex];
+				SpawnInfo.SpawnSetName = SpawnSet.Name;
 				if (SpawnInfo.SpawnLocation == NULL)
 				{
 					SpawnInfo.SpawnLocation = SpawnSet.FallbackSpawnLocation;
@@ -54,11 +49,22 @@ void AFunctionalAITest::BeginPlay()
 	Super::BeginPlay();
 }
 
-bool AFunctionalAITest::StartTest()
+bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 {
 	KillOffSpawnedPawns();
+	ClearPendingDelayedSpawns();
 
-	if (++CurrentSpawnSetIndex < SpawnSets.Num())
+	bSingleSetRun = Params.Num() > 0;
+	if (bSingleSetRun)
+	{
+		TTypeFromString<int32>::FromString(CurrentSpawnSetIndex, *Params[0]);
+	}
+	else
+	{
+		++CurrentSpawnSetIndex;
+	}
+
+	if (CurrentSpawnSetIndex < SpawnSets.Num())
 	{
 		UWorld* World = GetWorld();
 		check(World);
@@ -75,40 +81,25 @@ bool AFunctionalAITest::StartTest()
 			const FAITestSpawnInfo& SpawnInfo = SpawnSet.SpawnInfoContainer[SpawnIndex];
 			if (SpawnInfo.IsValid())
 			{
-				APawn* SpawnedPawn = UKismetAIHelperLibrary::SpawnAIFromClass(World, SpawnInfo.PawnClass, SpawnInfo.BehaviorTree
-					, SpawnInfo.SpawnLocation->GetActorLocation()
-					, SpawnInfo.SpawnLocation->GetActorRotation()
-					, /*bNoCollisionFail=*/true);
-
-				if (SpawnedPawn == NULL)
+				if (SpawnInfo.SpawnDelay == 0.0)
 				{
-					FailureMessage = FString::Printf(TEXT("Failed to spawn \'%s\' pawn (\'%s\' set) ")
-						, *GetNameSafe(SpawnInfo.PawnClass)
-						, *SpawnSet.Name.ToString());
-
-					UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *FailureMessage);
-
-					bSuccessfullySpawnedAll = false;
-				}
-				else if (SpawnedPawn->GetController() == NULL)
-				{
-					FailureMessage = FString::Printf(TEXT("Spawned Pawn %s (\'%s\' set) has no controller ")
-						, *GetNameSafe(SpawnedPawn)
-						, *SpawnSet.Name.ToString());
-
-					UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *FailureMessage);
-
-					bSuccessfullySpawnedAll = false;
+					for (int32 SpawnedCount = 0; SpawnedCount < SpawnInfo.NumberToSpawn; ++SpawnedCount)
+					{
+						bSuccessfullySpawnedAll &= SpawnInfo.Spawn(this);
+					}
 				}
 				else
 				{
-					SpawnedPawns.Add(SpawnedPawn);
-					OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn->GetController()), SpawnedPawn);
+					bSuccessfullySpawnedAll &= SpawnInfo.Spawn(this);
+					if (SpawnInfo.NumberToSpawn > 1)
+					{
+						PendingDelayedSpawns.Add(SpawnInfo);
+					}
 				}
 			}
 			else
 			{
-				FailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
+				FString FailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
 					, *SpawnSet.Name.ToString()
 					, SpawnIndex);
 
@@ -121,9 +112,14 @@ bool AFunctionalAITest::StartTest()
 		if (bSuccessfullySpawnedAll == false)
 		{
 			KillOffSpawnedPawns();
-		}
+		}		
 		else
 		{
+			if (PendingDelayedSpawns.Num() > 0)
+			{
+				SetActorTickEnabled(true);
+			}
+
 			return Super::StartTest();
 		}
 	}
@@ -138,7 +134,7 @@ void AFunctionalAITest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> Test
 
 bool AFunctionalAITest::WantsToRunAgain() const
 {
-	return CurrentSpawnSetIndex + 1 < SpawnSets.Num();
+	return bSingleSetRun == false && CurrentSpawnSetIndex + 1 < SpawnSets.Num();
 }
 
 
@@ -148,6 +144,7 @@ void AFunctionalAITest::CleanUp()
 	CurrentSpawnSetIndex = INDEX_NONE;
 
 	KillOffSpawnedPawns();
+	ClearPendingDelayedSpawns();
 }
 
 FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const
@@ -158,7 +155,7 @@ FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResul
 	{
 		if (CurrentSpawnSetName.Len() > 0 && CurrentSpawnSetName != TEXT("None"))
 		{
-			Result = FString::Printf(TEXT("set %s, pawns: "), *CurrentSpawnSetName);
+			Result = FString::Printf(TEXT("spawn set \'%s\', pawns: "), *CurrentSpawnSetName);
 		}
 		else
 		{
@@ -175,6 +172,13 @@ FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResul
 	return Result;
 }
 
+FString AFunctionalAITest::GetReproString() const
+{
+	return FString::Printf(TEXT("%s%s%d"), *(GetFName().ToString())
+		, FFunctionalTesting::ReproStringParamsSeparator
+		, CurrentSpawnSetIndex);
+}
+
 void AFunctionalAITest::KillOffSpawnedPawns()
 {
 	for (int32 PawnIndex = 0; PawnIndex < SpawnedPawns.Num(); ++PawnIndex)
@@ -186,4 +190,94 @@ void AFunctionalAITest::KillOffSpawnedPawns()
 	}
 
 	SpawnedPawns.Reset();
+}
+
+void AFunctionalAITest::ClearPendingDelayedSpawns()
+{
+	SetActorTickEnabled(false);
+	PendingDelayedSpawns.Reset();
+}
+
+void AFunctionalAITest::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	for (auto& DelayedSpawn : PendingDelayedSpawns)
+	{
+		DelayedSpawn.Tick(DeltaSeconds, this);
+	}
+}
+
+void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
+{
+	SpawnedPawns.Add(&SpawnedPawn);
+	OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn.GetController()), &SpawnedPawn);
+}
+
+//----------------------------------------------------------------------//
+// FAITestSpawnInfo
+//----------------------------------------------------------------------//
+bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
+{
+	check(AITest);
+
+	bool bSuccessfullySpawned = false;
+
+	APawn* SpawnedPawn = UAIBlueprintHelperLibrary::SpawnAIFromClass(AITest->GetWorld(), PawnClass, BehaviorTree
+		, SpawnLocation->GetActorLocation()
+		, SpawnLocation->GetActorRotation()
+		, /*bNoCollisionFail=*/true);
+
+	if (SpawnedPawn == NULL)
+	{
+		FString FailureMessage = FString::Printf(TEXT("Failed to spawn \'%s\' pawn (\'%s\' set) ")
+			, *GetNameSafe(PawnClass)
+			, *SpawnSetName.ToString());
+
+		UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *FailureMessage);
+	}
+	else if (SpawnedPawn->GetController() == NULL)
+	{
+		FString FailureMessage = FString::Printf(TEXT("Spawned Pawn %s (\'%s\' set) has no controller ")
+			, *GetNameSafe(SpawnedPawn)
+			, *SpawnSetName.ToString());
+
+		UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *FailureMessage);
+	}
+	else
+	{
+		AITest->AddSpawnedPawn(*SpawnedPawn);
+		bSuccessfullySpawned = true;
+	}
+
+	return bSuccessfullySpawned;
+}
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+
+FPendingDelayedSpawn::FPendingDelayedSpawn(const FAITestSpawnInfo& Source)
+	: NumberToSpawnLeft(0), bFinished(false)
+{
+	*((FAITestSpawnInfo*)this) = Source;
+	TimeToNextSpawn = Source.SpawnDelay;
+	NumberToSpawnLeft = Source.NumberToSpawn - 1;
+}
+
+void FPendingDelayedSpawn::Tick(float TimeDelta, AFunctionalAITest* AITest)
+{
+	if (bFinished)
+	{
+		return;
+	}
+
+	TimeToNextSpawn -= TimeDelta;
+
+	if (TimeToNextSpawn <= 0)
+	{
+		Spawn(AITest);
+		TimeToNextSpawn = SpawnDelay;
+		bFinished = (--NumberToSpawnLeft <= 0);
+	}
 }

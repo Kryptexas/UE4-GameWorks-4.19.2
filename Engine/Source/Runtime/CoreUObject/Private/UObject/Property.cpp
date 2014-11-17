@@ -274,6 +274,11 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 				String += TCHAR('"');
 				Buffer++;
 			}
+			else if (*Buffer == TCHAR('\'')) // escaped single quote "\'"
+			{
+				String += TCHAR('\'');
+				Buffer++;
+			}
 			else if ( *Buffer == TCHAR('n') ) // escaped newline
 			{
 				String += TCHAR('\n');
@@ -299,7 +304,7 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 	else if( FChar::IsAlnum( *Buffer ) || (DottedNames && (*Buffer==TCHAR('/'))) || (*Buffer > 255) )
 	{
 		// Get identifier.
-		while( (FChar::IsAlnum(*Buffer) || (*Buffer > 255) || *Buffer==TCHAR('_') || *Buffer==TCHAR('-') || (DottedNames && (*Buffer==TCHAR('.') || *Buffer==TCHAR('/') || *Buffer==SUBOBJECT_DELIMITER_CHAR) )) )
+		while ((FChar::IsAlnum(*Buffer) || (*Buffer > 255) || *Buffer == TCHAR('_') || *Buffer == TCHAR('-') || *Buffer == TCHAR('+') || (DottedNames && (*Buffer == TCHAR('.') || *Buffer == TCHAR('/') || *Buffer == SUBOBJECT_DELIMITER_CHAR))))
 		{
 			String += *Buffer++;
 		}

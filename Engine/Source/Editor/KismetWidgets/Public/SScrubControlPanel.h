@@ -12,6 +12,8 @@ public:
 
 	SLATE_BEGIN_ARGS(SScrubControlPanel)
 		: _Value(0)
+		, _NumOfKeys()
+		, _SequenceLength()
 		, _OnValueChanged()
 		, _OnBeginSliderMovement()
 		, _OnEndSliderMovement()
@@ -29,8 +31,7 @@ public:
 		, _ViewInputMax()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
-		, _NumOfKeys()
-		, _SequenceLength()
+		, _bLastFrameIsFirstFrame(true)
 	{}
 		SLATE_ATTRIBUTE( float, Value )
 		SLATE_ATTRIBUTE( uint32, NumOfKeys )
@@ -67,6 +68,7 @@ public:
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
 		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
+		SLATE_ARGUMENT( bool, bLastFrameIsFirstFrame )
 	SLATE_END_ARGS()
 
 	/**

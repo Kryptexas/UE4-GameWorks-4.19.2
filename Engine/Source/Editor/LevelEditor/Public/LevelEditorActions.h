@@ -6,6 +6,7 @@
 
 #include "IToolkit.h"
 #include "LightmapResRatioAdjust.h"
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
 
 /**
  * Unreal level editor actions
@@ -28,7 +29,7 @@ public:
 	/**
 	 * Initialize commands
 	 */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
 	
@@ -39,6 +40,7 @@ public:
 	/** Level file commands */
 	TSharedPtr< FUICommandInfo > NewLevel;
 	TSharedPtr< FUICommandInfo > OpenLevel;
+	TSharedPtr< FUICommandInfo > LegacyOpenLevel;
 	TSharedPtr< FUICommandInfo > Save;
 	TSharedPtr< FUICommandInfo > SaveAs;
 	TSharedPtr< FUICommandInfo > SaveAllLevels;
@@ -589,6 +591,10 @@ public:
 	/** Opens an existing level */
 	static void OpenLevel();
 	static bool OpenLevel_CanExecute();
+	static struct FAssetPickerConfig CreateLevelAssetPickerConfig();
+	static void OpenLevelPickingDialog();
+	static void OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
+	
 
 	/** Opens delta transform */
 	static void DeltaTransform();
@@ -751,6 +757,12 @@ public:
 	 * Called when the FindInContentBrowser command is executed
 	 */
 	static void FindInContentBrowser_Clicked();
+
+	/** Called when the ViewReferences command is executed */
+	static void ViewReferences_Execute();
+
+	/** If true ViewReferences_Execute can be called */
+	static bool CanViewReferences();
 
 	/** Called to when "Edit Asset" is clicked */
 	static void EditAsset_Clicked( const EToolkitMode::Type ToolkitMode, TWeakPtr< class SLevelEditor > LevelEditor, bool bAskMultiple );

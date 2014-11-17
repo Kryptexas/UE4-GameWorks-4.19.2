@@ -98,9 +98,14 @@ bool SGraphPinLiveEditVar::IsPropertyPermitedForLiveEditor( UProperty &Property 
 	//NO (must not have any)
 	uint64 MustNotHaveFlags = CPF_BlueprintReadOnly | CPF_DisableEditOnInstance | CPF_EditConst | CPF_Parm;
 
-	return ( Property.HasAllPropertyFlags(MustHaveFlags) &&
-			 !Property.HasAnyPropertyFlags(MustNotHaveFlags) && 
-			 !bIsDelegate );
+	if ( !Property.HasAllPropertyFlags(MustHaveFlags) )
+		return false;
+	if ( Property.HasAnyPropertyFlags(MustNotHaveFlags) )
+		return false;
+	if ( bIsDelegate )
+		return false;
+
+	return true;
 }
 
 void SGraphPinLiveEditVar::GenerateComboBoxIndexesRecurse( UStruct *InStruct, FString PropertyPrefix, TArray< TSharedPtr<int32> >& OutComboBoxIndexes )
@@ -112,22 +117,51 @@ void SGraphPinLiveEditVar::GenerateComboBoxIndexesRecurse( UStruct *InStruct, FS
 		UProperty* Property = *PropertyIt;
 		if ( !Property->IsA(UNumericProperty::StaticClass()) )
 		{
-			UStructProperty *StructProp = Cast<UStructProperty>(Property);
-			if ( StructProp != NULL )
+			if ( Property->IsA(UStructProperty::StaticClass()) )
 			{
+				UStructProperty *StructProp = Cast<UStructProperty>(Property);
 				if ( IsPropertyPermitedForLiveEditor(*StructProp) )
 				{
-					FString NewPropertyPrefix = FString::Printf( TEXT("%s%s."), *PropertyPrefix, *Property->GetName() );
-					GenerateComboBoxIndexesRecurse( StructProp->Struct, NewPropertyPrefix, OutComboBoxIndexes );
+					if ( Property->ArrayDim > 1 )
+					{
+						for ( int32 i = 0; i < Property->ArrayDim; ++i )
+						{
+							FString arrayIndex = FString::Printf( TEXT("[%d]"), i );
+							FString NewPropertyPrefix = FString::Printf( TEXT("%s%s%s."), *PropertyPrefix, *Property->GetName(), *arrayIndex );
+							GenerateComboBoxIndexesRecurse( StructProp->Struct, NewPropertyPrefix, OutComboBoxIndexes );
+						}
+					}
+					else
+					{
+						FString NewPropertyPrefix = FString::Printf( TEXT("%s%s."), *PropertyPrefix, *Property->GetName() );
+						GenerateComboBoxIndexesRecurse( StructProp->Struct, NewPropertyPrefix, OutComboBoxIndexes );
+					}
 				}
+			}
+			else if ( Property->IsA(UArrayProperty::StaticClass()) )
+			{
+				UArrayProperty *ArrayProp = Cast<UArrayProperty>(Property);
+
 			}
 			continue;
 		}
 
 		if ( IsPropertyPermitedForLiveEditor(*Property) )
 		{
-			FString Name = PropertyPrefix + Property->GetName();
-			VariableNameList.Add( Name );
+			if ( Property->ArrayDim > 1 )
+			{
+				for ( int32 i = 0; i < Property->ArrayDim; ++i )
+				{
+					FString arrayIndex = FString::Printf( TEXT("[%d]"), i );
+					FString Name = PropertyPrefix + Property->GetName() + arrayIndex;
+					VariableNameList.Add( Name );
+				}
+			}
+			else
+			{
+				FString Name = PropertyPrefix + Property->GetName();
+				VariableNameList.Add( Name );
+			}
 		}
 	}
 }

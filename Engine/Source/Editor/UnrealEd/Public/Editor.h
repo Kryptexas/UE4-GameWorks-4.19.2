@@ -11,6 +11,8 @@
 #include "Commandlets/EditorCommandlets.h"
 #include "EditorUndoClient.h"
 #include "TickableEditorObject.h"
+#include "Editor/UnrealEdTypes.h"
+#include "Editor/EditorEngine.h"
 
 #define CAMERA_ZOOM_DAMPEN			200.f
 
@@ -20,6 +22,7 @@ class FGeomEdge;
 class FGeomPoly;
 class FGeomObject;
 class FScopedTransaction;
+class UFactory;
 struct FBlueprintGraphActionListBuilder;
 
 
@@ -550,10 +553,11 @@ UNREALED_API bool IsUniqueObjectName( const FName& InName, UObject* Outer, FText
 
 
 /**
- * Provides access to the FEditorModeTools singleton.
+ * Provides access to the FEditorModeTools for the level editor
  */
+UNREALED_API class FEditorModeTools& GLevelEditorModeTools();
+DEPRECATED(4.3, "GEditorModeTools is now deprecated. Please use GLevelEditorModeTools instead.")
 UNREALED_API class FEditorModeTools& GEditorModeTools();
-
 
 namespace EditorUtilities
 {

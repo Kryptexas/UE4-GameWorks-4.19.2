@@ -175,8 +175,8 @@ namespace EpicGames.MCP.Automation
         /// <returns></returns>
         static public string GetBuildRootPath()
         {
-            return CommandUtils.IsBuildMachine
-                ? (Utils.IsRunningOnMono ? "/Volumes/Builds" : @"P:\Builds")
+            return CommandUtils.P4Enabled && CommandUtils.AllowSubmit
+                ? CommandUtils.RootSharedTempStorageDirectory()
                 : CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds");
         }
 
@@ -302,32 +302,6 @@ namespace EpicGames.MCP.Automation
         /// </summary>
         /// <returns>BuildInfo descringing the output of the chunking process.</returns>
         public abstract void Execute(BuildPatchToolOptions Opts);
-
-        public abstract HashSet<string> ExtractChunksFromManifestLegacy(string ManifestFilename, BuildPatchToolBase.ChunkType ChunkType);
-
-        /// <summary>
-        /// Extracts the chunk subdirectory given a chunk Guid in the legacy manifest (V1) format.
-        /// </summary>
-        /// <param name="chunkGuid">Guid of hte string (in UE4 string format)</param>
-        /// <returns>2-digit subdirectory string where the chunk can be found.</returns>
-        public abstract string GetChunkSubdirectoryV1(string chunkGuid);
-
-        /// <summary>
-        /// Extracts the chunk filenames from a manifest file.
-        /// </summary>
-        /// <remarks>
-        /// This code has to undo a lot of UE4 serialization stuff. Bytes are converted to 3-digit decimal and strung together as a string, so we have to undo that.
-        /// </remarks>
-        /// <param name="ManifestFilename">Full path to the manifest file</param>
-        /// <param name="bLookForV1Chunks">Whether to look for V1 chunks as well. If we know we didn't write any, this saves time.</param>
-        /// <returns>Set of full paths to the chunks in the manifest.</returns>
-        public abstract HashSet<string> ExtractChunksFromManifest(string manifestFilename, bool bLookForV1Chunks);
-
-        /// <summary>
-        /// Handles cleaning up unused chunks in the CloudDir for a specified app.
-        /// </summary>
-        /// <param name="stagingInfo">The staging info used to determine what cloud dir to compactify</param>
-        public abstract void CompactifyCloudDir(BuildPatchToolStagingInfo stagingInfo);
     }
 
 
@@ -397,6 +371,15 @@ namespace EpicGames.MCP.Automation
 		abstract public string GetBuildVersionWithPlatform(BuildPatchToolStagingInfo StagingInfo);
 
 		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="AppName">Application name to check the label in</param>
+		/// <param name="LabelName">Label name to get the build for</param>
+		/// <param name="McpConfigName">Which BuildInfo backend to label the build in.</param>
+		/// <returns></returns>
+		abstract public string GetLabeledBuildVersion(string AppName, string LabelName, string McpConfigName);
+
+		/// <summary>
 		/// Apply the requested label to the requested build in the BuildInfo backend for the requested MCP environment
 		/// </summary>
 		/// <param name="StagingInfo">Staging info for the build to label.</param>
@@ -420,22 +403,20 @@ namespace EpicGames.MCP.Automation
         /// </summary>
         /// <param name="command"></param>
         /// <returns>Path to the share (allows for override)</returns>
-        abstract public string MountProductionCDNShare(BuildCommand command);
+        abstract public string MountProductionCDNShare();
 
         /// <summary>
         /// Mounts the production CDN share (allows overriding via -CDNDrive command line arg)
         /// </summary>
         /// <param name="command"></param>
         /// <returns>Path to the share (allows for override)</returns>
-        abstract public string MountInternalCDNShare(BuildCommand command);
+        abstract public string MountInternalCDNShare();
 
-        /// <summary>
-        /// Mounts an NFS share (allows overriding via -CDNDrive command line arg)
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns>Full path to the NFSShare where builds should be placed.</returns>
-        [Help("CDNDrive", "Allows local testing of the CDN steps by rerouting the NFS mount to a local location (should already exist as it simulated mounting it!)")]
-        abstract public string MountNFSShare(BuildCommand command, string nfsSharePath, string nfsMountDrive);
+		/// <summary>
+		/// Checks for a stagingInfo's manifest on the production CDN.
+		/// </summary>
+		/// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
+		abstract public bool IsManifestOnProductionCDN(BuildPatchToolStagingInfo stagingInfo);
 
         /// <summary>
         /// Copies chunks from a staged location to the production CDN.
@@ -453,15 +434,8 @@ namespace EpicGames.MCP.Automation
         /// </summary>
         /// <param name="command">Build command (used to allow the -CDNDrive cmdline override).</param>
         /// <param name="manifestUrlPath">relative path to the manifest file from the build info service</param>
-        abstract public void CopyChunksToProductionCDN(BuildCommand command, string manifestUrlPath);
-
-        /// <summary>
-        /// Mirrors the CloudDir with the internal web server that can also serve chunks.
-        /// </summary>
-        /// <param name="command">Build command (used to allow the -CDNDrive cmdline override).</param>
-        /// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
-        abstract public void MirrorCloudDirToInternalCDN(BuildPatchToolStagingInfo stagingInfo);
-    }
+        abstract public void CopyChunksToProductionCDN(string manifestUrlPath);
+	}
     /// <summary>
     /// Helpers for using the MCP account service
     /// </summary>

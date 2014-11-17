@@ -87,8 +87,8 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 	// Register for notifications
 	MyRegisteredGraphChangedDelegate = FOnGraphChanged::FDelegate::CreateSP(this, &SGraphPanel::OnGraphChanged);
 	this->GraphObj->AddOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
-
-	bShowPIENotification = InArgs._ShowPIENotification;
+	
+	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
 }
 
 SGraphPanel::~SGraphPanel()
@@ -274,7 +274,7 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
 					// Draw the node.O
-					CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint( CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, ShouldBeEnabled( bParentEnabled ) );
+					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, ShouldBeEnabled( bParentEnabled ) );
 				}
 
 				// Draw the node's overlay, if it has one.
@@ -459,28 +459,31 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 	++MaxLayerId;
 	PaintSurroundSunkenShadow(FEditorStyle::GetBrush(TEXT("Graph.Shadow")), AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
 
-	const FSlateBrush* BorderBrush = nullptr;
-	if (bShowPIENotification && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
+	if(ShowGraphStateOverlay.Get())
 	{
-		// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
-		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor"));
-	}
-	else if (!IsEditable.Get())
-	{
-		// Draw a different border when we're not simulating but the graph is read-only
-		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.ReadOnlyBorder"));
-	}
+		const FSlateBrush* BorderBrush = nullptr;
+		if((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
+		{
+			// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
+			BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor"));
+		}
+		else if(!IsEditable.Get())
+		{
+			// Draw a different border when we're not simulating but the graph is read-only
+			BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.ReadOnlyBorder"));
+		}
 
-	if (BorderBrush)
-	{
-		// Actually draw the border
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			MaxLayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			BorderBrush,
-			MyClippingRect
-			);
+		if(BorderBrush)
+		{
+			// Actually draw the border
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				MaxLayerId,
+				AllottedGeometry.ToPaintGeometry(),
+				BorderBrush,
+				MyClippingRect
+				);
+		}
 	}
 
 	// Draw the marquee selection rectangle
@@ -636,7 +639,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 		const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) );
 		TArray<UEdGraphPin*> NoSourcePins;
 
-		return SummonContextMenu( MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins);
+		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins, MouseEvent.IsShiftDown());
 	}
 
 	return TSharedPtr<SWidget>();
@@ -699,15 +702,15 @@ void SGraphPanel::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent
 
 void SGraphPanel::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
-	if (DragConnectionOp.IsValid())
+	TSharedPtr<FGraphEditorDragDropAction> Operation = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if( Operation.IsValid() )
 	{
-		DragConnectionOp->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
+		Operation->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
 	}
 	else
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-		if (AssetOp.IsValid())
+		TSharedPtr<FDecoratedDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if( AssetOp.IsValid()  )
 		{
 			AssetOp->ResetToDefaultToolTip();
 		}
@@ -720,6 +723,31 @@ FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEven
 	if (!Operation.IsValid())
 	{
 		return FReply::Unhandled();
+	}
+
+	// Handle Read only graphs
+	if( !IsEditable.Get() )
+	{
+		TSharedPtr<FGraphEditorDragDropAction> GraphDragDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+
+		if( GraphDragDropOp.IsValid() )
+		{
+			GraphDragDropOp->SetDropTargetValid( false );
+		}
+		else
+		{
+			TSharedPtr<FDecoratedDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+			if( AssetOp.IsValid() )
+			{
+				FText Tooltip = AssetOp->GetHoverText();
+				if( Tooltip.IsEmpty() )
+				{
+					Tooltip = NSLOCTEXT( "GraphPanel", "DragDropOperation", "Graph is Read-Only" );
+				}
+				AssetOp->SetToolTip( Tooltip, FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
+			}
+		}
+		return FReply::Handled();
 	}
 
 	if( Operation->IsOfType<FGraphEditorDragDropAction>() )
@@ -757,7 +785,7 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || !IsEditable.Get())
 	{
 		return FReply::Unhandled();
 	}
@@ -798,11 +826,11 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	}
 }
 
-void SGraphPanel::OnBeginMakingConnection( const TSharedRef<SGraphPin>& InOriginatingPin )
+void SGraphPanel::OnBeginMakingConnection(UEdGraphPin* InOriginatingPin)
 {
-	if (auto* PinObj = InOriginatingPin->GetPinObj())
+	if (InOriginatingPin != nullptr)
 	{
-		PreviewConnectorFromPins.Add(PinObj);
+		PreviewConnectorFromPins.Add(InOriginatingPin);
 	}
 }
 
@@ -849,11 +877,18 @@ void SGraphPanel::RemoveAllNodes()
 	SNodePanel::RemoveAllNodes();
 }
 
-TSharedPtr<SWidget> SGraphPanel::SummonContextMenu( const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins )
+TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation)
 {
 	if (OnGetContextMenuFor.IsBound())
 	{
-		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute( WhereToAddNode, ForNode, ForPin, DragFromPins );
+		FGraphContextMenuArguments SpawnInfo;
+		SpawnInfo.NodeAddPosition = WhereToAddNode;
+		SpawnInfo.GraphNode = ForNode;
+		SpawnInfo.GraphPin = ForPin;
+		SpawnInfo.DragFromPins = DragFromPins;
+		SpawnInfo.bShiftOperation = bShiftOperation;
+
+		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 
 		TSharedRef<SWidget> MenuContent =
 			SNew( SBorder )
@@ -884,13 +919,13 @@ void SGraphPanel::AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode)
 	CreatedSubNode->SetTextCommittedEvent(OnTextCommitted);
 }
 
-void SGraphPanel::AddNode (UEdGraphNode* Node)
+void SGraphPanel::AddNode(UEdGraphNode* Node)
 {
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);
 	check(NewNode.IsValid());
 
 	FEdGraphEditAction* GraphAction = UserAddedNodes.Find(Node);
-	bool bWasUserAdded = GraphAction? true : false;
+	const bool bWasUserAdded = (GraphAction != nullptr) ? true : false;
 
 	NewNode->SetIsEditable(IsEditable);
 	NewNode->SetDoubleClickEvent(OnNodeDoubleClicked);
@@ -911,13 +946,13 @@ void SGraphPanel::AddNode (UEdGraphNode* Node)
 		NewNode->PlaySpawnEffect();
 
 		// Do not Select nodes unless they are marked for selection
-		if((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
+		if ((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
 		{
 			SelectAndCenterObject(Node, false);
 		}
 
 		NewNode->UpdateGraphNode();
-		NewNode->RequestRename();
+		NewNode->RequestRenameOnSpawn();
 	}
 	else
 	{

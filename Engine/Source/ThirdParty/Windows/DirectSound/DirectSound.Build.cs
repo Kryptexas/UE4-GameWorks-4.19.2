@@ -7,7 +7,7 @@ public class DirectSound : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartyDirectory + "Windows/DirectX";
+		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
 		PublicIncludePaths.Add( DirectXSDKDir + "/include");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)

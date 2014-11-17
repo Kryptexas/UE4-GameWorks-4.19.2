@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Engine/Blueprint.h"
+#include "AnimInstance.h"
+
 #include "AnimBlueprint.generated.h"
 
 USTRUCT()
@@ -52,7 +54,7 @@ struct FAnimParentNodeAssetOverride
  * It can perform blending of animations, directly control the bones of the skeleton, and output a final pose
  * for a Skeletal Mesh each frame.
  */
-UCLASS(dependson=(UBlueprint, UAnimInstance), BlueprintType)
+UCLASS(BlueprintType)
 class ENGINE_API UAnimBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
@@ -73,6 +75,8 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 
 #if WITH_EDITOR
 
+	virtual UClass* GetBlueprintClass() const override;
+
 	// Inspects the hierarchy and looks for an override for the requested node GUID
 	// @param NodeGuid - Guid of the node to search for
 	// @param bIgnoreSelf - Ignore this blueprint and only search parents, handy for finding parent overrides
@@ -84,7 +88,7 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 	bool GetAssetOverrides(TArray<FAnimParentNodeAssetOverride*>& OutOverrides);
 
 	// UBlueprint interface
-	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
+	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;
 	}
@@ -115,7 +119,7 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 		OnOverrideChanged.Broadcast(Override.ParentNodeGuid, Override.NewAsset);
 	}
 
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 protected:
 	// Broadcast when an override is changed, allowing derived blueprints to be updated

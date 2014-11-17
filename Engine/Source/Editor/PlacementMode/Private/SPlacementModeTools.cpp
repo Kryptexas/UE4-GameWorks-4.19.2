@@ -227,9 +227,9 @@ const FSlateBrush* SPlacementAssetEntry::GetBorder() const
 
 SPlacementModeTools::~SPlacementModeTools()
 {
-	if ( IPlacementModeModule::IsAvailable() && IPlacementModeModule::Get().IsPlacementModeAvailable() )
+	if ( IPlacementModeModule::IsAvailable() )
 	{
-		IPlacementModeModule::Get().GetPlacementMode()->OnRecentlyPlacedChanged().RemoveAll( this );
+		IPlacementModeModule::Get().OnRecentlyPlacedChanged().RemoveAll( this );
 	}
 }
 
@@ -239,7 +239,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 	bPlaceablesFullRefreshRequested = false;
 	bVolumesRefreshRequested = false;
 
-	FPlacementMode* PlacementEditMode = (FPlacementMode*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
+	FPlacementMode* PlacementEditMode = (FPlacementMode*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
 	PlacementEditMode->AddValidFocusTargetForPlacement( SharedThis( this ) );
 
 	ChildSlot
@@ -289,7 +289,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 
 	RefreshRecentlyPlaced();
 
-	IPlacementModeModule::Get().GetPlacementMode()->OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
+	IPlacementModeModule::Get().OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
@@ -680,17 +680,22 @@ void SPlacementModeTools::RefreshRecentlyPlaced()
 	const TArray< FActorPlacementInfo > RecentlyPlaced = IPlacementModeModule::Get().GetRecentlyPlaced();
 	for ( int Index = 0; Index < RecentlyPlaced.Num(); Index++ )
 	{
-		FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *RecentlyPlaced[Index].ObjectPath );
-
-		if ( AssetData.IsValid() )
+		UObject* Asset = FindObject<UObject>(NULL, *RecentlyPlaced[Index].ObjectPath);
+		// If asset is pending delete, it will not be marked as RF_Standalone, in which case we skip it
+		if (Asset != nullptr && Asset->HasAnyFlags(RF_Standalone))
 		{
-			TArray< FActorFactoryAssetProxy::FMenuItem > AssetMenuOptions;
-			UActorFactory* Factory = FindObject<UActorFactory>( nullptr, *RecentlyPlaced[Index].Factory );
+			FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*RecentlyPlaced[Index].ObjectPath);
 
-			RecentlyPlacedContainer->AddSlot()
-			[
-				SNew( SPlacementAssetEntry, Factory, AssetData )
-			];
+			if (AssetData.IsValid())
+			{
+				TArray< FActorFactoryAssetProxy::FMenuItem > AssetMenuOptions;
+				UActorFactory* Factory = FindObject<UActorFactory>(nullptr, *RecentlyPlaced[Index].Factory);
+
+				RecentlyPlacedContainer->AddSlot()
+					[
+						SNew(SPlacementAssetEntry, Factory, AssetData)
+					];
+			}
 		}
 	}
 }
@@ -908,7 +913,7 @@ FReply SPlacementModeTools::OnKeyDown( const FGeometry& MyGeometry, const FKeybo
 
 	if ( InKeyboardEvent.GetKey() == EKeys::Escape )
 	{
-		FPlacementMode* PlacementEditMode = (FPlacementMode*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
+		FPlacementMode* PlacementEditMode = (FPlacementMode*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
 		PlacementEditMode->StopPlacing();
 		Reply = FReply::Handled();
 	}

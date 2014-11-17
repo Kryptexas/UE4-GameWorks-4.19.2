@@ -8,6 +8,14 @@
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldGlobal.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldRotation.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldRotationRate.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldScale.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldScaleOverLife.h"
+#include "Particles/ParticleLODLevel.h"
 
 /*------------------------------------------------------------------------------
 	Global vector field scale.

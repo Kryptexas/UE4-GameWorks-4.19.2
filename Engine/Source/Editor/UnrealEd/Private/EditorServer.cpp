@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BusyCursor.h"
 #include "SoundDefinitions.h"
@@ -11,6 +12,7 @@
 #include "Layers/ILayers.h"
 #include "ScopedTransaction.h"
 #include "SurfaceIterators.h"
+#include "LightMap.h"
 #include "BSPOps.h"
 #include "EditorLevelUtils.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
@@ -19,6 +21,12 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
+#include "Animation/AnimSet.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpData.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -37,6 +45,11 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -430,7 +443,7 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 	bool bResult = false;
 #if !UE_BUILD_SHIPPING
 	// Not supported on shipped builds because PC cooking strips raw mesh data.
-	ABrush* WorldBrush = InWorld->GetBrush();
+	ABrush* WorldBrush = InWorld->GetDefaultBrush();
 	if(FParse::Command(&Str,TEXT("TO")))
 	{
 		if(FParse::Command(&Str,TEXT("BRUSH")))
@@ -516,7 +529,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 {
 	// Keep a pointer to the beginning of the string to use for message displaying purposes
 	const TCHAR* const FullStr = Str;
-	ABrush* WorldBrush = InWorld->GetBrush();
+	ABrush* WorldBrush = InWorld->GetDefaultBrush();
 	if( FParse::Command(&Str,TEXT("APPLYTRANSFORM")) )
 	{
 		CommandIsDeprecated( TEXT("APPLYTRANSFORM"), Ar );
@@ -526,12 +539,20 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 	{
 		{
 			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set") );
-			InWorld->GetBrush()->Brush->Modify();
-			FRotator Temp(0.0f,0.0f,0.0f);
-			FVector SnapLocation = InWorld->GetBrush()->GetActorLocation();
+			FRotator Temp(0.0f, 0.0f, 0.0f);
+			FVector SnapLocation(0.0f, 0.0f, 0.0f);
+			FVector PrePivot(0.0f, 0.0f, 0.0f);
+			ABrush* DefaultBrush = InWorld->GetDefaultBrush();
+			if (DefaultBrush != NULL)
+			{
+				DefaultBrush->Brush->Modify();
+				SnapLocation = DefaultBrush->GetActorLocation();
+				PrePivot = DefaultBrush->GetPrePivot();
+			}
+			
 			FSnappingUtils::SnapToBSPVertex( SnapLocation, FVector::ZeroVector, Temp );
 
-			WorldBrush->SetActorLocation(SnapLocation - InWorld->GetBrush()->GetPrePivot(), false);
+			WorldBrush->SetActorLocation(SnapLocation - PrePivot, false);
 			WorldBrush->SetPrePivot( FVector::ZeroVector );
 			WorldBrush->Brush->Polys->Element.Empty();
 			UPolysFactory* It = new UPolysFactory(FPostConstructInitializeProperties());
@@ -787,7 +808,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			}
 			WorldBrush->ReregisterAllComponents();
 
-			GEditorModeTools().MapChangeNotify();
+			GLevelEditorModeTools().MapChangeNotify();
 			RedrawLevelEditingViewports();
 			return true;
 		}
@@ -807,7 +828,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			}
 			WorldBrush->ReregisterAllComponents();
 
-			GEditorModeTools().MapChangeNotify();
+			GLevelEditorModeTools().MapChangeNotify();
 			RedrawLevelEditingViewports();
 			return true;
 		}
@@ -1570,65 +1591,120 @@ void UEditorEngine::RebuildAlteredBSP()
 
 void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 {
-	FEdModeGeometry* Mode = GEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* Mode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
 	if (Mode)
 	{
 		Mode->GeometrySelectNone(true, true);
 	}
-
-	InWorld->GetBrush()->Brush->Modify();
-	FinishAllSnaps();
-	bspBrushCSG( InWorld->GetBrush(), InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true );
+	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
+	if (DefaultBrush != NULL)
+	{
+		DefaultBrush->Brush->Modify();
+		FinishAllSnaps();
+		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
+	}
 }
 
-void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText )
+void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld )
 {
-	if (Context.World() == NULL )
+	UWorld* ContextWorld = Context.World();
+
+	if (ContextWorld == NULL )
 	{
 		return;		// We cannot destroy a world if the pointer is not valid
 	}
 
-	UPackage* WorldPackage = CastChecked<UPackage>(Context.World()->GetOuter());
+	UPackage* WorldPackage = CastChecked<UPackage>(ContextWorld->GetOuter());
 	if (WorldPackage == GetTransientPackage())
 	{
 		// Don't check if the package was properly cleaned up if we were created in the transient package
 		WorldPackage = NULL;
 	}
 
-	if (Context.World()->WorldType != EWorldType::Preview && Context.World()->WorldType != EWorldType::Inactive)
+	if (ContextWorld->WorldType != EWorldType::Preview && ContextWorld->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
-		Context.World()->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
-		Context.World()->SetFlags(RF_Transient);
+		ContextWorld->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+
+		// If this was a memory-only world, we should inform the asset registry that this asset is going away forever.
+		if (WorldPackage)
+		{
+			const FString PackageName = WorldPackage->GetName();
+			const bool bIncludeReadOnlyRoots = false;
+			if (FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots))
+			{
+				// Now check if the file exists on disk. If it does, it won't be "lost" when GC'd.
+				if (!FPackageName::DoesPackageExist(PackageName))
+				{
+					// We are preparing the object for GC and there is no file on disk to reload it. Count this as a delete.
+					FAssetRegistryModule::AssetDeleted(ContextWorld);
+				}
+			}
+		}
+
+		ContextWorld->SetFlags(RF_Transient);
 	}
-	
+
 	GUnrealEd->CurrentLODParentActor = NULL;
 	SelectNone( true, true );
 	EditorClearComponents();
 	ClearPreviewComponents();
 	// Remove all active groups, they belong to a map being unloaded
-	ActiveGroupActors.Empty();
+	ContextWorld->ActiveGroupActors.Empty();
 
 	// Make sure we don't have any apps open on for assets owned by the world we are closing
-	CloseEditedWorldAssets(Context.World());
+	CloseEditedWorldAssets(ContextWorld);
 
 	// Stop all audio and remove references 
-	if (GetAudioDevice() )
+	if ( GetAudioDevice() )
 	{
-		GetAudioDevice()->Flush( NULL );
+		GetAudioDevice()->Flush(NULL);
 	}
 
-	Context.World()->DestroyWorld( true );
+	// Reset the editor transform to avoid loading the new world with an offset if loading a sublevel
+	if (NewWorld)
+	{
+		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel(NewWorld->PersistentLevel);
+		if (LevelStreaming && NewWorld->PersistentLevel->bAlreadyMovedActors)
+		{
+			FLevelUtils::RemoveEditorTransform(LevelStreaming);
+			NewWorld->PersistentLevel->bAlreadyMovedActors = false;
+		}
+	}
+
+	ContextWorld->DestroyWorld( true, NewWorld );
 	Context.SetCurrentWorld(NULL);
-	
+
+	// Add the new world to root if it wasn't already and keep track of it so we can remove it from root later if appropriate
+	bool bNewWorldAddedToRoot = false;
+	if ( NewWorld )
+	{
+		if ( !NewWorld->IsRooted() )
+		{
+			NewWorld->AddToRoot();
+			bNewWorldAddedToRoot = true;
+		}
+
+		// Reset the owning level to allow the old world to GC if it was a sublevel
+		NewWorld->PersistentLevel->OwningWorld = NewWorld;
+	}
+
 	// Cleanse which should remove the old world which we are going to verify.
 	GEditor->Cleanse( true, 0, CleanseText );
 
+	// If we added the world to the root set above, remove it now that the GC is complete.
+	if ( bNewWorldAddedToRoot )
+	{
+		NewWorld->RemoveFromRoot();
+	}
+
+	// Make sure the old world is completely gone, except if the new world was one of it's sublevels
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* RemainingWorld = *It;
+		const bool bIsNewWorld = (NewWorld && RemainingWorld == NewWorld);
 		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
-		if (!bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
+		if (!bIsNewWorld && !bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
 
@@ -1641,10 +1717,12 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 
 	if (WorldPackage != NULL)
 	{
+		UPackage* NewWorldPackage = NewWorld ? NewWorld->GetOutermost() : nullptr;
 		for( TObjectIterator<UPackage> It; It; ++It )
 		{
 			UPackage* RemainingPackage = *It;
-			if (RemainingPackage == WorldPackage)
+			const bool bIsNewWorldPackage = (NewWorldPackage && RemainingPackage == NewWorldPackage);
+			if (!bIsNewWorldPackage && RemainingPackage == WorldPackage)
 			{
 				StaticExec(NULL, *FString::Printf(TEXT("OBJ REFS CLASS=PACKAGE NAME=%s"), *RemainingPackage->GetPathName()));
 
@@ -1676,6 +1754,34 @@ bool UEditorEngine::ShouldAbortBecauseOfPIEWorld() const
 	return false;
 }
 
+bool UEditorEngine::ShouldAbortBecauseOfUnsavedWorld() const
+{
+	// If an unsaved world exists that would be lost in a map transition, give the user the option to cancel a map load.
+
+	// First check if we have a world and it is dirty
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld && EditorWorld->GetOutermost()->IsDirty())
+	{
+		// Now check if the world is in a path that can be saved (otherwise it is in something like the transient package or temp)
+		const FString PackageName = EditorWorld->GetOutermost()->GetName();
+		const bool bIncludeReadOnlyRoots = false;
+		if ( FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots) )
+		{
+			// Now check if the file exists on disk. If it does, it won't be "lost" when GC'd.
+			if ( !FPackageName::DoesPackageExist(PackageName) )
+			{
+				// This world will be completely lost if a map transition happens. Warn the user that this is happening and ask him/her how to proceed.
+				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(EditorWorld->GetName()))))
+				{
+					// User doesn't want to lose the world -- abort the load.
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 /**
  * Prompts the user to save the current map if necessary, then creates a new (blank) map.
  */
@@ -1697,31 +1803,36 @@ void UEditorEngine::CreateNewMapForEditing()
 		// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
 		return;
 	}
+
+	if ( ShouldAbortBecauseOfUnsavedWorld() )
+	{
+		return;
+	}
 	
 	const FScopedBusyCursor BusyCursor;
 
 	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
 	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
 	}
 
 	// Also change out of Foliage mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Foliage ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Foliage ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Foliage );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Foliage );
 	}
 
 	// Change out of mesh paint mode when opening a new map.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
 	}
 
 	GUnrealEd->NewMap();
@@ -1733,6 +1844,12 @@ void UEditorEngine::CreateNewMapForEditing()
 
 UWorld* UEditorEngine::NewMap()
 {
+	// If we have a PIE session kill it before creating a new map
+	if (PlayWorld)
+	{
+		EndPlayMap();
+	}
+
 	const FScopedBusyCursor BusyCursor;
 
 	FWorldContext &Context = GetEditorWorldContext();
@@ -1750,6 +1867,7 @@ UWorld* UEditorEngine::NewMap()
 	// Create a new world
 	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
 	Factory->WorldType = EWorldType::Editor;
+	Factory->bInformEngineOfWorld = true;
 	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
 	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
@@ -1776,13 +1894,16 @@ UWorld* UEditorEngine::NewMap()
 	}
 
 	// Move the brush to the origin.
-	Context.World()->GetBrush()->SetActorLocation(FVector::ZeroVector, false);
+	if (Context.World()->GetDefaultBrush() != NULL)
+	{
+		Context.World()->GetDefaultBrush()->SetActorLocation(FVector::ZeroVector, false);
+	}
 
 	// Make the builder brush a small 256x256x256 cube so its visible.
 	InitBuilderBrush( Context.World() );
 
 	// Let navigation system know we're done creating new world
-	UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
+	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
 
 	// Deselect all
 	GEditor->SelectNone( false, true );
@@ -1897,11 +2018,25 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 		FString LongTempFname;
 		if ( FPackageName::TryConvertFilenameToLongPackageName(TempFname, LongTempFname) )
 		{
-			FString AlteredPath;
-			if ( FPackageName::DoesPackageExist(LongTempFname, NULL, &AlteredPath) )
+ 			if ( Context.World() && Context.World()->GetOutermost() && Context.World()->GetOutermost() == FindPackage(NULL, *LongTempFname) )
+ 			{
+ 				// This map is already loaded and in the editor.
+ 				return true;
+ 			}
+
+			// Is the new world already loaded?
+			UPackage* ExistingPackage = FindPackage(NULL, *LongTempFname);
+			UWorld* ExistingWorld = NULL;
+			if (ExistingPackage)
+			{
+				ExistingWorld = UWorld::FindWorldInPackage(ExistingPackage);
+			}
+
+			FString UnusedAlteredPath;
+			if ( ExistingWorld || FPackageName::DoesPackageExist(LongTempFname, NULL, &UnusedAlteredPath) )
 			{
 				FText NotMapReason;
-				if( !PackageIsAMapFile( TempFname, NotMapReason ) )
+				if( !ExistingWorld && !PackageIsAMapFile( TempFname, NotMapReason ) )
 				{
 					// Map load failed 
 					FMessageDialog::Open( EAppMsgType::Ok, NotMapReason );
@@ -1918,11 +2053,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				// Should we display progress while loading?
 				int32 bShowProgress = 1;
 				FParse::Value(Str, TEXT("SHOWPROGRESS="), bShowProgress);
-
-				// Should we create world composition?
-				int32 bWorldComposition = 0;
-				FParse::Value(Str, TEXT("WORLDCOMPOSITION="), bWorldComposition);
-				
+			
 				UObject* OldOuter = NULL;
 
 				{
@@ -1932,10 +2063,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					FStatsViewerModule& StatsViewerModule = FModuleManager::Get().LoadModuleChecked<FStatsViewerModule>(TEXT("StatsViewer"));
 					StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Clear();
 
-					if( !GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Default ) )
-					{
-						GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
-					}
+					GLevelEditorModeTools().ActivateDefaultMode();
 
 					OldOuter = Context.World()->GetOuter();
 
@@ -1966,7 +2094,18 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Arguments.Add(TEXT("MapFileName"), FText::FromString( MapFileName ));
 						FMessageLog("LoadErrors").NewPage( FText::Format( LOCTEXT("LoadMapLogPage", "Loading map: {MapFileName}"), Arguments ) );
 					}
-					EditorDestroyWorld( Context, LocalizedLoadingMap );
+					EditorDestroyWorld( Context, LocalizedLoadingMap, ExistingWorld );
+
+					// Refresh ExistingPackage and Existing World now that GC has occurred.
+					ExistingPackage = FindPackage(NULL, *LongTempFname);
+					if (ExistingPackage)
+					{
+						ExistingWorld = UWorld::FindWorldInPackage(ExistingPackage);
+					}
+					else
+					{
+						ExistingWorld = NULL;
+					}
 
 					GWarn->StatusUpdate( -1, -1, LocalizedLoadingMap );
 				}
@@ -2006,8 +2145,15 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				}
 				else
 				{
-					//Load the map normally into a new package
-					WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+					if ( ExistingPackage )
+					{
+						WorldPackage = ExistingPackage;
+					}
+					else
+					{
+						//Load the map normally into a new package
+						WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+					}
 				}
 
 				if (WorldPackage == NULL)
@@ -2038,13 +2184,16 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 				Context.World()->WorldType = EWorldType::Editor;
 
-				Context.World()->InitWorld(UWorld::InitializationValues()
-											.ShouldSimulatePhysics(false)
-											.EnableTraceCollision(true)
-											.CreateWorldComposition(bWorldComposition != 0)
-											);
+				if ( !Context.World()->bIsWorldInitialized )
 				{
-					FBSPOps::bspValidateBrush( Context.World()->GetBrush()->Brush, 0, 1 );
+					Context.World()->InitWorld(UWorld::InitializationValues()
+												.ShouldSimulatePhysics(false)
+												.EnableTraceCollision(true)
+												);
+				}
+
+				{
+					FBSPOps::bspValidateBrush(Context.World()->GetDefaultBrush()->Brush, 0, 1);
 
 					FString MapFileName = FPaths::GetCleanFilename(TempFname);
 					GWarn->StatusUpdate( -1, -1, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ) );
@@ -2106,7 +2255,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Actor->SetFlags( RF_Transactional );
 					}
 
-					UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
+					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+					Context.World()->CreateAISystem();
 
 					// Assign stationary light channels for previewing
 					ULightComponent::ReassignStationaryLightChannels(Context.World(), false);
@@ -2487,6 +2637,12 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 		FNotificationInfo Info(NSLOCTEXT("UnrealEd", "CannotMoveIntoLockedLevel", "Cannot move the selected actors into a locked level"));
 		Info.bUseThrobber = false;
 		FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
+		return;
+	}
+
+	if (GetSelectedActorCount() <= 0)
+	{
+		// Nothing to move, probably source level was hidden and actors lost selection mark
 		return;
 	}
 
@@ -5420,7 +5576,7 @@ bool UEditorEngine::HandleSelectCommand( const TCHAR* Str, FOutputDevice& Ar, UW
 bool UEditorEngine::HandleDeleteCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
 	// If geometry mode is active, give it a chance to handle this command.  If it does not, use the default handler
-	if( !GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) || !( (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) )->ExecDelete() )
+	if( !GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) || !( (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) )->ExecDelete() )
 	{
 		return Exec( InWorld, TEXT("ACTOR DELETE") );
 	}

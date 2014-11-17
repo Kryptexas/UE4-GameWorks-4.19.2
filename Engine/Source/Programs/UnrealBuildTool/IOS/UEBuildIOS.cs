@@ -12,6 +12,7 @@ namespace UnrealBuildTool
 	class IOSPlatform : UEBuildPlatform
 	{
 		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		[XmlConfig]
 		public static string IOSArchitecture = "";
 
 		// The current architecture - affects everything about how UBT operates on IOS
@@ -30,10 +31,6 @@ namespace UnrealBuildTool
 		 */
 		public override void RegisterBuildPlatform()
 		{
-            if ((UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket()) && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-            {
-                return;
-            }
 			// Register this build platform for IOS
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.IOS.ToString());
 			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.IOS, this);
@@ -84,6 +81,10 @@ namespace UnrealBuildTool
 					return "";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
@@ -120,9 +121,20 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
 			}
 
+			// needs IOS8 for Metal
+			if (IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
+				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
+			}
+
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "GameKit" ) );
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "StoreKit" ) );
-		}
+        }
 
 		/**
 		*	Whether the editor should be built for this platform or not
@@ -160,7 +172,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileNetworkProfiler = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 
 			// we currently don't have any simulator libs for PhysX
@@ -241,10 +252,10 @@ namespace UnrealBuildTool
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
 				}
 
-				if (bBuildShaderFormats)
-				{
-                    //InModule.AddPlatformSpecificDynamicallyLoadedModule("ShaderFormatIOS");
-				}
+ 				if (bBuildShaderFormats)
+ 				{
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("MetalShaderFormat");
+ 				}
 			}
 		}
 
@@ -298,7 +309,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// generate the .stub!
 			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };

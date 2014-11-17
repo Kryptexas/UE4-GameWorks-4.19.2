@@ -30,9 +30,6 @@ FCoreAudioSoundBuffer::FCoreAudioSoundBuffer( FAudioDevice* InAudioDevice, ESoun
 	PCMData( NULL ),
 	PCMDataSize( 0 ),
 	DecompressionState( NULL ),
-	NumChannels( 0 ),
-	ResourceID( 0 ),
-	bAllocationInPermanentPool( false ),
 	bDynamicResource( false )
 {
 }
@@ -137,7 +134,7 @@ void FCoreAudioSoundBuffer::Seek( const float SeekTime )
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
@@ -149,7 +146,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 
 	Buffer->DecompressionState = CoreAudioDevice->CreateCompressedAudioInfo(Wave);
 	
-	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
+	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat(Wave) );
 	
 	if( Buffer->DecompressionState->ReadCompressedInfo( Wave->ResourceData, Wave->ResourceSize, &QualityInfo ) )
 	{
@@ -181,7 +178,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateProceduralBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
@@ -206,7 +203,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateProceduralBuffer( FCoreAudio
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreatePreviewBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave, FCoreAudioSoundBuffer* Buffer )
 {

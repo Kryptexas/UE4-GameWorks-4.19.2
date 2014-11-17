@@ -5,11 +5,13 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Slate.h"
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
 #include "WordWrapper.h"
 
 #include "IHeadMountedDisplay.h"
+#include "Debug/ReporterGraph.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 
@@ -58,7 +60,9 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 void FCanvas::Construct()
 {
 	check(RenderTarget);
-	
+
+	bScaledToRenderTarget = false;
+
 	// Push the viewport transform onto the stack.  Default to using a 2D projection. 
 	new(TransformStack) FTransformEntry( 
 		FMatrix( CalcBaseTransform2D(RenderTarget->GetSizeXY().X,RenderTarget->GetSizeXY().Y) ) 
@@ -173,8 +177,12 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 		{
 			const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
+			
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 			// draw batched items
 			Data->BatchedElements.Draw(
+				RHICmdList,
 				bNeedsToSwitchVerticalAxis,
 				Data->Transform.GetMatrix(),
 				CanvasRenderTarget->GetSizeXY().X,
@@ -216,9 +224,10 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 				FBatchedDrawParameters,Parameters,DrawParameters,
 			{
 				const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-
+				
 				// draw batched items
 				Parameters.RenderData->BatchedElements.Draw(
+					RHICmdList,
 					bNeedsToSwitchVerticalAxis,
 					Parameters.RenderData->Transform.GetMatrix(),
 					Parameters.ViewportSizeX,
@@ -285,6 +294,7 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 		{
 			const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
 			FTileRenderer::DrawTile(
+				FRHICommandListExecutor::GetImmediateCommandList(),
 				*View, 
 				Data->MaterialRenderProxy, 
 				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
@@ -324,6 +334,7 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 			{
 				const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
 				FTileRenderer::DrawTile(
+					RHICmdList,
 					*Parameters.View, 
 					Parameters.RenderData->MaterialRenderProxy, 
 					Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
@@ -469,6 +480,12 @@ void FCanvas::Flush(bool bForce)
 	// current render target set for the canvas
 	check(RenderTarget);	 	
 
+	// no need to set the render target if we aren't going to draw anything to it!
+	if (SortedElements.Num() == 0)
+	{
+		return;
+	}
+
 	// FCanvasSortElement compare class
 	struct FCompareFCanvasSortElement
 	{
@@ -479,18 +496,19 @@ void FCanvas::Flush(bool bForce)
 	};
 	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
 	SortedElements.Sort( FCompareFCanvasSortElement() );
-
 	if( GRenderingThread && IsInRenderingThread() )
 	{
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 		SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
 		const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 		check(IsValidRef(RenderTargetTexture));
 
 		// Set the RHI render target.
-		RHISetRenderTarget(RenderTargetTexture, FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
 		// disable depth test & writes
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 		if( ViewRect.Area() <= 0 )
 		{
@@ -498,7 +516,7 @@ void FCanvas::Flush(bool bForce)
 		}
 
 		// set viewport to RT size
-		RHISetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
+		RHICmdList.SetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
 	}
 	else 
 	{
@@ -524,13 +542,13 @@ void FCanvas::Flush(bool bForce)
 			SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
 
 			// Set the RHI render target.
-			RHISetRenderTarget(Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 			// disable depth test & writes
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-			const FIntRect& ViewRect = Parameters.ViewRect;
+			const FIntRect& ViewportRect = Parameters.ViewRect;
 			// set viewport to RT size
-			RHISetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
+			RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
 		});
 	}
 
@@ -671,10 +689,10 @@ void FCanvas::Clear(const FLinearColor& Color)
 		{
 			if( CanvasRenderTarget )
 			{
-				RHISetRenderTarget(CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-				RHISetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
+				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
+				RHICmdList.SetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
 			}
-			RHIClear(true,Color,false,0.0f,false,0, FIntRect());
+			RHICmdList.Clear(true,Color,false,0.0f,false,0, FIntRect());
 		});
 }
 
@@ -1241,18 +1259,18 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
-	int32		XL = 0;
-	int32		YL = 0;
+	int32		XL		= 0;
+	int32		YL		= 0; 
 	// need this call in any case to update YL and XL - one of them will be needed anyway
 	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText.ToString(), RenderInfo);
 
 	if (RenderInfo.bClipText)
 	{
 		FCanvasTextItem TextItem(FVector2D(FMath::TruncToFloat(OrgX + X), FMath::TruncToFloat(OrgY + Y)), InText, InFont, DrawColor);
-		TextItem.Scale = FVector2D(XScale, YScale),
-			TextItem.BlendMode = SE_BLEND_Translucent;
+		TextItem.Scale = FVector2D( XScale, YScale ), 
+		TextItem.BlendMode = SE_BLEND_Translucent;
 		TextItem.FontRenderInfo = RenderInfo;
-		Canvas->DrawItem(TextItem);
+		Canvas->DrawItem( TextItem );	
 	}
 
 	return (float)YL;
@@ -1616,3 +1634,144 @@ void UCanvas::SetView(FSceneView* InView)
 		//ViewRotation = FRotator(0,0,0);
 	}
 }
+
+TWeakObjectPtr<class UReporterGraph> UCanvas::GetReporterGraph()
+{
+	if (!ReporterGraph)
+	{
+		ReporterGraph = Cast<UReporterGraph>(StaticConstructObject(UReporterGraph::StaticClass(), this));
+	}
+
+	return ReporterGraph;
+}
+
+void UCanvas::K2_DrawLine(FVector2D ScreenPositionA, FVector2D ScreenPositionB, float Thickness, FLinearColor RenderColor)
+{
+	if (FMath::Square(ScreenPositionB.X - ScreenPositionA.X) + FMath::Square(ScreenPositionB.Y - ScreenPositionA.Y))
+	{
+		FCanvasLineItem LineItem(ScreenPositionA, ScreenPositionB);
+		LineItem.LineThickness = Thickness;
+		LineItem.SetColor(RenderColor);
+		DrawItem(LineItem);
+	}
+}
+
+void UCanvas::K2_DrawTexture(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, EBlendMode BlendMode, float Rotation, FVector2D PivotPoint)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FTexture* RenderTextureResource = (RenderTexture) ? RenderTexture->Resource : GWhiteTexture;
+		FCanvasTileItem TileItem(ScreenPosition, RenderTextureResource, ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize, RenderColor);
+		TileItem.Rotation = FRotator(0, Rotation, 0);
+		TileItem.PivotPoint = PivotPoint;
+		TileItem.BlendMode = FCanvas::BlendToSimpleElementBlend(BlendMode);
+		DrawItem(TileItem);
+	}
+}
+
+void UCanvas::K2_DrawMaterial(UMaterialInterface* RenderMaterial, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, float Rotation, FVector2D PivotPoint)
+{
+	if (RenderMaterial && ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FCanvasTileItem TileItem(ScreenPosition, RenderMaterial->GetRenderProxy(0), ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize);
+		TileItem.Rotation = FRotator(0, Rotation, 0);
+		TileItem.PivotPoint = PivotPoint;
+		DrawItem(TileItem);
+	}
+}
+
+void UCanvas::K2_DrawText(UFont* RenderFont, const FString& RenderText, FVector2D ScreenPosition, FLinearColor RenderColor, float Kerning, FLinearColor ShadowColor, FVector2D ShadowOffset, bool bCentreX, bool bCentreY, bool bOutlined, FLinearColor OutlineColor)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FCanvasTextItem TextItem(ScreenPosition, FText::FromString(RenderText), RenderFont, RenderColor);
+		TextItem.HorizSpacingAdjust = Kerning;
+		TextItem.ShadowColor = ShadowColor;
+		TextItem.ShadowOffset = ShadowOffset;
+		TextItem.bCentreX = bCentreX;
+		TextItem.bCentreY = bCentreY;
+		TextItem.bOutlined = bOutlined;
+		TextItem.OutlineColor = OutlineColor;
+		DrawItem(TextItem);
+	}
+}
+
+void UCanvas::K2_DrawBorder(UTexture* BorderTexture, UTexture* BackgroundTexture, UTexture* LeftBorderTexture, UTexture* RightBorderTexture, UTexture* TopBorderTexture, UTexture* BottomBorderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, FVector2D BorderScale, FVector2D BackgroundScale, float Rotation, FVector2D PivotPoint, FVector2D CornerSize)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && BorderTexture && BackgroundTexture && LeftBorderTexture && RightBorderTexture && TopBorderTexture && BottomBorderTexture)
+	{
+		FCanvasBorderItem BorderItem(ScreenPosition, BorderTexture->Resource, BackgroundTexture->Resource, LeftBorderTexture->Resource, RightBorderTexture->Resource, TopBorderTexture->Resource, BottomBorderTexture->Resource, ScreenSize, RenderColor);
+		BorderItem.BorderScale = BorderScale;
+		BorderItem.BackgroundScale = BackgroundScale;
+		BorderItem.BorderUV0 = CoordinatePosition;
+		BorderItem.BorderUV1 = CoordinatePosition + CoordinateSize;
+		BorderItem.Rotation = FRotator(0, Rotation, 0);
+		BorderItem.PivotPoint = PivotPoint;
+		BorderItem.CornerSize = CornerSize;
+		DrawItem(BorderItem);
+	}
+}
+
+void UCanvas::K2_DrawBox(FVector2D ScreenPosition, FVector2D ScreenSize, float Thickness)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FCanvasBoxItem BoxItem(ScreenPosition, ScreenSize);
+		BoxItem.LineThickness = Thickness;
+		DrawItem(BoxItem);
+	}
+}
+
+void UCanvas::K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Triangles)
+{
+	if (Triangles.Num() > 0)
+	{
+		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture);
+		TriangleItem.TriangleList = Triangles;
+		DrawItem(TriangleItem);
+	}
+}
+
+void UCanvas::K2_DrawPolygon(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D Radius, int32 NumberOfSides, FLinearColor RenderColor)
+{
+	if (Radius.X > 0.0f && Radius.Y > 0.0f && NumberOfSides >= 3)
+	{
+		FCanvasNGonItem NGonItem(ScreenPosition, Radius, NumberOfSides, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture, RenderColor);
+		DrawItem(NGonItem);
+	}
+}
+
+FVector UCanvas::K2_Project(FVector WorldLocation)
+{
+	return Project(WorldLocation);
+}
+
+void UCanvas::K2_Deproject(FVector2D ScreenPosition, FVector& WorldOrigin, FVector& WorldDirection)
+{
+	Deproject(ScreenPosition, WorldOrigin, WorldDirection);
+}
+
+FVector2D UCanvas::K2_StrLen(UFont* RenderFont, const FString& RenderText)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FVector2D OutTextSize;
+		StrLen(RenderFont, RenderText, OutTextSize.X, OutTextSize.Y);
+		return OutTextSize;
+	}
+
+	return FVector2D::ZeroVector;
+}
+
+FVector2D UCanvas::K2_TextSize(UFont* RenderFont, const FString& RenderText, FVector2D Scale)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FVector2D OutTextSize;
+		TextSize(RenderFont, RenderText, OutTextSize.X, OutTextSize.Y, Scale.X, Scale.Y);
+		return OutTextSize;
+	}
+	
+	return FVector2D::ZeroVector;
+}
+

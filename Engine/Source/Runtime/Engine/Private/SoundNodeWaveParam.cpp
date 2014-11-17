@@ -2,7 +2,8 @@
 
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundNodeWaveParam.h"
+#include "Sound/SoundWave.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNodeWaveParam implementation

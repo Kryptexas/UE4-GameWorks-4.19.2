@@ -9,7 +9,7 @@ void SDPIScaler::Construct( const FArguments& InArgs )
 	this->DPIScale = InArgs._DPIScale;
 }
 
-void SDPIScaler::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SDPIScaler::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const EVisibility MyVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyVisibility ) )

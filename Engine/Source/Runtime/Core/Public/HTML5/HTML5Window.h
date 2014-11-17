@@ -22,12 +22,12 @@ public:
 	static TSharedRef<FHTML5Window> Make();
 
 	
-	virtual void* GetOSWindowHandle() const OVERRIDE { return NULL; } //can be null.
+	virtual void* GetOSWindowHandle() const override { return NULL; } //can be null.
 
 	void Initialize( class FHTML5Application* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FHTML5Window >& InParent, const bool bShowImmediately );
 
 	/** Returns the rectangle of the screen the window is associated with */
-	virtual bool GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const OVERRIDE;
+	virtual bool GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const override;
 
 	virtual void ReshapeWindow(int32 X, int32 Y, int32 Width, int32 Height);
 
@@ -40,7 +40,7 @@ public:
 
 protected:
 	/** @return true if the native window is currently in fullscreen mode, false otherwise */
-	virtual EWindowMode::Type GetWindowMode() const OVERRIDE;
+	virtual EWindowMode::Type GetWindowMode() const override;
 
 private:
 	/**

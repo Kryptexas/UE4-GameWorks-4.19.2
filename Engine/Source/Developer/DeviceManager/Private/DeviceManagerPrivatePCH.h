@@ -1,12 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceManagerPrivatePCH.h: Pre-compiled header file for the DeviceManager module.
-=============================================================================*/
-
 #pragma once
 
-#include "../Public/DeviceManager.h"
+#include "DeviceManager.h"
 
 
 /* Dependencies
@@ -14,6 +10,7 @@
 
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 
 /* Private includes

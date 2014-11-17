@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherProjectPicker.h: Declares the SSessionLauncherProjectPicker class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherProjectPicker) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -26,17 +21,15 @@ public:
 	 */
 	~SSessionLauncherProjectPicker( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel, bool InShowConfiguration = true );
-
 
 protected:
 
@@ -87,7 +80,7 @@ private:
 private:
 
 	// Holds the list of available projects.
-	TArray<TSharedPtr<FString> > ProjectList;
+	TArray<TSharedPtr<FString>> ProjectList;
 
 	// Holds a pointer to the data model.
 	FSessionLauncherModelPtr Model;

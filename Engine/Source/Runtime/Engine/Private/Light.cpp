@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 
 ALight::ALight(const class FPostConstructInitializeProperties& PCIP)
@@ -10,7 +11,6 @@ ALight::ALight(const class FPostConstructInitializeProperties& PCIP)
 	LightComponent = PCIP.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
 
 	bHidden = true;
-	bWantsInitialize = false;
 	bCollideWhenPlacing = true;
 }
 
@@ -303,7 +303,7 @@ void ADirectionalLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 void APointLight::SetRadius(float NewRadius)
 {
-	PointLightComponent->SetRadius(NewRadius);
+	PointLightComponent->SetAttenuationRadius(NewRadius);
 }
 
 void APointLight::SetLightFalloffExponent(float NewLightFalloffExponent)

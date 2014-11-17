@@ -135,7 +135,7 @@ FReply SThumbnailEditModeTools::OnMouseButtonDown( const FGeometry& MyGeometry, 
 	{
 		// Load the asset, unless it is in an unloaded map package or already loaded
 		const FAssetData& AssetData = AssetThumbnail.Pin()->GetAssetData();
-		if ( !AssetData.IsAssetLoaded() && !FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()) )
+		if ( !AssetData.IsAssetLoaded() )
 		{
 			// Getting the asset loads it.
 			AssetData.GetAsset();

@@ -37,7 +37,10 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 
 	// Preload is required here in order to load the value of Struct->PropertiesSize
 	Ar.Preload(Struct);
-	checkSlow(Struct);
+	if ( !ensure(Struct) )
+	{
+		Struct = GetFallbackStruct();
+	}
 	Struct->RecursivelyPreload();
 	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
@@ -452,6 +455,6 @@ bool UStructProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStructProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UStructProperty, Struct ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UStructProperty, Struct), TEXT("Struct"));
 	}
 );

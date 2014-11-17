@@ -3,8 +3,11 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "K2Node_CastByteToEnum.h"
+#include "K2Node_ForEachElementInEnum.h"
+#include "K2Node_GetNumEnumEntries.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -104,12 +107,16 @@ void UK2Node_ForEachElementInEnum::AllocateDefaultPins()
 	check(K2Schema);
 
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	if (Enum)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Byte, TEXT(""), Enum, false, false, EnumOuputPinName);
 		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InsideLoopPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Byte, TEXT(""), Enum, false, false, EnumOuputPinName);
+	}
+
+	if (auto CompletedPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then))
+	{
+		CompletedPin->PinFriendlyName = LOCTEXT("Completed", "Completed");
 	}
 }
 
@@ -133,16 +140,10 @@ FText UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
 }
 
-FString UK2Node_ForEachElementInEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf( 
-		TEXT("ForEach %s"),
-		Enum ? *Enum->GetName() : TEXT("UNKNOWN"));
-}
-
 void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
 	if (CompilerContext.bIsFullCompile)
 	{
 		if (!Enum)

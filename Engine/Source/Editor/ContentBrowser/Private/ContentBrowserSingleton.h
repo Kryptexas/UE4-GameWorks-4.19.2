@@ -18,15 +18,15 @@ public:
 	virtual ~FContentBrowserSingleton();
 
 	// IContentBrowserSingleton interface
-	virtual TSharedRef<class SWidget> CreateAssetPicker(const FAssetPickerConfig& AssetPickerConfig) OVERRIDE;
-	virtual TSharedRef<class SWidget> CreatePathPicker(const FPathPickerConfig& PathPickerConfig) OVERRIDE;
-	virtual TSharedRef<class SWidget> CreateCollectionPicker(const FCollectionPickerConfig& CollectionPickerConfig) OVERRIDE;
-	virtual bool HasPrimaryContentBrowser() const OVERRIDE;
-	virtual void FocusPrimaryContentBrowser(bool bFocusSearch) OVERRIDE;
-	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) OVERRIDE;
-	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false) OVERRIDE;
-	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false) OVERRIDE;
-	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) OVERRIDE;
+	virtual TSharedRef<class SWidget> CreateAssetPicker(const FAssetPickerConfig& AssetPickerConfig) override;
+	virtual TSharedRef<class SWidget> CreatePathPicker(const FPathPickerConfig& PathPickerConfig) override;
+	virtual TSharedRef<class SWidget> CreateCollectionPicker(const FCollectionPickerConfig& CollectionPickerConfig) override;
+	virtual bool HasPrimaryContentBrowser() const override;
+	virtual void FocusPrimaryContentBrowser(bool bFocusSearch) override;
+	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) override;
+	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false) override;
+	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false) override;
+	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) override;
 
 		/** Gets the content browser singleton as a FContentBrowserSingleton */
 	static FContentBrowserSingleton& Get();

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserDeviceAdder.h: Declares the SDeviceBrowserDeviceAdder class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,8 +19,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceManager - The target device manager to use.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceManager The target device manager to use.
 	 */
 	void Construct( const FArguments& InArgs, const ITargetDeviceServiceManagerRef& InDeviceServiceManager );
 
@@ -87,8 +83,8 @@ private:
 	TSharedPtr<SOverlay> UserDataOverlay;
 
 	// Holds the platforms combo box.
-	TSharedPtr<SComboBox<TSharedPtr<FString> > > PlatformComboBox;
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> PlatformComboBox;
 
 	// Holds the list of known platforms.
-	TArray<TSharedPtr<FString> > PlatformList;
+	TArray<TSharedPtr<FString>> PlatformList;
 };

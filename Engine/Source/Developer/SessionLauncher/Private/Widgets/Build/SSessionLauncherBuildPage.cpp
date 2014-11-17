@@ -92,6 +92,32 @@ void SSessionLauncherBuildPage::Construct( const FArguments& InArgs, const FSess
 }
 
 
+/* SSessionLauncherBuildPage implementation
+ *****************************************************************************/
+
+bool SSessionLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectName, const FString& Configuration )
+{
+    // UAT executable
+    FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
+#if PLATFORM_MAC
+    FString Executable = TEXT("RunUAT.command");
+#else
+    FString Executable = TEXT("RunUAT.bat");
+#endif
+
+    // build UAT command line parameters
+    FString CommandLine;
+    CommandLine = FString::Printf(TEXT("GenerateDSYM -project=%s -config=%s"),
+        *ProjectName,
+        *Configuration);
+
+    // launch the builder and monitor its process
+    FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*(ExecutablePath / Executable), *CommandLine, false, false, false, NULL, 0, *ExecutablePath, NULL);
+
+	return ProcessHandle.Close();
+}
+
+
 /* SSessionLauncherBuildPage callbacks
  *****************************************************************************/
 
@@ -177,25 +203,5 @@ bool SSessionLauncherBuildPage::HandleGenDSYMButtonEnabled() const
     return false;
 }
 
-bool SSessionLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectName, const FString& Configuration )
-{
-    // UAT executable
-    FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
-#if PLATFORM_MAC
-    FString Executable = TEXT("RunUAT.command");
-#else
-    FString Executable = TEXT("RunUAT.bat");
-#endif
-
-    // build UAT command line parameters
-    FString CommandLine;
-    CommandLine = FString::Printf(TEXT("GenerateDSYM -project=%s -config=%s"),
-        *ProjectName,
-        *Configuration);
-
-    // launch the builder and monitor its process
-    FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*(ExecutablePath / Executable), *CommandLine, false, false, false, NULL, 0, *ExecutablePath, NULL);
-    return ProcessHandle.Close();
-}
 
 #undef LOCTEXT_NAMESPACE

@@ -41,6 +41,6 @@ class  UEngineMessage : public ULocalMessage
 	FString NewSpecMessage;
 
 	// Begin ULocalMessage interface
-	virtual void ClientReceive(const FClientReceiveData& ClientData) const OVERRIDE;
+	virtual void ClientReceive(const FClientReceiveData& ClientData) const override;
 	// End ULocalMessage interface
 };

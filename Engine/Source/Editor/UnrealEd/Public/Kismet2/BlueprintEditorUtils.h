@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
-
+#include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 
 /** 
@@ -27,6 +27,15 @@ namespace EGraphRemoveFlags
 	};
 };
 
+struct UNREALED_API FFunctionFromNodeHelper
+{
+	UFunction* const Function;
+	UK2Node* const Node;
+
+	static UFunction* FunctionFromNode(UK2Node* Node);
+
+	FFunctionFromNodeHelper(UObject* Obj);
+};
 
 class UNREALED_API FBlueprintEditorUtils
 {
@@ -270,6 +279,29 @@ public:
 		}
 	}
 
+	/**
+	 * Searches all nodes in a Blueprint and checks for a matching Guid
+	 *
+	 * @param InBlueprint			The Blueprint to search
+	 * @param InNodeGuid			The Guid to check Blueprints against
+	 *
+	 * @return						Returns a Node with a matching Guid
+	 */
+	static UEdGraphNode* GetNodeByGUID(const UBlueprint* InBlueprint, const FGuid& InNodeGuid)
+	{
+		TArray<UEdGraphNode*> GraphNodes;
+		GetAllNodesOfClass(InBlueprint, GraphNodes);
+
+		for(UEdGraphNode* GraphNode : GraphNodes)
+		{
+			if(GraphNode->NodeGuid == InNodeGuid)
+			{
+				return GraphNode;
+			}
+		}
+		return nullptr;
+	}
+
 	/** @return true if this Blueprint is dependent on the given blueprint, false otherwise */
 	static bool IsBlueprintDependentOn(UBlueprint const* Blueprint, UBlueprint const* TestBlueprint);
 
@@ -486,9 +518,10 @@ public:
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
 	 * @param InVariableName	Name of the variable to search for
+	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const FName& InVariableName);
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Finds a local variable name using the variable's Guid
@@ -574,7 +607,7 @@ public:
 	static void SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, const FString& MetaDataValue);
 
 	/** Get a metadata key/value on the specified variable, or timeline if it exists, returning false if it does not exist */
-	static bool GetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue);
+	static bool GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue);
 
 	/** Clear metadata key on specified variable, or timeline */
 	static void RemoveBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey);
@@ -668,6 +701,8 @@ public:
 	static void ExportPropertyToKismetDefaultValue(UEdGraphPin* TargetPin, UProperty* SourceProperty, uint8* SourceAddress, UObject* OwnerObject);
 
 	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* ContainerMem);
+
+	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
 
 	/** Call PostEditChange() on all Actors based on the given Blueprint */
 	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint);
@@ -816,9 +851,9 @@ public:
 	static void FindAndSetDebuggableBlueprintInstances();
 
 	/**
-	 * Records new node class and type for analytics submission
+	 * Records node create events for analytics
 	 */
-	static void AnalyticsTrackNewNode( UEdGraphNode* NewNode, FName NodeClass, FName NodeType );
+	static void AnalyticsTrackNewNode( UEdGraphNode* NewNode );
 
 	/**
 	 * Generates a unique graph name for the supplied blueprint (guaranteed to not 
@@ -850,6 +885,22 @@ public:
 	 */
 	static bool IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAction> ActionIn, TSharedPtr<class FBlueprintEditor> const BlueprintEditorIn);
 
+	/**
+	 * Finds the entry and result nodes for a function or macro graph
+	 *
+	 * @param InGraph			The graph to search through
+	 * @param OutEntryNode		The found entry node for the graph
+	 * @param OutResultNode		The found result node for the graph
+	 */
+	static void GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode);
+
+	/**
+	 * Returns the description of the graph from the metadata
+	 *
+	 * @param InGraph			Graph to find the description of
+	 * @return					The description of the graph
+	 */
+	static FText GetGraphDescription(const UEdGraph* InGraph);
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);

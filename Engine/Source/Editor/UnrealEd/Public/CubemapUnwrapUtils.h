@@ -51,10 +51,7 @@ public:
 	}
 	FCubemapTexturePropertiesVS() {}
 
-	void SetParameters(const FMatrix& TransformValue)
-	{
-		SetShaderValue(GetVertexShader(), Transform, TransformValue);
-	}
+	void SetParameters(FRHICommandList& RHICmdList, const FMatrix& TransformValue);
 
 	virtual bool Serialize(FArchive& Ar)
 	{
@@ -90,15 +87,7 @@ public:
 	}
 	FCubemapTexturePropertiesPS() {}
 
-	void SetParameters(const FTexture* Texture, const FMatrix& ColorWeightsValue, float MipLevel, float GammaValue)
-	{
-		SetTextureParameter(GetPixelShader(),CubeTexture,CubeTextureSampler,Texture);
-
-		FVector4 PackedProperties0Value(MipLevel, 0, 0, 0);
-		SetShaderValue(GetPixelShader(), PackedProperties0, PackedProperties0Value);
-		SetShaderValue(GetPixelShader(), ColorWeights, ColorWeightsValue);
-		SetShaderValue(GetPixelShader(), Gamma, GammaValue);
-	}
+	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture, const FMatrix& ColorWeightsValue, float MipLevel, float GammaValue);
 
 	virtual bool Serialize(FArchive& Ar)
 	{
@@ -125,38 +114,16 @@ class UNREALED_API FMipLevelBatchedElementParameters : public FBatchedElementPar
 {
 public:
 	FMipLevelBatchedElementParameters(float InMipLevel, bool bInHDROutput = false)
-		: MipLevel(InMipLevel), bHDROutput(bInHDROutput)
+		: bHDROutput(bInHDROutput)
+		, MipLevel(InMipLevel)
 	{
 	}
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread(const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
-	{
-		if(bHDROutput)
-		{
-			BindShaders_RenderThread<FCubemapTexturePropertiesPS<true> >(InTransform, InGamma, ColorWeights, Texture);
-		}
-		else
-		{
-			BindShaders_RenderThread<FCubemapTexturePropertiesPS<false> >(InTransform, InGamma, ColorWeights, Texture);
-		}
-	}
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override;
 
 private:
-	template<typename TPixelShader> void BindShaders_RenderThread(const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
-	{
-		TShaderMapRef<FCubemapTexturePropertiesVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<TPixelShader> PixelShader(GetGlobalShaderMap());
-
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		VertexShader->SetParameters(InTransform);
-
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-		PixelShader->SetParameters(Texture, ColorWeights, MipLevel, InGamma);
-	}
+	template<typename TPixelShader> void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture);
 
 	bool bHDROutput;
 	/** Parameters that need to be passed to the shader */
@@ -187,15 +154,9 @@ public:
 		BrightnessInLumens.Bind(Initializer.ParameterMap,TEXT("BrightnessInLumens"));
 	}
 
-	void SetParameters(const FTexture* Texture, float InBrightnessInLumens)
-	{
-		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		SetTextureParameter(ShaderRHI, IESTexture, IESTextureSampler, Texture);
+	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture, float InBrightnessInLumens);
 
-		SetShaderValue(ShaderRHI, BrightnessInLumens, InBrightnessInLumens);
-	}
-
-	virtual bool Serialize(FArchive& Ar) OVERRIDE
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << IESTexture;
@@ -219,18 +180,7 @@ public:
 	}
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
-	{
-		TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FIESLightProfilePS> PixelShader(GetGlobalShaderMap());
-
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-		VertexShader->SetParameters(InTransform);
-		PixelShader->SetParameters(Texture, BrightnessInLumens);
-	}
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override;
 
 private:
 	float BrightnessInLumens;

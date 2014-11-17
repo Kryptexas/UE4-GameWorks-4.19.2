@@ -13,18 +13,19 @@
 #include "ClassIconFinder.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "BlueprintGraphDefinitions.h"
+#include "Engine/Breakpoint.h"
 #include "ActorMaterialCategory.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "ScopedTransaction.h"
-#include "SCreateBlueprintFromActorDialog.h"
+#include "CreateBlueprintFromActorDialog.h"
 #include "ActorEditorUtils.h"
 #include "BlueprintEditorUtils.h"
 #include "ComponentTransformDetails.h"
 #include "ComponentsTree.h"
 #include "IPropertyUtilities.h"
 #include "IDocumentation.h"
-
+#include "Runtime/Engine/Classes/Engine/BrushShape.h"
 #include "ActorDetailsDelegates.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
@@ -93,6 +94,8 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			DetailLayout.HideProperty( GET_MEMBER_NAME_CHECKED(AActor, SpriteScale) );
 		}
 
+		AddExperimentalWarningCategory( DetailLayout );
+
 		AddTransformCategory( DetailLayout );
 
 		AddMaterialCategory( DetailLayout );
@@ -158,12 +161,8 @@ public:
 	/** Allowed ChildOf relationship. */
 	TSet< const UClass* > AllowedChildOfRelationship;
 
-	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) OVERRIDE
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
-		if(InClass->GetName() == TEXT("MyLightBlueprint_C"))
-		{
-			InClass = InClass;
-		}
 		EFilterReturn::Type eState = InFilterFuncs->IfInClassesSet(AllowedClasses, InClass);
 		if(eState == EFilterReturn::NoItems)
 		{
@@ -189,7 +188,7 @@ public:
 		return false;
 	}
 
-	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) OVERRIDE
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
 		EFilterReturn::Type eState = InFilterFuncs->IfInClassesSet(AllowedClasses, InUnloadedClassData);
 		if(eState == EFilterReturn::NoItems)
@@ -251,7 +250,16 @@ void FActorDetails::CreateClassPickerConvertActorFilter(const TWeakObjectPtr<AAc
 
 	// Never convert to the same class
 	Filter->DisallowedClasses.Add(ConvertClass);
+
+	if( ConvertActor->IsA<ABrush>() )
+	{
+		// Volumes cannot be converted to brushes or brush shapes or the abstract type
+		Filter->DisallowedClasses.Add(ABrush::StaticClass());
+		Filter->DisallowedClasses.Add(ABrushShape::StaticClass());
+		Filter->DisallowedClasses.Add(AVolume::StaticClass());
+	}
 }
+
 
 TSharedRef<SWidget> FActorDetails::OnGetConvertContent()
 {
@@ -291,38 +299,26 @@ TSharedRef<SWidget> FActorDetails::OnGetConvertContent()
 
 EVisibility FActorDetails::GetConvertMenuVisibility() const
 {
-	return GEditorModeTools().EnsureNotInMode(FBuiltinEditorModes::EM_InterpEdit) ?
+	return GLevelEditorModeTools().EnsureNotInMode(FBuiltinEditorModes::EM_InterpEdit) ?
 		EVisibility::Visible :
 		EVisibility::Collapsed;
 }
 
 TSharedRef<SWidget> FActorDetails::MakeConvertMenu( const FSelectedActorInfo& SelectedActorInfo )
 {
-	if( SelectedActorInfo.HasConvertableAsset() )
-	{
-		UClass* RootConversionClass = GetConversionRoot(SelectedActorInfo.SelectionClass);
-		const FSlateFontInfo& FontInfo = FEditorStyle::GetFontStyle( TEXT("ExpandableArea.NormalFont") );
-		return
-			SNew( SBox )
-			.HAlign( HAlign_Left )
-			[
-				SNew( SComboButton )
-					.IsEnabled(RootConversionClass != NULL)
-					.Visibility( this, &FActorDetails::GetConvertMenuVisibility )
-					.OnGetMenuContent( this, &FActorDetails::OnGetConvertContent )
-					.ButtonContent()
-				[
-					SNew( STextBlock )
-					.Text( LOCTEXT("ConvertButton", "Convert") ) 
-					.ToolTipText( LOCTEXT("ConvertButton_ToolTip", "Convert actors to different types") )
-					.Font( FontInfo )
-				]
-			];
-
-	}
-
-	// Nothing to convert
-	return SNullWidget::NullWidget;
+	UClass* RootConversionClass = GetConversionRoot(SelectedActorInfo.SelectionClass);
+	return
+		SNew(SComboButton)
+		.ContentPadding(2)
+		.IsEnabled(RootConversionClass != NULL)
+		.Visibility(this, &FActorDetails::GetConvertMenuVisibility)
+		.OnGetMenuContent(this, &FActorDetails::OnGetConvertContent)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ConvertButton", "Select a Type"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
 
 }
 
@@ -420,7 +416,53 @@ void FActorDetails::AddTransformCategory( IDetailLayoutBuilder& DetailBuilder )
 	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
 
 	TransformCategory.AddCustomBuilder( TransformDetails );
+}
 
+void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder )
+{
+	const FSelectedActorInfo& SelectedActorInfo = DetailBuilder.GetDetailsView().GetSelectedActorInfo();
+
+	if (SelectedActorInfo.bHaveExperimentalClass || SelectedActorInfo.bHaveEarlyAccessClass)
+	{
+		const bool bExperimental = SelectedActorInfo.bHaveExperimentalClass;
+
+		const FName CategoryName(TEXT("Warning"));
+		const FString CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning").ToString();
+		const FText WarningText = bExperimental ? LOCTEXT("ExperimentalClassWarning", "Uses experimental class") : LOCTEXT("EarlyAccessClassWarning", "Uses early access class");
+		const FString SearchString = WarningText.ToString();
+		const FText Tooltip = bExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
+		const FString ExcerptName = bExperimental ? TEXT("ActorUsesExperimentalClass") : TEXT("ActorUsesEarlyAccessClass");
+		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
+
+		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Transform);
+
+		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
+			.WholeRowContent()
+			[
+				SNew(SHorizontalBox)
+				.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+				.Visibility(EVisibility::Visible)
+
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(SImage)
+					.Image(WarningIcon)
+				]
+
+				+SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(STextBlock)
+					.Text(WarningText)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			];
+	}
 }
 
 void FActorDetails::AddMaterialCategory( IDetailLayoutBuilder& DetailBuilder )
@@ -483,11 +525,18 @@ void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const
 
 	}
 
-	// WorldSettings should never convert to another class type.
-	if(SelectedActorInfo.SelectionClass != AWorldSettings::StaticClass())
+	// WorldSettings should never convert to another class type
+	if( SelectedActorInfo.SelectionClass != AWorldSettings::StaticClass() && SelectedActorInfo.HasConvertableAsset() )
 	{
-		ActorCategory.AddCustomRow(  LOCTEXT("SelectionFilter", "Selected").ToString() )
+		ActorCategory.AddCustomRow( LOCTEXT("ConvertMenu", "Convert").ToString() )
 		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ConvertButton", "Convert Actor"))
+			.ToolTipText(LOCTEXT("ConvertButton_ToolTip", "Convert actors to different types"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
 		[
 			MakeConvertMenu( SelectedActorInfo )
 		];
@@ -899,7 +948,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply FActorDetails::OnPickBlueprintPathClicked(bool bHarvest )
 {
-	SCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
 
 	return FReply::Handled();
 }

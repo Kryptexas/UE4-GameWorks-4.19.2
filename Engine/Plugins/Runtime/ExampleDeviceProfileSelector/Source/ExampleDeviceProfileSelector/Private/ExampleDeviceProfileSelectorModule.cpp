@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ExampleDeviceProfileSelectorModule.cpp: Implements the FExampleDeviceProfileSelectorModule class.
-=============================================================================*/
-
 #include "ExampleDeviceProfileSelectorPrivatePCH.h"
+
 
 IMPLEMENT_MODULE(FExampleDeviceProfileSelectorModule, ExampleDeviceProfileSelector);
 

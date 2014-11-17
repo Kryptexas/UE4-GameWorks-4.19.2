@@ -1,0 +1,23 @@
+Needs to be built on target machine.  
+
+For Linux:
+
+1) Untar
+
+To build "separate" version:
+2s) ./configure --with-mangling --with-jemalloc-prefix=je_$VERSION_ (e.g. je_340_ for 3.4.0)
+3s) make
+4s) copy files .a files from /lib and .h from /include to ../lib/Linux/separate and ../include/Linux/separate
+
+To build "drop-in" version:
+
+2d) ./configure
+3d) make
+4d) copy files .a files from /lib and .h from /include to ../lib/Linux/drop-in and ../include/Linux/drop-in
+
+Prefix for "separate" build may be arbitrary (if you don't like suggested scheme), it's there just to make
+function names different from standard malloc()/free().
+
+I really need to make a shell script out of that...
+
+-RCL

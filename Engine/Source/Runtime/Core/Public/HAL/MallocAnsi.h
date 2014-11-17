@@ -38,7 +38,7 @@ public:
 	}
 
 	// FMalloc interface.
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 		Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
 
@@ -59,7 +59,7 @@ public:
 		return Result;
 	}
 
-	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE
+	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override
 	{
 		void* Result;
 		Alignment = FMath::Max(NewSize >= 16 ? (uint32)16 : (uint32)8, Alignment);
@@ -104,7 +104,7 @@ public:
 		return Result;
 	}
 
-	virtual void Free( void* Ptr ) OVERRIDE
+	virtual void Free( void* Ptr ) override
 	{
 #if USE_ALIGNED_MALLOC
 		_aligned_free( Ptr );
@@ -116,13 +116,13 @@ public:
 #endif
 	}
 
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override
 	{ 
 		return false;
 	}
 
 // #if PLATFORM_MAC
-// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) override
 // 	{
 // 		// @todo implement in platform memory
 // 		// Just get memory information for the process and report the working set instead
@@ -132,7 +132,7 @@ public:
 // 		MemStats.TotalUsed___UsedPhysical = MemStats.TotalAllocated___UsedVirtual = TaskInfo.resident_size;
 // 	}
 // #elif PLATFORM_IOS
-// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) override
 // 	{
 // 		// @todo implement in platform memory
 // 		task_basic_info info;
@@ -157,7 +157,7 @@ public:
 	 *
 	 * @return true as we're using system allocator
 	 */
-	virtual bool IsInternallyThreadSafe() const OVERRIDE
+	virtual bool IsInternallyThreadSafe() const override
 	{
 #if PLATFORM_MAC
 			return true;
@@ -171,7 +171,7 @@ public:
 	/**
 	 * Validates the allocator's heap
 	 */
-	virtual bool ValidateHeap() OVERRIDE
+	virtual bool ValidateHeap() override
 	{
 #if PLATFORM_WINDOWS
 		int32 Result = _heapchk();
@@ -186,6 +186,6 @@ public:
 		return true;
 	}
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("ANSI"); }
+	virtual const TCHAR * GetDescriptiveName() override { return TEXT("ANSI"); }
 };
 

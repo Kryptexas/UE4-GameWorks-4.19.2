@@ -8,6 +8,13 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Size/ParticleModuleSize_Seeded.h"
+#include "Particles/Size/ParticleModuleSizeMultiplyLife.h"
+#include "Particles/Size/ParticleModuleSizeScale.h"
+#include "Particles/Size/ParticleModuleSizeScaleBySpeed.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleSizeBase::UParticleModuleSizeBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -425,8 +432,22 @@ void UParticleModuleSizeScale::SetToSensibleDefaults(UParticleEmitter* Owner)
 UParticleModuleSizeScaleBySpeed::UParticleModuleSizeScaleBySpeed(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bUpdateModule = true;
 	MaxScale.X = 1;
 	MaxScale.Y = 1;
+}
+
+void UParticleModuleSizeScaleBySpeed::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
+{
+	FVector Scale(SpeedScale.X, SpeedScale.Y, 1.0f);
+	FVector ScaleMax(MaxScale.X, MaxScale.Y, 1.0f);
+
+	BEGIN_UPDATE_LOOP;
+		FVector Size = Scale * Particle.Velocity.Size();
+		Size = Size.ComponentMax(FVector(1.0f));
+		Size = Size.ComponentMin(ScaleMax);
+		Particle.Size = Particle.BaseSize * Size;
+	END_UPDATE_LOOP;
 }
 
 

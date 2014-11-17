@@ -10,7 +10,7 @@ FSlateSimpleRunHighlighter::FSlateSimpleRunHighlighter()
 
 }
 
-void FSlateSimpleRunHighlighter::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
+void FSlateSimpleRunHighlighter::OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
 {
 	//No Widgets
 }

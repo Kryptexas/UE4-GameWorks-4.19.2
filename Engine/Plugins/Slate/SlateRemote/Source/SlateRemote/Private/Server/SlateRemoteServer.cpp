@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteServer.cpp: Implements the FSlateRemoteServer class.
-=============================================================================*/
-
 #include "SlateRemotePrivatePCH.h"
 
 
@@ -82,7 +78,7 @@ void FSlateRemoteServer::ProcessMotionMessage( const FSlateRemoteServerMessage& 
 	FVector Accel = FVector(Message.Data[9], Message.Data[10], Message.Data[11]);
 
 	FMotionEvent Event(0, Attitude, RotationRate, Gravity, Accel);
-	FSlateApplication::Get().OnMotionDetectedMessage(Event);
+	FSlateApplication::Get().ProcessMotionDetectedEvent(Event);
 }
 
 
@@ -116,7 +112,7 @@ void FSlateRemoteServer::ProcessTiltMessage( const FSlateRemoteServerMessage& Me
 	LastRoll = Roll;
 
 	FMotionEvent Event(0, Attitude, RotationRate, Gravity, Accel);
-	FSlateApplication::Get().OnMotionDetectedMessage(Event);
+	FSlateApplication::Get().ProcessMotionDetectedEvent(Event);
 }
 
 
@@ -145,7 +141,7 @@ void FSlateRemoteServer::ProcessTouchMessage( const FSlateRemoteServerMessage& M
 						
 				if (WidgetPath.Widgets.Num() == 0 || WidgetPath.Widgets.Last().Widget != GameViewport)
 				{
-					SlateApplication.FindPathToWidget(SlateApplication.GetInteractiveTopLevelWindows(), GameViewport.ToSharedRef(), WidgetPath);
+					SlateApplication.FindPathToWidget(GameViewport.ToSharedRef(), WidgetPath);
 					GameViewportWidgetPath = WidgetPath;
 				}
 
@@ -173,15 +169,15 @@ void FSlateRemoteServer::ProcessTouchMessage( const FSlateRemoteServerMessage& M
 			// send input to handler
 			if (Message.DataType == DT_TouchBegan)
 			{
-				SlateApplication.OnTouchStartedMessage(nullptr, Event);
+				SlateApplication.ProcessTouchStartedEvent(nullptr, Event);
 			}
 			else if (Message.DataType == DT_TouchEnded)
 			{
-				SlateApplication.OnTouchEndedMessage(Event);
+				SlateApplication.ProcessTouchEndedEvent(Event);
 			}
 			else
 			{
-				SlateApplication.OnTouchMovedMessage(Event);
+				SlateApplication.ProcessTouchMovedEvent(Event);
 			}
 		}
 	}
@@ -231,25 +227,29 @@ bool FSlateRemoteServer::HandleTicker( float DeltaTime )
 //		debugf(TEXT("Received message %d, %d"), Message.MessageID, Message.DataType);
 
 		// handle tilt input
-		if (Message.DataType == DT_Motion)
+		switch(Message.DataType)
 		{
-			ProcessMotionMessage(Message);
-		}
-		if (Message.DataType == DT_Tilt)
-		{
-			ProcessTiltMessage(Message);
-		}
-		else if (Message.DataType == DT_Gyro)
-		{
-			ProcessGyroMessage(Message);
-		}
-		else if (Message.DataType == DT_Ping)
-		{
-			ProcessPingMessage(Message);
-		}
-		else
-		{
-			ProcessTouchMessage(Message);
+			case DT_Motion:
+			{
+				ProcessMotionMessage(Message);
+			} break;
+			case DT_Tilt:
+			{
+				ProcessTiltMessage(Message);
+			} break;
+			case DT_Gyro:
+			{
+				ProcessGyroMessage(Message);
+			} break;
+			case DT_Ping:
+			{
+				ProcessPingMessage(Message);
+			} break;
+			default:
+			{
+				ProcessTouchMessage(Message);
+			} break;
+
 		}
 	}
 

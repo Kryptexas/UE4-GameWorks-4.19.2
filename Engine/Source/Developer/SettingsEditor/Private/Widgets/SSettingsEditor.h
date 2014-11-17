@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSettingsEditor.h: Declares the SSettingsEditor class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -31,26 +27,22 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The view model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The view model.
 	 */
 	void Construct( const FArguments& InArgs, const ISettingsEditorModelRef& InModel );
 
 public:
 
-	// Begin SCompoundWidget interface
+	// SCompoundWidget interface
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
-	// End SCompoundWidget interface
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 public:
 
-	// Begin FNotifyHook interface
+	// FNotifyHook interface
 
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) OVERRIDE;
-
-	// End FNotifyHook interface
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) override;
 
 protected:
 
@@ -62,6 +54,14 @@ protected:
 	bool CheckOutDefaultConfigFile( );
 
 	/**
+	 * Gets the absolute path to the Default.ini for the specified object.
+	 *
+	 * @param SettingsObject The object to get the path for.
+	 * @return The path to the file.
+	 */
+	FString GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>& SettingsObject ) const;
+
+	/**
 	 * Gets the settings object of the selected section, if any.
 	 *
 	 * @return The settings object.
@@ -71,11 +71,17 @@ protected:
 	/**
 	 * Creates a widget for the given settings category.
 	 *
-	 * @param Category - The category to create the widget for.
-	 *
+	 * @param Category The category to create the widget for.
 	 * @return The created widget.
 	 */
 	TSharedRef<SWidget> MakeCategoryWidget( const ISettingsCategoryRef& Category );
+
+	/**
+	 * Makes the default configuration file for the currently selected settings object writable.
+	 *
+	 * @return true if it was made writable, false otherwise.
+	 */
+	bool MakeDefaultConfigFileWritable( );
 
 	/**
 	 * Reloads the settings categories.
@@ -158,6 +164,9 @@ private:
 	// Callback for determining the visibility of the settings view.
 	EVisibility HandleSettingsViewVisibility( ) const;
 
+	// Callback for determining whether we are currently looking for the source control state of the config file
+	bool HandleLookingForSourceControlState( ) const;
+
 private:
 
 	// Holds the vertical box for settings categories.
@@ -165,6 +174,9 @@ private:
 
 	// Holds a flag indicating whether the section's configuration file needs to be checked out.
 	bool DefaultConfigCheckOutNeeded;
+
+	// Holds a flag indicating whether the section's configuration file has a source control status request in progress.
+	bool DefaultConfigQueryInProgress;
 
 	// Holds a timer for checking whether the section's configuration file needs to be checked out.
 	float DefaultConfigCheckOutTimer;
@@ -183,4 +195,7 @@ private:
 
 	// Holds the details view.
 	TSharedPtr<IDetailsView> SettingsView;
+
+	// Cached filename for the config file we are displaying
+	FString CachedConfigFileName;
 };

@@ -1,25 +1,28 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMessageBridge.h: Declares the IMessageBridge interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMessageBridge.
- */
+/** Type definition for shared pointers to instances of IMessageBridge. */
 typedef TSharedPtr<class IMessageBridge, ESPMode::ThreadSafe> IMessageBridgePtr;
 
-/**
- * Type definition for shared references to instances of IMessageBridge.
- */
+/** Type definition for shared references to instances of IMessageBridge. */
 typedef TSharedRef<class IMessageBridge, ESPMode::ThreadSafe> IMessageBridgeRef;
 
 
 /**
  * Interface for message bridges.
+ *
+ * A message bridge connects a message bus with another messaging system. It is really just a regular
+ * message endpoint connected to a message bus that translates sent and received messages between the bus
+ * and some underlying transport technology. The transport technology is usually implemented in the form of a 
+ * Message Transport Plug-in, such as the UdpMessaging plug-in that ships with Unreal Engine.
+ *
+ * The most common use case for message bridges is to connect two Unreal Engine message buses running in
+ * separate processes or en different computers. Another common use case is to connect an Unreal Engine
+ * message bus to an entirely different messaging system that is not based on Unreal Engine.
+ *
+ * Message bridge instances can be created with the @see IMessagingModule.CreateBridge method.
  */
 class IMessageBridge
 {
@@ -31,8 +34,7 @@ public:
 	 * A disabled bridge will not receive any subscribed messages until it is enabled again.
 	 * Bridges should be created in a disabled state by default and explicitly enabled.
 	 *
-	 * @see Enable
-	 * @see IsEnabled
+	 * @see Enable, IsEnabled
 	 */
 	virtual void Disable( ) = 0;
 
@@ -42,8 +44,7 @@ public:
 	 * An activated bridge will receive subscribed messages.
 	 * Bridges should be created in a disabled state by default and explicitly enabled.
 	 *
-	 * @see Disable
-	 * @see IsEnabled
+	 * @see Disable, IsEnabled
 	 */
 	virtual void Enable( ) = 0;
 
@@ -51,9 +52,7 @@ public:
 	 * Checks whether the bridge is currently enabled.
 	 *
 	 * @return true if the bridge is enabled, false otherwise.
-	 *
-	 * @see Disable
-	 * @see Enable
+	 * @see Disable, Enable
 	 */
 	virtual bool IsEnabled( ) const = 0;
 

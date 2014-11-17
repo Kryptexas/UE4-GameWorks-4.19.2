@@ -22,7 +22,7 @@ public:
 	 *
 	 * @return	Whether the module supports shutdown separate from the rest of the engine.
 	 */
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -32,6 +32,6 @@ private:
 	/** Register a visualizer for a particular componen class */
 	void RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer);
 
-	/** Array of component class names we have registered, so we know what to unregister aferwards */
+	/** Array of component class names we have registered, so we know what to unregister afterwards */
 	TArray<FName> RegisteredComponentClassNames;
 };

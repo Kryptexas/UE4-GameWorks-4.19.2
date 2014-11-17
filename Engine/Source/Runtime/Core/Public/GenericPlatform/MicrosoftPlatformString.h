@@ -290,6 +290,13 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 	{
 		return _tcslen( (const WIDECHAR*)String );
 	}
+
+	static const ANSICHAR* GetEncodingName()
+	{
+		return "UTF-16LE";
+	}
+
+	static const bool IsUnicodeEncoded = true;
 };
 
 #if !USE_SECURE_CRT

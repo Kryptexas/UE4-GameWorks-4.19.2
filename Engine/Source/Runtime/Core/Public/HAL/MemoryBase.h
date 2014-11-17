@@ -111,7 +111,7 @@ public:
 	/** 
 	 * Handles any commands passed in on the command line
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{ 
 		return false; 
 	}

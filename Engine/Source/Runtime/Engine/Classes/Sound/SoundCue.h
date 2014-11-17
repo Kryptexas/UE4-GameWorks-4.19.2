@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "SoundClass.h"
+#include "Sound/SoundBase.h"
+
 #include "SoundCue.generated.h"
 
 struct FActiveSound;
@@ -33,7 +36,7 @@ struct FSoundNodeEditorData
 /**
  * The behavior of audio playback is defined within Sound Cues.
  */
-UCLASS(dependson=USoundClass, hidecategories=object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=object, MinimalAPI, BlueprintType)
 class USoundCue : public USoundBase
 {
 	GENERATED_UCLASS_BODY()
@@ -74,25 +77,25 @@ private:
 public:
 
 	// Begin UObject interface.
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual FString GetDesc() override;
 #if WITH_EDITOR
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #endif
 	// End UObject interface.
 
 	// Begin USoundBase interface.
-	virtual bool IsPlayable() const OVERRIDE;
-	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual float GetVolumeMultiplier() OVERRIDE;
-	virtual float GetPitchMultiplier() OVERRIDE;
-	virtual float GetMaxAudibleDistance() OVERRIDE;
-	virtual float GetDuration() OVERRIDE;
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const OVERRIDE;
+	virtual bool IsPlayable() const override;
+	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual float GetVolumeMultiplier() override;
+	virtual float GetPitchMultiplier() override;
+	virtual float GetMaxAudibleDistance() override;
+	virtual float GetDuration() override;
+	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
 	// End USoundBase interface.
 
 	/** Construct and initialize a node within this Cue */

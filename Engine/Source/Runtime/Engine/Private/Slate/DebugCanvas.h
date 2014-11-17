@@ -30,7 +30,7 @@ private:
 	/**
 	 * ICustomSlateElement interface 
 	 */
-	virtual void DrawRenderThread( const void* InWindowBackBuffer ) OVERRIDE;
+	virtual void DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer) override;
 
 	/**
 	 * Deletes the rendering thread canvas 
@@ -53,5 +53,5 @@ private:
 	/** The canvas that can be used by the render thread */
 	FCanvasProxy* RenderThreadCanvas;
 	/** Render target that the canvas renders to */
-	class FSlateBackBufferTarget* RenderTarget;
+	class FSlateCanvasRenderTarget* RenderTarget;
 };

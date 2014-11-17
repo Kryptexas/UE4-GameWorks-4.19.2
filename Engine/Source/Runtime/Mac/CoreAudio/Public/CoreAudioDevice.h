@@ -157,14 +157,6 @@ public:
 	
 	/** Wrapper to handle the decompression of audio codecs */
 	class ICompressedAudioInfo*		DecompressionState;
-	/** Cumulative channels from all streams */
-	int32							NumChannels;
-	/** Resource ID of associated USoundWave */
-	int32							ResourceID;
-	/** Human readable name of resource, most likely name of UObject associated during caching.	*/
-	FString						ResourceName;
-	/** Whether memory for this buffer has been allocated from permanent pool. */
-	bool						bAllocationInPermanentPool;
 	/** Set to true when the PCM data should be freed when the buffer is destroyed */
 	bool						bDynamicResource;
 };
@@ -316,19 +308,19 @@ private:
 class FCoreAudioDevice : public FAudioDevice
 {
 	/** Starts up any platform specific hardware/APIs */
-	virtual bool InitializeHardware() OVERRIDE;
+	virtual bool InitializeHardware() override;
 
 	/** Shuts down any platform specific hardware/APIs */
-	virtual void TeardownHardware() OVERRIDE;
+	virtual void TeardownHardware() override;
 
 	/** Lets the platform any tick actions */
-	virtual void UpdateHardware() OVERRIDE;
+	virtual void UpdateHardware() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FAudioEffectsManager* CreateEffectsManager() OVERRIDE;
+	virtual FAudioEffectsManager* CreateEffectsManager() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FSoundSource* CreateSoundSource() OVERRIDE;
+	virtual FSoundSource* CreateSoundSource() override;
 
 	/** Setup Matrix Mixer's input - enable input, input->output volumes */
 	void SetupMatrixMixerInput( int32 Input, bool bIs6ChannelOGG );
@@ -354,15 +346,20 @@ class FCoreAudioDevice : public FAudioDevice
 	AUNode GetMatrixMixerNode() const { return MatrixMixerNode; }
 	AudioUnit GetMatrixMixerUnit() const { return MatrixMixerUnit; }
 	
-	virtual FName GetRuntimeFormat() OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}
 
-	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
-	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+	virtual bool SupportsRealtimeDecompression() const override
+	{ 
+		return true; 
+	}
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
 
 	FORCEINLINE uint32 CalculateMatrixElement( uint32 InputNum, uint32 OutputNum )
 	{

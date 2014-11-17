@@ -2,16 +2,8 @@
 
 #pragma once
 
+#include "EdGraph/EdGraphNode.h"
 #include "EdGraphPin.generated.h"
-
-/** Enum used to define which way data flows into or out of this pin */
-UENUM()
-enum EEdGraphPinDirection
-{
-	EGPD_Input,
-	EGPD_Output,
-	EGPD_MAX,
-};
 
 USTRUCT()
 struct FSimpleMemberReference
@@ -201,6 +193,14 @@ class UEdGraphPin : public UObject
 	/** Set of pins that we are linked to */
 	UPROPERTY()
 	TArray<class UEdGraphPin*> LinkedTo;
+
+	/** The pins created when a pin is split and hidden */ 
+	UPROPERTY()
+	TArray<class UEdGraphPin*> SubPins;
+
+	/** The pin that was split and generated this pin */
+	UPROPERTY()
+	UEdGraphPin* ParentPin;
 
 #if WITH_EDITORONLY_DATA
 	/** If true, this connector is currently hidden. */

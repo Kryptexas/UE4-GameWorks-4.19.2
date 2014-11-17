@@ -6,14 +6,11 @@
 
 #pragma once
 
-
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 #include "GameModeInfoCustomizer.h"
 
 #define LOCTEXT_NAMESPACE "FLevelEditorPlaySettingsCustomization"
-
-
 
 
 /**
@@ -23,10 +20,11 @@ class FGameMapsSettingsCustomization
 	: public IDetailCustomization
 {
 public:
+	virtual ~FGameMapsSettingsCustomization() {}
 
 	// Begin IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) OVERRIDE
+	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		IDetailCategoryBuilder& DefaultMapsCategory = LayoutBuilder.EditCategory("DefaultMaps");
 		{
@@ -56,7 +54,6 @@ public:
 
 	// End IDetailCustomization interface
 
-
 public:
 
 	/**
@@ -68,7 +65,6 @@ public:
 	{
 		return MakeShareable(new FGameMapsSettingsCustomization());
 	}
-
 
 protected:
 
@@ -124,7 +120,6 @@ protected:
 			];
 	}
 
-
 	/**
 	 * Checks whether the specified map name is valid.
 	 *
@@ -141,7 +136,6 @@ protected:
 
 		return (FPaths::FileExists(FPackageName::LongPackageNameToFilename(MapName, FPackageName::GetMapPackageExtension())));
 	}
-
 
 	/**
 	 * Creates a widget for the map picker.
@@ -161,6 +155,7 @@ protected:
 		MenuBuilder.BeginSection(NAME_None, LOCTEXT("ProjectMapsSectionHeader", "Project"));
 		{
 			IFileManager::Get().FindFilesRecursive(MapNames, *FPaths::GameContentDir(), *MapFileWildCard, true, false);
+			MapNames.Sort([](const FString& A, const FString& B) { return FPaths::GetBaseFilename(A) < FPaths::GetBaseFilename(B); });
 
 			for (int32 i = 0; i < MapNames.Num(); i++)
 			{
@@ -179,6 +174,7 @@ protected:
 		MenuBuilder.BeginSection(NAME_None, LOCTEXT("EngineMapsSectionHeader", "Engine"));
 		{
 			IFileManager::Get().FindFilesRecursive(MapNames, *FPaths::EngineContentDir(), *MapFileWildCard, true, false);
+			MapNames.Sort([](const FString& A, const FString& B) { return FPaths::GetBaseFilename(A) < FPaths::GetBaseFilename(B); });
 
 			for (int32 i = 0; i < MapNames.Num(); i++)
 			{
@@ -195,7 +191,6 @@ protected:
 
 		return MenuBuilder.MakeWidget();
 	}
-
 
 private:
 
@@ -256,9 +251,9 @@ private:
 		}
 	}
 
-
 private:
-	/** Helper class to customizer GameMode property */
+
+	// Helper class to customizer GameMode property.
 	TSharedPtr<FGameModeInfoCustomizer>	GameInfoModeCustomizer;
 };
 

@@ -2,11 +2,14 @@
 
 #pragma once
 
+#include "AnimStateMachineTypes.h"
+#include "AnimSequenceBase.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "AnimBlueprint.h"
+
 #include "AnimBlueprintGeneratedClass.generated.h"
 
 struct FAnimNotifyEvent;
-struct FBakedAnimationStateMachine;
 class  UAnimInstance;
 class  UEdGraph;
 class  UEdGraphNode;
@@ -129,30 +132,7 @@ public:
 		SnapshotBuffer = NULL;
 	}
 
-	UAnimStateTransitionNode* GetTransitionNodeFromGraph(const UEdGraph* Graph) const
-	{
-		if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = TransitionGraphToNodeMap.Find(Graph))
-		{
-			return TransNodePtr->Get();
-		}
 
-		if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = TransitionBlendGraphToNodeMap.Find(Graph))
-		{
-			return TransNodePtr->Get();
-		}
-
-		return NULL;
-	}
-
-	UAnimStateNode* GetStateNodeFromGraph(const UEdGraph* Graph) const
-	{
-		if (const TWeakObjectPtr<UAnimStateNode>* StateNodePtr = StateGraphToNodeMap.Find(Graph))
-		{
-			return StateNodePtr->Get();
-		}
-
-		return NULL;
-	}
 
 	bool IsReplayingSnapshot() const { return SnapshotIndex != INDEX_NONE; }
 	void TakeSnapshot(UAnimInstance* Instance);
@@ -178,7 +158,7 @@ namespace EPropertySearchMode
 }
 #endif
 
-UCLASS(dependson=(UAnimBlueprint, UAnimStateMachineTypes))
+UCLASS()
 class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()
@@ -295,11 +275,11 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 #endif
 
 	// UStruct interface
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	// End of UStruct interface
 
 	// UClass interface
-	virtual void PurgeClass(bool bRecompilingOnLoad) OVERRIDE;
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	// End of UClass interface
 
 #if WITH_EDITOR

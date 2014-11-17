@@ -85,6 +85,8 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 {
 	if (Enum)
 	{
+		PrepareForChange(Enum);
+
 		TArray<FName> OldNames, Names;
 		CopyEnumeratorsWithoutMax(Enum, OldNames);
 		Names = OldNames;
@@ -107,6 +109,8 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 {
 	if (Enum && (Enum->GetEnum(EnumeratorIndex) != NAME_None))
 	{
+		PrepareForChange(Enum);
+
 		TArray<FName> OldNames, Names;
 		CopyEnumeratorsWithoutMax(Enum, OldNames);
 		Names = OldNames;
@@ -129,6 +133,8 @@ void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, i
 {
 	if (Enum && (Enum->GetEnum(EnumeratorIndex) != NAME_None))
 	{
+		PrepareForChange(Enum);
+
 		TArray<FName> OldNames, Names;
 		CopyEnumeratorsWithoutMax(Enum, OldNames);
 		Names = OldNames;
@@ -184,11 +190,16 @@ public:
 	{
 	}
 
-	virtual bool UseToResolveEnumerators() const OVERRIDE
+	virtual bool UseToResolveEnumerators() const override
 	{
 		return true;
 	}
 };
+
+void FEnumEditorUtils::PrepareForChange(const UUserDefinedEnum* Enum)
+{
+	FEnumEditorManager::Get().PreChange(Enum);
+}
 
 void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<FName>& OldNames, bool bResolveData)
 {
@@ -204,7 +215,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 			if (ByteProperty && (Enum == ByteProperty->GetIntPropertyEnum()))
 			{
 				UClass* OwnerClass = ByteProperty->GetOwnerClass();
-				if (ensure(OwnerClass))
+				if (OwnerClass)
 				{
 					ClassesToCheck.Add(OwnerClass);
 				}
@@ -292,7 +303,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		(*It)->BroadcastChanged();
 	}
 
-	FEnumEditorManager::Get().OnChanged(Enum);
+	FEnumEditorManager::Get().PostChange(Enum);
 }
 
 int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorIndex)
@@ -331,6 +342,7 @@ bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 En
 	{
 		if (IsEnumeratorDisplayNameValid(Enum, NewDisplayName))
 		{
+			PrepareForChange(Enum);
 			Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *NewDisplayName, EnumeratorIndex);
 			EnsureAllDisplayNamesExist(Enum);
 			BroadcastChanges(Enum, TArray<FName>(), false);

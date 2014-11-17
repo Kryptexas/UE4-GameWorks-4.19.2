@@ -42,13 +42,11 @@ namespace ETaskDatabaseRequestType
 }
 
 
-
 /**
  * Generic response to a task database request
  */
 class FTaskDatabaseResponse
 {
-
 public:
 
 	/** The request type that triggered this response */
@@ -62,9 +60,7 @@ public:
 
 	/** Detailed error message, in the case of failure */
 	FString ErrorMessage;
-
 };
-
 
 
 /**
@@ -73,20 +69,17 @@ public:
 class FTaskDatabaseResponse_ConnectToDatabase
 	: public FTaskDatabaseResponse
 {
-
 public:
 
 	/** The connected user's real name */
 	FString UserRealName;
 
 	/** List of valid bug 'resolution' string values */
-	TArray< FString > ResolutionValues;
+	TArray<FString> ResolutionValues;
 
 	/** Status string name for 'Open' tasks (*not* completed) */
 	FString OpenTaskStatusPrefix;
-
 };
-
 
 
 /**
@@ -95,14 +88,11 @@ public:
 class FTaskDatabaseResponse_QueryAvailableDatabases
 	: public FTaskDatabaseResponse
 {
-
 public:
 
 	/** Array of available database names */
-	TArray< FString > DatabaseNames;
-
+	TArray<FString> DatabaseNames;
 };
-
 
 
 /**
@@ -111,14 +101,11 @@ public:
 class FTaskDatabaseResponse_QueryFilters
 	: public FTaskDatabaseResponse
 {
-
 public:
 
 	/** Array of filter names */
-	TArray< FString > FilterNames;
-
+	TArray<FString> FilterNames;
 };
-
 
 
 /**
@@ -127,14 +114,11 @@ public:
 class FTaskDatabaseResponse_QueryTasks
 	: public FTaskDatabaseResponse
 {
-
 public:
 
 	/** Array of task entries that match the query */
-	TArray< FTaskDatabaseEntry > TaskEntries;
-
+	TArray<FTaskDatabaseEntry> TaskEntries;
 };
-
 
 
 /**
@@ -143,15 +127,11 @@ public:
 class FTaskDatabaseResponse_QueryTaskDetails
 	: public FTaskDatabaseResponse
 {
-
 public:
 
 	/** Details about the requested task */
 	FTaskDatabaseEntryDetails TaskEntryDetails;
-
 };
-
-
 
 
 /**
@@ -159,7 +139,6 @@ public:
  */
 namespace TaskDatabaseSystem
 {
-
 	/**
 	 * Initialize the task database system.  This must be called before anything else.
 	 *
@@ -167,10 +146,8 @@ namespace TaskDatabaseSystem
 	 */
 	bool Init();
 
-
 	/** Clean up the task database system.  Call this after before exiting the app. */
 	void Destroy();
-
 
 	/**
 	 * Returns true if the task database system was initialized successfully
@@ -179,14 +156,12 @@ namespace TaskDatabaseSystem
 	 */
 	bool IsInitialized();
 
-
 	/**
 	 * Returns true if we're currently waiting for a response from the server
 	 *
 	 * @return	True if a request is in progress
 	 */
 	bool IsRequestInProgress();
-
 
 	/**
 	 * Returns true if we're currently connected to a database
@@ -195,11 +170,9 @@ namespace TaskDatabaseSystem
 	 */
 	bool IsConnected();
 
-
 	/** Updates the task database and checks for any completed requests, firing callbacks if needed.  This
 	    should usually be called with every engine Tick. */
 	void Update();
-
 
 	/**
 	 * Adds the specified object as a 'listener' for completed task database requests.  Remember to remove
@@ -209,14 +182,12 @@ namespace TaskDatabaseSystem
 	 */
 	void RegisterListener( FTaskDatabaseListener* Listener );
 
-	
 	/**
 	 * Removes the specified object from the list of 'listeners'
 	 *
 	 * @param	Listener	The object to unregister.  Should have been previously registered.
 	 */
 	void UnregisterListener( FTaskDatabaseListener* Listener );
-
 
 	/**
 	 * Initiates asynchronous query for available task databases
@@ -225,11 +196,9 @@ namespace TaskDatabaseSystem
 	 * @param	InServerPort		Server port
 	 * @param	InLoginUserName		User name
 	 * @param	InLoginPassword		Password
-	 *
 	 * @return	True if async requested was kicked off successfully
 	 */
 	bool QueryAvailableDatabases_Async( const FString& InServerName, const uint32 InServerPort, const FString& InLoginUserName, const FString& InLoginPassword );
-
 
 	/**
 	 * Asynchronously connects to the task database and attempts to login to a specific database
@@ -239,11 +208,9 @@ namespace TaskDatabaseSystem
 	 * @param	InLoginUserName		User name
 	 * @param	InLoginPassword		Password
 	 * @param	InDatabaeName		The database to login to
-	 *
 	 * @return	True if async requested was kicked off successfully
 	 */
 	bool ConnectToDatabase_Async( const FString& InServerName, const uint32 InServerPort, const FString& InLoginUserName, const FString& InLoginPassword, const FString& InDatabaseName );
-
 
 	/**
 	 * Disconnects from the database asynchronously
@@ -252,7 +219,6 @@ namespace TaskDatabaseSystem
 	 */
 	bool DisconnectFromDatabase_Async();
 
-
 	/**
 	 * Asynchronously queries a list of available database filters
 	 *
@@ -260,35 +226,28 @@ namespace TaskDatabaseSystem
 	 */
 	bool QueryFilters_Async();
 
-
 	/**
 	 * Asynchronously queries a list of task entries for the specified filter name
 	 *
 	 * @param	InFilterName		Name of the filter (can be empty string)
-	 *
 	 * @return	True if async requested was kicked off successfully
 	 */
 	bool QueryTasks_Async( const FString& InFilterName );
-
 
 	/**
 	 * Asynchronously queries details about a single specific task entry
 	 *
 	 * @param	InTaskNumber		The database task number for the task entry
-	 *
 	 * @return	True if async requested was kicked off successfully
 	 */
 	bool QueryTaskDetails_Async( const uint32 InTaskNumber );
-
 
 	/**
 	 * Attempts to asynchronously mark the specified task as completed
 	 *
 	 * @param	InTaskNumber		The database task number to mark complete
 	 * @param	InResolutionData	Information about how the task should be resolved
-	 *
 	 * @return	True if async requested was kicked off successfully
 	 */
 	bool MarkTaskComplete_Async( const uint32 InTaskNumber, const FTaskResolutionData& InResolutionData );
-
 };

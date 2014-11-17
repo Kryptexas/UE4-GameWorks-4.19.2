@@ -19,7 +19,7 @@ public:
 
 	// Begin FAndroidTargetPlatform overrides
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return LOCTEXT("Android_ETC1", "Android (ETC1)");
 	}
@@ -29,12 +29,12 @@ public:
 		return TEXT("ETC1");
 	}
 
-	virtual FString PlatformName() const OVERRIDE
+	virtual FString PlatformName() const override
 	{
 		return FString(FAndroid_ETC1PlatformProperties::PlatformName());
 	}
 
-	virtual bool SupportsTextureFormat( FName Format ) const OVERRIDE
+	virtual bool SupportsTextureFormat( FName Format ) const override
 	{
 		if (Format == AndroidTexFormat::NameETC1 || 
 			Format == AndroidTexFormat::NameAutoETC1)
@@ -47,7 +47,7 @@ public:
 
 	// End FAndroidTargetPlatform overrides
 
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
 		return ExtensionsString.Contains(TEXT("GL_OES_compressed_ETC1_RGB8_texture"));
 	}
@@ -80,7 +80,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{

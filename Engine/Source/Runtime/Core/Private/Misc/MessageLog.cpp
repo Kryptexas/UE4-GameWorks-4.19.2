@@ -19,12 +19,12 @@ public:
 	}
 
 	/** Begin IMessageLog interface */
-	virtual void AddMessage( const TSharedRef<FTokenizedMessage>& NewMessage ) OVERRIDE
+	virtual void AddMessage( const TSharedRef<FTokenizedMessage>& NewMessage ) override
 	{
 		AddMessageInternal(NewMessage);
 	}
 
-	virtual void AddMessages( const TArray< TSharedRef<FTokenizedMessage> >& NewMessages ) OVERRIDE
+	virtual void AddMessages( const TArray< TSharedRef<FTokenizedMessage> >& NewMessages ) override
 	{
 		for(TArray< TSharedRef<FTokenizedMessage> >::TConstIterator It = NewMessages.CreateConstIterator(); It; It++)
 		{
@@ -32,26 +32,26 @@ public:
 		}
 	}
 
-	virtual void NewPage( const FText& Title ) OVERRIDE
+	virtual void NewPage( const FText& Title ) override
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("PageTitle"), Title);
 		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *FText::Format(LOCTEXT("BasicMessageLog_NewPage", "New Page: {PageTitle}"), Arguments).ToString());
 	}
 
-	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter, bool bForce ) OVERRIDE
+	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter, bool bForce ) override
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Message"), Message);
 		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *FText::Format(LOCTEXT("BasicMessageLog_Notify", "Notify: {Message}"), Arguments).ToString());
 	}
 
-	virtual void Open() OVERRIDE
+	virtual void Open() override
 	{
 		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *LOCTEXT("BasicMessageLog_Open", "Open Log").ToString());
 	}
 
-	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) OVERRIDE
+	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) override
 	{
 		return 0;
 	}

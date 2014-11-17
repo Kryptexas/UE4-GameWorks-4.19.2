@@ -18,6 +18,8 @@
 #include "Windows/OpenGLWindows.h"
 #elif PLATFORM_MAC
 #include "Mac/OpenGLMac.h"
+#elif PLATFORM_LINUX
+#include "Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
 #elif PLATFORM_ANDROIDGL4
@@ -79,12 +81,12 @@ public:
 	/**
 	 * Initializes all OpenGL resources.
 	 */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all OpenGL resources.
 	 */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 
 private:
@@ -179,14 +181,14 @@ public:
 	 * Returns the time in ms that the GPU spent in this draw event.  
 	 * This blocks the CPU if necessary, so can cause hitching.
 	 */
-	float GetTiming() OVERRIDE;
+	float GetTiming() override;
 
-	virtual void StartTiming() OVERRIDE
+	virtual void StartTiming() override
 	{
 		Timing.StartTiming();
 	}
 
-	virtual void StopTiming() OVERRIDE
+	virtual void StopTiming() override
 	{
 		Timing.EndTiming();
 	}
@@ -215,15 +217,15 @@ public:
 	}
 
 	/** Start this frame of per tracking */
-	void StartFrame() OVERRIDE;
+	void StartFrame() override;
 
 	/** End this frame of per tracking, but do not block yet */
-	void EndFrame() OVERRIDE;
+	void EndFrame() override;
 
 	/** Calculates root timing base frequency (if needed by this RHI) */
-	virtual float GetRootTimingResults() OVERRIDE;
+	virtual float GetRootTimingResults() override;
 
-	virtual void LogDisjointQuery() OVERRIDE;
+	virtual void LogDisjointQuery() override;
 
 	/** Timer tracking inclusive time spent in the root nodes. */
 	FOpenGLBufferedGPUTiming RootEventTiming;
@@ -264,7 +266,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 		}
 	}
 
-	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) OVERRIDE
+	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
 		FOpenGLEventNode* EventNode = new FOpenGLEventNode(InName, InParent, OpenGLRHI);
 		return EventNode;
@@ -272,8 +274,8 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 
 	void Cleanup();
 
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE;
-	virtual void PopEvent() OVERRIDE;
+	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PopEvent() override;
 
 	void BeginFrame(class FOpenGLDynamicRHI* InRHI);
 	void EndFrame();
@@ -303,8 +305,7 @@ public:
 	virtual void PushEvent(const TCHAR* Name);
 	virtual void PopEvent();
 
-
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type Name ParameterTypesAndNames
+	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 
@@ -314,7 +315,7 @@ public:
 	void OnVertexBufferDeletion(GLuint VertexBufferResource);
 	void OnIndexBufferDeletion(GLuint IndexBufferResource);
 	void OnPixelBufferDeletion(GLuint PixelBufferResource);
-	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw,uint32 Offset,uint8* Pointer);
+	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw);
 	void OnProgramDeletion(GLint ProgramResource);
 	void InvalidateTextureResourceInCache(GLuint Resource);
 	void InvalidateUAVResourceInCache(GLuint Resource);
@@ -379,7 +380,15 @@ public:
 	/** Inform all queries about the need to recreate themselves after OpenGL context they're in gets deleted. */
 	void InvalidateQueries();
 
+	FOpenGLSamplerState* GetPointSamplerState() const { return (FOpenGLSamplerState*)PointSamplerState.GetReference(); }
+
 private:
+
+	/** Counter incremented each time RHIBeginScene is called. */
+	uint32 SceneFrameCounter;
+
+	/** Value used to detect when resource tables need to be recached. INDEX_NONE means always recache. */
+	uint32 ResourceTableFrameCounter;
 
 	/** RHI device state, independent of underlying OpenGL context used */
 	FOpenGLRHIState						PendingState;
@@ -416,8 +425,6 @@ private:
 	/** A critical section to protect modifications and iteration over Queries list */
 	FCriticalSection TimerQueriesListCriticalSection;
 
-
-
 	FOpenGLGPUProfiler GPUProfilingData;
 	friend FOpenGLGPUProfiler;
 //	FOpenGLEventQuery FrameSyncEvent;
@@ -445,6 +452,9 @@ private:
 	void UpdateScissorRectInOpenGLContext( FOpenGLContextState& ContextState );
 	void UpdateViewportInOpenGLContext( FOpenGLContextState& ContextState );
 	
+	template <class ShaderType> void SetResourcesFromTables(const ShaderType* RESTRICT);
+	void CommitGraphicsResourceTables();
+	void CommitComputeResourceTables(class FOpenGLComputeShader* ComputeShader);
 	void CommitNonComputeShaderConstants();
 	void CommitComputeShaderConstants(FComputeShaderRHIParamRef ComputeShaderRHI);
 	void SetPendingBlendStateForActiveRenderTargets( FOpenGLContextState& ContextState );
@@ -455,18 +465,18 @@ private:
 
 	void SetupUAVsForDraw(FOpenGLContextState& ContextState, const TRefCountPtr<FOpenGLComputeShader> &ComputeShader, int32 MaxUAVsNeeded);
 
+public:
 	/** Remember what RHI user wants set on a specific OpenGL texture stage, translating from Stage and TextureIndex for stage pair. */
 	void InternalSetShaderTexture(FOpenGLTextureBase* Texture, GLint TextureIndex, GLenum Target, GLuint Resource, int NumMips, int LimitMip);
 	void InternalSetShaderUAV(GLint UAVIndex, GLenum Format, GLuint Resource);
 	void InternalSetSamplerStates(GLint TextureIndex, FOpenGLSamplerState* SamplerState);
 
+private:
 	void ApplyTextureStage(FOpenGLContextState& ContextState, GLint TextureIndex, const FTextureStage& TextureStage, FOpenGLSamplerState* SamplerState);
 
 	void ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
-	void BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, const TArray< TRefCountPtr<FRHIUniformBuffer> >& BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate);
-
-	void ApplyUniformBuffersParametersToPacked(FOpenGLContextState& ContextState, int32 NumUniformBuffers, const TArray< TRefCountPtr<FRHIUniformBuffer> >& BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate, const TArray<FOpenGLUniformBufferCopyInfo>& UniformBufferCopyInfo, FOpenGLShaderParameterCache& ParameterCache);
+	void BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, FUniformBufferRHIRef* BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate);
 
 	void ClearCurrentFramebufferWithCurrentScissor(FOpenGLContextState& ContextState, int8 ClearType, int32 NumClearColors, const FLinearColor* ClearColorArray, float Depth, uint32 Stencil);
 
@@ -482,12 +492,12 @@ class FOpenGLDynamicRHIModule : public IDynamicRHIModule
 public:
 	
 	// IModuleInterface
-	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
+	virtual bool SupportsDynamicReloading() override { return false; }
 
 	// IDynamicRHIModule
-	virtual bool IsSupported() OVERRIDE;
+	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI() OVERRIDE
+	virtual FDynamicRHI* CreateRHI() override
 	{
 		return new FOpenGLDynamicRHI();
 	}

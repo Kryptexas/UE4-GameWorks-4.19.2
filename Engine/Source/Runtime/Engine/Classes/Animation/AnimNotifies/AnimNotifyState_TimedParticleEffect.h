@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "AnimNotifyState.h"
 #include "AnimNotifyState_TimedParticleEffect.generated.h"
 
 // Timed Particle Effect Notify
@@ -44,12 +46,12 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 	UPROPERTY(transient)
 	TArray<FName> PreviousSocketNames;
 
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) OVERRIDE;
-	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime) OVERRIDE;
-	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) OVERRIDE;
+	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) override;
+	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime) override;
+	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) override;
 
 private:
 	bool ValidateParameters(USkeletalMeshComponent* MeshComp);

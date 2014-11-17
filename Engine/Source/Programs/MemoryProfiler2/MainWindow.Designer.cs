@@ -1051,11 +1051,11 @@ namespace MemoryProfiler2
 			// CallStackHistoryHScroll
 			// 
 			resources.ApplyResources( this.CallStackHistoryHScroll, "CallStackHistoryHScroll" );
-			this.CallStackHistoryHScroll.LargeChange = 1329;
+			this.CallStackHistoryHScroll.LargeChange = 1330;
 			this.CallStackHistoryHScroll.Maximum = 1330;
 			this.CallStackHistoryHScroll.Name = "CallStackHistoryHScroll";
-			this.CallStackHistoryHScroll.SmallChange = 0;
 			this.CallStackHistoryHScroll.ValueChanged += new System.EventHandler( this.CallStackHistoryHScroll_ValueChanged );
+			this.CallStackHistoryHScroll.Visible = true;
 			// 
 			// CallStackHistoryVScroll
 			// 
@@ -1063,8 +1063,8 @@ namespace MemoryProfiler2
 			this.CallStackHistoryVScroll.LargeChange = 620;
 			this.CallStackHistoryVScroll.Maximum = 620;
 			this.CallStackHistoryVScroll.Name = "CallStackHistoryVScroll";
-			this.CallStackHistoryVScroll.Value = 1;
 			this.CallStackHistoryVScroll.ValueChanged += new System.EventHandler( this.CallStackHistoryVScroll_ValueChanged );
+			this.CallStackHistoryVScroll.Visible = true;
 			// 
 			// CallstackHistoryToolStrip
 			// 
@@ -1088,6 +1088,7 @@ namespace MemoryProfiler2
 			this.CallstackHistoryHelpLabel} );
 			resources.ApplyResources( this.CallstackHistoryToolStrip, "CallstackHistoryToolStrip" );
 			this.CallstackHistoryToolStrip.Name = "CallstackHistoryToolStrip";
+			this.CallstackHistoryToolStrip.Visible = true;
 			// 
 			// toolStripLabel1
 			// 

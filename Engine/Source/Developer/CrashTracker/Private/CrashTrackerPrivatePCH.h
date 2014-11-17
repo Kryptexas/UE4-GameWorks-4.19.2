@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CrashTrackerPrivatePCH.h: Pre-compiled header file for the CrashTracker module.
-=============================================================================*/
-
 #pragma once
 
+#include "CrashTracker.h"
 
-#include "../Public/CrashTracker.h"
 
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "ImageWrapper.h"

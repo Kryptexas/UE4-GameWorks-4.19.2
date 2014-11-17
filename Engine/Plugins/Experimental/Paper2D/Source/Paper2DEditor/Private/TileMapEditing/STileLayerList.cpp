@@ -7,7 +7,7 @@
 //////////////////////////////////////////////////////////////////////////
 // STileLayerList
 
-void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMapRenderComponent* TileMap)
+void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 {
 	TSharedRef<SHeaderRow> HeaderRowWidget = SNew(SHeaderRow)
 		+SHeaderRow::Column("Name").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerNameHeader", "Layer Name")).FillWidth(0.7)

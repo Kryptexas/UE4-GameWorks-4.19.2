@@ -9,10 +9,9 @@
 
 #include "SkeletalMeshTypes.h"
 #include "AnimInterpFilter.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 #include "AnimationAsset.generated.h"
-
-class USkeleton;
-class USkeletalMesh;
 
 /** Transform definition */
 USTRUCT(BlueprintType)
@@ -173,6 +172,9 @@ private:
 	/** Mapping table between Skeleton Bone Indices and Pose Bone Indices. */
 	TArray<int32> SkeletonToPoseBoneIndexArray;
 
+	/** Mapping table between Pose Bone Indices and Skeleton Bone Indices. */
+	TArray<int32> PoseToSkeletonBoneIndexArray;
+
 	/** For debugging. */
 	/** Disable Retargeting. Extract animation, but do not retarget it. */
 	bool bDisableRetargeting;
@@ -192,6 +194,7 @@ public:
 		BoneIndicesArray.Empty();
 		BoneSwitchArray.Empty();
 		SkeletonToPoseBoneIndexArray.Empty();
+		PoseToSkeletonBoneIndexArray.Empty();
 	}
 
 	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
@@ -320,6 +323,7 @@ public:
 			<< B.AssetSkeletalMesh 
 			<< B.AssetSkeleton 
 			<< B.SkeletonToPoseBoneIndexArray
+			<< B.PoseToSkeletonBoneIndexArray
 			<< B.bDisableRetargeting
 			<< B.bUseRAWData
 			;	
@@ -338,6 +342,12 @@ public:
 	TArray<int32> const & GetSkeletonToPoseBoneIndexArray() const
 	{
 		return SkeletonToPoseBoneIndexArray;
+	}
+
+	/** Const accessor to GetSkeletonToPoseBoneIndexArray(). */
+	TArray<int32> const & GetPoseToSkeletonBoneIndexArray() const
+	{
+		return PoseToSkeletonBoneIndexArray;
 	}
 
 private:
@@ -581,12 +591,12 @@ public:
 
 	ENGINE_API void SetSkeleton(USkeleton* NewSkeleton);
 	void ResetSkeleton(USkeleton* NewSkeleton);
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 	/** Validate our stored data against our skeleton and update accordingly */
 	void ValidateSkeleton();
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITOR
 	/** Replace Skeleton 

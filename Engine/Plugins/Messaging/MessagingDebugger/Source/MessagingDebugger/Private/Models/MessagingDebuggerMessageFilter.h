@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerMessageFilter.h: Declares the FMessagingDebuggerMessageFilter class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FMessagingDebuggerMessageFilter.
- */
+/** Type definition for shared pointers to instances of FMessagingDebuggerMessageFilter. */
 typedef TSharedPtr<class FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterPtr;
 
-/**
- * Type definition for shared references to instances of FMessagingDebuggerMessageFilter.
- */
+/** Type definition for shared references to instances of FMessagingDebuggerMessageFilter. */
 typedef TSharedRef<class FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterRef;
 
 
@@ -28,8 +20,7 @@ public:
 	/**
 	 * Filters the specified message based on the current filter settings.
 	 *
-	 * @param MessageInfo - The message to filter.
-	 *
+	 * @param MessageInfo The message to filter.
 	 * @return true if the message passed the filter, false otherwise.
 	 */
 	bool FilterEndpoint( const FMessageTracerMessageInfoPtr& MessageInfo ) const

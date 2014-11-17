@@ -759,7 +759,7 @@ namespace MemoryProfiler2
 		private void QuickStartMenuClick( object sender, EventArgs e )
 		{
 			//MessageBox.Show( "Define USE_MALLOC_PROFILER 1 in UMemoryDefines.h\n\nWhile running, type SNAPSHOTMEMORY at suitable intervals. At the end of profiling, type DUMPALLOCSTOFILE to save the .mprof file.\n\nLoad in the .mprof file from <Name>Game/Profiling/<timestamp>/<Name>-<timestamp>.mprof", "Memory Profiler Quick Start", MessageBoxButtons.OK, MessageBoxIcon.Information );
-			System.Diagnostics.Process.Start( "https://udn.epicgames.com/Three/MemoryProfiler" );
+			System.Diagnostics.Process.Start( "https://udn.unrealengine.com/docs/ue3/INT/Engine/Subsystems/Memory/Profiling/Tools/Profiler/index.html" );
 		}
 
 		/// <summary> Opens the options dialog. </summary>

@@ -22,6 +22,8 @@ enum ESimpleElementBlendMode
 	SE_BLEND_TranslucentDistanceField,
 	SE_BLEND_TranslucentDistanceFieldShadowed,
 	SE_BLEND_AlphaComposite,
+	// Like SE_BLEND_Translucent, but modifies destination alpha
+	SE_BLEND_AlphaBlend,
 
 	SE_BLEND_RGBA_MASK_START,
 	SE_BLEND_RGBA_MASK_END = SE_BLEND_RGBA_MASK_START+31, //Using 5bit bit-field for red, green, blue, alpha and desaturation
@@ -59,17 +61,18 @@ public:
 	// Destructor.
 	virtual ~FSimpleElementVertexDeclaration() {}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,Position),VET_Float4,0));
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,TextureCoordinate),VET_Float2,1));
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,Color),VET_Float4,2));
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,HitProxyIdColor),VET_Color,3));
+		uint16 Stride = sizeof(FSimpleElementVertex);
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,Position),VET_Float4,0,Stride));
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,TextureCoordinate),VET_Float2,1,Stride));
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,Color),VET_Float4,2,Stride));
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSimpleElementVertex,HitProxyIdColor),VET_Color,3,Stride));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -88,7 +91,7 @@ class FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture ) = 0;
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) = 0;
 
 };
 
@@ -181,7 +184,7 @@ public:
 	 * @param View			Optional FSceneView for shaders that need access to view constants
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
-	bool Draw(bool bNeedToSwitchVerticalAxis, const FMatrix& Transform,uint32 ViewportSizeX,uint32 ViewportSizeY,bool bHitTesting,float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()) const;
+	bool Draw(FRHICommandListImmediate& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()) const;
 	
 	FORCEINLINE bool HasPrimsToDraw() const
 	{
@@ -215,7 +218,7 @@ private:
 	 * @param	CameraX		Local space normalized view direction X vector
 	 * @param	CameraY		Local space normalized view direction Y vector
 	 */
-	void DrawPointElements( const FMatrix& Transform, const uint32 ViewportSizeX, const uint32 ViewportSizeY, const FVector& CameraX, const FVector& CameraY ) const;
+	void DrawPointElements(FRHICommandListImmediate& RHICmdList, const FMatrix& Transform, const uint32 ViewportSizeX, const uint32 ViewportSizeY, const FVector& CameraX, const FVector& CameraY) const;
 
 	TArray<FSimpleElementVertex> LineVertices;
 
@@ -316,6 +319,7 @@ private:
 	 * Sets the appropriate vertex and pixel shader.
 	 */
 	void PrepareShaders(
+		FRHICommandListImmediate& RHICmdList,
 		ESimpleElementBlendMode BlendMode,
 		const FMatrix& Transform,
 		bool bSwitchVerticalAxis,

@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "Editor/UnrealEdTypes.h"
+
 #include "DEditorStaticComponentMaskParameterValue.generated.h"
 
 USTRUCT()
@@ -41,7 +43,7 @@ struct UNREALED_API FDComponentMaskParameter
 	
 };
 
-UCLASS(hidecategories=Object, dependson=UUnrealEdTypes, collapsecategories)
+UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UDEditorStaticComponentMaskParameterValue : public UDEditorParameterValue
 {
 	GENERATED_UCLASS_BODY()

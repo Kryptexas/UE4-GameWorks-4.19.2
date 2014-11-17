@@ -324,13 +324,56 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		TextureRHI.SafeRelease();
 		SamplerStateRHI.SafeRelease();
 		DeferredPassSamplerStateRHI.SafeRelease();
 	}
 	virtual FString GetFriendlyName() const { return TEXT("FTexture"); }
+};
+
+/** A texture reference resource. */
+class RENDERCORE_API FTextureReference : public FRenderResource
+{
+public:
+	/** The texture reference's RHI resource. */
+	FTextureReferenceRHIRef	TextureReferenceRHI;
+
+
+private:
+	/** The last time the texture has been rendered via this reference. */
+	FLastRenderTimeContainer LastRenderTimeRHI;
+
+	/** True if the texture reference has been initialized from the game thread. */
+	bool bInitialized_GameThread;
+
+public:
+	/** Default constructor. */
+	FTextureReference();
+
+	// Destructor
+	virtual ~FTextureReference();
+
+	/** Returns the last time the texture has been rendered via this reference. */
+	double GetLastRenderTime() const { return LastRenderTimeRHI.GetLastRenderTime(); }
+
+	/** Invalidates the last render time. */
+	void InvalidateLastRenderTime();
+
+	/** Returns true if the texture reference has been initialized from the game thread. */
+	bool IsInitialized_GameThread() const { return bInitialized_GameThread; }
+
+	/** Kicks off the initialization process on the game thread. */
+	void BeginInit_GameThread();
+
+	/** Kicks off the release process on the game thread. */
+	void BeginRelease_GameThread();
+
+	// FRenderResource interface.
+	virtual void InitRHI();
+	virtual void ReleaseRHI();
+	virtual FString GetFriendlyName() const;
 };
 
 /** A vertex buffer resource */
@@ -343,7 +386,7 @@ public:
 	virtual ~FVertexBuffer() {}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexBufferRHI.SafeRelease();
 	}
@@ -360,10 +403,11 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// create a static vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), NULL, BUF_Static|BUF_ZeroStride);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), BUF_Static | BUF_ZeroStride, CreateInfo);
 		uint32* Vertices = (uint32*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(uint32), RLM_WriteOnly);
 		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
 		RHIUnlockVertexBuffer(VertexBufferRHI);
@@ -383,7 +427,7 @@ public:
 	virtual ~FIndexBuffer() {}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		IndexBufferRHI.SafeRelease();
 	}

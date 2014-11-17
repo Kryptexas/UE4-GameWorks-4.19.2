@@ -107,9 +107,9 @@ public:
 		, _IsEditable(true)
 		, _TitleBarEnabledOnly(false)
 		, _GraphToEdit(NULL)
-		, _AutoExpandActionMenu(false)
 		, _GraphToDiff(NULL)
-		, _ShowPIENotification(true)
+		, _AutoExpandActionMenu(false)
+		, _ShowGraphStateOverlay(true)
 		{}
 
 		SLATE_ARGUMENT( TSharedPtr<FUICommandList>, AdditionalCommands )
@@ -124,7 +124,9 @@ public:
 		SLATE_ARGUMENT( bool, AutoExpandActionMenu )
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryBack)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryForward)
-		SLATE_ARGUMENT(bool, ShowPIENotification)
+
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)				
 	SLATE_END_ARGS()
 
 	/**
@@ -192,6 +194,15 @@ public:
 		if (Implementation.IsValid())
 		{
 			Implementation->LockToGraphEditor(Other);
+		}
+	}
+
+	/* Unlock two graph editors from each other */
+	virtual void UnlockFromGraphEditor(TWeakPtr<SGraphEditor> Other)
+	{
+		if (Implementation.IsValid())
+		{
+			Implementation->UnlockFromGraphEditor(Other);
 		}
 	}
 

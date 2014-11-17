@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPv4Address.cpp: Implements the FIPv4Address class.
-=============================================================================*/
-
 #include "NetworkingPrivatePCH.h"
 
 

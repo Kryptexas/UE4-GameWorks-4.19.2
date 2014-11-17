@@ -14,10 +14,10 @@ struct FMeshPropertiesSummoner : public FWorkflowTabFactory
 	FMeshPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	// FWorkflowTabFactory interface
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE;
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
 	// Create a tooltip widget for the tab
-	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("MeshDetailsTooltip", "The Mesh Details tab lets you edit properties (materials etc) of the current Skeletal Mesh."), NULL, TEXT("Shared/Editors/Persona"), TEXT("MeshDetail_Window"));
 	}

@@ -49,7 +49,7 @@ public:
 	{
 	}
 
-	virtual void GetStreamingStatus(FDVRStreamingStatus &StreamingStatus) OVERRIDE
+	virtual void GetStreamingStatus(FDVRStreamingStatus &StreamingStatus) override
 	{
 		StreamingStatus.bIsStreaming = false;
 		StreamingStatus.bIsStreamingEnabled = bIsStreamingEnabled;
@@ -60,7 +60,7 @@ public:
 		StreamingStatus.ProviderUrl = TEXT("");
 	}
 
-	virtual void EnableStreaming(bool Enable) OVERRIDE
+	virtual void EnableStreaming(bool Enable) override
 	{
 		bIsStreamingEnabled = Enable;
 	}

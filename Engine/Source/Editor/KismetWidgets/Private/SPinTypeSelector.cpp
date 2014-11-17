@@ -29,6 +29,24 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	TargetPinType = InArgs._TargetPinType;
 
 	GetPinTypeTree.Execute(TypeTreeRoot, bAllowExec, bAllowWildcard);
+
+	// Remove read-only root items if they have no children; there will be no subtree to select non read-only items from in that case
+	int32 RootItemIndex = 0;
+	while(RootItemIndex < TypeTreeRoot.Num())
+	{
+		FPinTypeTreeItem TypeTreeItemPtr = TypeTreeRoot[RootItemIndex];
+		if(TypeTreeItemPtr.IsValid()
+			&& TypeTreeItemPtr->bReadOnly
+			&& TypeTreeItemPtr->Children.Num() == 0)
+		{
+			TypeTreeRoot.RemoveAt(RootItemIndex);
+		}
+		else
+		{
+			++RootItemIndex;
+		}
+	}
+
 	FilteredTypeTreeRoot = TypeTreeRoot;
 
 	this->ChildSlot
@@ -91,14 +109,14 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 
 FString SPinTypeSelector::GetTypeDescription() const
 {
- 	if( TargetPinType.Get().PinSubCategoryObject != NULL )
- 	{
- 		return TargetPinType.Get().PinSubCategoryObject->GetName();
- 	}
- 	else
- 	{
- 		return TargetPinType.Get().PinCategory;
- 	}
+	if( TargetPinType.Get().PinSubCategoryObject != NULL )
+	{
+		return TargetPinType.Get().PinSubCategoryObject->GetName();
+	}
+	else
+	{
+		return TargetPinType.Get().PinCategory;
+	}
 }
 
 const FSlateBrush* SPinTypeSelector::GetTypeIconImage() const
@@ -113,7 +131,7 @@ FSlateColor SPinTypeSelector::GetTypeIconColor() const
 
 ESlateCheckBoxState::Type SPinTypeSelector::IsArrayChecked() const
 {
-	return TargetPinType.Get().bIsArray;
+	return TargetPinType.Get().bIsArray ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SPinTypeSelector::OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewState)
@@ -140,8 +158,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 
 	return SNew( SComboRow<FPinTypeTreeItem>, OwnerTree )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( FText::FromString( Tooltip ), NULL, *BigTooltipDocLink, *Description) )
-		.RowContent
-		(
+		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -161,7 +178,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 				.HighlightText(SearchText)
 				.Font( bHasChildren ? FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.CategoryFont")) : FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
 			]
-		);
+		];
 }
 
 void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo)
@@ -173,8 +190,8 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 	}
 
 	// Only handle selection for non-read only items, since STreeViewItem doesn't actually support read-only
- 	if( Selection.IsValid() )
- 	{
+	if( Selection.IsValid() )
+	{
 		if( !Selection->bReadOnly )
 		{
 			const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Paramater Type") );
@@ -213,7 +230,7 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 				}
 			}
 		}
- 	}
+	}
 }
 
 void SPinTypeSelector::GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeTreeItem>& OutChildren)

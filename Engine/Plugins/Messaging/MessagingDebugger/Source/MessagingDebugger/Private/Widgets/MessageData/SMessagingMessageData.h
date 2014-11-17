@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingMessageData.h: Declares the SMessagingMessageData class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -31,19 +27,17 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InModel - The view model to use.
-	 * @param InStyle - The visual style to use for this widget.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InModel The view model to use.
+	 * @param InStyle The visual style to use for this widget.
 	 */
 	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle );
 
 public:
 
-	// Begin FNotifyHook interface
+	// FNotifyHook interface
 
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) OVERRIDE;
-
-	// End FNotifyHook interface
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) override;
 
 private:
 

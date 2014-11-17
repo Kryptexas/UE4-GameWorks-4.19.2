@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageEndpoint.h: Declares the FMessageEndpoint class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FMessageEndpoint.
- */
+/** Type definition for shared pointers to instances of FMessageEndpoint. */
 typedef TSharedPtr<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointPtr;
 
-/**
- * Type definition for shared references to instances of FMessageEndpoint.
- */
+/** Type definition for shared references to instances of FMessageEndpoint. */
 typedef TSharedRef<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointRef;
 
 
@@ -275,7 +267,6 @@ public:
 	 * Unsubscribes this endpoint from the specified message type.
 	 *
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
-	 *
 	 * @see Subscribe
 	 */
 	void Unsubscribe( const FName& TopicPattern )
@@ -295,11 +286,7 @@ public:
 	 *
 	 * The inbox is disabled by default.
 	 *
-	 * @see EnableInbox
-	 * @see IsInboxEmpty
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see EnableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	void DisableInbox( )
 	{
@@ -313,11 +300,7 @@ public:
 	 * invoke the registered message handlers for all queued up messages, or ReceiveFromInbox() to
 	 * manually receive one message from the inbox at a time. The inbox is disabled by default.
 	 *
-	 * @see DisableInbox
-	 * @see IsInboxEmpty
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	void EnableInbox( )
 	{
@@ -329,11 +312,7 @@ public:
 	 *
 	 * @return true if the inbox is empty, false otherwise.
 	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEmpty( ) const
 	{
@@ -343,11 +322,7 @@ public:
 	/**
 	 * Checks whether the inbox is enabled.
 	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEmpty
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEmpty, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEnabled( ) const
 	{
@@ -361,8 +336,7 @@ public:
 	 * been enabled and no matching message handler handled it. The inbox is disabled by default and
 	 * must be enabled using the EnableInbox() method.
 	 *
-	 * @see IsInboxEmpty
-	 * @see ReceiveFromInbox
+	 * @see IsInboxEmpty, ReceiveFromInbox
 	 */
 	void ProcessInbox( )
 	{
@@ -382,13 +356,8 @@ public:
 	 * must be enabled using the EnableInbox() method.
 	 *
 	 * @param OutContext Will hold the context of the received message.
-	 *
 	 * @return true if a message was received, false if the inbox was empty.
-	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox
 	 */
 	bool ReceiveFromInbox( IMessageContextPtr& OutContext )
 	{
@@ -412,29 +381,29 @@ public:
 
 public:
 
-	// Begin IReceiveMessages interface
+	// IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const OVERRIDE
+	virtual FName GetDebugName( ) const override
 	{
 		return Name;
 	}
 
-	virtual const FGuid& GetRecipientId( ) const OVERRIDE
+	virtual const FGuid& GetRecipientId( ) const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE
+	virtual ENamedThreads::Type GetRecipientThread( ) const override
 	{
 		return RecipientThread;
 	}
 
-	virtual bool IsLocal( ) const OVERRIDE
+	virtual bool IsLocal( ) const override
 	{
 		return true;
 	}
 
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) OVERRIDE
+	virtual void ReceiveMessage( const IMessageContextRef& Context ) override
 	{
 		if (!Enabled)
 		{
@@ -456,23 +425,19 @@ public:
 		}
 	}
 
-	// End IReceiveMessages interface
-
 public:
 
-	// Begin ISendMessages interface
+	// ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) OVERRIDE
+	virtual FMessageAddress GetSenderAddress( ) override
 	{
 		return Address;
 	}
 
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) OVERRIDE
+	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override
 	{
 		ErrorDelegate.ExecuteIfBound(Context, Error);
 	}
-
-	// End ISendMessages interface
 
 public:
 
@@ -592,7 +557,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
 	}
 
 	/**
@@ -606,7 +571,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, FDateTime::MaxValue());
 	}
 
 	/**
@@ -621,7 +586,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay, const FDateTime& Expiration )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
 	}
 
 	/**
@@ -664,7 +629,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, Recipients, FTimespan::Zero(), FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, FTimespan::Zero(), FDateTime::MaxValue());
 	}
 
 	/**
@@ -678,7 +643,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, Recipients, Delay, FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, Delay, FDateTime::MaxValue());
 	}
 
 	/**
@@ -757,7 +722,6 @@ public:
 	 * Template method to unsubscribe the endpoint from the specified message type.
 	 *
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
-	 *
 	 * @see Subscribe
 	 */
 	template<class MessageType>

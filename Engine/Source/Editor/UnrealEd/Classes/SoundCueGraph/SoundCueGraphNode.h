@@ -29,21 +29,21 @@ class USoundCueGraphNode : public USoundCueGraphNode_Base
 	UNREALED_API bool CanAddInputPin() const;
 
 	// USoundCueGraphNode_Base interface
-	virtual void CreateInputPins() OVERRIDE;
+	virtual void CreateInputPins() override;
 	// End of USoundCueGraphNode_Base interface
 
 	// UEdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetDocumentationExcerptName() const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PrepareForCopying() override;
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual FString GetTooltip() const override;
+	virtual FString GetDocumentationExcerptName() const override;
 	// End of UEdGraphNode interface
 
 	// UObject interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostEditImport() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	// End of UObject interface
 
 private:

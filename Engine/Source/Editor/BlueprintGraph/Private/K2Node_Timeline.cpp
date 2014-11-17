@@ -353,7 +353,7 @@ void UK2Node_Timeline::PrepareForCopying()
 	//Set the GUID so we can identify which timeline template the copied node should use
 	UTimelineTemplate* Template  = Blueprint->FindTimelineTemplateByVariableName(TimelineName);
 	check(Template);
-	TimelineGuid = Template->TimelineGuid =  FGuid::NewGuid(); //refresh the guid 
+	TimelineGuid = Template->TimelineGuid; // hold onto the template's Guid so on paste we can match it up on paste
 }
 
 //Determine if all the tracks contained with both arrays are identical
@@ -544,6 +544,13 @@ FString UK2Node_Timeline::GetTooltip() const
 FString UK2Node_Timeline::GetDocumentationExcerptName() const
 {
 	return TEXT("UK2Node_Timeline");
+}
+
+void UK2Node_Timeline::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "TimeLine" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherAutomatedServiceProvider.cpp: Implements the FLauncherAutomatedServiceProvider class.
-=============================================================================*/
-
 #include "LauncherAutomatedServicePrivatePCH.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LauncherAutomatedService, Log, All);

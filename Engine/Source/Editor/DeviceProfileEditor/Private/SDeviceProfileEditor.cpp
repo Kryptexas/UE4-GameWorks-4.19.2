@@ -8,6 +8,8 @@
 
 #include "DeviceProfileEditorPCH.h"
 
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "DeviceProfiles/DeviceProfile.h"
 #include "ISourceControlModule.h"
 #include "PropertyEditorModule.h"
 #include "PropertyPath.h"
@@ -73,7 +75,7 @@ public:
 public:
 
 	// Begin SCompoundWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End SCompoundWidget interface
 
 

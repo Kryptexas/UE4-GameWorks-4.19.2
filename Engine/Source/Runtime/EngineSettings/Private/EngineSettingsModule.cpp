@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineSettingsModule.cpp: Implements the FEngineSettingsModule class.
-=============================================================================*/
-
 #include "EngineSettingsPrivatePCH.h"
 
 
@@ -15,23 +11,25 @@ class FEngineSettingsModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
+	virtual void ShutdownModule( ) override { }
 
-	virtual void ShutdownModule( ) OVERRIDE { }
-
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 };
 
 
 /* Class constructors
  *****************************************************************************/
+
+UConsoleSettings::UConsoleSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
+
 
 UGameMapsSettings::UGameMapsSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
@@ -79,9 +77,11 @@ const FString& UGameMapsSettings::GetGameDefaultMap( )
 
 const FString& UGameMapsSettings::GetGlobalDefaultGameMode( )
 {
-	return IsRunningDedicatedServer()
-		? GetDefault<UGameMapsSettings>()->GlobalDefaultServerGameMode.ClassName 
-		: GetDefault<UGameMapsSettings>()->GlobalDefaultGameMode.ClassName;
+	UGameMapsSettings* GameMapsSettings = Cast<UGameMapsSettings>(UGameMapsSettings::StaticClass()->GetDefaultObject());
+
+	return IsRunningDedicatedServer() && GameMapsSettings->GlobalDefaultServerGameMode.IsValid()
+		? GameMapsSettings->GlobalDefaultServerGameMode.ClassName
+		: GameMapsSettings->GlobalDefaultGameMode.ClassName;
 }
 
 

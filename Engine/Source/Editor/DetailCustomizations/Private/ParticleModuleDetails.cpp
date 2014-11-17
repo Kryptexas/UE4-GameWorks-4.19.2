@@ -4,6 +4,7 @@
 #include "ParticleModuleDetails.h"
 #include "SharedPointer.h"
 #include "PropertyRestriction.h"
+#include "Particles/ParticleModule.h"
 
 DECLARE_LOG_CATEGORY_CLASS(LogParticleModuleDetails, Log, All);
 

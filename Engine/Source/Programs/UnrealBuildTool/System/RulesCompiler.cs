@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 			Type = InitType;
 
 			// get the platform's architecture
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			Architecture = BuildPlatform.GetActiveArchitecture();
 		}
 
@@ -108,10 +108,6 @@ namespace UnrealBuildTool
 		/// When this module's code should be optimized.
 		public CodeOptimization OptimizeCode = CodeOptimization.Default;
 
-		// NOTE: bAllowSharedPCH is deprecated and was left for backwards compatiblity with existing *.Build.cs files.  In general, you should not need to use the replacement (PCHUsage), as the defaults are correct for most modules.
-		// [System.Obsolete("bAllowSharedPCH has been deprecated.  Please remove use of this variable.", false)]
-		public bool bAllowSharedPCH = true;	// <--- deprecated!
-
 		/// Header file name for a shared PCH provided by this module.  Must be a valid relative path to a public C++ header file.
 		/// This should only be set for header files that are included by a significant number of other C++ modules.
 		public string SharedPCHHeaderFile = String.Empty;
@@ -128,7 +124,7 @@ namespace UnrealBuildTool
 			UseSharedPCHs
 		}
 
-		/// Precompiled header usage for this module (replaces bAllowSharedPCH)
+		/// Precompiled header usage for this module
 		public PCHUsageMode PCHUsage = PCHUsageMode.Default;
 
 		/** Use run time type information */
@@ -139,9 +135,6 @@ namespace UnrealBuildTool
 
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
-
-		/** Enable inlining */
-		public bool bEnableInlining = true;
 
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
@@ -183,6 +176,9 @@ namespace UnrealBuildTool
 
 		// List of frameworks
 		public List<string> PublicFrameworks = new List<string>();
+
+		// List of weak frameworks (for OS version transitions)
+		public List<string> PublicWeakFrameworks = new List<string>();
 
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
 		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
@@ -262,6 +258,29 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_PHYSX=0");
 				Definitions.Add("WITH_APEX=0");
 			}
+		}
+
+		/// <summary>
+		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
+		/// </summary>
+		public void SetupModuleBox2DSupport(TargetInfo Target)
+		{
+			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
+			bool bSupported = false;
+			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			{
+				bSupported = true;
+			}
+
+			bSupported = bSupported && UEBuildConfiguration.bCompileBox2D;
+	
+			if (bSupported)
+			{
+				AddThirdPartyPrivateStaticDependencies(Target, "Box2D");
+			}
+
+			// Box2D included define (required because pointer types may be in public exported structures)
+			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 		}
 	}
 
@@ -521,6 +540,17 @@ namespace UnrealBuildTool
 		{
 		}
 
+
+		/// <summary>
+		/// Returns true if this target's output path needs to be the same as for the development configuration.
+		/// Currently only used by the CrashReportClient.
+		/// </summary>
+		/// <returns>true if this target's output path needs to be the same as for the development configuration.</returns>
+		public virtual bool ForceNameAsForDevelopment()
+		{
+			return false;
+		}
+
 		/// <summary>
 		/// Setup the global environment for building this target
 		/// IMPORTANT: Game targets will *not* have this function called unless they are built as monolithic targets.
@@ -611,10 +641,33 @@ namespace UnrealBuildTool
         /// Return a list of configs for target platforms for formal builds
         /// </summary>
         /// <returns>a list of configs for a target platforms for the monolithic</returns>        
+        [Obsolete]
         public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
         {
             return new List<UnrealTargetConfiguration>();
         }
+
+        public class GUBPFormalBuild
+        {
+            public UnrealTargetPlatform TargetPlatform = UnrealTargetPlatform.Unknown;
+            public UnrealTargetConfiguration TargetConfig = UnrealTargetConfiguration.Unknown;
+            public bool bTest = false;
+            public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false)
+            {
+                TargetPlatform = InTargetPlatform;
+                TargetConfig = InTargetConfig;
+                bTest = bInTest;
+            }
+        }
+        /// <summary>
+        /// Return a list of formal builds
+        /// </summary>
+        /// <returns>a list of formal builds</returns>        
+        public virtual List<GUBPFormalBuild> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+        {
+            return new List<GUBPFormalBuild>();
+        }
+
 
         /// <summary>
         /// Return true if this target should be included in a promotion and indicate shared or not
@@ -650,10 +703,20 @@ namespace UnrealBuildTool
         /// Return a list of the non-code projects to make formal builds for
         /// </summary>
         /// <returns>a list of the non-code projects to build cook and test</returns>
+        [Obsolete]
         public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
         {
             return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
         }
+        /// <summary>
+        /// Return a list of the non-code projects to make formal builds for
+        /// </summary>
+        /// <returns>a list of the non-code projects to build cook and test</returns>
+        public virtual Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
+        {
+            return new Dictionary<string, List<GUBPFormalBuild>>();
+        }
+
         /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing the editor
         /// </summary>
@@ -706,12 +769,14 @@ namespace UnrealBuildTool
         public virtual Dictionary<string, string> GUBP_GetClientServerTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform ServerPlatform, UnrealTargetPlatform ClientPlatform)
         {
             var Result = new Dictionary<string, string>();
+#if false // needs work
             if ((ServerPlatform == HostPlatform || ServerPlatform == AltHostPlatform) &&
                 (ClientPlatform == HostPlatform || ClientPlatform == AltHostPlatform) && 
                 Type == TargetType.Game)  // for now, we will only run these for the dev config of the host platform and only the game executable, not sure how to deal with a client only executable
             {
                 Result.Add("CookedNetTest", "BuildCookRun -run -skipcook -stage -pak -deploy -unattended -server -nullrhi -NoP4  -addcmdline=\"-nosteam\" -platform=" + ClientPlatform.ToString() + " -serverplatform=" + ServerPlatform.ToString());
             }
+#endif
             return Result;
         }
 	}
@@ -1588,6 +1653,12 @@ namespace UnrealBuildTool
 		{
 			string TargetFileName;
 			TargetRules RulesObject = CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
+			if (bInEditorRecompile)
+			{
+				// Now that we found the actual Editor target, make sure we're no longer using the old TargetName (which is the Game target)
+				var TargetSuffixIndex = RulesObject.TargetName.LastIndexOf("Target");
+				TargetName = (TargetSuffixIndex > 0) ? RulesObject.TargetName.Substring(0, TargetSuffixIndex) : RulesObject.TargetName;
+			}
 			if ((ProjectFileGenerator.bGenerateProjectFiles == false) && (RulesObject.SupportsPlatform(Target.Platform) == false))
 			{
 				if (UEBuildConfiguration.bCleanProject)

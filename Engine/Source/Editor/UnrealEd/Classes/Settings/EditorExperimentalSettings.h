@@ -41,10 +41,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
 	bool bMessagingDebugger;
 
-	/** The World browser allows you to edit a big world by manipulating individual levels positions and streaming properties */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="World Browser"))
-	bool bWorldBrowser;
-
 	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Actor Merging"))
 	bool bActorMerging;
@@ -64,6 +60,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints"))
 	bool bDrawMidpointArrowsInBlueprints;
 
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Allow splitting of struct pins"))
+	bool bAllowSplitStructPins;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
@@ -76,7 +75,7 @@ protected:
 
 	// Begin UObject overrides
 
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 	// End UObject overrides
 

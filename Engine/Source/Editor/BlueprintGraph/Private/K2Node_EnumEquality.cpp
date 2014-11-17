@@ -3,8 +3,9 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "K2Node_EnumEquality.h"
 
 UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -192,7 +193,6 @@ void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) con
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
 		NodeAction->NodeTemplate = EnumNodeTemplate;
-		NodeAction->SearchTitle = EnumNodeTemplate->GetNodeSearchTitle();
 	}
 }
 

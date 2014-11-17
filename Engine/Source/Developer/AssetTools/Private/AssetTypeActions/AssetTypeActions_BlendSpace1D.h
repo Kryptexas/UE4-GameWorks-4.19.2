@@ -6,8 +6,8 @@ class FAssetTypeActions_BlendSpace1D : public FAssetTypeActions_AnimationAsset
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_BlendSpace1D", "Blend Space 1D"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(255,180,130); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UBlendSpace1D::StaticClass(); }
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_BlendSpace1D", "Blend Space 1D"); }
+	virtual FColor GetTypeColor() const override { return FColor(255,180,130); }
+	virtual UClass* GetSupportedClass() const override { return UBlendSpace1D::StaticClass(); }
+	virtual bool CanFilter() override { return true; }
 };

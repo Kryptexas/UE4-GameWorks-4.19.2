@@ -171,7 +171,7 @@ DECLARE_DELEGATE_OneParam( FOnDragDropUpdate,
 
 #define DRAG_DROP_OPERATOR_TYPE(TYPE, BASE) \
 	static const FString& GetTypeId() { static FString Type = TEXT(#TYPE); return Type; } \
-	virtual bool IsOfTypeImpl(const FString& Type) const OVERRIDE { return GetTypeId() == Type || BASE::IsOfTypeImpl(Type); }
+	virtual bool IsOfTypeImpl(const FString& Type) const override { return GetTypeId() == Type || BASE::IsOfTypeImpl(Type); }
 
 
 /**
@@ -184,7 +184,7 @@ private:
 	/** A private constructor to ensure that the appropriate "New" factory method is used below */
 	FExternalDragOperation(){}
 
-	virtual bool IsExternalOperation() const OVERRIDE { return true; }
+	virtual bool IsExternalOperation() const override { return true; }
 
 public:
 	DRAG_DROP_OPERATOR_TYPE(FExternalDragOperation, FDragDropOperation)

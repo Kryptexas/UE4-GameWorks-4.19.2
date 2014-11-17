@@ -7,9 +7,12 @@
 //=============================================================================
 
 #pragma once
+
+#include "Engine/EngineTypes.h"
 #include "Components/InputComponent.h"
 #include "GestureRecognizer.h"
 #include "KeyState.h"
+
 #include "PlayerInput.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
@@ -227,7 +230,7 @@ struct FAxisKeyDetails
 	}
 };
 
-UCLASS(Within=PlayerController, config=Input, dependsOn=UEngineTypes, transient)
+UCLASS(Within=PlayerController, config=Input, transient)
 class ENGINE_API UPlayerInput : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -273,10 +276,8 @@ public:
 	UFUNCTION(exec)
 	void SetMouseSensitivityToDefault();
 
-#if !UE_BUILD_SHIPPING
 	UFUNCTION(exec)
 	void SetBind(FName BindName, const FString& Command);
-#endif
 
 	/** Returns the mouse sensitivity along the X-axis, or the Y-axis, or 1.0 if none are known. */
 	float GetMouseSensitivity();
@@ -315,8 +316,7 @@ public:
 
 protected:
 	/** Internal structure for storing axis config data. */
-	static TMap<FKey,FInputAxisProperties> AxisProperties;
-
+	TMap<FKey,FInputAxisProperties> AxisProperties;
 	TMap<FName,FActionKeyDetails> ActionKeyMap;
 	TMap<FName,FAxisKeyDetails> AxisKeyMap;
 
@@ -366,7 +366,7 @@ protected:
 
 public:
 	
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 	void FlushPressedKeys();
 	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);

@@ -6,10 +6,7 @@
 
 #include "CorePrivate.h"
 
-static struct FForceInitAtBootFMemStack : public TForceInitAtBoot<FMemStack>
-{} FForceInitAtBootFMemStack;
-
-template<> uint32 FThreadSingleton<FMemStack>::TlsSlot = 0;
+DECLARE_THREAD_SINGLETON( FMemStack );
 
 DECLARE_MEMORY_STAT(TEXT("MemStack Allocated (all threads)"), STAT_MemStackAllocated,STATGROUP_Memory);
 DECLARE_MEMORY_STAT(TEXT("MemStack Used (all threads)"), STAT_MemStackUsed,STATGROUP_Memory);

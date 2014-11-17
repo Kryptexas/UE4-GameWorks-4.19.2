@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceDetails.h: Declares the SDeviceDetails class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,8 +26,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InModel - The view model to use.
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
 	 */
 	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel );
 

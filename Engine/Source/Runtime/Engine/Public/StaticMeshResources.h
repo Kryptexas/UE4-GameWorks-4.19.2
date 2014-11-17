@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "RawIndexBuffer.h"
+#include "TextureLayout3d.h"
+
 /**
  * The LOD settings to use for a group of static meshes.
  */
@@ -315,7 +318,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("PositionOnly Static-mesh vertices"); }
 
 private:
@@ -492,7 +495,7 @@ public:
 	void ConvertToFullPrecisionUVs();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("Static-mesh vertices"); }
 
 private:
@@ -519,6 +522,125 @@ private:
 	void AllocateData( bool bNeedsCPUAccess = true );
 };
 
+class FDistanceFieldVolumeTexture;
+
+/** Global volume texture atlas that collects all static mesh resource distance fields. */
+class FDistanceFieldVolumeTextureAtlas : public FRenderResource
+{
+public:
+	FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat);
+
+	virtual void ReleaseRHI() override
+	{
+		VolumeTextureRHI.SafeRelease();
+	}
+
+	int32 GetSizeX() const { return VolumeTextureRHI->GetSizeX(); }
+	int32 GetSizeY() const { return VolumeTextureRHI->GetSizeY(); }
+	int32 GetSizeZ() const { return VolumeTextureRHI->GetSizeZ(); }
+
+	/** Add an allocation to the atlas. */
+	void AddAllocation(FDistanceFieldVolumeTexture* Texture);
+
+	/** Remove an allocation from the atlas. This must be done prior to deleting the FDistanceFieldVolumeTexture object. */
+	void RemoveAllocation(FDistanceFieldVolumeTexture* Texture);
+
+	/** Reallocates the volume texture if necessary and uploads new allocations. */
+	ENGINE_API void UpdateAllocations();
+
+	EPixelFormat Format;
+	FTexture3DRHIRef VolumeTextureRHI;
+
+private:
+	/** Manages the atlas layout. */
+	FTextureLayout3d BlockAllocator;
+
+	/** Allocations that are waiting to be added until the next update. */
+	TArray<FDistanceFieldVolumeTexture*> PendingAllocations;
+
+	/** Allocations that have already been added, stored in case we need to realloc. */
+	TArray<FDistanceFieldVolumeTexture*> CurrentAllocations;
+};
+
+extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;
+
+/** Represents a distance field volume texture for a single UStaticMesh. */
+class FDistanceFieldVolumeTexture
+{
+public:
+	FDistanceFieldVolumeTexture(const class FDistanceFieldVolumeData& InVolumeData) :
+		VolumeData(InVolumeData),
+		Atlas(NULL),
+		AtlasAllocationMin(FIntVector(-1, -1, -1)),
+		bReferencedByAtlas(false)
+	{}
+
+	~FDistanceFieldVolumeTexture()
+	{
+		// Make sure we have been properly removed from the atlas before deleting
+		check(!bReferencedByAtlas);
+	}
+
+	void Initialize();
+	void Release();
+
+	FIntVector GetAllocationMin() const
+	{
+		return AtlasAllocationMin;
+	}
+
+	FIntVector GetAllocationSize() const;
+
+	void SetAtlas(FDistanceFieldVolumeTextureAtlas* InAtlas)
+	{
+		Atlas = InAtlas;
+	}
+
+	bool IsValidDistanceFieldVolume() const;
+
+private:
+	const FDistanceFieldVolumeData& VolumeData;
+	FDistanceFieldVolumeTextureAtlas* Atlas;
+	FIntVector AtlasAllocationMin;
+	bool bReferencedByAtlas;
+
+	friend class FDistanceFieldVolumeTextureAtlas;
+};
+
+/** Distance field data payload and output of the mesh build process. */
+class FDistanceFieldVolumeData
+{
+public:
+
+	/** Signed distance field volume stored in local space. */
+	TArray<FFloat16> DistanceFieldVolume;
+
+	/** Dimensions of DistanceFieldVolume. */
+	FIntVector Size;
+
+	/** Local space bounding box of the distance field volume. */
+	FBox LocalBoundingBox;
+
+	/** Whether the mesh was closed and therefore a valid distance field was supported. */
+	bool bMeshWasClosed;
+
+	FDistanceFieldVolumeTexture VolumeTexture;
+
+	FDistanceFieldVolumeData() :
+		Size(FIntVector(0, 0, 0)),
+		LocalBoundingBox(0),
+		bMeshWasClosed(true),
+		VolumeTexture(*this)
+	{}
+
+	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
+	{
+		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed;
+		return Ar;
+	}
+};
+
+
 /** Rendering resources needed to render an individual static mesh LOD. */
 struct FStaticMeshLODResources
 {
@@ -544,6 +666,8 @@ struct FStaticMeshLODResources
 	/** Sections for this LOD. */
 	TArray<FStaticMeshSection> Sections;
 
+	FDistanceFieldVolumeData DistanceFieldData;
+
 	/** The maximum distance by which this LOD deviates from the base from which it was generated. */
 	float MaxDeviation;
 
@@ -555,6 +679,7 @@ struct FStaticMeshLODResources
 		: MaxDeviation(0.0f)
 		, bHasAdjacencyInfo(false)
 	{
+		DistanceFieldData.VolumeTexture.SetAtlas(&GDistanceFieldVolumeTextureAtlas);
 	}
 
 	/** Initializes all rendering resources. */
@@ -750,17 +875,19 @@ protected:
 public:
 	// FPrimitiveSceneProxy interface.
 #if WITH_EDITOR
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE;
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
-	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE { DrawDynamicElements( PDI, View, 0 ); }
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags ) OVERRIDE;
-	virtual void OnTransformChanged() OVERRIDE;
-	virtual int32 GetLOD(const FSceneView* View) const OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const OVERRIDE;
-	virtual uint32 GetMemoryFootprint( void ) const OVERRIDE { return( sizeof( *this ) + GetAllocatedSize() ); }
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override { DrawDynamicElements( PDI, View, 0 ); }
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags ) override;
+	virtual void OnTransformChanged() override;
+	virtual int32 GetLOD(const FSceneView* View) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual bool CanBeOccluded() const override;
+	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const override;
+	virtual bool HasDistanceFieldRepresentation() const override;
+	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODs.GetAllocatedSize() ); }
 
 protected:
@@ -822,15 +949,10 @@ protected:
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
 
-		virtual FLightMapInteraction GetLightMapInteraction() const
-		{
-			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
-		}
+		virtual FLightMapInteraction GetLightMapInteraction() const;
 
-		virtual FShadowMapInteraction GetShadowMapInteraction() const
-		{
-			return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
-		}
+		virtual FShadowMapInteraction GetShadowMapInteraction() const;
+
 
 	private:
 
@@ -873,21 +995,6 @@ protected:
 
 	/** Collision Response of this component**/
 	FCollisionResponseContainer CollisionResponse;
-
-	/**
-	 * Returns the minimum distance that the given LOD should be displayed at
-	 *
-	 * @param CurrentLevel - the LOD to find the min distance for
-	 */
-	float GetMinLODDist(int32 CurrentLevel) const;
-
-	/**
-	 * Returns the maximum distance that the given LOD should be displayed at
-	 * If the given LOD is the lowest detail LOD, then its maxDist will be WORLD_MAX
-	 *
-	 * @param CurrentLevel - the LOD to find the max distance for
-	 */
-	float GetMaxLODDist(int32 CurrentLevel) const;
 
 	/**
 	 * Returns the display factor for the given LOD level

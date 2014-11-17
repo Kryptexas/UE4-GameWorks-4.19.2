@@ -18,9 +18,9 @@ class UEnvironmentQueryGraphNode : public UEdGraphNode
 	/** Get the BT graph that owns this node */
 	virtual class UEnvironmentQueryGraph* GetEnvironmentQueryGraph();
 
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual void PostEditImport() override;
+	virtual void PrepareForCopying() override;
 	virtual void PostCopyNode();
 
 	// @return the input pin for this state
@@ -30,12 +30,12 @@ class UEnvironmentQueryGraphNode : public UEdGraphNode
 	//
 	virtual UEdGraph* GetBoundGraph() const { return NULL; }
 
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetDescription() const;
 
-	virtual void NodeConnectionListChanged() OVERRIDE;
+	virtual void NodeConnectionListChanged() override;
 
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 
 	virtual bool IsSubNode() const { return false; }
 

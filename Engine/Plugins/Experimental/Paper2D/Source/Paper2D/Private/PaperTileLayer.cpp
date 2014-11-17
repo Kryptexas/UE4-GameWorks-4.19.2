@@ -20,8 +20,8 @@ void UPaperTileLayer::DestructiveAllocateMap(int32 NewWidth, int32 NewHeight)
 	check((NewWidth > 0) && (NewHeight > 0));
 
 	const int32 NumCells = NewWidth * NewHeight;
-	AllocatedGrid.Empty(NumCells);
-	AllocatedGrid.AddZeroed(NumCells);
+	AllocatedCells.Empty(NumCells);
+	AllocatedCells.AddZeroed(NumCells);
 
 	AllocatedWidth = NewWidth;
 	AllocatedHeight = NewHeight;
@@ -38,7 +38,7 @@ void UPaperTileLayer::ReallocateAndCopyMap()
 {
 	const int32 SavedWidth = AllocatedWidth;
 	const int32 SavedHeight = AllocatedHeight;
-	TArray<int32> SavedDesignedMap(AllocatedGrid);
+	TArray<FPaperTileInfo> SavedDesignedMap(AllocatedCells);
 
 	DestructiveAllocateMap(LayerWidth, LayerHeight);
 
@@ -52,7 +52,7 @@ void UPaperTileLayer::ReallocateAndCopyMap()
 			const int32 SrcIndex = Y*SavedWidth + X;
 			const int32 DstIndex = Y*LayerWidth + X;
 
-			AllocatedGrid[DstIndex] = SavedDesignedMap[SrcIndex];
+			AllocatedCells[DstIndex] = SavedDesignedMap[SrcIndex];
 		}
 	}
 
@@ -73,7 +73,7 @@ void UPaperTileLayer::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 		// Resize the map, trying to preserve existing data
 		ReallocateAndCopyMap();
 	}
-// 	else if (PropertyName == TEXT("AllocatedGrid"))
+// 	else if (PropertyName == TEXT("AllocatedCells"))
 // 	{
 // 		BakeMap();
 // 	}
@@ -82,37 +82,37 @@ void UPaperTileLayer::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 }
 #endif
 
-UPaperTileMapRenderComponent* UPaperTileLayer::GetTileMap() const
+UPaperTileMap* UPaperTileLayer::GetTileMap() const
 {
-	return CastChecked<UPaperTileMapRenderComponent>(GetOuter());
+	return CastChecked<UPaperTileMap>(GetOuter());
 }
 
-int32 UPaperTileLayer::GetCell(int32 X, int32 Y) const
+FPaperTileInfo UPaperTileLayer::GetCell(int32 X, int32 Y) const
 {
 	if ((X < 0) || (X >= LayerWidth) || (Y < 0) || (Y >= LayerHeight))
 	{
-		return INDEX_NONE;
+		return FPaperTileInfo();
 	}
 	else
 	{
-		return AllocatedGrid[X + (Y*LayerWidth)];
+		return AllocatedCells[X + (Y*LayerWidth)];
 	}
 }
 
-void UPaperTileLayer::SetCell(int32 X, int32 Y, int32 NewValue)
+void UPaperTileLayer::SetCell(int32 X, int32 Y, const FPaperTileInfo& NewValue)
 {
 	if ((X < 0) || (X >= LayerWidth) || (Y < 0) || (Y >= LayerHeight))
 	{
 	}
 	else
 	{
-		AllocatedGrid[X + (Y*LayerWidth)] = NewValue;
+		AllocatedCells[X + (Y*LayerWidth)] = NewValue;
 	}
 }
 
 void UPaperTileLayer::AugmentBodySetup(UBodySetup* ShapeBodySetup)
 {
-	if ( bCollisionLayer )
+	if (bCollisionLayer)
 	{
 		//@TODO: Tile pivot issue
 		//@TODO: Layer thickness issue
@@ -130,7 +130,7 @@ void UPaperTileLayer::AugmentBodySetup(UBodySetup* ShapeBodySetup)
 		{
 			for (int32 YValue = 0; YValue < LayerHeight; ++YValue)
 			{
-				if ( GetCell(XValue, YValue) != 0 )
+				if (GetCell(XValue, YValue).PackedTileIndex != 0)
 				{
 					FKBoxElem* NewBox = new(ShapeBodySetup->AggGeom.BoxElems) FKBoxElem(TileWidth, TileThickness, TileHeight);
 
@@ -143,5 +143,18 @@ void UPaperTileLayer::AugmentBodySetup(UBodySetup* ShapeBodySetup)
 				}
 			}
 		}
+	}
+}
+
+void UPaperTileLayer::ConvertToTileSetPerCell()
+{
+	AllocatedCells.Empty(AllocatedGrid_DEPRECATED.Num());
+
+	const int32 NumCells = AllocatedWidth * AllocatedHeight;
+	for (int32 Index = 0; Index < NumCells; ++Index)
+	{
+		FPaperTileInfo* Info = new (AllocatedCells)FPaperTileInfo();
+		Info->TileSet = TileSet;
+		Info->PackedTileIndex = AllocatedGrid_DEPRECATED[Index];
 	}
 }

@@ -25,7 +25,7 @@ public:
 	virtual ~IDetailTreeNode() {}
 
 	/** @return The details view that this node is in */
-	virtual SDetailsView& GetDetailsView() const = 0;
+	virtual IDetailsViewPrivate& GetDetailsView() const = 0;
 
 	/**
 	 * Generates the widget representing this node

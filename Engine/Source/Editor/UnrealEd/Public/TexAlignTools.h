@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Model.h"
+
 class FBspSurfIdx
 {
 public:

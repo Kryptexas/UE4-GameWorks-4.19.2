@@ -21,7 +21,7 @@ class SLevelEditor
 public:
 	// @todo why are these public?
 	TSharedRef<SDockTab> SpawnLevelEditorTab( const FSpawnTabArgs& Args, FName TabIdentifier, FString InitializationPayload );
-	TSharedRef<SDockTab> SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode );
+	//TSharedRef<SDockTab> SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode );
 
 	SLATE_BEGIN_ARGS( SLevelEditor ){}
 
@@ -65,11 +65,11 @@ public:
 	TSharedPtr<class FLevelViewportTabContent> GetActiveViewportTab();
 
 	/** ILevelEditor interface */
-	virtual void SummonLevelViewportContextMenu() OVERRIDE;
-	virtual const TArray< TSharedPtr< class IToolkit > >& GetHostedToolkits() const OVERRIDE;
-	virtual TArray< TSharedPtr< ILevelViewport > > GetViewports() const OVERRIDE;
-	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const OVERRIDE;
-	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) OVERRIDE;
+	virtual void SummonLevelViewportContextMenu() override;
+	virtual const TArray< TSharedPtr< class IToolkit > >& GetHostedToolkits() const override;
+	virtual TArray< TSharedPtr< ILevelViewport > > GetViewports() const override;
+	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const override;
+	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) override;
 
 	/**
 	 * Given a tab ID, summons a new tab in the tab stack specified.
@@ -108,20 +108,20 @@ public:
 	}
 
 	/** IToolKitHost interface */
-	virtual TSharedRef< class SWidget > GetParentWidget() OVERRIDE;
-	virtual void BringToFront() OVERRIDE;
-	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) OVERRIDE;
-	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) OVERRIDE;
-	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual TSharedRef< class SWidget > GetParentWidget() override;
+	virtual void BringToFront() override;
+	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) override;
+	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) override;
+	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) override;
+	virtual UWorld* GetWorld() const override;
 	
 	/** SWidget overrides */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	// Tab Management
 	TSharedRef<FTabManager> GetTabManager() const;
@@ -144,12 +144,6 @@ private:
 
 	/** Called when a property is changed */
 	void HandleExperimentalSettingChanged(FName PropertyName);
-
-	/** Registers the tab spawner for the WorldBrowser tab */
-	void RegisterWorldBrowserTabSpawner();
-
-	/** Unregisters the tab spawner for the WorldBrowser tab */
-	void UnregisterWorldBrowserTabSpawner();
 
 	/** Rebuilds the command list for spawning editor modes, this is done when new modes are registered. */
 	void RefreshEditorModeCommands();

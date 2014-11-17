@@ -133,7 +133,7 @@ bool SDlgPickAssetPath::ValidatePackage()
 		return false;
 	}
 
-	if (FPackageName::DoesPackageExist(GetFullAssetPath().ToString()) || LoadObject<UObject>(NULL, *(AssetPath.ToString() + "/" + AssetName.ToString() + "." + AssetName.ToString())) != NULL)
+	if (FPackageName::DoesPackageExist(GetFullAssetPath().ToString()) || FindObject<UObject>(NULL, *(AssetPath.ToString() + "/" + AssetName.ToString() + "." + AssetName.ToString())) != NULL)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("AssetAlreadyExists", "Asset {0} already exists."), GetFullAssetPath()));
 		return false;

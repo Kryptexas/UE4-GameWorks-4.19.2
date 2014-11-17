@@ -25,7 +25,7 @@ protected:
 public:
 	
 	// Begin Exec Interface
-	UNREALED_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	UNREALED_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	// End Exec Interface
 
 };

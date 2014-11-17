@@ -49,6 +49,12 @@ FReply SGraphNodeK2Sequence::OnAddPin()
 		UpdateGraphNode();
 		GraphNode->GetGraph()->NotifyGraphChanged();
 	}
+	else if (UK2Node_DoOnceMultiInput* DoOnceMultiNode = Cast<UK2Node_DoOnceMultiInput>(GraphNode))
+	{
+		DoOnceMultiNode->AddInputPin();
+		UpdateGraphNode();
+		GraphNode->GetGraph()->NotifyGraphChanged();
+	}
 
 	return FReply::Handled();
 }

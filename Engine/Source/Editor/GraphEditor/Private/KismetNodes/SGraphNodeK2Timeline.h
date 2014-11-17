@@ -11,6 +11,6 @@ public:
 	void Construct(const FArguments& InArgs, UK2Node_Timeline* InNode);
 
 	// SNodePanel::SNode interface
-	void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const OVERRIDE;
+	void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const override;
 	// End of SNodePanel::SNode interface
 };

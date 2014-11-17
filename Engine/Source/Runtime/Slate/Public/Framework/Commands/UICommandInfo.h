@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "Layout/Visibility.h"
+#include "Misc/Attribute.h"
+#include "Framework/Commands/InputGesture.h"
+#include "Textures/SlateIcon.h"
 
 /** Types of user interfaces that can be associated with a user interface action */
 namespace EUserInterfaceActionType

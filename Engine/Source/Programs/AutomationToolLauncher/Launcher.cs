@@ -34,6 +34,7 @@ namespace AutomationToolLauncher
 			catch (Exception Ex)
 			{
 				Console.WriteLine(Ex.Message);
+				Console.WriteLine(Ex.StackTrace);
 			}
 			Console.WriteLine("AutomationToolLauncher exiting with ExitCode={0}", ExitCode);
 			return ExitCode;

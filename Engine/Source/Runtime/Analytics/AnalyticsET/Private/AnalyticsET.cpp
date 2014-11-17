@@ -24,22 +24,22 @@ public:
 
 	// FTickerObjectBase
 
-	bool Tick(float DeltaSeconds) OVERRIDE;
+	bool Tick(float DeltaSeconds) override;
 
 	// IAnalyticsProvider
 
-	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) OVERRIDE;
-	virtual void EndSession() OVERRIDE;
+	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override;
+	virtual void EndSession() override;
 	/** ET PC implementation doesn't cache events */
-	virtual void FlushEvents() OVERRIDE;
+	virtual void FlushEvents() override;
 
-	virtual void SetUserID(const FString& InUserID) OVERRIDE;
-	virtual FString GetUserID() const OVERRIDE;
+	virtual void SetUserID(const FString& InUserID) override;
+	virtual FString GetUserID() const override;
 
-	virtual FString GetSessionID() const OVERRIDE;
-	virtual bool SetSessionID(const FString& InSessionID) OVERRIDE;
+	virtual FString GetSessionID() const override;
+	virtual bool SetSessionID(const FString& InSessionID) override;
 
-	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) OVERRIDE;
+	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
 
 	virtual ~FAnalyticsProviderET();
 

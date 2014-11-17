@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Components/ActorComponent.h"
 #include "NavRelevantComponent.generated.h"
 
 UCLASS()
@@ -10,6 +11,9 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent
 
 	virtual void OnOwnerRegistered();
 	virtual void OnOwnerUnregistered();
+
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
 	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers);
 

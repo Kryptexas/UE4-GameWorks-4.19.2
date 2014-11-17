@@ -20,7 +20,7 @@ public:
 		OnFilterMiddleButtonClicked = NewFilterMiddleButtonClicked;
 	}
 
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
 	{
 		if ( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && OnFilterDoubleClicked.IsBound() )
 		{
@@ -32,7 +32,7 @@ public:
 		}
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
 	{
 		if( InMouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton && OnFilterMiddleButtonClicked.IsBound() )
 		{
@@ -387,7 +387,12 @@ void SFilterList::Construct( const FArguments& InArgs )
 	for(auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
 	{
 		TSharedRef<FFrontendFilter> Filter = (*Iter);
-		AllFrontendFilterCategories.AddUnique( Filter->GetCategory() );
+		TSharedPtr<FFrontendFilterCategory> Category = Filter->GetCategory();
+		if ( Category.IsValid() )
+		{
+			AllFrontendFilterCategories.AddUnique( Category );
+		}
+
 		AllFrontendFilters.Add(Filter);
 	}
 
@@ -947,11 +952,13 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 	TMap<EAssetTypeCategories::Type, FCategoryMenu> CategoryToMenuMap;
 	CategoryToMenuMap.Add(EAssetTypeCategories::Basic, FCategoryMenu( LOCTEXT("BasicFilter", "Basic"), LOCTEXT("BasicFilterTooltip", "Filter by basic assets."), "ContentBrowserFilterBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Basic Assets") ) );
 	CategoryToMenuMap.Add(EAssetTypeCategories::Animation, FCategoryMenu( LOCTEXT("AnimationFilter", "Animation"), LOCTEXT("AnimationFilterTooltip", "Filter by animation assets."), "ContentBrowserFilterAnimationAsset", LOCTEXT("AnimationAssetsMenuHeading", "Animation Assets") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::MaterialsAndTextures, FCategoryMenu( LOCTEXT("MaterialFilter", "Materials & Textures"), LOCTEXT("MaterialFilterTooltip", "Filter by material and texture assets."), "ContentBrowserFilterMaterialAsset", LOCTEXT("MaterialAssetsMenuHeading", "Material Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Blueprint, FCategoryMenu( LOCTEXT("BlueprintFilter", "Blueprints"), LOCTEXT("BlueprintFilterTooltip", "Filter by blueprint assets."), "ContentBrowserFilterBlueprintAsset", LOCTEXT("BlueprintAssetsMenuHeading", "Blueprint Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::MaterialsAndTextures, FCategoryMenu(LOCTEXT("MaterialFilter", "Materials & Textures"), LOCTEXT("MaterialFilterTooltip", "Filter by material and texture assets."), "ContentBrowserFilterMaterialAsset", LOCTEXT("MaterialAssetsMenuHeading", "Material Assets")));
 	CategoryToMenuMap.Add(EAssetTypeCategories::Sounds, FCategoryMenu( LOCTEXT("SoundFilter", "Sounds"), LOCTEXT("SoundFilterTooltip", "Filter by sound assets."), "ContentBrowserFilterSoundAsset", LOCTEXT("SoundAssetsMenuHeading", "Sound Assets") ) );
 	CategoryToMenuMap.Add(EAssetTypeCategories::Physics, FCategoryMenu( LOCTEXT("PhysicsFilter", "Physics"), LOCTEXT("PhysicsFilterTooltip", "Filter by physics assets."), "ContentBrowserFilterPhysicsAsset", LOCTEXT("PhysicsAssetsMenuHeading", "Physics Assets") ) );
 	CategoryToMenuMap.Add(EAssetTypeCategories::UI, FCategoryMenu(LOCTEXT("UIFilter", "User Interface"), LOCTEXT("UIFilterTooltip", "Filter by UI assets."), "ContentBrowserFilterUIAsset", LOCTEXT("UIAssetsMenuHeading", "User Interface Assets")));
 	CategoryToMenuMap.Add(EAssetTypeCategories::Misc, FCategoryMenu( LOCTEXT("MiscFilter", "Miscellaneous"), LOCTEXT("MiscFilterTooltip", "Filter by miscellaneous assets."), "ContentBrowserFilterMiscAsset", LOCTEXT("MiscAssetsMenuHeading", "Misc Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Gameplay, FCategoryMenu(LOCTEXT("GameplayFilter", "Gameplay"), LOCTEXT("GameplayFilterTooltip", "Filter by gameplay assets."), "ContentBrowserFilterGameplayAsset", LOCTEXT("GameplayAssetsMenuHeading", "Gameplay Assets")));
 
 	// Load the asset tools module to get access to the browser type maps
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
@@ -968,7 +975,7 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 	};
 	AssetTypeActionsList.Sort( FCompareIAssetTypeActions() );
 
-	// For every asset type, move it into all the catgories it should appear in
+	// For every asset type, move it into all the categories it should appear in
 	for (int32 ClassIdx = 0; ClassIdx < AssetTypeActionsList.Num(); ++ClassIdx)
 	{
 		const TWeakPtr<IAssetTypeActions>& WeakTypeActions = AssetTypeActionsList[ClassIdx];
@@ -990,6 +997,14 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 					}
 				}
 			}
+		}
+	}
+
+	for (auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt)
+	{
+		if (MenuIt.Value().Assets.Num() == 0)
+		{
+			CategoryToMenuMap.Remove(MenuIt.Key());
 		}
 	}
 

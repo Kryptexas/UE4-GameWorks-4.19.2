@@ -18,10 +18,12 @@ public:
 	/**
 	 * Gets the PhysX format.
 	 */
-	virtual IPhysXFormat* GetPhysXFormat() = 0;
+	virtual IPhysXFormat* GetPhysXFormat( ) = 0;
 
+public:
 
-protected:
-
-	IPhysXFormatModule() { }
+	/**
+	 * Virtual destructor.
+	 */
+	~IPhysXFormatModule( ) { }
 };

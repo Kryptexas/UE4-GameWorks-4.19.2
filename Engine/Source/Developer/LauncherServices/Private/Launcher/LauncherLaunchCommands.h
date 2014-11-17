@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherLaunchCommands.h: Declares the FLauncherLaunchCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,26 +10,26 @@ class FLauncherLaunchGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherLaunchGameCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskGame", "Launching Game").ToString());
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskDesc", "Launch on %s as %s").ToString(), *DeviceProxy->GetName(), *Role->GetName());
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -66,19 +62,21 @@ public:
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
 
 		// additional command line arguments
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
-			*Role->GetCommandLine()
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
+			Role->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT(""),
+			*(TEXT(" ") + Role->GetCommandLine())
 			);
 
 		return CommandLine;
 	}
 
 private:
+
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
 
@@ -103,26 +101,26 @@ class FLauncherLaunchDedicatedServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherLaunchDedicatedServerCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskServer", "Launching Server").ToString());
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskDesc", "Launch on %s as %s").ToString(), *DeviceProxy->GetName(), *Role->GetName());
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -164,12 +162,12 @@ public:
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT("");
 
 		// additional command line arguments
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			*Role->GetCommandLine()
 			);
 
@@ -177,6 +175,7 @@ public:
 	}
 
 private:
+
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
 
@@ -189,6 +188,6 @@ private:
 	// Holds the role of the instance to launch.
 	ILauncherProfileLaunchRoleRef Role;
 
-	// cook command used for this build
+	// Cook command used for this build
 	const TSharedPtr<FLauncherUATCommand> CookCommand;
 };

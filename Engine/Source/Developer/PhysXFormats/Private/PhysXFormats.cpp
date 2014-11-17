@@ -4,10 +4,11 @@
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 #include "Engine.h"
+#include "PhysicsPublic.h"
 #include "TargetPlatform.h"
 #include "PhysXFormats.h"
 
-checkAtCompileTime(WITH_PHYSX, no_point_in_compiling_physx_cooker_if_we_dont_have_physx);
+static_assert(WITH_PHYSX, "No point in compiling PhysX cooker, if we don't have PhysX.");
 
 static FName NAME_PhysXPC(TEXT("PhysXPC"));
 static FName NAME_PhysXXboxOne(TEXT("PhysXXboxOne"));
@@ -66,7 +67,7 @@ public:
 		return false;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		check(CheckPhysXFormat(Format));
 		return UE_PHYSX_PC_VER;
@@ -80,7 +81,7 @@ public:
 		OutFormats.Add(NAME_PhysXPS4);
 	}
 
-	virtual bool CookConvex(FName Format, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer) const OVERRIDE
+	virtual bool CookConvex(FName Format, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
@@ -114,7 +115,7 @@ public:
 		return false;
 	}
 
-	virtual bool CookTriMesh(FName Format, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer) const OVERRIDE
+	virtual bool CookTriMesh(FName Format, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bPerPolySkeletalMesh = false) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
@@ -136,18 +137,33 @@ public:
 		const PxCookingParams& Params = PhysXCooking->getParams();
 		PxCookingParams NewParams = Params;
 		NewParams.targetPlatform = PhysXFormat;
+		PxMeshPreprocessingFlags OldCookingFlags = NewParams.meshPreprocessParams;
+
+		if (bPerPolySkeletalMesh)
+		{
+			//per poly skeletal mesh requires deforming mesh. This is a very special case so we have to change the cook params
+			NewParams.meshPreprocessParams = PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+		}
+
 		PhysXCooking->setParams(NewParams);
+
 
 		// Cook TriMesh Data
 		FPhysXOutputStream Buffer(&OutBuffer);
 		bool Result = PhysXCooking->cookTriangleMesh(PTriMeshDesc, Buffer);
+		
+		if (bPerPolySkeletalMesh)	//restore old params
+		{
+			NewParams.meshPreprocessParams = OldCookingFlags;
+			PhysXCooking->setParams(NewParams);
+		}
 		return Result;
 #else
 		return false;
 #endif		// WITH_PHYSX
 	}
 
-	virtual bool CookHeightField(FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer) const OVERRIDE
+	virtual bool CookHeightField(FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;

@@ -6,8 +6,11 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "DisplayDebugHelpers.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -45,7 +48,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
-	CapsuleComponent->CanBeCharacterBase = ECB_No;
+	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
 	RootComponent = CapsuleComponent;
@@ -70,12 +73,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	if (CharacterMovement)
 	{
 		CharacterMovement->UpdatedComponent = CapsuleComponent;
-		CharacterMovement->MaxStepHeight = 45.f;
 		CrouchedEyeHeight = CharacterMovement->CrouchedHalfHeight * 0.80f;
-
-		CharacterMovement->GetNavAgentProperties()->bCanJump = true;
-		CharacterMovement->GetNavAgentProperties()->bCanWalk = true;
-		CharacterMovement->SetJumpAllowed(true);
 	}
 
 	Mesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
@@ -261,10 +259,6 @@ void ACharacter::Crouch(bool bClientSimulation)
 		if (CanCrouch())
 		{
 			CharacterMovement->bWantsToCrouch = true;
-			if (CharacterMovement->CanCrouchInCurrentState())
-			{
-				CharacterMovement->Crouch(bClientSimulation);
-			}
 		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		else if (!CharacterMovement->CanEverCrouch())
@@ -280,7 +274,6 @@ void ACharacter::UnCrouch(bool bClientSimulation)
 	if (CharacterMovement)
 	{
 		CharacterMovement->bWantsToCrouch = false;
-		CharacterMovement->UnCrouch(bClientSimulation);
 	}
 }
 
@@ -347,7 +340,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 			}
 		}
 
-		CharacterMovement->AddMomentum(Impulse, bMassIndependentImpulse);
+		CharacterMovement->AddImpulse(Impulse, bMassIndependentImpulse);
 	}
 }
 
@@ -385,6 +378,13 @@ namespace MovementBaseUtility
 			if (NewBaseOwner)
 			{
 				BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
+
+				TArray<UActorComponent*> Components;
+				NewBaseOwner->GetComponents(Components);
+				for (auto& Component : Components)
+				{
+					BasedObjectTick.AddPrerequisite(Component, Component->PrimaryComponentTick);
+				}
 			}
 		}
 	}
@@ -398,6 +398,13 @@ namespace MovementBaseUtility
 			if (OldBaseOwner)
 			{
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
+
+				TArray<UActorComponent*> Components;
+				OldBaseOwner->GetComponents(Components);
+				for (auto& Component : Components)
+				{
+					BasedObjectTick.RemovePrerequisite(Component, Component->PrimaryComponentTick);
+				}
 			}
 		}
 	}
@@ -471,17 +478,14 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		MovementBase = NewBaseComponent;
 
 		// Update relative location/rotation
+		// Only do this for non-simulated proxies, because we don't want to overwrite RelativeMovement for those (it could about to be updated by a network update).
 		if ( Role == ROLE_Authority || Role == ROLE_AutonomousProxy )
 		{
 			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
 			RelativeMovement.MovementBase = NewBaseComponent;
 			RelativeMovement.bServerHasBaseComponent = (NewBaseComponent != NULL); // Flag whether the server had a non-null base.
 
-			if (MovementBaseUtility::UseRelativePosition(MovementBase))
-			{
-				RelativeMovement.Location = GetActorLocation() - MovementBase->GetComponentLocation();
-				RelativeMovement.Rotation = (FRotationMatrix(GetActorRotation()) * FRotationMatrix(MovementBase->GetComponentRotation()).GetTransposed()).Rotator();
-			}
+			CharacterMovement->SaveBaseLocation();
 		}
 		else
 		{
@@ -497,18 +501,27 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		if (CharacterMovement)
 		{
 			MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);
+			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);			
 
 			if (MovementBase)
 			{
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
 				CharacterMovement->OldBaseQuat = MovementBase->GetComponentQuat();
+
+				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use 
+				// post-physics transforms
+				if(MovementBase->IsSimulatingPhysics())
+				{
+					CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(true);
+				}
 			}
 			else
 			{
 				// Base is NULL, invalidate floor.
 				CharacterMovement->CurrentFloor.Clear();
+
+				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(false);
 			}
 		}
 	}
@@ -539,6 +552,8 @@ void ACharacter::Restart()
 {
 	Super::Restart();
 	bPressedJump = false;
+	JumpKeyHoldTime = 0.0f;
+	ClearJumpInput();
 }
 
 void ACharacter::PawnClientRestart()
@@ -555,6 +570,18 @@ void ACharacter::PawnClientRestart()
 void ACharacter::UnPossessed()
 {
 	Super::UnPossessed();
+
+	if (CharacterMovement)
+	{
+		CharacterMovement->ResetPredictionData_Client();
+		CharacterMovement->ResetPredictionData_Server();
+	}
+}
+
+
+void ACharacter::TornOff()
+{
+	Super::TornOff();
 
 	if (CharacterMovement)
 	{
@@ -643,6 +670,7 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
 	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
+	MovementModeChangedDelegate.Broadcast(this, PrevMovementMode, PrevCustomMode);
 }
 
 
@@ -795,7 +823,7 @@ void ACharacter::PostNetReceive()
 	if (Role == ROLE_SimulatedProxy)
 	{
 		CharacterMovement->bNetworkUpdateReceived = true;
-		CharacterMovement->bNetworkMovementModeChanged = (SavedMovementMode != ReplicatedMovementMode);
+		CharacterMovement->bNetworkMovementModeChanged = (CharacterMovement->bNetworkMovementModeChanged || (SavedMovementMode != ReplicatedMovementMode));
 	}
 
 	Super::PostNetReceive();
@@ -1093,8 +1121,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,		COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, RelativeMovement,	COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode, COND_SimulatedOnly );
-
-	DOREPLIFETIME( ACharacter, bIsCrouched ); // TODO: used to be !bNetOwner, now it's going to everyone (see change @revision #94)
+	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,		COND_SimulatedOnly );
 }
 
 void ACharacter::UpdateFromCompressedFlags(uint8 Flags)

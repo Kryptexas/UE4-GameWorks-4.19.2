@@ -76,21 +76,6 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 }
 
 
-FString FIOSTargetPlatform::GetIconPath( ETargetPlatformIcons::IconType InType ) const
-{
-	switch (InType)
-	{
-	case ETargetPlatformIcons::Normal:
-		return FString(TEXT("Launcher/iOS/Platform_iOS_24x"));
-
-	case ETargetPlatformIcons::Large:
-	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/iOS/Platform_iOS_128x"));
-	}
-
-	return FString();
-}
-
 bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
 	bool biOSSDKInstalled = true; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
@@ -220,7 +205,23 @@ bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
-	OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
+	static FName NAME_SF_METAL(TEXT("SF_METAL"));
+
+	// default to supporting ES2
+	bool bSupportOpenGLES2 = true;
+	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportOpenGLES2"), bSupportOpenGLES2, GEngineIni);
+	if (bSupportOpenGLES2)
+	{
+		OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
+	}
+
+	// default to NOT supporting metal
+	bool bSupportMetal = false;
+	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportMetal"), bSupportMetal, GEngineIni);
+	if (bSupportMetal)
+	{
+		OutFormats.AddUnique(NAME_SF_METAL);
+	}
 }
 
 

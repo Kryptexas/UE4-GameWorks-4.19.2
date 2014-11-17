@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
+#include "ComponentReregisterContext.h"
 
 /**
  * Class for rendering the material on the preview mesh in the Material Editor
@@ -173,15 +174,7 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 	{
 		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 
-		// we will unregister and register components to update materials so we have to notify NavigationSystem that this is "fake" operation and we don't have to update NavMesh
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->BeginFakeComponentChanges();
-			}
-		}
+		FNavigationLockContext NavUpdateLock;
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{
@@ -196,16 +189,6 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 
 		// Tell our source instance to update itself so the preview updates.
 		SourceInstance->PostEditChangeProperty(PropertyChangedEvent);
-
-		//components are updated and navigation system can work normally
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->EndFakeComponentChanges();
-			}
-		}
 	}
 }
 
@@ -591,14 +574,8 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 			}
 		}
 
-		//Create the source instance base overrides too. The source instance owns this from this point on.
-		if( !SourceInstance->BasePropertyOverrides )
-		{
-			SourceInstance->BasePropertyOverrides = new FMaterialInstanceBasePropertyOverrides();
-			SourceInstance->BasePropertyOverrides->Init(*SourceInstance);
-		}
 		//Check for changes to see if we need to force a recompile
-		bool bForceRecompile = SourceInstance->BasePropertyOverrides->Update(BasePropertyOverrides);
+		bool bForceRecompile = SourceInstance->BasePropertyOverrides.Update(BasePropertyOverrides);
 		bForceRecompile |= SourceInstance->bOverrideBaseProperties != bOverrideBaseProperties;
 		SourceInstance->bOverrideBaseProperties = bOverrideBaseProperties;
 		
@@ -697,10 +674,7 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	//Init the base property overrides.
 	BasePropertyOverrides.Init(*SourceInstance);
 	bOverrideBaseProperties = SourceInstance->bOverrideBaseProperties;
-	if( SourceInstance->BasePropertyOverrides )
-	{
-		BasePropertyOverrides = *SourceInstance->BasePropertyOverrides;
-	}
+	BasePropertyOverrides = SourceInstance->BasePropertyOverrides;
 
 	// Copy the Lightmass settings...
 	LightmassSettings.CastShadowAsMasked.bOverride = SourceInstance->GetOverrideCastShadowAsMasked();

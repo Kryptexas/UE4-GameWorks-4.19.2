@@ -20,11 +20,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
-	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) OVERRIDE;
+	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
 	// End FNetworkNotify Interface
 
 	// Begin OnlineBeacon Interface
-	virtual void DestroyBeacon() OVERRIDE;
+	virtual void DestroyBeacon() override;
 	// End OnlineBeacon Interface
 
 	/**
@@ -48,7 +48,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 *
 	 * @return owning host of this actor
 	 */
-	class AOnlineBeaconHost* GetBeaconOwner() const;
+	class AOnlineBeaconHostObject* GetBeaconOwner() const;
 	
 	/**
 	 * Set the owner of this beacon actor, some host that is listening for connections
@@ -56,13 +56,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 *
 	 * @return owning host of this actor
 	 */
-	void SetBeaconOwner(class AOnlineBeaconHost* InBeaconOwner);
+	void SetBeaconOwner(class AOnlineBeaconHostObject* InBeaconOwner);
 
 protected:
 
 	/** Owning beacon host of this beacon actor */
 	UPROPERTY()
-	class AOnlineBeaconHost* BeaconOwner;
+	class AOnlineBeaconHostObject* BeaconOwner;
 
 private:
 
@@ -71,6 +71,7 @@ private:
 	 */
 	UFUNCTION(client, reliable)
 	virtual void ClientOnConnected();
-
-	friend AOnlineBeaconHost;
+	
+	friend class AOnlineBeaconHost;
+	friend class AOnlineBeaconHostObject;
 };

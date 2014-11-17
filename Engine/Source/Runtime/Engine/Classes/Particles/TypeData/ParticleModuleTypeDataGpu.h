@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "Distributions.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataGpu.generated.h"
 
 /**
@@ -155,11 +159,11 @@ struct FGPUSpriteEmitterInfo
 
 	/** The method for aligning the particle based on the camera. */
 	UPROPERTY()
-	TEnumAsByte<enum EParticleScreenAlignment> ScreenAlignment;
+	TEnumAsByte<EParticleScreenAlignment> ScreenAlignment;
 
 	/** The method for locking the particles to a particular axis. */
 	UPROPERTY()
-	TEnumAsByte<enum EParticleAxisLock> LockAxisFlag;
+	TEnumAsByte<EParticleAxisLock> LockAxisFlag;
 
 	/** If true, collisions are enabled for this emitter. */
 	UPROPERTY()
@@ -404,14 +408,14 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 	// Begin UParticleModuleTypeDataBase Interface
-	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) OVERRIDE;
+	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) override;
 	virtual bool RequiresBuild() const { return true; }
-	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) OVERRIDE;
+	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
 	// End UParticleModuleTypeDataBase Interface
 };
 

@@ -8,7 +8,7 @@ public:
 	FFlipbookEditorCommands()
 		: TCommands<FFlipbookEditorCommands>(
 			TEXT("FlipbookEditor"), // Context name for fast lookup
-			NSLOCTEXT("Contexts", "PaperEditor", "Sprite Editor"), // Localized context name for displaying
+			NSLOCTEXT("Contexts", "FlipbookEditor", "Flipbook Editor"), // Localized context name for displaying
 			NAME_None, // Parent
 			FEditorStyle::GetStyleSetName() // Icon Style Set
 			)
@@ -16,7 +16,7 @@ public:
 	}
 
 	// TCommand<> interface
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	// End of TCommand<> interface
 
 public:
@@ -26,4 +26,9 @@ public:
 
 	// View Menu Commands
 	TSharedPtr<FUICommandInfo> SetShowPivot;
+
+	// Timeline commands
+	TSharedPtr<FUICommandInfo> AddNewFrame;
+	TSharedPtr<FUICommandInfo> AddNewFrameBefore;
+	TSharedPtr<FUICommandInfo> AddNewFrameAfter;
 };

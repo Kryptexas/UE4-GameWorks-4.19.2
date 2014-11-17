@@ -13,21 +13,37 @@ class FSlateRHIRenderingPolicy;
 const uint32 NumDrawBuffers = 3;
 #endif
 
+// Enable to visualize overdraw in Slate
+#define DEBUG_OVERDRAW 0
+
+class FSlateBackBuffer : public FRenderTarget
+{
+public:
+	FSlateBackBuffer(FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY)
+		: SizeXY(InSizeXY)
+	{
+		RenderTargetTextureRHI = InRenderTargetTexture;
+	}
+	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
+private:
+	FIntPoint SizeXY;
+};
 
 /** Resource for crash buffer editor capturing */
 class FSlateCrashReportResource : public FRenderResource
 {
 public:
-	FSlateCrashReportResource(FIntRect InVirtualScreen)
+	FSlateCrashReportResource(FIntRect InVirtualScreen, FIntRect InUnscaledVirtualScreen)
 		: ReadbackBufferIndex(0)
 		, ElementListIndex(0)
-		, VirtualScreen(InVirtualScreen) {}
+		, VirtualScreen(InVirtualScreen)
+		, UnscaledVirtualScreen(InUnscaledVirtualScreen) {}
 
 	/** FRenderResource Interface.  Called when render resources need to be initialized */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/** FRenderResource Interface.  Called when render resources need to be released */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 	
 	/** Changes the target readback buffer */
 	void SwapTargetReadbackBuffer() {ReadbackBufferIndex = (ReadbackBufferIndex + 1) % 2;}
@@ -37,6 +53,7 @@ public:
 
 	/** Accessors */
 	FIntRect GetVirtualScreen() const {return VirtualScreen;}
+	FIntRect GetUnscaledVirtualScreen() const {return UnscaledVirtualScreen;}
 	FTexture2DRHIRef GetBuffer() const {return CrashReportBuffer;}
 	FTexture2DRHIRef GetReadbackBuffer() const {return ReadbackBuffer[ReadbackBufferIndex];}
 
@@ -56,6 +73,9 @@ private:
 
 	/** The size of the virtual screen, used to calculate the buffer size */
 	FIntRect VirtualScreen;
+
+	/** Size of the virtual screen before we applied any scaling */
+	FIntRect UnscaledVirtualScreen;
 };
 
 
@@ -73,6 +93,8 @@ private:
 		FViewportRHIRef ViewportRHI;
 		/** The depth buffer texture if any */
 		FTexture2DRHIRef DepthStencil;
+		/** The render target texture (if rendering into a texture */
+		FTexture2DRHIRef RenderTargetTexture;
 		/** The OS Window handle (for recreating the viewport) */
 		void* OSWindow;
 		/** The actual width of the viewport */
@@ -89,8 +111,8 @@ private:
 		bool bFullscreen;
 	
 		/** FRenderResource interface */
-		virtual void InitRHI();
-		virtual void ReleaseRHI();
+		virtual void InitRHI() override;
+		virtual void ReleaseRHI() override;
 
 		FViewportInfo()
 			:	OSWindow(NULL), 
@@ -122,44 +144,55 @@ public:
 	~FSlateRHIRenderer();
 
 	/** FSlateRenderer interface */
-	virtual void Initialize() OVERRIDE;
-	virtual void Destroy() OVERRIDE;
-	virtual FSlateDrawBuffer& GetDrawBuffer() OVERRIDE;
-	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) OVERRIDE;
-	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) OVERRIDE;
-	virtual void CreateViewport( const TSharedRef<SWindow> Window ) OVERRIDE;
-	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) OVERRIDE;
-	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) OVERRIDE;
-	virtual void DrawWindows() OVERRIDE;
-	virtual void FlushCommands() const OVERRIDE;
-	virtual void Sync() const OVERRIDE;
-	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) OVERRIDE;
-	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) OVERRIDE;
-	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) OVERRIDE;
-	virtual void* GetViewportResource( const SWindow& Window ) OVERRIDE;
-	virtual void SetColorVisionDeficiencyType( uint32 Type ) OVERRIDE;
+	virtual void Initialize() override;
+	virtual void Destroy() override;
+	virtual FSlateDrawBuffer& GetDrawBuffer() override;
+	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) override;
+	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) override;
+	virtual void CreateViewport( const TSharedRef<SWindow> Window ) override;
+	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) override;
+	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
+	virtual void DrawWindows() override;
+	virtual void FlushCommands() const override;
+	virtual void Sync() const override;
+	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) override;
+	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) override;
+	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) override;
+	virtual void* GetViewportResource( const SWindow& Window ) override;
+	virtual void SetColorVisionDeficiencyType( uint32 Type ) override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread( const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync );
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync);
 
+
+	/**
+	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
+	 * 
+	 * @param	ScreenScaling	How much to downscale the desktop size
+	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
+	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
+	 *
+	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
+	 */
+	virtual FIntRect SetupVirtualScreenBuffer(const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) override;
 
 	/**
 	 * Copies all slate windows out to a buffer at half resolution with debug information
 	 * like the mouse cursor and any keypresses.
 	 */
-	virtual void CopyWindowsToDrawBuffer(const TArray<FString>& KeypressBuffer);
+	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) override;
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapCrashTrackerBuffer(void** OutImageData, int32* OutWidth, int32* OutHeight) OVERRIDE;
-	virtual void UnmapCrashTrackerBuffer() OVERRIDE;
+	virtual void MapVirtualScreenBuffer(void** OutImageData) override;
+	virtual void UnmapVirtualScreenBuffer() override;
 
 	/**
 	 * Reloads texture resources from disk                   
 	 */
-	virtual void ReloadTextureResources() OVERRIDE;
+	virtual void ReloadTextureResources() override;
 
 
-	virtual void LoadStyleResources( const ISlateStyle& Style ) OVERRIDE;
+	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
 
 	/**
 	 * Creates a window with an atlas visualizer inside it
@@ -183,7 +216,9 @@ public:
 	 */
 	virtual void InvalidateAllViewports();
 
-	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) OVERRIDE;
+	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) override;
+
+	virtual void SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT) override;
 
 private:
 	/** Loads all known textures from Slate styles */

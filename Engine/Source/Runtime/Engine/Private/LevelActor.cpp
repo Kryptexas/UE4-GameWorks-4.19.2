@@ -2,12 +2,21 @@
 
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
+
+// CVars
+static TAutoConsoleVariable<float> CVarEncroachEpsilon(
+	TEXT("p.EncroachEpsilon"),
+	0.15f,
+	TEXT("Epsilon value encroach checking for capsules\n")
+	TEXT("0: use full sized capsule. > 0: shrink capsule size by this amount (world units)"),
+	ECVF_Default);
 
 
 #if LINE_CHECK_TRACING
@@ -305,14 +314,6 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	// Add this newly spawned actor to the network actor list
 	AddNetworkActor( Actor );
 
-	// Broadcast notification of spawn
-	OnActorSpawned.Broadcast( Actor );
-
-	if( GIsEditor )
-	{
-		GEngine->BroadcastLevelActorAdded(Actor);
-	}
-
 #if PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES
 	if( Cast<APawn>(Actor) )
 	{
@@ -328,6 +329,15 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		return NULL;
 	}
 	Actor->CheckDefaultSubobjects();
+
+	// Broadcast notification of spawn
+	OnActorSpawned.Broadcast(Actor);
+
+	if (GIsEditor)
+	{
+		GEngine->BroadcastLevelActorAdded(Actor);
+	}
+
 	return Actor;
 }
 
@@ -669,8 +679,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 
 bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation, FRotator TestRotation, FVector* ProposedAdjustment )
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.EncroachEpsilon"));
-	float Epsilon = CVar ? CVar->GetValueOnGameThread() : 0.f;
+	float Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
 
 	// currently just tests RootComponent.  @TODO FIXME should test all colliding components?  Cost/benefit?
 	UPrimitiveComponent* PrimComp = TestActor ? Cast<UPrimitiveComponent>(TestActor->GetRootComponent()) : NULL;
@@ -796,7 +805,12 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 							bLoadedLevelPackage = true;
 
 							// Find the world object in the loaded package.
-							UWorld* const LoadedWorld	= UWorld::FindWorldInPackage(LevelPackage);
+							UWorld* LoadedWorld	= UWorld::FindWorldInPackage(LevelPackage);
+							// If the world was not found, it could be a redirector to a world. If so, follow it to the destination world.
+							if (!LoadedWorld)
+							{
+								LoadedWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+							}
 							check(LoadedWorld);
 
 							// LoadedWorld won't be serialized as there's a BeginLoad on the stack so we manually serialize it here.

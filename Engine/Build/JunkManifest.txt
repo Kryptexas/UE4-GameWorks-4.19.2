@@ -40,3 +40,5 @@ Engine\Binaries\Win64\*-TextureXboxOneFormat.*
 Shadow\Binaries\Win64\*ShadowLoadingScreen.*
 Engine\Binaries\Win64\UnrealRemoteAgent.*
 Engine\Binaries\DotNET\AutomationScripts\NoRedist\FotniteGame.Automation.*
+Engine\Plugins\Editor\IntroTutorials\Binaries\Win64\*-IntroTutorials*.*
+Engine\Plugins\Editor\IntroTutorials\Binaries\Mac\*-IntroTutorials*.*

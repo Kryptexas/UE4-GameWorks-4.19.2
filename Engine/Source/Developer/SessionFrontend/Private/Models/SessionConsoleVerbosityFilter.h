@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionConsoleVerbosityFilter.h: Declares the FSessionConsoleVerbosityFilter class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FSessionConsoleVerbosityFilter.
- */
+/** Type definition for shared pointers to instances of FSessionConsoleVerbosityFilter. */
 typedef TSharedPtr<class FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterPtr;
 
-/**
- * Type definition for shared references to instances of FSessionConsoleVerbosityFilter.
- */
+/** Type definition for shared references to instances of FSessionConsoleVerbosityFilter. */
 typedef TSharedRef<class FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterRef;
 
 
@@ -38,11 +30,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InVerbosity - The log verbosity level to filter.
-	 * @param InIcon - The filter's icon.
-	 * @param InEnabled - Whether this filter is enabled.
-	 * @param InName - The filter's name.
-	 * @param InOnStateChanged - A delegate that is executed when the filter's enabled state changed.
+	 * @param InVerbosity The log verbosity level to filter.
+	 * @param InIcon The filter's icon.
+	 * @param InEnabled Whether this filter is enabled.
+	 * @param InName The filter's name.
+	 * @param InOnStateChanged A delegate that is executed when the filter's enabled state changed.
 	 */
 	FSessionConsoleVerbosityFilter( ELogVerbosity::Type InVerbosity, const FSlateBrush* InIcon, bool InEnabled, const FString& InName, FOnSessionConsoleVerbosityFilterStateChanged InOnStateChanged)
 		: Enabled(InEnabled)
@@ -52,13 +44,12 @@ public:
 		, OnStateChanged(InOnStateChanged)
 	{ }
 
-
 public:
 
 	/**
 	 * Enables or disables the filter based on the specified check box state.
 	 *
-	 * @param CheckState - The check box state.
+	 * @param CheckState The check box state.
 	 */
 	void EnableFromCheckState( ESlateCheckBoxState::Type CheckState )
 	{
@@ -130,7 +121,6 @@ private:
 
 	// Holds the filter's verbosity level.
 	ELogVerbosity::Type Verbosity;
-
 
 private:
 

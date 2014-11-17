@@ -1,6 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+
+#include "Matinee/InterpData.h"
+#include "Matinee/MatineeActor.h"
+#include "Animation/AnimCompress.h"
+
+#include "EditorSupportDelegates.h"
 #include "SoundDefinitions.h"
 #include "BusyCursor.h"
 #include "EditorLevelUtils.h"
@@ -13,13 +19,15 @@
 #include "EditorLoadingSavingSettingsCustomization.h"
 #include "GameMapsSettingsCustomization.h"
 #include "LevelEditorPlaySettingsCustomization.h"
+#include "ProjectPackagingSettingsCustomization.h"
 #include "ISourceControlModule.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
+#include "PerformanceMonitor.h"
 #include "BSPOps.h"
 #include "ComponentVisualizer.h"
-
+#include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
@@ -31,8 +39,16 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	PackageAutoSaver.Reset(new FPackageAutoSaver);
 	PackageAutoSaver->LoadRestoreFile();
 
+#if !UE_BUILD_DEBUG
+	if( !GEditorGameAgnosticIni.IsEmpty() )
+	{
+		// We need the game agnostic ini for this code
+		PerformanceMonitor = new FPerformanceMonitor;
+	}
+#endif
+
 	// Register for the package dirty state updated callback to catch packages that have been modified and need to be checked out.
-	UPackage::PackageDirtyStateUpdatedEvent.AddUObject(this, &UUnrealEdEngine::OnPackageDirtyStateUpdated);
+	UPackage::PackageDirtyStateChangedEvent.AddUObject(this, &UUnrealEdEngine::OnPackageDirtyStateUpdated);
 	
 	// Register to the PostGarbageCollect delegate, as we want to use this to trigger the RefreshAllBroweser delegate from 
 	// here rather then from Core
@@ -88,9 +104,10 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-		PropertyModule.RegisterCustomPropertyLayout("EditorLoadingSavingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorLoadingSavingSettingsCustomization::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("GameMapsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("LevelEditorPlaySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("EditorLoadingSavingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorLoadingSavingSettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("GameMapsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("LevelEditorPlaySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("ProjectPackagingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProjectPackagingSettingsCustomization::MakeInstance));
 	}
 
 	bool bCookOnTheSide = FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE"));
@@ -179,7 +196,7 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 void UUnrealEdEngine::PreExit()
 {
 	// Notify edit modes we're mode at exit
-	GEditorModeTools().Shutdown();
+	FEditorModeRegistry::Get().Shutdown();
 
 	FAVIWriter* AVIWriter = FAVIWriter::GetInstance();
 	if (AVIWriter)
@@ -215,7 +232,12 @@ void UUnrealEdEngine::FinishDestroy()
 		PackageAutoSaver.Reset();
 	}
 
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	if( PerformanceMonitor )
+	{
+		delete PerformanceMonitor;
+	}
+
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreDelegates::ColorPickerChanged.RemoveAll(this);
 	Super::FinishDestroy();
@@ -275,9 +297,22 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	}
 	
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
+	bool bCrashTrackerEnabled = false;
 	if (CrashTracker)
 	{
 		CrashTracker->Update(DeltaSeconds);
+		bCrashTrackerEnabled = CrashTracker->IsCurrentlyCapturing();
+	}
+
+	// Only allow live streaming if crash tracker is disabled. This is because the SlateRHIRenderer shares the same render targets
+	// for both crash tracker and live editor streaming, and we don't want them to be thrashed every frame.
+	if( !bCrashTrackerEnabled )
+	{
+		// If the editor is configured to broadcast frames, do that now
+		if( IEditorLiveStreaming::Get().IsBroadcastingEditor() )
+		{
+			IEditorLiveStreaming::Get().BroadcastEditorVideoFrame();
+		}
 	}
 }
 
@@ -430,7 +465,7 @@ void UUnrealEdEngine::OnPostWindowsMessage(FViewport* Viewport, uint32 Message)
 void UUnrealEdEngine::OnOpenMatinee()
 {
 	// Register a delegate to pickup when Matinee is closed.
-	GEditorModeTools().OnEditorModeChanged().AddUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
+	GLevelEditorModeTools().OnEditorModeChanged().AddUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
 }
 
 
@@ -1014,6 +1049,33 @@ void UUnrealEdEngine::UnregisterComponentVisualizer(FName ComponentClassName)
 	ComponentVisualizerMap.Remove(ComponentClassName);
 }
 
+TSharedPtr<FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(FName ComponentClassName) const
+{
+	TSharedPtr<FComponentVisualizer> Visualizer = NULL;
+
+	const TSharedPtr<FComponentVisualizer>* VisualizerPtr = ComponentVisualizerMap.Find(ComponentClassName);
+	if(VisualizerPtr != NULL)
+	{
+		Visualizer = *VisualizerPtr;
+	}
+
+	return Visualizer;
+}
+
+/** Find a component visualizer for the given component class (checking parent classes too) */
+TSharedPtr<class FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(UClass* ComponentClass) const
+{
+	TSharedPtr<FComponentVisualizer> Visualizer;
+	while (!Visualizer.IsValid() && (ComponentClass != nullptr) && (ComponentClass != UActorComponent::StaticClass()))
+	{
+		Visualizer = FindComponentVisualizer(ComponentClass->GetFName());
+		ComponentClass = ComponentClass->GetSuperClass();
+	}
+
+	return Visualizer;
+}
+
+
 
 void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
@@ -1033,10 +1095,11 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 				if(Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer>* VisualizerPtr = ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
-					if(VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
+					
+					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
+					if(Visualizer.IsValid())
 					{
-						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
+						Visualizer->DrawVisualization(Comp, View, PDI);
 					}
 				}
 			}
@@ -1108,6 +1171,6 @@ void UUnrealEdEngine::OnMatineeEditorClosed( FEdMode* Mode, bool IsEntering )
 		}
 
 		// Remove this delegate. 
-		GEditorModeTools().OnEditorModeChanged().RemoveUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
+		GLevelEditorModeTools().OnEditorModeChanged().RemoveUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
 	}	
 }

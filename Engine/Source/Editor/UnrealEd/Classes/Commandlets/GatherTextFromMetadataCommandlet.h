@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
-
+#include "Commandlets/Commandlet.h"
 #include "GatherTextFromMetaDataCommandlet.generated.h"
 
 /**
@@ -14,7 +14,7 @@ class UGatherTextFromMetaDataCommandlet : public UGatherTextCommandletBase
 
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 private:

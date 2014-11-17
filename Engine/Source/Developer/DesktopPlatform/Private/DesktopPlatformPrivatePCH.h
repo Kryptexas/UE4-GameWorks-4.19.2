@@ -12,4 +12,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDesktopPlatform, Log, All);
 #include "Windows/DesktopPlatformWindows.h"
 #elif PLATFORM_MAC
 #include "Mac/DesktopPlatformMac.h"
+#elif PLATFORM_LINUX
+#include "Linux/DesktopPlatformLinux.h"
 #endif

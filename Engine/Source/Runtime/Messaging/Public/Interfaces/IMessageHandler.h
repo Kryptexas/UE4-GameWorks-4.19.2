@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMessageHandler.h: Declares the IMessageHandler interface and related helper templates.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMessageHandler.
- */
+/** Type definition for shared pointers to instances of IMessageHandler. */
 typedef TSharedPtr<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerPtr;
 
-/**
- * Type definition for shared references to instances of IMessageHandler.
- */
+/** Type definition for shared references to instances of IMessageHandler. */
 typedef TSharedRef<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerRef;
 
 
@@ -83,24 +75,22 @@ public:
 		: Handler(InHandler)
 		, HandlerFunc(InHandlerFunc)
 	{
-		check(InHandler != NULL);
+		check(InHandler != nullptr);
 	}
 
 public:
 
-	// Begin IMessageHandler interface
+	// IMessageHandler interface
 	
-	virtual const FName GetHandledMessageType( ) const OVERRIDE
+	virtual const FName GetHandledMessageType( ) const override
 	{
 		return MessageType::StaticStruct()->GetFName();
 	}
 
-	virtual void HandleMessage( const IMessageContextRef& Context ) OVERRIDE
+	virtual void HandleMessage( const IMessageContextRef& Context ) override
 	{
 		(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
 	}
-	
-	// End IMessageHandler interface
 	
 private:
 

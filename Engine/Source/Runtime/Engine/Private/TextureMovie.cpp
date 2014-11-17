@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/CodecMovieFallback.h"
 
 /*-----------------------------------------------------------------------------
 UTextureMovie
@@ -352,6 +353,7 @@ void FTextureMovieResource::InitDynamicRHI()
 	{
 		// Create the RHI texture. Only one mip is used and the texture is targetable or resolve.
 		uint32 TexCreateFlags = Owner->SRGB ? TexCreate_SRGB : 0;
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			Owner->SizeX, 
 			Owner->SizeY, 
@@ -360,10 +362,12 @@ void FTextureMovieResource::InitDynamicRHI()
 			TexCreateFlags,
 			TexCreate_RenderTargetable,
 			false,
+			CreateInfo,
 			RenderTargetTextureRHI,
 			Texture2DRHI
 			);
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
+		RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 		// add to the list of global deferred updates (updated during scene rendering)
 		// since the latest decoded movie frame is rendered to this movie texture target
@@ -391,6 +395,7 @@ void FTextureMovieResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 	Texture2DRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
 
@@ -413,7 +418,8 @@ void FTextureMovieResource::UpdateResource()
 	if( Owner->Decoder )
 	{
 		SCOPED_DRAW_EVENTF(EventDecode, DEC_SCENE_ITEMS, TEXT("Movie[%s]"),*Owner->GetName());
-		Owner->Decoder->GetFrame(this);
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		Owner->Decoder->GetFrame(RHICmdList, this);
 	}
 }
 

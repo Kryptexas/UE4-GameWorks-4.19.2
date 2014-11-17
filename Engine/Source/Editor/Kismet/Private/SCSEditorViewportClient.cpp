@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ISCSEditorCustomization.h"
 #include "ComponentVisualizer.h"
+#include "InstancedFoliage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 
@@ -100,13 +101,38 @@ namespace
 
 		return false;
 	}
+
+	// Determine whether or not the given node has a parent node that is not the root node, is movable and is selected
+	bool IsMovableParentNodeSelected(const FSCSEditorTreeNodePtrType& NodePtr, const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+	{
+		if(NodePtr.IsValid())
+		{
+			// Check for a valid parent node
+			FSCSEditorTreeNodePtrType ParentNodePtr = NodePtr->GetParent();
+			if(ParentNodePtr.IsValid() && !ParentNodePtr->IsRoot())
+			{
+				if(SelectedNodes.Contains(ParentNodePtr))
+				{
+					// The parent node is not the root node and is also selected; success
+					return true;
+				}
+				else
+				{
+					// Recursively search for any other parent nodes farther up the tree that might be selected
+					return IsMovableParentNodeSelected(ParentNodePtr, SelectedNodes);
+				}
+			}
+		}
+
+		return false;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////
 // FSCSEditorViewportClient
 
 FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(&InPreviewScene)
+	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 	,BlueprintEditorPtr(InBlueprintEditorPtr)
 	,PreviewBlueprint(NULL)
 	,PreviewActorBounds(ForceInitToZero)
@@ -234,10 +260,10 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer>* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
-					if (VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
+					TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(Comp->GetClass());
+					if (Visualizer.IsValid())
 					{
-						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
+						Visualizer->DrawVisualization(Comp, View, PDI);
 					}
 				}
 			}
@@ -313,11 +339,7 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 				{
 					USceneComponent* CompInstance = *CompIt;
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
-					if(Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
-					{
-						Invalidate();
-					}
-					else if(CompInstance == ActorProxy->PrimComponent)
+					if(CompInstance == ActorProxy->PrimComponent)
 					{
 						const bool bIsCtrlKeyDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 						if(BlueprintEditorPtr.IsValid())
@@ -332,6 +354,9 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 
 			Invalidate();
 		}
+
+		// Pass to component vis manager
+		//GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
 	}
 }
 
@@ -358,8 +383,9 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				for(auto It(SelectedNodes.CreateIterator());It;++It)
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
-					// Don't allow editing of a root node or inherited SCS node
-					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited();
+					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
+					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
+						&& !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
 
 					if(bCanEdit)
 					{
@@ -431,21 +457,21 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 							if(PreviewBlueprint != NULL)
 							{
-							// Like PostEditMove(), but we only need to re-run construction scripts
-							if(PreviewBlueprint && PreviewBlueprint->bRunConstructionScriptOnDrag)
-							{
-								PreviewActor->RerunConstructionScripts();
-							}
+								// Like PostEditMove(), but we only need to re-run construction scripts
+								if(PreviewBlueprint && PreviewBlueprint->bRunConstructionScriptOnDrag)
+								{
+									PreviewActor->RerunConstructionScripts();
+								}
 
-							SceneComp->PostEditComponentMove(true); // @TODO HACK passing 'finished' every frame...
+								SceneComp->PostEditComponentMove(true); // @TODO HACK passing 'finished' every frame...
 
-							// If a constraint, copy back updated constraint frames to template
-							UPhysicsConstraintComponent* ConstraintComp = Cast<UPhysicsConstraintComponent>(SceneComp);
-							UPhysicsConstraintComponent* TemplateComp = Cast<UPhysicsConstraintComponent>(SelectedTemplate);
-							if(ConstraintComp && TemplateComp)
-							{
-								TemplateComp->ConstraintInstance.CopyConstraintGeometryFrom(&ConstraintComp->ConstraintInstance);
-							}
+								// If a constraint, copy back updated constraint frames to template
+								UPhysicsConstraintComponent* ConstraintComp = Cast<UPhysicsConstraintComponent>(SceneComp);
+								UPhysicsConstraintComponent* TemplateComp = Cast<UPhysicsConstraintComponent>(SelectedTemplate);
+								if(ConstraintComp && TemplateComp)
+								{
+									TemplateComp->ConstraintInstance.CopyConstraintGeometryFrom(&ConstraintComp->ConstraintInstance);
+								}
 
 								// Get the Blueprint class default object
 								AActor* CDO = NULL;

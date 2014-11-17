@@ -19,7 +19,7 @@ extern const int32 GParticleScratchVertexBufferSize;
 class FParticleTexCoordVertexBuffer : public FVertexBuffer
 {
 public:
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 };
 
 /** Global particle texture coordinate vertex buffer. */
@@ -31,7 +31,7 @@ extern TGlobalResource<FParticleTexCoordVertexBuffer> GParticleTexCoordVertexBuf
 class FParticleIndexBuffer : public FIndexBuffer
 {
 public:
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 };
 
 /** Global particle index buffer. */
@@ -52,8 +52,8 @@ public:
 	FParticleShaderParamRef GetShaderParam();
 	FParticleBufferParamRef GetBufferParam();
 
-	virtual void InitRHI() OVERRIDE;
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
 };
 
 /** The global scratch vertex buffer. */

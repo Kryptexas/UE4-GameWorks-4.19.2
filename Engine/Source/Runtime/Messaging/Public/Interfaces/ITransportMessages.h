@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITransportMessages.h: Declares the ITransportMessages interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ITransportMessages.
- */
+/** Type definition for shared pointers to instances of ITransportMessages. */
 typedef TSharedPtr<class ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesPtr;
 
-/**
- * Type definition for shared references to instances of ITransportMessages.
- */
+/** Type definition for shared references to instances of ITransportMessages. */
 typedef TSharedRef<class ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesRef;
 
 
@@ -49,7 +41,7 @@ DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeLost, const FGuid&);
  * Interface for message transport technologies.
  *
  * Licensees can implement this interface to add support for custom message transport
- * technologies that are not supported, i.e. custom network protocols or APIs.
+ * technologies that are not supported out of the box, i.e. custom network protocols or APIs.
  */
 class ITransportMessages
 {
@@ -66,7 +58,6 @@ public:
 	 * Starts up the message transport.
 	 *
 	 * @return Whether the transport was started successfully.
-	 *
 	 * @see StopTransport
 	 */
 	virtual bool StartTransport( ) = 0;
@@ -84,7 +75,6 @@ public:
 	 * @param Data The serialized message data to transport.
 	 * @param Attachment An optional message attachment (i.e. file or memory buffer).
 	 * @param Recipients The transport nodes to send the message to.
-	 *
 	 * @return true if the message is being transported, false otherwise.
 	 */
 	virtual bool TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients ) = 0;
@@ -114,5 +104,8 @@ public:
 
 protected:
 
-	ITransportMessages( ) { }
+	/**
+	 * Virtual constructor.
+	 */
+	~ITransportMessages( ) { }
 };

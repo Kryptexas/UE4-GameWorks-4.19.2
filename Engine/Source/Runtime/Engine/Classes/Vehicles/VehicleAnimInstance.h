@@ -4,6 +4,7 @@
 /**
  *
  */
+#include "Animation/AnimInstance.h"
 #include "VehicleAnimInstance.generated.h"
 
 UCLASS(transient)

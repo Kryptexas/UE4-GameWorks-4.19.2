@@ -7,12 +7,12 @@
 class FWidgetTemplateClass : public FWidgetTemplate
 {
 public:
-	FWidgetTemplateClass(TSubclassOf<USlateWrapperComponent> InWidgetClass);
+	FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass);
 
-	virtual FText GetCategory() OVERRIDE;
+	virtual FText GetCategory() override;
 
-	virtual USlateWrapperComponent* Create(UWidgetTree* Tree) OVERRIDE;
+	virtual UWidget* Create(UWidgetTree* Tree) override;
 
 protected:
-	TSubclassOf<USlateWrapperComponent> WidgetClass;
+	TSubclassOf<UWidget> WidgetClass;
 };

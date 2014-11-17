@@ -9,10 +9,10 @@ public:
 		: ParentCategory( InParentCategory )
 	{}
 	
-	virtual IDetailChildrenBuilder& AddChildCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder ) OVERRIDE;
-	virtual IDetailGroup& AddChildGroup( FName GroupName, const FString& LocalizedDisplayName ) OVERRIDE;
-	virtual FDetailWidgetRow& AddChildContent( const FString& SearchString ) OVERRIDE;
-	virtual IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) OVERRIDE;
+	virtual IDetailChildrenBuilder& AddChildCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder ) override;
+	virtual IDetailGroup& AddChildGroup( FName GroupName, const FString& LocalizedDisplayName ) override;
+	virtual FDetailWidgetRow& AddChildContent( const FString& SearchString ) override;
+	virtual IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) override;
 	virtual TSharedRef<SWidget> GenerateStructValueWidget( TSharedRef<IPropertyHandle> StructPropertyHandle );
 
 	const TArray< FDetailLayoutCustomization >& GetChildCustomizations() const { return ChildCustomizations; }

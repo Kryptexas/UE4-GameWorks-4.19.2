@@ -139,13 +139,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
 
-			DateFrom = DateTime.Today.AddDays(-7);
+			DateFrom = DateTime.Today.AddDays(-7).ToUniversalTime();
 			TryParseDate(Request, Form, "DateFrom", ref DateFrom);
-			DateFrom = DateFrom.ToUniversalTime();
 
-			DateTo = DateTime.Today;
+			DateTo = DateTime.Today.ToUniversalTime();
 			TryParseDate(Request, Form, "DateTo", ref DateTo);
-			DateTo = DateTo.ToUniversalTime();
 
 			// Set the sort order 
 			if( PreviousOrder == "Descending" && PreviousTerm == SortTerm )

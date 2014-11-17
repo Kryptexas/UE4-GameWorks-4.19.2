@@ -34,7 +34,9 @@ public:
 		SLATE_ARGUMENT(bool, AutoExpandActionMenu)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryBack)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryForward)
-		SLATE_ARGUMENT(bool, ShowPIENotification)
+
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
@@ -64,10 +66,11 @@ private:
 
 	bool bAutoExpandActionMenu;
 
-	bool bShowPIENotification;
+	/** Whether to show the state (read only / PIE etc) Overlay on the panel */
+	TAttribute<bool> ShowGraphStateOverlay;
 
 	//FOnViewChanged	OnViewChanged;
-	TWeakPtr<SGraphEditor> LockedGraph;
+	TArray< TWeakPtr<SGraphEditor> > LockedGraphs;
 
 	/** Function to check whether PIE is active to display "Simulating" text in graph panel*/
 	EVisibility PIENotification( ) const;
@@ -93,40 +96,41 @@ public:
 
 	bool GraphEd_OnGetGraphEnabled() const;
 
-	FActionMenuContent GraphEd_OnGetContextMenuFor( const FVector2D& NodeAddPosition, UEdGraphNode* InGraphNode, UEdGraphPin* InGraphPin, const TArray<UEdGraphPin*>& InDragFromPins );
+	FActionMenuContent GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo);
 
 	void GraphEd_OnPanelUpdated();
 
 	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	void FocusLockedEditorHere();
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual bool SupportsKeyboardFocus() const override;
 	// End of SWidget interface
 
 	// SGraphEditor interface
-	virtual const TSet<class UObject*>& GetSelectedNodes() const OVERRIDE;
-	virtual void ClearSelectionSet() OVERRIDE;
-	virtual void SetNodeSelection(UEdGraphNode* Node, bool bSelect) OVERRIDE;
-	virtual void SelectAllNodes() OVERRIDE;
-	virtual FVector2D GetPasteLocation() const OVERRIDE;
-	virtual bool IsNodeTitleVisible( const UEdGraphNode* Node, bool bRequestRename ) OVERRIDE;
-	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false ) OVERRIDE;
-	virtual void JumpToPin( const UEdGraphPin* JumpToMe ) OVERRIDE;
-	virtual UEdGraphPin* GetGraphPinForMenu() OVERRIDE;
-	virtual void ZoomToFit(bool bOnlySelection) OVERRIDE;
-	virtual bool GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding) OVERRIDE;
+	virtual const TSet<class UObject*>& GetSelectedNodes() const override;
+	virtual void ClearSelectionSet() override;
+	virtual void SetNodeSelection(UEdGraphNode* Node, bool bSelect) override;
+	virtual void SelectAllNodes() override;
+	virtual FVector2D GetPasteLocation() const override;
+	virtual bool IsNodeTitleVisible( const UEdGraphNode* Node, bool bRequestRename ) override;
+	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false ) override;
+	virtual void JumpToPin( const UEdGraphPin* JumpToMe ) override;
+	virtual UEdGraphPin* GetGraphPinForMenu() override;
+	virtual void ZoomToFit(bool bOnlySelection) override;
+	virtual bool GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding) override;
 	virtual void NotifyGraphChanged();
-	virtual TSharedPtr<SWidget> GetTitleBar() const OVERRIDE;
-	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount) OVERRIDE;
-	virtual void GetViewLocation(FVector2D& Location, float& ZoomAmount) OVERRIDE;
-	virtual void LockToGraphEditor(TWeakPtr<SGraphEditor> Other) OVERRIDE;
-	virtual void AddNotification ( FNotificationInfo& Info, bool bSuccess ) OVERRIDE;
-	virtual void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) OVERRIDE;
+	virtual TSharedPtr<SWidget> GetTitleBar() const override;
+	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount) override;
+	virtual void GetViewLocation(FVector2D& Location, float& ZoomAmount) override;
+	virtual void LockToGraphEditor(TWeakPtr<SGraphEditor> Other) override;
+	virtual void UnlockFromGraphEditor(TWeakPtr<SGraphEditor> Other) override;
+	virtual void AddNotification ( FNotificationInfo& Info, bool bSuccess ) override;
+	virtual void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) override;
 	// End of SGraphEditor interface
 protected:
 	//
@@ -141,7 +145,7 @@ protected:
 	void BreakPinLinks(bool bSendNodeNotification);
 
 	// SGraphEditor interface
-	virtual void OnGraphChanged( const FEdGraphEditAction& InAction ) OVERRIDE;
+	virtual void OnGraphChanged( const FEdGraphEditAction& InAction ) override;
 	// End of SGraphEditorInterface
 private:
 	FText GetZoomText() const;
@@ -149,5 +153,7 @@ private:
 	FSlateColor GetZoomTextColorAndOpacity() const;
 
 	bool IsGraphEditable() const;
+
+	bool IsLocked() const;
 };
 

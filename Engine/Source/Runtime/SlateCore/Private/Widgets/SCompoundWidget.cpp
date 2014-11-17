@@ -43,7 +43,7 @@ int32 SCompoundWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateR
 			.BlendColorAndOpacityTint(ColorAndOpacity.Get())
 			.SetForegroundColor( ForegroundColor );
 
-		return TheChild.Widget->OnPaint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, CompoundedWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		return TheChild.Widget->Paint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, CompoundedWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	return LayerId;
 }
@@ -65,7 +65,7 @@ FVector2D SCompoundWidget::ComputeDesiredSize() const
 	return FVector2D::ZeroVector;
 }
 
-void SCompoundWidget::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SCompoundWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	ArrangeSingleChild( AllottedGeometry, ArrangedChildren, ChildSlot, ContentScale );
 }

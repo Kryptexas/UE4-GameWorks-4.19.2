@@ -284,8 +284,8 @@ private:
 	void OnColorPickerCancelled(FLinearColor Color);
 	
 	// Begin FEditorUndoClient
-	virtual void PostUndo(bool bSuccess) OVERRIDE { Refresh(); }
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override { Refresh(); }
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 private:

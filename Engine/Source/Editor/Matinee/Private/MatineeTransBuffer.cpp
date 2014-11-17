@@ -14,36 +14,10 @@ UMatineeTransBuffer::UMatineeTransBuffer(const class FPostConstructInitializePro
 
 void UMatineeTransBuffer::BeginSpecial(const FText& Description)
 {
-	CheckState();
-	if( ActiveCount++==0 )
-	{
-		// Cancel redo buffer.
-		if( UndoCount )
-		{
-			UndoBuffer.RemoveAt( UndoBuffer.Num()-UndoCount, UndoCount );
-		}
-
-		UndoCount = 0;
-
-		// Purge previous transactions if too much data occupied.
-		while( GetUndoSize() > MaxMemory )
-		{
-			UndoBuffer.RemoveAt( 0 );
-		}
-
-		// Begin a new transaction.
-		GUndo = new(UndoBuffer)FMatineeTransaction( Description, 1 );
-	}
-	CheckState();
+	BeginInternal<FMatineeTransaction>(TEXT("Matinee"), Description);
 }
 
 void UMatineeTransBuffer::EndSpecial()
 {
-	CheckState();
-	check(ActiveCount>=1);
-	if( --ActiveCount==0 )
-	{
-		GUndo = NULL;
-	}
-	CheckState();
+	UTransBuffer::End();
 }

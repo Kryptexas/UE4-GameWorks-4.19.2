@@ -76,7 +76,7 @@ namespace iPhonePackager
 			Provision = null;
 			try
 			{
-				string ExpectedProvisionFile = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
+				string ExpectedProvisionFile = FileOperations.FindPrefixedFile(Config.ProvisionDirectory, Program.GameName + ".mobileprovision");
 				Provision = MobileProvisionParser.ParseFile(ExpectedProvisionFile);
 			}
 			catch (Exception)
@@ -103,32 +103,10 @@ namespace iPhonePackager
 			return bOverridesExists && (Provision != null) && (Cert != null);
 		}
 
-		protected virtual byte[] GetMobileProvision()
+		protected virtual byte[] GetMobileProvision(string CFBundleIdentifier)
 		{
-			// Find the mobile provision file to use
-			string MobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
-				
-			if (!File.Exists(MobileProvisionFilename))
-			{
-				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
-			}
-
-			if (!File.Exists(MobileProvisionFilename))
-			{
-				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.BuildDirectory + "/NotForLicensees/", Program.GameName + ".mobileprovision");
-				if (!File.Exists(MobileProvisionFilename))
-				{
-					MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
-					if (!File.Exists(MobileProvisionFilename))
-					{
-						MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
-						if (!File.Exists(MobileProvisionFilename))
-						{
-							MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.BuildDirectory, ".mobileprovision");
-						}
-					}
-				}
-			}
+			// find the movile provision file in the library
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
 
 			byte[] Result = null;
 			try
@@ -144,9 +122,9 @@ namespace iPhonePackager
 			return Result;
 		}
 
-		public void LoadMobileProvision()
+		public void LoadMobileProvision(string CFBundleIdentifier)
 		{
-			byte[] MobileProvisionFile = GetMobileProvision();
+			byte[] MobileProvisionFile = GetMobileProvision(CFBundleIdentifier);
 
 			if (MobileProvisionFile != null)
 			{
@@ -312,8 +290,15 @@ namespace iPhonePackager
 			// Load Info.plist, which guides nearly everything else
 			Info = LoadInfoPList();
 
+			// Get the name of the bundle
+			string CFBundleIdentifier;
+			if (!Info.GetString("CFBundleIdentifier", out CFBundleIdentifier))
+			{
+				throw new InvalidDataException("Info.plist must contain the key CFBundleIdentifier");
+			}
+
 			// Load the mobile provision, which provides entitlements and a partial cert which can be used to find an installed certificate
-			LoadMobileProvision();
+			LoadMobileProvision(CFBundleIdentifier);
 			if (Provision == null)
 			{
 				return;

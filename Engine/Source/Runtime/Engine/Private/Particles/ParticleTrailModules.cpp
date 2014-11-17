@@ -7,6 +7,10 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Trail/ParticleModuleTrailSource.h"
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleTrailBase::UParticleModuleTrailBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

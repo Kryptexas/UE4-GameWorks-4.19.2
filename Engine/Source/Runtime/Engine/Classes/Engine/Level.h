@@ -5,9 +5,14 @@
 //
 
 #pragma once
-#include "Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h"
-
+#include "PhysicsEngine/BodyInstance.h"
+#include "Engine/LevelBase.h"
+#include "Engine/World.h"
+#include "Model.h"
 #include "Level.generated.h"
+
+class ALevelBounds;
+class UTexture2D;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -299,7 +304,7 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 
 #if WITH_EDITORONLY_DATA
 	/** Reference to the blueprint for level scripting */
-	UPROPERTY()
+	UPROPERTY(NonTransactional)
 	class ULevelScriptBlueprint* LevelScriptBlueprint;
 #endif //WITH_EDITORONLY_DATA
 
@@ -392,15 +397,12 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 	uint32										bAlreadyRoutedActorInitialize:1;
 	/** Whether we already sorted the actor list.											*/
 	uint32										bAlreadySortedActorList:1;
-	/** Whether one or more streaming levels requested to show this level					*/
-	uint32										bHasShowRequest:1;
-	/** Whether one or more streaming levels requested to hide this level					*/
-	uint32										bHasHideRequest:1;
 	/** Whether this level is in the process of being associated with its world				*/
 	uint32										bIsAssociatingLevel:1;
 	/** Whether this level should be fully added to the world before rendering his components	*/
 	uint32										bRequireFullVisibilityToRender:1;
-		
+	/** Whether this level is specific to client, visibility state will not be replicated to server	*/
+	uint32										bClientOnlyVisible:1;
 	/** Current index into actors array for updating components.							*/
 	int32										CurrentActorIndexForUpdateComponents;
 
@@ -448,9 +450,6 @@ private:
 
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 
-	/** Number of streaming levels referring this level	*/
-	int32 NumStreamingLevelRefs;
-
 public:
 	/** Called when a level package has been dirtied. */
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
@@ -461,18 +460,18 @@ public:
 	~ULevel();
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual UWorld* GetWorld() const override;
 
 #if	WITH_EDITOR
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;	
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;	
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PreSave() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -549,6 +548,8 @@ public:
 	 */
 	ENGINE_API void SortActorList();
 
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all levels have stable net names
+
 	/** Handles network initialization for actors in this level */
 	void InitializeNetworkActors();
 
@@ -593,11 +594,19 @@ public:
 	ENGINE_API TArray<FStreamableTextureInstance>* GetStreamableTextureInstances(UTexture2D*& TargetTexture);
 
 	/**
+	* Deprecated. Returns the default brush for this level.
+	*
+	* @return		The default brush for this level.
+	*/
+	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
+	ENGINE_API ABrush* GetBrush() const;
+
+	/**
 	 * Returns the default brush for this level.
 	 *
 	 * @return		The default brush for this level.
 	 */
-	ENGINE_API class ABrush* GetBrush() const;
+	ENGINE_API class ABrush* GetDefaultBrush() const;
 
 	/**
 	 * Returns the world info for this level.
@@ -668,16 +677,11 @@ public:
 	/** Increments number of steaming objects referring this level */
 	ENGINE_API void IncStreamingLevelRefs();
 	
-	/** Decrements number of steaming objects referring this level */
-	ENGINE_API void DecStreamingLevelRefs();
-
-	/** Returns number of steaming objects referring this level */
-	ENGINE_API int32 GetStreamingLevelRefs() const;
 	
 	// Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	// End IInterface_AssetUserData Interface
 
 #if WITH_EDITOR

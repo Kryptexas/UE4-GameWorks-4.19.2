@@ -37,7 +37,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform( ) OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform( ) override
 	{
 		if (Singleton == NULL)
 		{
@@ -54,7 +54,7 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		TargetSettings = ConstructObject<ULinuxTargetSettings>(ULinuxTargetSettings::StaticClass(), GetTransientPackage(), "LinuxTargetSettings", RF_Standalone);
 		TargetSettings->AddToRoot();
@@ -71,7 +71,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		TargetSettings->RemoveFromRoot();
 	}

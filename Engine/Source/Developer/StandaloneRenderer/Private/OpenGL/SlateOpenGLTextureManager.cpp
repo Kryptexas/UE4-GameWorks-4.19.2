@@ -298,7 +298,7 @@ void FSlateOpenGLTextureManager::ReleaseDynamicTextureResource(const FSlateBrush
 /**
  * Returns a texture with the passed in name or NULL if it cannot be found.
  */
-FSlateShaderResourceProxy* FSlateOpenGLTextureManager::GetTexture( const FSlateBrush& InBrush )
+FSlateShaderResourceProxy* FSlateOpenGLTextureManager::GetShaderResource( const FSlateBrush& InBrush )
 {
 	FSlateShaderResourceProxy* Texture = NULL;
 	if( InBrush.IsDynamicallyLoaded() )

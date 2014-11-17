@@ -37,6 +37,21 @@ void UObjectRedirector::Serialize( FArchive& Ar )
 	Ar << DestinationObject;
 }
 
+bool UObjectRedirector::NeedsLoadForClient() const
+{
+	return false;
+}
+
+bool UObjectRedirector::NeedsLoadForServer() const
+{
+	return false;
+}
+
+bool UObjectRedirector::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
 void UObjectRedirector::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	FString DestVal;
@@ -80,7 +95,7 @@ bool UObjectRedirector::GetNativePropertyValues( TMap<FString,FString>& out_Prop
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UObjectRedirector, UObject,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UObjectRedirector, DestinationObject ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UObjectRedirector, DestinationObject), TEXT("DestinationObject"));
 	}
 );
 

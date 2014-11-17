@@ -12,10 +12,10 @@ public:
 	static FLightingBuildInfoStatsPage& Get();
 
 	/** Begin IStatsPage interface */
-	virtual void Clear() OVERRIDE;
-	virtual void AddEntry( UObject* InEntry ) OVERRIDE;
-	virtual void Generate( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const OVERRIDE;
-	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const OVERRIDE;
+	virtual void Clear() override;
+	virtual void AddEntry( UObject* InEntry ) override;
+	virtual void Generate( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const override;
+	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const override;
 	/** End IStatsPage interface */
 
 private:

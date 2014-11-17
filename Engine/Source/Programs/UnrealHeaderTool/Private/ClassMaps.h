@@ -2,32 +2,7 @@
 
 #pragma once
 
-#include "UniquePtr.h"
-
-template <typename T>
-class TUniqueObj
-{
-public:
-	TUniqueObj()
-		: Obj_(MakeUnique<T>())
-	{
-	}
-
-	template <typename Arg>
-	explicit TUniqueObj(Arg&& arg)
-		: Obj_(MakeUnique<T>(Forward<Arg>(arg)))
-	{
-	}
-
-	      T* operator->()       { return Obj_.Get(); }
-	const T* operator->() const { return Obj_.Get(); }
-
-	      T& operator*()       { return *Obj_; }
-	const T& operator*() const { return *Obj_; }
-
-private:
-	TUniquePtr<T> Obj_;
-};
+#include "UniqueObj.h"
 
 /** Information about class source and generated headers */
 struct FClassHeaderInfo
@@ -52,6 +27,7 @@ struct FManifestModule;
 
 extern TMap<UClass*, FString>                   GClassStrippedHeaderTextMap;
 extern TMap<UClass*, FString>                   GClassSourceFileMap;
+extern TMap<UClass*, int32>                     GClassDeclarationLineNumber;
 extern TMap<UClass*, FClassHeaderInfo>          GClassGeneratedFileMap;
 extern TMap<UClass*, TUniqueObj<TArray<FName>>> GClassDependentOnMap;
 extern TMap<UClass*, FString>                   GClassHeaderNameWithNoPathMap;

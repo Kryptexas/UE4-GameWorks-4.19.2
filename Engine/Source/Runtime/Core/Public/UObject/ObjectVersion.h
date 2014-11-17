@@ -540,7 +540,45 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
 	// Requires test of material coords to ensure they're saved correctly
 	VER_UE4_FIX_MATERIAL_COORDS,
- 
+ 	// Changed SpeedTree wind presets to v7
+	VER_UE4_SPEEDTREE_WIND_V7,
+	// NeedsLoadForEditorGame added
+	VER_UE4_LOAD_FOR_EDITOR_GAME,
+	// Manual serialization of FRichCurveKey to save space
+	VER_UE4_SERIALIZE_RICH_CURVE_KEY,
+	// Change the outer of ULandscapeMaterialInstanceConstants and Landscape-related textures to the level in which they reside
+	VER_UE4_MOVE_LANDSCAPE_MICS_AND_TEXTURES_WITHIN_LEVEL,
+	// FTexts have creation history data, removed Key, Namespaces, and SourceString
+	VER_UE4_FTEXT_HISTORY,
+	// Shift comments to the left to contain expressions properly
+	VER_UE4_FIX_MATERIAL_COMMENTS,
+	// Bone names stored as FName means that we can't guarantee the correct case on export, now we store a separate string for export purposes only
+	VER_UE4_STORE_BONE_EXPORT_NAMES,
+	// changed mesh emitter initial orientation to distribution
+	VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION,
+	// Foliage on blueprints causes crashes
+	VER_UE4_DISALLOW_FOLIAGE_ON_BLUEPRINTS,
+	// change motors to use revolutions per second instead of rads/second
+	VER_UE4_FIXUP_MOTOR_UNITS,
+	// deprecated MovementComponent functions including "ModifiedMaxSpeed" et al
+	VER_UE4_DEPRECATED_MOVEMENTCOMPONENT_MODIFIED_SPEEDS,
+	// rename CanBeCharacterBase
+	VER_UE4_RENAME_CANBECHARACTERBASE,
+	// Change GameplayTagContainers to have FGameplayTags instead of FNames; Required to fix-up native serialization
+	VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE,
+	// Change from UInstancedFoliageSettings to UFoliageType, and change the api from being keyed on UStaticMesh* to UFoliageType*
+	VER_UE4_FOLIAGE_SETTINGS_TYPE,
+	// Lights serialize static shadow depth maps
+	VER_UE4_STATIC_SHADOW_DEPTH_MAPS,
+	// Add RF_Transactional to data assets, fixing undo problems when editing them
+	VER_UE4_ADD_TRANSACTIONAL_TO_DATA_ASSETS,
+	// Change LB_AlphaBlend to LB_WeightBlend in ELandscapeLayerBlendType
+	VER_UE4_ADD_LB_WEIGHTBLEND,
+	// Add root component to an foliage actor, all foliage cluster components will be attached to a root
+	VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR,
+	// FMaterialInstanceBasePropertyOverrides didn't use proper UObject serialize
+	VER_UE4_FIX_MATERIAL_PROPERTY_OVERRIDE_SERIALIZE,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

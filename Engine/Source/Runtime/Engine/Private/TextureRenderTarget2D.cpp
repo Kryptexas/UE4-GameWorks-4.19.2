@@ -312,6 +312,7 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
 		uint32 TexCreateFlags = bSRGB ? TexCreate_SRGB : 0;
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			Owner->SizeX, 
 			Owner->SizeY, 
@@ -320,10 +321,12 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 			TexCreateFlags,
 			TexCreate_RenderTargetable,
 			Owner->bNeedsTwoCopies,
+			CreateInfo,
 			RenderTargetTextureRHI,
 			Texture2DRHI
 			);
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
+		RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 		AddToDeferredUpdateList(true);
 	}
@@ -349,6 +352,7 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 	Texture2DRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
 
@@ -362,14 +366,15 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 void FTextureRenderTarget2DResource::UpdateResource()
 {
 	RemoveFromDeferredUpdateList();
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
  	// clear the target surface to green
- 	RHISetRenderTarget(RenderTargetTextureRHI,FTextureRHIRef());
- 	RHISetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
- 	RHIClear(true,ClearColor,false,0.f,false,0, FIntRect());
+	SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());
+	RHICmdList.SetViewport(0, 0, 0.0f, TargetSizeX, TargetSizeY, 1.0f);
+	RHICmdList.Clear(true, ClearColor, false, 0.f, false, 0, FIntRect());
  
  	// copy surface to the texture for use
- 	RHICopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
+	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
 }
 
 /** 

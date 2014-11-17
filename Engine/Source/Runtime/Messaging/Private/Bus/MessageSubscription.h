@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageSubscription.h: Declares the FMessageSubscription structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -36,39 +32,37 @@ public:
 
 public:
 
-	// Begin IMessageSubscription interface
+	// IMessageSubscription interface
 
-	virtual void Disable( ) OVERRIDE
+	virtual void Disable( ) override
 	{
 		Enabled = false;
 	}
 
-	virtual void Enable( ) OVERRIDE
+	virtual void Enable( ) override
 	{
 		Enabled = true;
 	}
 
-	virtual FName GetMessageType( ) OVERRIDE
+	virtual FName GetMessageType( ) override
 	{
 		return MessageType;
 	}
 
-	virtual const FMessageScopeRange& GetScopeRange( ) OVERRIDE
+	virtual const FMessageScopeRange& GetScopeRange( ) override
 	{
 		return ScopeRange;
 	}
 
-	virtual const IReceiveMessagesWeakPtr& GetSubscriber( ) OVERRIDE
+	virtual const IReceiveMessagesWeakPtr& GetSubscriber( ) override
 	{
 		return Subscriber;
 	}
 
-	virtual bool IsEnabled( ) OVERRIDE
+	virtual bool IsEnabled( ) override
 	{
 		return Enabled;
 	}
-
-	// End IMessageSubscription interface
 
 private:
 

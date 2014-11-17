@@ -11,6 +11,8 @@ public:
 	// The type of this payload
 	const FName PayloadType;
 public:
+	virtual ~FTabPayload() {}
+
 	// Is this payload equal to the other one?
 	virtual bool IsEqual(const TSharedRef<FTabPayload>& OtherPayload) const
 	{
@@ -72,6 +74,8 @@ protected:
 	TWeakPtr<class FAssetEditorToolkit> HostingApp;
 
 public:
+	virtual ~FWorkflowTabFactory() {}
+
 	// Creates a toolkit tab given the spawning information
 	virtual TSharedRef<SDockTab> SpawnTab(const FWorkflowTabSpawnInfo& Info) const;
 	// Creates a toolkit tab without any content, given the spawning information

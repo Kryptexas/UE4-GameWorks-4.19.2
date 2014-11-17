@@ -10,9 +10,9 @@ class FDeviceProfileEditorModule : public IModuleInterface
 public:
 
 	// Begin IModuleInterface interface
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface interface
 
 public:

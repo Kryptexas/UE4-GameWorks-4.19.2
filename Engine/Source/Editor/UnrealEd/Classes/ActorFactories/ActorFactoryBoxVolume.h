@@ -10,7 +10,7 @@ class UActorFactoryBoxVolume : public UActorFactory
 	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
-	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) OVERRIDE;
-	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor ) OVERRIDE;
+	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
+	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor ) override;
 	// End UActorFactory Interface
 };

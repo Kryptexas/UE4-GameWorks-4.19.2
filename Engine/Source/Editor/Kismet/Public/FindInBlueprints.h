@@ -2,63 +2,209 @@
 
 #pragma once
 
+typedef TSharedPtr<class FFindInBlueprintsResult> FSearchResult;
+typedef STreeView<FSearchResult>  STreeViewType;
+
 /* Item that matched the search results */
-class FFindInBlueprintsResult
+class FFindInBlueprintsResult : public TSharedFromThis< FFindInBlueprintsResult >
 {
 public: 
 	/* Create a root */
-	FFindInBlueprintsResult(const FString& InValue);
+	FFindInBlueprintsResult(const FText& InDisplayText);
 	
 	/* Create a listing for a search result*/
-	FFindInBlueprintsResult(const FString& InValue, TSharedPtr<FFindInBlueprintsResult>& InParent, UClass* InClass, int InDuplicationIndex );
-	
-	/* Create a listing for a pin result */
-	FFindInBlueprintsResult(const FString& InValue, TSharedPtr<FFindInBlueprintsResult>& InParent, UEdGraphPin* InPin);
-	
-	/* Create a listing for a pin result */
-	FFindInBlueprintsResult(const FString& InValue, TSharedPtr<FFindInBlueprintsResult>& InParent, UEdGraphNode* InNode);
+	FFindInBlueprintsResult(const FText& InDisplayText, TSharedPtr<FFindInBlueprintsResult> InParent);
 	
 	/* Called when user clicks on the search item */
-	FReply OnClick();
+	virtual FReply OnClick();
 
 	/* Get Category for this search result */
-	FString GetCategory() const;
+	virtual FString GetCategory() const;
 
 	/* Create an icon to represent the result */
-	TSharedRef<SWidget>	CreateIcon() const;
+	virtual TSharedRef<SWidget>	CreateIcon() const;
+
+	/** Finalizes any content for the search data that was unsafe to do on a separate thread */
+	virtual void FinalizeSearchData() {};
 
 	/* Gets the comment on this node if any */
 	FString GetCommentText() const;
-	
-	/* Gets the value of the pin if any */
-	FString GetValueText() const;
 
 	/** gets the blueprint housing all these search results */
 	UBlueprint* GetParentBlueprint() const;
 
+	/**
+	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
+	 *
+	 * @param InJsonNode		Node to extract data from
+	 * @param InTokens			Tokens to match searchable content against
+	 * @return					Returns TRUE if the content matches search results and was extracted
+	 */
+	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) { return ExtractContent(InJsonNode, InTokens, NULL); };
+
+	/**
+	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
+	 *
+	 * @param InJsonNode		Node to extract data from
+	 * @param InTokens			Tokens to match searchable content against
+	 * @param InParentOverride	Parent search result to attach sub-content to
+	 * @return					Returns TRUE if the content matches search results and was extracted
+	 */
+	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
+
+	/**
+	 * Parses search info for specific data important for displaying the search result in an easy to understand format
+	 *
+	 * @param	InTokens		The search tokens to check results against
+	 * @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
+	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
+	 * @param	InParent		The parent search result
+	 *
+	 * @return					TRUE if the item passes the search filter or is otherwise accepted
+	 */
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
+
+	/**
+	 * Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
+	 *
+	 * @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
+	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
+	 * @param	InParent		The parent search result
+	 */
+	void AddExtraSearchInfo(FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
+
+	/**
+	 * Iterates through all this node's children, and tells the tree view to expand them
+	 */
+	void ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView );
+
+	/** Returns the display string for the row */
+	FString GetDisplayString() const;
+
+protected:
+
+	/**
+	 * Extracts the details of a JsonValue in the search results, pushing arrays into sub-objects correctly, breaking up objects, and passing on the rest of the types
+	 *
+	 * @param	InTokens				The search tokens to check results against
+	 * @param	InKey					This is the tag for the data, describing what it is so special handling can occur if needed
+	 * @param	InValue					Has all the data for this object that needs to be deciphered or broken up into base types to be deciphered
+	 * @param	InParentOverride		The parent to attach all children data to, can be NULL.
+	 */
+	bool ExtractJsonValue(const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
+
+public:
 	/*Any children listed under this category */
 	TArray< TSharedPtr<FFindInBlueprintsResult> > Children;
 
 	/*If it exists it is the blueprint*/
 	TWeakPtr<FFindInBlueprintsResult> Parent;
 
-	/*The meta string that was stored in the asset registry for this item */
-	FString Value;
+	/*The display text for this item */
+	FText DisplayText;
 
-	/*The blueprint may have multiple instances of whatever we are looking for, this tells us which instance # we refer to*/
-	int	DuplicationIndex;
+	/** Display text for comment information */
+	FString CommentText;
+};
+
+/** Graph nodes use this class to store their data */
+class FFindInBlueprintsGraphNode : public FFindInBlueprintsResult
+{
+public:
+	FFindInBlueprintsGraphNode(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent);
+
+	/** FFindInBlueprintsResult Interface */
+	virtual FReply OnClick() override;
+	virtual TSharedRef<SWidget>	CreateIcon() const override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
+	virtual FString GetCategory() const override;
+	virtual void FinalizeSearchData() override;
+	/** End FFindInBlueprintsResult Interface */
+
+private:
+	/** The Node Guid to find when jumping to the node */
+	FGuid NodeGuid;
+
+	/** The glyph brush for this node */
+	const struct FSlateBrush* GlyphBrush;
+
+	/** The glyph color for this node */
+	FLinearColor GlyphColor;
 
 	/*The class this item refers to */
 	UClass* Class;
 
+	/*The class name this item refers to */
+	FString ClassName;
+};
+
+/** Pins use this class to store their data */
+class FFindInBlueprintsPin : public FFindInBlueprintsResult
+{
+public:
+	FFindInBlueprintsPin(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent, FString InSchemaName);
+
+	/** FFindInBlueprintsResult Interface */
+	virtual TSharedRef<SWidget>	CreateIcon() const override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual FString GetCategory() const override;
+	virtual void FinalizeSearchData() override;
+	/** End FFindInBlueprintsResult Interface */
+protected:
+	/** The name of the schema this pin exists under */
+	FString SchemaName;
+
 	/** The pin that this search result refers to */
-	TWeakObjectPtr<UEdGraphPin> Pin;
+	FEdGraphPinType PinType;
 
-	/** The graph node that this search result refers to (if not by asset registry or UK2Node) */
-	TWeakObjectPtr<UEdGraphNode> GraphNode;
+	/** The Pin's sub-category name */
+	FString PinSubCategory;
 
-	/** Display text for comment information */
-	FString CommentText;
+	/** Pin's icon color */
+	FSlateColor IconColor;
+};
+
+/** Property data is stored here */
+class FFindInBlueprintsProperty : public FFindInBlueprintsResult
+{
+public:
+	FFindInBlueprintsProperty(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent);
+
+	/** FFindInBlueprintsResult Interface */
+	virtual TSharedRef<SWidget>	CreateIcon() const override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual FString GetCategory() const override;
+	virtual void FinalizeSearchData() override;
+	/** End FFindInBlueprintsResult Interface */
+protected:
+	/** The pin that this search result refers to */
+	FEdGraphPinType PinType;
+
+	/** The default value of a property as a string */
+	FString DefaultValue;
+
+	/** The Property's sub-category name, for the pin display type */
+	FString PinSubCategory;
+};
+
+/** Graphs, such as functions and macros, are stored here */
+class FFindInBlueprintsGraph : public FFindInBlueprintsResult
+{
+public:
+	FFindInBlueprintsGraph(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent, EGraphType InGraphType);
+
+	/** FFindInBlueprintsResult Interface */
+	virtual FReply OnClick() override;
+	virtual TSharedRef<SWidget>	CreateIcon() const override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual FString GetCategory() const override;
+	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
+	/** End FFindInBlueprintsResult Interface */
+protected:
+
+	/** The type of graph this represents */
+	EGraphType GraphType;
 };
 
 
@@ -70,13 +216,18 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
+	~SFindInBlueprints();
+
+	/** Begin SWidget Interface */
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	/** End SWidget Interface */
 
 	/** Focuses this widget's search box, and changes the mode as well, and optionally the search terms */
 	void FocusForUse(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false);
 
+	/** Called when caching Blueprints is complete, if this widget initiated the indexing */
+	void OnCacheComplete();
 private:
-	typedef TSharedPtr<FFindInBlueprintsResult> FSearchResult;
-	typedef STreeView<FSearchResult> STreeViewType;
 
 	/*Called when user changes the text they are searching for */
 	void OnSearchTextChanged(const FText& Text);
@@ -93,29 +244,68 @@ private:
 	/* Get the children of a row */
 	void OnGetChildren( FSearchResult InItem, TArray< FSearchResult >& OutChildren );
 
-	/* Called when user clicks on a new result */
-	void OnTreeSelectionChanged(FSearchResult Item, ESelectInfo::Type SelectInfo );
+	/* Called when user double clicks on a new result */
+	void OnTreeSelectionDoubleClicked( FSearchResult Item );
 
 	/* Called when a new row is being generated */
 	TSharedRef<ITableRow> OnGenerateRow(FSearchResult InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Begins the search based on the SearchValue */
 	void InitiateSearch();
-
-	/* Find any results that contain all of the tokens, only for find in all blueprints */
-	void MatchTokens(const TArray<FString>& Tokens);
 	
 	/* Find any results that contain all of the tokens, however, only in find within blueprints */
 	void MatchTokensWithinBlueprint(const TArray<FString>& Tokens);
 
-	/* Extract results from a single buffer */
-	void Extract(const FString* Buffer, const TArray<FString> &Tokens, FSearchResult& BlueprintCategory, UClass* Class);
+	/** Launches a thread for streaming more content into the results widget */
+	void LaunchStreamThread(const TArray<FString>& InTokens);
 
-	/* Read the duplication count stored in the string */
-	static int ReadDuplicateCount(const FString& ValueWCount, FString& OutValue );
+	/** Returns the percent complete on the search for the progress bar */
+	TOptional<float> GetPercentCompleteSearch() const;
+
+	/** Returns the progress bar visiblity */
+	EVisibility GetSearchbarVisiblity() const;
+
+	/** Adds the "cache" bar at the bottom of the Find-in-Blueprints widget, to notify the user that the search is incomplete */
+	void ConditionallyAddCacheBar();
+
+	/** Callback to remove the "cache" bar when a button is pressed */
+	FReply OnRemoveCacheBar();
+
+	/** Callback to return the cache bar's display text, informing the user of the situation */
+	FText GetUncachedBlueprintWarningText() const;
+
+	/** Callback to return the cache bar's current indexing Blueprint name */
+	FText GetCurrentCacheBlueprintName() const;
+
+	/** Callback to cache all uncached Blueprints */
+	FReply OnCacheAllBlueprints();
+
+	/** Callback to cancel the caching process */
+	FReply OnCancelCacheAll();
+
+	/** Retrieves the current index of the Blueprint caching process */
+	int32 GetCurrentCacheIndex() const;
+
+	/** Gets the percent complete of the caching process */
+	TOptional<float> GetPercentCompleteCache() const;
+
+	/** Returns the visibility of the caching progress bar, visible when in progress, hidden when not */
+	EVisibility GetCachingProgressBarVisiblity() const;
+
+	/** Returns the visibility of the "Cache All" button, visible when not caching, collapsed when caching is in progress */
+	EVisibility GetCacheAllButtonVisibility() const;
+
+	/** Returns the caching bar's visibility, it goes invisible when there is nothing to be cached. The next search will remove this bar or make it visible again */
+	EVisibility GetCachingBarVisibility() const;
 	
-	/** Determines if a string matches the search tokens */
-	static bool StringMatchesSearchTokens(const TArray<FString>& Tokens, const FString& ComparisonString);
+	/** Returns the visibility of the caching Blueprint name, visible when in progress, collapsed when not */
+	EVisibility GetCachingBlueprintNameVisiblity() const;
+
+	/** Returns TRUE if Blueprint caching is in progress */
+	bool IsCacheInProgress() const;
+
+	/** Returns the color of the caching bar */
+	FSlateColor GetCachingBarColor() const;
 
 private:
 	/** Pointer back to the blueprint editor that owns us */
@@ -141,4 +331,13 @@ private:
 
 	/** Should we search within the current blueprint only (rather than all blueprints) */
 	bool bIsInFindWithinBlueprintMode;
+
+	/** Thread object that searches through Blueprint data on a separate thread */
+	TSharedPtr< class FStreamSearch> StreamSearch;
+
+	/** Vertical box, used to add and remove widgets dynamically */
+	TWeakPtr< SVerticalBox > MainVerticalBox;
+
+	/** Weak pointer to the cache bar slot, so it can be removed */
+	TWeakPtr< SWidget > CacheBarSlot;
 };

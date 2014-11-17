@@ -43,7 +43,7 @@ public:
 		: Socket(InSocket)
 		, OkToSendDelegate(InOkToSendDelegate)
 	{
-		Thread = FRunnableThread::Create(this,TEXT("FMultichannelTCPSender"), true, true, 8 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, TEXT("FMultichannelTCPSender"), 8 * 1024, TPri_AboveNormal);
 	}
 
 	/**
@@ -51,11 +51,11 @@ public:
 	 */
 	~FMultichannelTcpSender(  )
 	{
-		Thread->Kill(true);
-		delete Thread;
-
-		Socket = NULL;
-		Thread = NULL;
+		if (Thread)
+		{
+			Thread->Kill(true);
+			delete Thread;
+		}
 	}
 
 

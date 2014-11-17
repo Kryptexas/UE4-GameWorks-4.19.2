@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "ParticleModuleEventReceiverSpawn.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Spawn"))
@@ -47,14 +48,14 @@ class UParticleModuleEventReceiverSpawn : public UParticleModuleEventReceiverBas
 
 	//Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	// Begin UParticleModuleEventBase Interface
-	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) OVERRIDE;
+	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) override;
 	// End UParticleModuleEventBase Interface
 };
 

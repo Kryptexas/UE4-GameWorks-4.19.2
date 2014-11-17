@@ -11,9 +11,9 @@ public class QualcommTextureConverter : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Qualcomm/TextureConverter/Include");
+			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Qualcomm/TextureConverter/Include");
 
-			string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Qualcomm/TextureConverter/Lib/";
+			string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Qualcomm/TextureConverter/Lib/";
 			string LibraryName = "TextureConverter";
 			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 			{

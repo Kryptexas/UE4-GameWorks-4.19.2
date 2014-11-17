@@ -4,26 +4,40 @@
 
 #include "WidgetTree.generated.h"
 
+/** The widget tree manages the collection of widgets in a blueprint widget. */
 UCLASS()
 class UMG_API UWidgetTree : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Array of templates for widgets */
+public:
+	/** The root widget of the tree */
 	UPROPERTY()
-	TArray<class USlateWrapperComponent*> WidgetTemplates;
+	UWidget* RootWidget;
 
-	void RenameWidget(USlateWrapperComponent* Widget, FString& NewName);
+public:
 
-	class USlateWrapperComponent* FindWidget(FString& Name) const;
+	UWidget* FindWidget(const FString& Name) const;
 
-	bool RemoveWidget(class USlateWrapperComponent* Widget);
+	bool RemoveWidget(UWidget* Widget);
 
+	class UPanelWidget* FindWidgetParent(UWidget* Widget, int32& OutChildIndex);
+
+	void GetAllWidgets(TArray<UWidget*>& Widgets) const;
+
+	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
+
+	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
-	T* ConstructWidget(TSubclassOf<class USlateWrapperComponent> WidgetType)
+	T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
 	{
-		USlateWrapperComponent* Widget = (USlateWrapperComponent*)ConstructObject<class USlateWrapperComponent>(WidgetType, this);
-		WidgetTemplates.Add(Widget);
+		// TODO UMG Editor only?
+		Modify();
+
+		// TODO UMG Don't have the widget tree responsible for construction and adding to the tree.
+
+		UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
+		Widget->SetFlags(RF_Transactional);
 
 		return (T*)Widget;
 	}

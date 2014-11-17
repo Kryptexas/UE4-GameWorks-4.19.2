@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Collision.cpp: Static lighting collision system implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightingSystem.h"
 

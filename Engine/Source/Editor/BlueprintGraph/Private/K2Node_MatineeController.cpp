@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Public/MatineeDelegates.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpData.h"
 
 UK2Node_MatineeController::UK2Node_MatineeController(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

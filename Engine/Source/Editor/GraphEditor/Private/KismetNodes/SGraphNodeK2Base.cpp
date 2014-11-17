@@ -2,6 +2,7 @@
 
 
 #include "GraphEditorCommon.h"
+#include "Engine/Breakpoint.h"
 #include "SGraphNodeK2Base.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

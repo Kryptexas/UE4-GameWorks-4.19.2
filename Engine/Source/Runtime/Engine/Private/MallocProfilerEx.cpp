@@ -83,7 +83,7 @@ void FMallocProfilerEx::GetTexturePoolSize( FGenericMemoryStats& out_Stats )
 		RHIGetTextureMemoryStats(Stats);
 	}
 
-	static const FName NAME_TextureAllocatedMemorySize = TEXT("Texture Allocated Memory Size");
+	const TCHAR* NAME_TextureAllocatedMemorySize = TEXT("Texture Allocated Memory Size");
 	out_Stats.Add( NAME_TextureAllocatedMemorySize, Stats.AllocatedMemorySize );
 }
 

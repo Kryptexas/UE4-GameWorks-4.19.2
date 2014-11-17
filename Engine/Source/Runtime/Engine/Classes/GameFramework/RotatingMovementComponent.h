@@ -24,7 +24,7 @@ class ENGINE_API URotatingMovementComponent : public UMovementComponent
 	uint32 bRotationInLocalSpace:1;
 
 	//Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	//End UActorComponent Interface
 };
 

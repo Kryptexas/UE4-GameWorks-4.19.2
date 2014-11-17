@@ -25,7 +25,7 @@ class UTetrahedronBuilder : public UEditorBrushBuilder
 
 
 	// Begin UBrushBuilder Interface
-	virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) OVERRIDE;
+	virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) override;
 	// End UBrushBuilder Interface
 
 	// @todo document

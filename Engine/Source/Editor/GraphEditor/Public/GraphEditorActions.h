@@ -17,7 +17,7 @@ public:
 	{
 	}
 
-	GRAPHEDITOR_API virtual void RegisterCommands() OVERRIDE;
+	GRAPHEDITOR_API virtual void RegisterCommands() override;
 
 	TSharedPtr< FUICommandInfo > ReconstructNodes;
 	TSharedPtr< FUICommandInfo > BreakNodeLinks;
@@ -68,6 +68,8 @@ public:
 	// Pin-specific actions
 	TSharedPtr< FUICommandInfo > BreakPinLinks;
 	TSharedPtr< FUICommandInfo > PromoteToVariable;
+	TSharedPtr< FUICommandInfo > SplitStructPin;
+	TSharedPtr< FUICommandInfo > RecombineStructPin;
 	TSharedPtr< FUICommandInfo > StartWatchingPin;
 	TSharedPtr< FUICommandInfo > StopWatchingPin;
 

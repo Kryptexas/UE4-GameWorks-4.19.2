@@ -105,10 +105,15 @@
 - (void)productsRequest: (SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response
 {
 	UE_LOG(LogOnline, Display, TEXT( "FStoreKitHelper::didReceiveResponse" ));
+	// Write the achievements back to our Achievements array
+	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
+		StoreInterface->ProcessProductsResponse(response);
 
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
-	FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
-	StoreInterface->ProcessProductsResponse( response );
+		return true;
+	}];
 
 	[request autorelease];
 }
@@ -127,27 +132,13 @@ FOnlineStoreInterfaceIOS::FOnlineStoreInterfaceIOS()
 	StoreHelper = [[FStoreKitHelper alloc] init];
 	[[SKPaymentQueue defaultQueue] addTransactionObserver:StoreHelper];
 
-	// Gather the microtransaction data dfrom the ini's
+	// Gather the microtransaction data from the ini's
 	TArray<FString> ProductIDs;
-	TArray<FString> DisplayNames;
-	TArray<FString> DisplayDescriptions;
-	TArray<FString> DisplayPrices;
-	
-	GConfig->GetArray(TEXT("OnlineSubsystemIOS.Store"), TEXT("ProductIDs"),		ProductIDs,				GEngineIni);
-	GConfig->GetArray(TEXT("OnlineSubsystemIOS.Store"), TEXT("DisplayNames"),	DisplayNames,			GEngineIni);
-	GConfig->GetArray(TEXT("OnlineSubsystemIOS.Store"), TEXT("DisplayDescriptions"),	DisplayDescriptions,	GEngineIni);
-	GConfig->GetArray(TEXT("OnlineSubsystemIOS.Store"), TEXT("DisplayPrices"),	DisplayPrices,			GEngineIni);
+	GConfig->GetArray(TEXT("OnlineSubsystemIOS.Store"), TEXT("ProductIDs"), ProductIDs, GEngineIni);
 
-	// @todo: add some sanity checking and logging to make sure the user has added the same number of entries to all of the arrays
 	for(int32 ProductIndex = 0; ProductIndex < ProductIDs.Num(); ProductIndex++)
 	{
-		FMicrotransactionPurchaseInfo Info; 
-
-		Info.Identifier = ProductIDs[ProductIndex];
-		Info.DisplayName = DisplayNames[ProductIndex];
-		Info.DisplayDescription = DisplayDescriptions[ProductIndex];
-		Info.DisplayPrice = DisplayPrices[ProductIndex];
-
+		FOnlineStoreInterfaceIOS::FMicrotransactionPurchaseInfo Info(ProductIDs[ProductIndex]);
 		AvailableProducts.Add( Info );
 	}
 
@@ -327,12 +318,31 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 			[numberFormatter setFormatterBehavior:NSNumberFormatterBehavior10_4];
 			[numberFormatter setNumberStyle:NSNumberFormatterCurrencyStyle];
 			[numberFormatter setLocale:Product.priceLocale];
-		
-			UE_LOG(LogOnline, Display, TEXT(": Product: %s, Price: %s"), *FString([Product localizedTitle]), *FString([numberFormatter stringFromNumber:Product.price]));
+
+			for( FOnlineStoreInterfaceIOS::FMicrotransactionPurchaseInfo& ProductInfo : AvailableProducts )
+			{
+				if( ProductInfo.Identifier == *FString([Product productIdentifier]) )
+				{
+					ProductInfo.DisplayName = [Product localizedTitle];
+					ProductInfo.DisplayDescription = [Product localizedDescription];
+					ProductInfo.DisplayPrice = [numberFormatter stringFromNumber : Product.price];
+
+					ProductInfo.bWasUpdatedByServer = true;
+
+					UE_LOG(LogOnline, Display, TEXT("\nProduct Identifier: %s, Name: %s, Description: %s, Price: %s\n"),
+						*ProductInfo.Identifier,
+						*ProductInfo.DisplayName,
+						*ProductInfo.DisplayDescription,
+						*ProductInfo.DisplayPrice);
+
+					break;
+				}
+			}
+
 			[numberFormatter release];
 		}
 		
-		for(NSString *invalidProduct in Response.invalidProductIdentifiers)
+		for( NSString *invalidProduct in Response.invalidProductIdentifiers )
 		{
 			UE_LOG(LogOnline, Display, TEXT("Problem in iTunes connect configuration for product: %s"), *FString(invalidProduct));
 		}

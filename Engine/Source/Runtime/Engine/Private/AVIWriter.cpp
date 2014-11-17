@@ -593,8 +593,15 @@ public:
 		{
 			SCOPED_AUTORELEASE_POOL;
 			[AVFWriterInputRef markAsFinished];
-			BOOL OK = [AVFWriterRef finishWriting];
-			check(OK);
+			// This will finish asynchronously and then destroy the relevant objects.
+			// We must wait for this to complete.
+			FEvent* Event = FPlatformProcess::CreateSynchEvent(true);
+			[AVFWriterRef finishWritingWithCompletionHandler:^{
+				check(AVFWriterRef.status == AVAssetWriterStatusCompleted);
+				Event->Trigger();
+			}];
+			Event->Wait(~0u);
+			delete Event;
 			[AVFWriterInputRef release];
 			[AVFWriterRef release];
 			[AVFPixelBufferAdaptorRef release];

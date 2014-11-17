@@ -41,8 +41,8 @@ public:
 
 protected:
 	// SEditorViewport interface
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	// End of SEditorViewport interface
 
 	/**  Handle undo/redo by refreshing the viewport */
@@ -91,7 +91,7 @@ public:
 	SAnimationEditorViewportTabBody();
 	virtual ~SAnimationEditorViewportTabBody();
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void RefreshViewport();
 
 	/**
@@ -328,14 +328,6 @@ private:
 	bool IsAudioMuted();
 
 #if WITH_APEX_CLOTHING
-
-	enum ESectionDisplayMode
-	{
-		ShowAll,
-		ShowOnlyClothSections,
-		HideOnlyClothSections,
-		NumSectionDisplayMode
-	};
 	/** 
 	 * clothing show options 
 	*/
@@ -380,9 +372,6 @@ private:
 	/** Show all sections which means the original state */
 	void OnSetSectionsDisplayMode(int32 DisplayMode);
 	bool IsSectionsDisplayMode(int32 DisplayMode) const;
-
-	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
-	uint32 SectionsDisplayMode;
 
 #endif // #if WITH_APEX_CLOTHING
 

@@ -17,7 +17,7 @@ public:
 	{
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// For imperative nodes, make sure the exec function was actually triggered and not just included due to an output data dependency
 		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
@@ -98,7 +98,7 @@ FText UK2Node_IfThenElse::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FLinearColor UK2Node_IfThenElse::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ExecBranchNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ExecBranchNodeTitleColor;
 }
 
 FString UK2Node_IfThenElse::GetTooltip() const
@@ -108,7 +108,7 @@ FString UK2Node_IfThenElse::GetTooltip() const
 
 FString UK2Node_IfThenElse::GetKeywords() const
 {
-	return *LOCTEXT("BranchKeywords", "if").ToString();
+	return *LOCTEXT("BranchKeywords", "if bool").ToString();
 }
 
 UEdGraphPin* UK2Node_IfThenElse::GetThenPin() const

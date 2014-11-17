@@ -21,6 +21,8 @@
 #include "LevelUtils.h"
 #include "MessageLog.h"
 
+#include "Dialogs/DlgPickAssetPath.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
 //definition of flag used to do special work when we're attempting to load the "startup map"
@@ -41,7 +43,7 @@ static const size_t NumInvalidNames = sizeof(InvalidFilenames) / sizeof(FString)
 class FSaveErrorOutputDevice : public FOutputDevice
 {
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		if ( Verbosity == ELogVerbosity::Error || Verbosity == ELogVerbosity::Warning )
 		{
@@ -62,7 +64,7 @@ public:
 		}
 	}
 
-	virtual void Flush() OVERRIDE
+	virtual void Flush() override
 	{
 		if ( ErrorMessages.Num() > 0 )
 		{
@@ -187,7 +189,7 @@ namespace FileDialogHelpers
 static bool InInterpEditMode()
 {
 	// Must exit Interpolation Editing mode before you can save - so it can reset everything to its initial state.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
 		const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Prompt_21", "You must close Matinee before saving level.\nDo you wish to do this now and continue?") );
 		if(!ExitInterp)
@@ -195,7 +197,7 @@ static bool InInterpEditMode()
 			return true;
 		}
 
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 	return false;
 }
@@ -293,7 +295,7 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		break;
 
 	case FI_Export:
-		Result = TEXT("Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj|FBX (*.fbx)|*.fbx|All Files|*.*");
+		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj|All Files|*.*");
 		break;
 
 	default:
@@ -555,6 +557,39 @@ bool RenameStreamingLevel( FString& LevelToRename, const FString& OldBaseLevelNa
 	return false;
 }
 
+static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& InNewNameSuggestion, FString& OutPackageName)
+{
+	FString DefaultPath = InDefaultPath;
+	if (DefaultPath.IsEmpty())
+	{
+		DefaultPath = TEXT("/Game/Maps");
+	}
+
+	FString NewNameSuggestion = InNewNameSuggestion;
+	if (NewNameSuggestion.IsEmpty())
+	{
+		NewNameSuggestion = TEXT("NewMap");
+	}
+
+	FString PackageName = DefaultPath / NewNameSuggestion;
+	FString Name;
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
+
+	TSharedPtr<SDlgPickAssetPath> PickAssetPathWidget =
+		SNew(SDlgPickAssetPath)
+		.Title(LOCTEXT("LevelPathPickerTitle", "Save Level As"))
+		.DefaultAssetPath(FText::FromString(PackageName));
+
+	if (EAppReturnType::Ok == PickAssetPathWidget->ShowModal())
+	{
+		OutPackageName = PickAssetPathWidget->GetFullAssetPath().ToString();
+		return true;
+	}
+
+	return false;
+}
+
 /**
  * Prompts the user with a dialog for selecting a filename.
  */
@@ -574,13 +609,34 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	while( !bFilenameIsValid )
 	{
 		FString SaveFilename;
-		if( FileDialogHelpers::SaveFile(
+		bool bSaveFileLocationSelected = false;
+		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			FString DefaultPackagePath;
+			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, DefaultPackagePath);
+
+			FString PackageName;
+			bSaveFileLocationSelected = OpenLevelSaveAsDialog(
+				DefaultPackagePath,
+				FPaths::GetBaseFilename(DefaultFilename),
+				PackageName);
+
+			if ( bSaveFileLocationSelected )
+			{
+				SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
+			}
+		}
+		else
+		{
+			bSaveFileLocationSelected = FileDialogHelpers::SaveFile(
 				NSLOCTEXT("UnrealEd", "SaveAs", "Save As").ToString(),
 				FEditorFileUtils::GetFilterString(FI_Save),
 				DefaultDirectory,
 				FPaths::GetCleanFilename(DefaultFilename),
 				SaveFilename
-			))
+				);
+		}
+		if( bSaveFileLocationSelected )
 		{
 			// Add a map file extension if none was supplied
 			if( FPaths::GetExtension(SaveFilename).IsEmpty() )
@@ -947,38 +1003,42 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(CurPackage, EStateCacheUsage::Use);
 
 		// Package does not need to be checked out if its already checked out or we are ignoring it for source control
-		bool bSCCCanEdit = !SourceControlState.IsValid() || SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || SourceControlState->IsIgnored() || SourceControlState->IsUnknown();
+		bool bSCCCanEdit = !SourceControlState.IsValid() || SourceControlState->CanCheckIn() || SourceControlState->IsIgnored() || SourceControlState->IsUnknown();
 		bool bIsSourceControlled = SourceControlState.IsValid() && SourceControlState->IsSourceControlled();
 		
-		if ( !bSCCCanEdit && (bIsSourceControlled && ( !bCheckDirty || ( bCheckDirty && CurPackage->IsDirty() ) ) ) )
+		if ( !bSCCCanEdit && (bIsSourceControlled && ( !bCheckDirty || ( bCheckDirty && CurPackage->IsDirty() ) ) ) && !SourceControlState->IsCheckedOut() )
 		{
 			if( SourceControlState.IsValid() && !SourceControlState->IsCurrent() )
 			{				
 				// This package is not at the head revision and it should be ghosted as a result
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), NSLOCTEXT("PackagesDialogModule", "Dlg_NotCurrentToolTip", "Not at head revision").ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else if( SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther() )
 			{
 				// This package is checked out by someone else so it should be ghosted
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), NSLOCTEXT("PackagesDialogModule", "Dlg_CheckedOutByOtherTip", "Checked out by other").ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else
 			{
+				const FText Tooltip = SourceControlState.IsValid() ? SourceControlState->GetDisplayTooltip() : NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out");
+
 				bHavePackageToCheckOut = true;
 				//Add this package to the dialog if its not checked out, in the source control depot, dirty(if we are checking), and read only
 				//This package could also be marked for delete, which we will treat as SCC_ReadOnly until it is time to check it out. At that time, we will revert it.
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out").ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			}
 			bPackagesAdded = true;
 		}
 		else if ( bPkgReadOnly && bFoundFile && (IsCheckOutSelectedDisabled() || !bCareAboutReadOnly))
 		{
+			const FText Tooltip = SourceControlState.IsValid() ? SourceControlState->GetDisplayTooltip() : NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out");
+
 			// Don't disable the item if the server is available.  If the user updates source control within the dialog then the item should not be disabled so it can be checked out
 			bool bIsDisabled = !ISourceControlModule::Get().IsEnabled();
 
 			// This package is read only but source control is not available, show the dialog so users can save the package by making the file writable or by connecting to source control.
 			// If we don't care about read-only state, we should allow the user to make the file writable whatever the state of source control.
-			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out").ToString());
+			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			bPackagesAdded = true;
 		}
 		else if ( OutPackagesNotNeedingCheckout )
@@ -1513,18 +1573,9 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 
 /**
  * Prompts the user to save the current map if necessary, the presents a load dialog and
- * loads a new map as a world composition if selected by the user.
- */
-void FEditorFileUtils::OpenWorld()
-{
-	LoadMap(true);
-}
-
-/**
- * Prompts the user to save the current map if necessary, the presents a load dialog and
  * loads a new map if selected by the user.
  */
-void FEditorFileUtils::LoadMap(bool bWorldComposition)
+void FEditorFileUtils::LoadMap()
 {
 	if (GUnrealEd->WarnIfLightingBuildIsCurrentlyRunning())
 	{
@@ -1570,7 +1621,7 @@ void FEditorFileUtils::LoadMap(bool bWorldComposition)
 			}
 
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-			LoadMap( FileToOpen, false, true, bWorldComposition );
+			LoadMap( FileToOpen, false, true );
 		}
 		else
 		{
@@ -1588,7 +1639,7 @@ void FEditorFileUtils::LoadMap(bool bWorldComposition)
  * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
  *							preventing the map saving over the original file.
  */
-void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress, bool bWorldComposition)
+void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress)
 {
 	double LoadStartTime = FPlatformTime::Seconds();
 	
@@ -1628,25 +1679,31 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
-	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	// If a level is in memory but never saved to disk, warn the user that the level will be lost.
+	if (GEditor->ShouldAbortBecauseOfUnsavedWorld())
 	{
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		return;
+	}
+
+	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	{
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
 	}
 
 	// Change out of mesh paint mode when loading a map
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
 	}
 
-	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d WORLDCOMPOSITION=%d"), *Filename, LoadAsTemplate, bShowProgress, bWorldComposition );
+	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
 
 	UWorld* World = GWorld;
@@ -1763,7 +1820,7 @@ void FEditorFileUtils::ResetLevelFilenames()
 	MainFrameModule.SetLevelNameForWindowTitle(EmptyFilename);
 }
 
-bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex)
+bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
 	const FScopedBusyCursor BusyCursor;
 	bool bResult  = false;
@@ -1790,7 +1847,7 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 			check( Package );
 
 			// If this world needs saving . . .
-			if ( Package->IsDirty() )
+			if ( Package->IsDirty() && (bForceIfNotInList || DirtyPackagesForAutoSave.Contains(Package)) )
 			{
 				const FString AutosaveFilename = GetAutoSaveFilename(Package, AbsoluteAutosaveDir, AutosaveIndex, FPackageName::GetMapPackageExtension());
 				//UE_LOG(LogFileHelpers, Log,  TEXT("Autosaving '%s'"), *AutosaveFilename );
@@ -1830,7 +1887,7 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 	return bResult;
 }
 
-bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex)
+bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
 	const FScopedBusyCursor BusyCursor;
 	double SaveStartTime = FPlatformTime::Seconds();
@@ -1844,7 +1901,7 @@ bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDi
 		UPackage* CurPackage = *PackageIter;
 
 		// If the package is dirty and is not the transient package, we'd like to autosave it
-		if ( CurPackage && ( CurPackage != TransientPackage ) && CurPackage->IsDirty() )
+		if ( CurPackage && ( CurPackage != TransientPackage ) && CurPackage->IsDirty() && (bForceIfNotInList || DirtyPackagesForAutoSave.Contains(CurPackage)) )
 		{
 			UWorld* MapWorld = UWorld::FindWorldInPackage(CurPackage);
 			// Also, make sure this is not a map package
@@ -1992,9 +2049,23 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				}
 			
 				FText ErrorMessage;
-				if( !FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage ) )
+				bool bValidFilename = FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
+				if ( bValidFilename )
 				{
-					FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+					bValidFilename = bIsMapPackage ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );
+				}
+
+				if ( !bValidFilename )
+				{
+					// Start the loop over, prompting for save again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FinalPackageFilename ) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add( TEXT("Filename"), DisplayFilename );
+					Arguments.Add( TEXT("LineTerminators"), FText::FromString( LINE_TERMINATOR LINE_TERMINATOR ) );
+					Arguments.Add( TEXT("ErrorMessage"), ErrorMessage );
+					const FText DisplayMessage = FText::Format( LOCTEXT( "InvalidSaveFilename", "Failed to save to {Filename}{LineTerminators}{ErrorMessage}" ), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+
 					// Start the loop over, prompting for save again
 					continue;
 				}
@@ -2050,9 +2121,10 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 			// Trusting the SCC status in the package file cache to minimize network activity during save.
 			const FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageToSave, EStateCacheUsage::Use);
 			// If the package is in the depot, and not recognized as editable by source control, and not read-only, then we know the user has made the package locally writable!
-			const bool bSCCCanEdit = !SourceControlState.IsValid() || SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || SourceControlState->IsIgnored() || SourceControlState->IsUnknown();
+			const bool bSCCCanEdit = !SourceControlState.IsValid() || SourceControlState->CanCheckIn() || SourceControlState->IsIgnored() || SourceControlState->IsUnknown();
+			const bool bSCCIsCheckedOut = SourceControlState.IsValid() && SourceControlState->IsCheckedOut();
 			const bool bInDepot = SourceControlState.IsValid() && SourceControlState->IsSourceControlled();
-			if ( !bSCCCanEdit && bInDepot && !IFileManager::Get().IsReadOnly( *FinalPackageSavePath ) && SourceControlProvider.UsesLocalReadOnlyState())
+			if ( !bSCCCanEdit && bInDepot && !IFileManager::Get().IsReadOnly( *FinalPackageSavePath ) && SourceControlProvider.UsesLocalReadOnlyState() && !bSCCIsCheckedOut )
 			{
 				bOutPackageLocallyWritable = true;
 			}
@@ -2712,17 +2784,15 @@ bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText&
 
 void FEditorFileUtils::LoadDefaultMapAtStartup()
 {
-	FURL DefaultURL;
-	FURL URL( &DefaultURL, *GetDefault<UGameMapsSettings>()->EditorStartupMap, TRAVEL_Partial );
+	FString EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
 	
 	const bool bIncludeReadOnlyRoots = true;
-	if ( FPackageName::IsValidLongPackageName(URL.Map, bIncludeReadOnlyRoots) )
+	if ( FPackageName::IsValidLongPackageName(EditorStartupMap, bIncludeReadOnlyRoots) )
 	{
-		FString MapFilenameToLoad = FPackageName::LongPackageNameToFilename( URL.Map );
-		bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
+		FString MapFilenameToLoad = FPackageName::LongPackageNameToFilename( EditorStartupMap );
 
 		bIsLoadingDefaultStartupMap = true;
-		FEditorFileUtils::LoadMap( MapFilenameToLoad + FPackageName::GetMapPackageExtension(), GUnrealEd->IsTemplateMap(URL.Map), true, bWorldComposition );
+		FEditorFileUtils::LoadMap( MapFilenameToLoad + FPackageName::GetMapPackageExtension(), GUnrealEd->IsTemplateMap(EditorStartupMap), true );
 		bIsLoadingDefaultStartupMap = false;
 	}
 }

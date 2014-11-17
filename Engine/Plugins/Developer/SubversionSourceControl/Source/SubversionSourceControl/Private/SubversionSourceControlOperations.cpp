@@ -17,7 +17,7 @@ FName FSubversionConnectWorker::GetName() const
 
 bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InCommand)
 {
-	check(InCommand.Operation->GetName() == "Connect");
+	check(InCommand.Operation->GetName() == GetName());
 	TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
 	FString Password = InCommand.Password;
 	// see if we are getting a password passed in from the calling code
@@ -30,13 +30,14 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
 		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 		SubversionSourceControlUtils::QuoteFilename(GameRoot);
 		Parameters.Add(GameRoot);
 	
 		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("info"), TArray<FString>(), Parameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName, Password);	
 		if(InCommand.bCommandSuccessful)
 		{
-			SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot);
+			SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot, RepositoryRoot);
 		}
 	}
 
@@ -45,7 +46,6 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Files;
 		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
-		SubversionSourceControlUtils::QuoteFilename(GameRoot);
 		Files.Add(GameRoot);
 
 		TArray<FString> StatusParameters;
@@ -67,9 +67,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 					int32 Pattern = Error.Find(TEXT("' is not a working copy"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
 					if(Pattern != INDEX_NONE)
 					{
-						check(InCommand.Operation->GetName() == "Connect");
-						TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
-						Operation->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of an SVN working copy."));
+						StaticCastSharedRef<FConnect>(InCommand.Operation)->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of an SVN working copy."));
 						InCommand.ErrorMessages.Add(LOCTEXT("NotAWorkingCopyErrorHelp", "You should check out a working copy into your project directory.").ToString());
 						InCommand.bCommandSuccessful = false;
 						break;
@@ -87,6 +85,7 @@ bool FSubversionConnectWorker::UpdateStates() const
 	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 	Provider.SetWorkingCopyRoot(WorkingCopyRoot);
+	Provider.SetRepositoryRoot(RepositoryRoot);
 	return true;
 }
 
@@ -143,11 +142,8 @@ static bool IsDirectoryAdded(const FSubversionSourceControlCommand& InCommand, c
 	StatusParameters.Add(TEXT("--verbose"));
 	StatusParameters.Add(TEXT("--show-updates"));
 
-	FString QuotedFilename = InDirectory;
-	SubversionSourceControlUtils::QuoteFilename(QuotedFilename);
-
 	TArray<FString> Files;
-	Files.Add(QuotedFilename);
+	Files.Add(InDirectory);
 
 	if(SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, ErrorMessages, InCommand.UserName))
 	{
@@ -179,22 +175,17 @@ static void AddDirectoriesToCommit(const FSubversionSourceControlCommand& InComm
 
 	TArray<FString> Directories;
 
-	for(auto It(InOutFiles.CreateConstIterator()); It; It++)
+	for(const auto& Filename : InOutFiles )
 	{
-		FString Filename = *It;
-		Filename = Filename.TrimQuotes();
 		FString Directory = FPaths::GetPath(Filename);
 
 		bool bDirectoryIsAdded = false;
 		do 
 		{
-			FString QuotedDirectory = Directory;
-			SubversionSourceControlUtils::QuoteFilename(QuotedDirectory);
-
 			bDirectoryIsAdded = false;
-			if(Directories.Find(QuotedDirectory) == INDEX_NONE && IsDirectoryAdded(InCommand, Directory))
+			if(Directories.Find(Directory) == INDEX_NONE && IsDirectoryAdded(InCommand, Directory))
 			{
-				Directories.Add(QuotedDirectory);
+				Directories.Add(Directory);
 				bDirectoryIsAdded = true;
 
 				FString ParentDir = Directory / TEXT("../");
@@ -205,7 +196,7 @@ static void AddDirectoriesToCommit(const FSubversionSourceControlCommand& InComm
 		while(bDirectoryIsAdded);
 	}
 
-	InOutFiles.Append(Directories);
+	InOutFiles.Append(MoveTemp(Directories));
 }
 
 static FText ParseCommitResults(const TArray<FString>& InResults)
@@ -224,9 +215,100 @@ static FText ParseCommitResults(const TArray<FString>& InResults)
 	return LOCTEXT("CommitMessageUnknown", "Submitted revision.");
 }
 
+/** Helper function for ReleaseAnyLocksForCopies */
+static bool FindSourceRepoFileForCopy(const FString& InOrigFile, const FString& InUserName, FString& OutSourceFile)
+{
+	// we are copied, so we need to find our original file here. To do this we need to get the files recent history
+	TArray<FXmlFile> ResultsXml;
+	TArray<FString> Parameters;
+	TArray<FString> ErrorMessages;
+
+	//limit to last 100 changes
+	Parameters.Add(TEXT("--limit 10"));
+	// output all properties
+	Parameters.Add(TEXT("--with-all-revprops"));
+	// we want all the output!
+	Parameters.Add(TEXT("--verbose"));
+
+	TArray<FString> Files;
+	Files.Add(InOrigFile);
+
+	SubversionSourceControlUtils::FHistoryOutput History;
+
+	if(SubversionSourceControlUtils::RunCommand(TEXT("log"), Files, Parameters, ResultsXml, ErrorMessages, InUserName))
+	{
+		SubversionSourceControlUtils::ParseLogResults(InOrigFile, ResultsXml, InUserName, History);
+
+		// find first history item that doesnt match the filename
+		for(const auto& HistoryEntry : History)
+		{
+			if(HistoryEntry.Key == InOrigFile)
+			{
+				if(HistoryEntry.Value.Num() > 0)
+				{
+					OutSourceFile = HistoryEntry.Value[0]->RepoFilename;
+					return true;				
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+
+/** 
+ * Helper function that releases file locks on source files we have performed copies on 
+ * If we do not do this then commits will fail complaining about the source file of the copy operation
+ * being 'locked in another working copy'.
+ */
+static void ReleaseAnyLocksForCopies(const TArray<FString>& InFilesToCommit, const FString& InWorkingCopyRoot, const FString& InRepoRoot, const FString& InUserName)
+{
+	// first get the status of the files
+	TArray<FSubversionSourceControlState> States;
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> ErrorMessages;
+		
+		TArray<FString> StatusParameters;
+		StatusParameters.Add(TEXT("--verbose"));
+		StatusParameters.Add(TEXT("--show-updates"));
+
+		SubversionSourceControlUtils::RunCommand(TEXT("status"), InFilesToCommit, StatusParameters, ResultsXml, ErrorMessages, InUserName);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, InUserName, InWorkingCopyRoot, States);
+	}
+
+	// now unlock any that need it
+	{
+		TArray<FString> FilesToUnlock;
+		for(const auto& State : States)
+		{
+			if(State.bCopied)
+			{
+				FString SourceRepoFileForCopy;
+				if(FindSourceRepoFileForCopy(State.GetFilename(), InUserName, SourceRepoFileForCopy))
+				{
+					SourceRepoFileForCopy = InRepoRoot / SourceRepoFileForCopy;
+					FilesToUnlock.Add(SourceRepoFileForCopy);
+				}
+			}
+		}
+
+		if(FilesToUnlock.Num() > 0)
+		{
+			UE_LOG(LogSourceControl, Log, TEXT("Unlocking %d files that were copied before commit"), FilesToUnlock.Num());
+
+			TArray<FString> Results;
+			TArray<FString> ErrorMessages;
+
+			SubversionSourceControlUtils::RunCommand(TEXT("unlock"), FilesToUnlock, TArray<FString>(), Results, ErrorMessages, InUserName);
+		}
+	}
+}
+
 bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InCommand)
 {
-	check(InCommand.Operation->GetName() == "CheckIn");
+	check(InCommand.Operation->GetName() == GetName());
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
 	{
 		// make a temp file to place our message in
@@ -235,6 +317,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 		{
 			TArray<FString> Parameters;
 			FString DescriptionFilename = DescriptionFile.GetFilename();
+			// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 			SubversionSourceControlUtils::QuoteFilename(DescriptionFilename);
 			Parameters.Add(FString(TEXT("--file ")) + DescriptionFilename);
 
@@ -251,23 +334,24 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 			FString Targets;
 			for(auto It(FilesToCommit.CreateConstIterator()); It; It++)
 			{
-				FString Target = It->TrimQuotes();
-				Targets += Target + LINE_TERMINATOR;
+				Targets += *It + LINE_TERMINATOR;
 			}
 
 			FScopedTempFile TargetsFile(Targets);
 			if(TargetsFile.GetFilename().Len() > 0)
 			{
+				// we first need to release locks if we have any copy (branch) operations in our changes
+				ReleaseAnyLocksForCopies(InCommand.Files, InCommand.WorkingCopyRoot, InCommand.RepositoryRoot, InCommand.UserName);
+
 				FString TargetsFilename = TargetsFile.GetFilename();
+				// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 				SubversionSourceControlUtils::QuoteFilename(TargetsFilename);
 				Parameters.Add(FString(TEXT("--targets ")) + TargetsFilename);
 
 				InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunAtomicCommand(TEXT("commit"), TArray<FString>(), Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
 				if(InCommand.bCommandSuccessful)
 				{
-					check(InCommand.Operation->GetName() == "CheckIn");
-					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
-					Operation->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
+					StaticCastSharedRef<FCheckIn>(InCommand.Operation)->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
 				}
 			}
 		}
@@ -444,7 +528,7 @@ bool FSubversionUpdateStatusWorker::Execute(FSubversionSourceControlCommand& InC
 	}
 
 	// update using any special hints passed in via the operation
-	check(InCommand.Operation->GetName() == "UpdateStatus");
+	check(InCommand.Operation->GetName() == GetName());
 	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FUpdateStatus>(InCommand.Operation);
 
 	if(Operation->ShouldUpdateHistory())
@@ -458,8 +542,6 @@ bool FSubversionUpdateStatusWorker::Execute(FSubversionSourceControlCommand& InC
 			Parameters.Add(TEXT("--limit 100"));
 			// output all properties
 			Parameters.Add(TEXT("--with-all-revprops"));
-			// we want to view over merge boundaries
-			Parameters.Add(TEXT("--use-merge-history"));
 			// we want all the output!
 			Parameters.Add(TEXT("--verbose"));
 
@@ -509,6 +591,89 @@ bool FSubversionUpdateStatusWorker::UpdateStates() const
 	}
 
 	return bUpdated;
+}
+
+FName FSubversionCopyWorker::GetName() const
+{
+	return "Copy";
+}
+
+bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
+{
+	check(InCommand.Operation->GetName() == GetName());
+	TSharedRef<FCopy, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCopy>(InCommand.Operation);
+
+	FString Destination = FPaths::ConvertRelativePathToFull(Operation->GetDestination());
+
+	// copy from source files to destination parameter
+	{
+		TArray<FString> Files;
+		Files.Append(InCommand.Files);
+		Files.Add(Destination);
+
+		TArray<FString> Parameters;
+		// Add nonexistent/non-versioned parent directories too
+		Parameters.Add(TEXT("--parents"));
+
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("copy"), Files, Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
+	}
+
+	// now update the status of our files
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> StatusParameters;
+		StatusParameters.Add(TEXT("--verbose"));
+		StatusParameters.Add(TEXT("--show-updates"));
+
+		// Get status of both source and destination files
+		TArray<FString> StatusFiles;
+		StatusFiles.Append(InCommand.Files);
+		StatusFiles.Add(Destination);
+
+		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), StatusFiles, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
+	}
+
+	return InCommand.bCommandSuccessful;
+}
+
+bool FSubversionCopyWorker::UpdateStates() const
+{
+	return SubversionSourceControlUtils::UpdateCachedStates(OutStates);
+}
+
+FName FSubversionResolveWorker::GetName() const
+{
+	return "Resolve";
+}
+
+bool FSubversionResolveWorker::Execute( class FSubversionSourceControlCommand& InCommand )
+{
+	// mark the conflicting files as resolved:
+	{
+		TArray<FString> Results;
+		TArray<FString> ResolveParameters;
+		ResolveParameters.Add(TEXT("--accept mine-full"));
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("resolve"), InCommand.Files, ResolveParameters, Results, InCommand.ErrorMessages, InCommand.UserName);
+	}
+
+	// now update the status of our files
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> StatusParameters;
+		StatusParameters.Add(TEXT("--verbose"));
+		StatusParameters.Add(TEXT("--show-updates"));
+
+		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
+	}
+
+	return InCommand.bCommandSuccessful;
+}
+
+bool FSubversionResolveWorker::UpdateStates() const
+{
+	return SubversionSourceControlUtils::UpdateCachedStates(OutStates);
 }
 
 #undef LOCTEXT_NAMESPACE

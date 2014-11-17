@@ -50,7 +50,7 @@ void MainSingleSample(
 	OutColor = UnresolvedSurface.Load(IntUV,SingleSampleIndex);
 }
 
-#elif PLATFORM_LEVEL == PLATFORM_LEVEL_SM4
+#else
 
 Texture2D UnresolvedSurfaceNonMS;
 void MainDepthNonMS(

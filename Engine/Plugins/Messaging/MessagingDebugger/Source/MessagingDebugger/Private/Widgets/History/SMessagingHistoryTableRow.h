@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingHistoryTableRow.h: Declares the SMessagingHistoryTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -29,8 +25,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InOwnerTableView - The table view that owns this row.
+	 * @param InArgs The construction arguments.
+	 * @param InOwnerTableView The table view that owns this row.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -48,9 +44,9 @@ public:
 
 public:
 
-	// Begin SWidget overrides
+	// SWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -73,14 +69,12 @@ public:
 		}
 	}
 
-	// End SWidget overrides
-
 public:
 
-	// Begin SMultiColumnTableRow interface
+	// SMultiColumnTableRow interface
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "DispatchLatency")
 		{
@@ -222,8 +216,6 @@ public:
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	// End SMultiColumnTableRow interface
-
 protected:
 
 	/** 
@@ -259,8 +251,7 @@ protected:
 	/**
 	 * Converts the given time span in seconds to a human readable string.
 	 *
-	 * @param Seconds - The time span to convert.
-	 *
+	 * @param Seconds The time span to convert.
 	 * @return The string representation.
 	 *
 	 * @todo gmp: refactor this into FText::AsTimespan or something like that

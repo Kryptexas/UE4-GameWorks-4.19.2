@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace NetworkProfiler
 {
@@ -12,7 +14,10 @@ namespace NetworkProfiler
 	public class StreamHeader
 	{
 		/** Magic number at beginning of data file.					*/
-		public const UInt32 ExpectedMagic = 0x1DBF348A;
+		public const UInt32 ExpectedMagic = 0x1DBF348C;
+
+		/** We expect this version, or we can't proceed.			*/
+		public const UInt32 ExpectedVersion = 5;
 
 		/** Magic to ensure we're opening the right file.			*/
 		public UInt32 Magic;
@@ -30,6 +35,37 @@ namespace NetworkProfiler
 		public string GameName;
 		/** URL used to open/ browse to the map.					*/
 		public string URL;
+
+		public static void ShowDialog( string Header, string Message )
+		{
+			Form Dialog = new Form();
+
+			Dialog.Width			= 400;
+			Dialog.Height			= 120;
+			Dialog.Text				= Header;
+			Dialog.FormBorderStyle	= FormBorderStyle.FixedDialog;
+
+			Label LabelMessage = new Label() 
+			{ 
+				//Left		= 0, 
+				//Top		= 0, 
+				Width		= Dialog.Width,
+				Height		= Dialog.Height / 2,
+				Text		= Message, 
+				TextAlign	= ContentAlignment.MiddleCenter,
+				Font		= new Font( SystemFonts.MessageBoxFont.FontFamily.Name, 12.0f, FontStyle.Bold, GraphicsUnit.Point ) 
+			};
+
+			LabelMessage.TextAlign = ContentAlignment.MiddleCenter;
+
+			Button ButtonOK = new Button() { Text = "OK", Left = Dialog.Width - 100, Width = 80, Top = Dialog.Height - 70 };
+
+			ButtonOK.Click += ( sender, e ) => { Dialog.Close(); };
+
+			Dialog.Controls.Add( ButtonOK );
+			Dialog.Controls.Add( LabelMessage );
+			Dialog.ShowDialog();
+		}
 
 		/**
 		 * Reads the header information from the passed in stream and returns it. It also returns
@@ -63,6 +99,13 @@ namespace NetworkProfiler
 			// At this point we should have a valid header. If no, throw an exception.
 			if( Header.Magic != StreamHeader.ExpectedMagic )
 			{
+				ShowDialog( "Error", "Unrecognized file" );
+				throw new InvalidDataException();
+			}
+
+			if ( Header.Version != StreamHeader.ExpectedVersion )
+			{
+				ShowDialog( "Error", "Invalid version" );
 				throw new InvalidDataException();
 			}
 

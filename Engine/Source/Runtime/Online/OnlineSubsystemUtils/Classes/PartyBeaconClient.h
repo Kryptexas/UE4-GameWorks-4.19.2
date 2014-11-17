@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconClient.h"
+#include "PartyBeaconHost.h"
+
 #include "PartyBeaconClient.generated.h"
 
 /**
@@ -19,18 +22,18 @@ DECLARE_DELEGATE(FOnHostConnectionFailure);
 /**
  * A beacon client used for making reservations with an existing game session
  */
-UCLASS(transient, notplaceable, config=Engine, DependsOn=APartyBeaconHost)
+UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 {
 	GENERATED_UCLASS_BODY()
 
 	// Begin AOnlineBeacon Interface
-	virtual FString GetBeaconType() OVERRIDE { return TEXT("PartyBeacon"); }
+	virtual FString GetBeaconType() override { return TEXT("PartyBeacon"); }
 	// End AOnlineBeacon Interface
 
 	// Begin AOnlineBeaconClient Interface
-	virtual void OnConnected() OVERRIDE;
-	virtual void OnFailure() OVERRIDE;
+	virtual void OnConnected() override;
+	virtual void OnFailure() override;
 	// End AOnlineBeaconClient Interface
 
 	/**

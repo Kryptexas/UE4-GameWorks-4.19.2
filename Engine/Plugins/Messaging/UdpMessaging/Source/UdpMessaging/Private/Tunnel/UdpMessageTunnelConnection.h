@@ -1,25 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageTunnelConnection.h: Declares the FUdpMessageTunnelConnection class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FUdpMessageTunnelConnection.
- */
+/** Type definition for shared pointers to instances of FUdpMessageTunnelConnection. */
 typedef TSharedPtr<class FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionPtr;
 
-/**
- * Type definition for shared references to instances of FUdpMessageTunnelConnection.
- */
+/** Type definition for shared references to instances of FUdpMessageTunnelConnection. */
 typedef TSharedRef<class FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionRef;
 
-/**
- * Type definition for thread-safe shared references to byte arrays.
- */
+/** Type definition for thread-safe shared references to byte arrays. */
 typedef TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> FSaveByteArrayRef;
 
 
@@ -59,7 +49,7 @@ public:
 		int32 NewSize = 0;
 		Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
 		Socket->SetSendBufferSize(2*1024*1024, NewSize);
-		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnelConnection"), false, false, 128 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnelConnection"), 128 * 1024, TPri_Normal);
 	}
 
 	/**
@@ -83,7 +73,6 @@ public:
 	 * Receives a payload from the connection's inbox.
 	 *
 	 * @param OutPayload Will hold the received payload, if any.
-	 *
 	 * @return true if a payload was returned, false otherwise.
 	 */
 	bool Receive( FArrayReaderPtr& OutPayload )
@@ -108,14 +97,14 @@ public:
 
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return (Socket != nullptr);
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		bRun = true;
 
@@ -135,31 +124,29 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Socket->Close();
 		bRun = false;
 	}
 
-	virtual void Exit( ) OVERRIDE { }
-
-	// End FRunnable interface
+	virtual void Exit( ) override { }
 
 public:
 
-	// Begin IUdpMessageTunnelConnection interface
+	// IUdpMessageTunnelConnection interface
 
-	virtual void Close( ) OVERRIDE
+	virtual void Close( ) override
 	{
 		Stop();
 	}
 
-	virtual uint64 GetTotalBytesReceived( ) const OVERRIDE
+	virtual uint64 GetTotalBytesReceived( ) const override
 	{
 		return TotalBytesReceived;
 	}
 
-	virtual uint64 GetTotalBytesSent( ) const OVERRIDE
+	virtual uint64 GetTotalBytesSent( ) const override
 	{
 		return TotalBytesSent;
 	}
@@ -169,7 +156,7 @@ public:
 		return RemoteEndpoint.ToText();
 	}
 
-	virtual FTimespan GetUptime( ) const OVERRIDE
+	virtual FTimespan GetUptime( ) const override
 	{
 		if (IsOpen())
 		{
@@ -179,12 +166,10 @@ public:
 		return (ClosedTime - OpenedTime);
 	}
 
-	virtual bool IsOpen( ) const OVERRIDE
+	virtual bool IsOpen( ) const override
 	{
 		return (Socket->GetConnectionState() == SCS_Connected);
 	}
-
-	// End IUdpMessageTunnelConnection interface
 
 protected:
 

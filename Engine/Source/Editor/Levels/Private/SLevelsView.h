@@ -37,7 +37,7 @@ public:
 		ViewModel->OnDisplayActorCountChanged().RemoveAll( this );
 		ViewModel->OnDisplayLightmassSizeChanged().RemoveAll( this );
 		ViewModel->OnDisplayFileSizeChanged().RemoveAll( this ); 
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 	}
 
 	/**
@@ -155,22 +155,22 @@ public:
 		// This needs to be set to the column before the "Save" column.
 		InsertColumnIndex = 5;
 
-		if(GEditor->GetEditorUserSettings().bDisplayActorCountInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayActorCount)
 		{
 			ToggleActorCount(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayLightmassSizeInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)
 		{
 			ToggleLightmassSize(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayFileSizeInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)
 		{
 			ToggleFileSize(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayEditorOffsetInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayEditorOffset)
 		{
 			ShowEditorOffsetColumn(true);
 		}
@@ -192,7 +192,7 @@ protected:
 	 *
 	 * @return  True if this widget can take keyboard focus
 	 */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -205,7 +205,7 @@ protected:
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		return ViewModel->GetCommandList()->ProcessCommandBindings( InKeyboardEvent ) ? FReply::Handled() : FReply::Unhandled();
 	}
@@ -215,7 +215,7 @@ protected:
 	 *
 	 * @param DragDropEvent   The drag and drop event.
 	 */
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
 		if (DragActorOp.IsValid())
@@ -233,7 +233,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
@@ -257,7 +257,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 		const bool bIsValidDrop = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>().IsValid();
 		return bIsValidDrop ? FReply::Handled() : FReply::Unhandled();

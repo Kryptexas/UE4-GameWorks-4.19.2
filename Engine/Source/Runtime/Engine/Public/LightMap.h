@@ -7,6 +7,7 @@
 #pragma once
 
 #include "ChunkedArray.h"
+#include "SceneManagement.h"
 #include "Engine/LightMapTexture2D.h"
 
 /** Whether to use bilinear filtering on lightmaps */
@@ -117,8 +118,7 @@ private:
 	virtual void FinishCleanup();
 };
 
-/** A reference to a light-map. */
-typedef TRefCountPtr<FLightMap> FLightMapRef;
+
 
 /** Lightmap reference serializer */
 extern FArchive& operator<<(FArchive& Ar,FLightMap*& R);

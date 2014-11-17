@@ -7,10 +7,6 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
-
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
 DEFINE_LOG_CATEGORY(LogActorComponent);
@@ -969,18 +965,6 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 
 bool UActorComponent::RequiresGameThreadEndOfFrameUpdates() const
 {
-#if	EXPERIMENTAL_PARALLEL_CODE
-	AActor* Owner = GetOwner();
-	if (Owner != NULL)
-	{
-		if(Owner->GetRootComponent() == this)
-		{
-			// Root components end up touching all other components on the same actor when they update their render transforms.  This needs to be done on the game thread.
-			return true;
-		}
-	}
-#endif // EXPERIMENTAL_PARALLEL_CODE
-
 	return false;
 }
 
@@ -1033,15 +1017,54 @@ bool UActorComponent::IsActive() const
 	return bIsActive;
 }
 
+void UActorComponent::AddAssetUserData(UAssetUserData* InUserData)
+{
+	if (InUserData != NULL)
+	{
+		UAssetUserData* ExistingData = GetAssetUserDataOfClass(InUserData->GetClass());
+		if (ExistingData != NULL)
+		{
+			AssetUserData.Remove(ExistingData);
+		}
+		AssetUserData.Add(InUserData);
+	}
+}
+
+UAssetUserData* UActorComponent::GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			return Datum;
+		}
+	}
+	return NULL;
+}
+
+void UActorComponent::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			AssetUserData.RemoveAt(DataIdx);
+			return;
+		}
+	}
+}
+
 void UActorComponent::SetNetAddressable()
 {
 	bNetAddressable = true;
 }
 
-bool UActorComponent::GetNetAddressable() const
+bool UActorComponent::IsNameStableForNetworking() const
 {
 	/** 
-	 * NetAddressable means a component can be referred to its path name (relative to owning AActor*) over the network
+	 * IsNameStableForNetworking means a component can be referred to its path name (relative to owning AActor*) over the network
 	 *
 	 * Components are net addressable if:
 	 *	-They are Default Subobjects (created in C++ constructor)
@@ -1049,7 +1072,12 @@ bool UActorComponent::GetNetAddressable() const
 	 *	-They were explicitly set to bNetAddressable (blueprint components created by SCS)
 	 */
 
-	return  bNetAddressable || IsDefaultSubobject() || HasAnyFlags(RF_WasLoaded);
+	return bNetAddressable || Super::IsNameStableForNetworking();
+}
+
+bool UActorComponent::IsSupportedForNetworking() const
+{
+	return IsNameStableForNetworking() || GetIsReplicated();
 }
 
 void UActorComponent::SetIsReplicated(bool ShouldReplicate)

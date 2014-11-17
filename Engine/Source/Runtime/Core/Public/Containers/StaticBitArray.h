@@ -34,9 +34,11 @@ public:
 	}
 
 private:
+
 	T& Data;
 	T Mask;
 };
+
 
 /** Used to read a bit in the static array as a bool. */
 template<typename T>
@@ -55,6 +57,7 @@ public:
 	}
 
 private:
+
 	const T& Data;
 	T Mask;
 };
@@ -71,6 +74,7 @@ class TStaticBitArray
 	struct FBoolType;
 	typedef int32* FBoolType::* UnspecifiedBoolType;
 	typedef float* FBoolType::* UnspecifiedZeroType;
+
 public:
 
 	/**
@@ -101,7 +105,7 @@ public:
 		 the initialization point
 
 		***********************************************************************/
-//		checkAtCompileTime( InBitIndex >= 0 && InBitIndex < NumBits, invalidBitValue );
+//		static_assert(InBitIndex >= 0 && InBitIndex < NumBits, "Invalid bit value.");
 
 		check((NumBits > 0) ? (InBitIndex<NumBits):1);
 
@@ -307,8 +311,10 @@ public:
 	}
 
 	static const uint32 NumOfBits = NumBits;
+
 private:
-//	checkAtCompileTime( NumBits > 0, mustHaveAtLeast1Bit );
+
+//	static_assert(NumBits > 0, "Must have at least 1 bit.");
 	static const uint32 NumBitsPerWord = sizeof(WordType) * 8;
 	static const uint32 NumWords = ((NumBits + NumBitsPerWord - 1) & ~(NumBitsPerWord - 1)) / NumBitsPerWord;
 	WordType Words[NumWords];
@@ -349,4 +355,3 @@ private:
 		LowLevelFatalError(TEXT("invalid TStaticBitArray<NumBits> character"));
 	}
 };
-

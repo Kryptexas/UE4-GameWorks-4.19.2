@@ -21,6 +21,7 @@ public class DeviceProfileServices : ModuleRules
 				
 				"CoreUObject",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"UnrealEd",
 			}
 		);

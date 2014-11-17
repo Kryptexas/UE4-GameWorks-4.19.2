@@ -10,16 +10,16 @@ class UReimportDestructibleMeshFactory : public UDestructibleMeshFactory, public
 {
     GENERATED_UCLASS_BODY()
 public:
-	virtual FText GetDisplayName() const OVERRIDE;
+	virtual FText GetDisplayName() const override;
 #if WITH_APEX
 	// Begin FReimportHandler interface
-	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) OVERRIDE;
-	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) OVERRIDE;
-	virtual EReimportResult::Type Reimport( UObject* Obj ) OVERRIDE;
+	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;
+	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) override;
+	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
 #else
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) { return false; }
 	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) {}
-	virtual EReimportResult::Type Reimport( UObject* Obj ) OVERRIDE { return EReimportResult::Failed; }
+	virtual EReimportResult::Type Reimport( UObject* Obj ) override { return EReimportResult::Failed; }
 	// End FReimportHandler interface
 #endif // WITH_APEX
 };

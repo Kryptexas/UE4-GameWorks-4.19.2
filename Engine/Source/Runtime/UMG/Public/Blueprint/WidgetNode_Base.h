@@ -14,7 +14,7 @@ struct FExposedWidgetValueHandler
 		UPROPERTY()
 		FName BoundFunction;
 
-	void Execute(AUserWidget* Widget) const
+	void Execute(UUserWidget* Widget) const
 	{
 		if ( BoundFunction != NAME_None )
 		{
@@ -26,7 +26,7 @@ struct FExposedWidgetValueHandler
 		}
 	}
 
-	UFunction* GetFunction(AUserWidget* Widget)
+	UFunction* GetFunction(UUserWidget* Widget)
 	{
 		if ( BoundFunction != NAME_None )
 		{

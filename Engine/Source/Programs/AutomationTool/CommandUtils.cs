@@ -376,6 +376,23 @@ namespace AutomationTool
 				}
 			}
 		}
+        /// <summary>
+        /// Deletes a file(s). 
+        /// If the file does not exist, silently succeeds.
+        /// If the deletion of the file fails, this function throws an Exception.
+        /// </summary>
+        /// <param name="Filename">Filename</param>
+        public static void DeleteFile(bool bQuiet, params string[] Filenames)
+        {
+            foreach (var Filename in Filenames)
+            {
+                var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
+                if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
+                {
+                    throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
+                }
+            }
+        }
 
 		/// <summary>
 		/// Deletes a file(s). 
@@ -651,7 +668,7 @@ namespace AutomationTool
 			foreach (var Filename in Filenames)
 			{
 				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-				bExists = InternalUtils.SafeFileExists(Filename) && bExists;
+				bExists = InternalUtils.SafeFileExists(NormalizedFilename) && bExists;
 			}
 			return bExists;
 		}
@@ -677,7 +694,7 @@ namespace AutomationTool
             foreach (var Filename in Filenames)
             {
                 var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-                bExists = InternalUtils.SafeFileExists(Filename, bQuiet) && bExists;
+                bExists = InternalUtils.SafeFileExists(NormalizedFilename, bQuiet) && bExists;
             }
             return bExists;
         }
@@ -1354,8 +1371,6 @@ namespace AutomationTool
                 throw new AutomationException("Failed to create directory {0} for copy", TargetPathBase);
             }
 
-			string[] SourceList = Directory.GetFiles(SourcePathBase);
-
 			DirectoryInfo SourceDirectory = new DirectoryInfo(SourcePathBase);
 			DirectoryInfo[] SourceSubdirectories = SourceDirectory.GetDirectories();
 
@@ -1394,6 +1409,128 @@ namespace AutomationTool
 			DeleteDirectory_NoExceptions(TargetPath);
 
 			CloneDirectoryRecursiveWorker(SourcePath, TargetPath, ClonedFiles);
+		}
+
+		#endregion
+
+		#region Threaded Copy
+
+		/// <summary>
+		/// Single batch of files to copy on a thread
+		/// </summary>
+		class CopyRequest
+		{
+			public string[] Source;
+			public string[] Dest;
+			public Exception Result;
+			public Thread Worker;
+		}
+
+		/// <summary>
+		/// Main thread procedure for copying files
+		/// </summary>
+		private static void CopyThreadProc(object Request)
+		{
+			const bool bQuiet = true;
+			var FileToCopy = (CopyRequest)Request;
+			try
+			{
+				for (int Index = 0; Index < FileToCopy.Source.Length; ++Index)
+				{
+					CopyFile(FileToCopy.Source[Index], FileToCopy.Dest[Index], bQuiet);
+				}
+			}
+			catch (Exception Ex)
+			{
+				FileToCopy.Result = Ex;
+			}
+		}
+
+		/// <summary>
+		/// Copies files using miltiple threads
+		/// </summary>
+		/// <param name="SourceDirectory"></param>
+		/// <param name="DestDirectory"></param>
+		/// <param name="MaxThreads"></param>
+		public static void ThreadedCopyFiles(string SourceDirectory, string DestDirectory, int MaxThreads = 64)
+		{
+			CreateDirectory(DestDirectory);
+
+			var SourceFiles = Directory.GetFiles(SourceDirectory, "*", SearchOption.AllDirectories);
+			var SourceBase = GetDirectoryName(SourceDirectory) + GetPathSeparatorChar(PathSeparator.Default);
+			var DestBase = GetDirectoryName(DestDirectory) + GetPathSeparatorChar(PathSeparator.Default);
+			var DestFiles = new string[SourceFiles.Length];
+			for (int Index = 0; Index < SourceFiles.Length; ++Index)
+			{
+				DestFiles[Index] = SourceFiles[Index].Replace(SourceBase, DestBase);
+			}
+			ThreadedCopyFiles(SourceFiles, DestFiles, MaxThreads);
+		}
+
+		/// <summary>
+		/// Copies files using miltiple threads
+		/// </summary>
+		/// <param name="SourceDirectory"></param>
+		/// <param name="DestDirectory"></param>
+		/// <param name="MaxThreads"></param>
+		public static void ThreadedCopyFiles(string[] Source, string[] Dest, int MaxThreads = 64)
+		{
+			Log("Copying {0} file(s) using max {1} thread(s)", Source.Length, MaxThreads);
+
+			if (Source.Length != Dest.Length)
+			{
+				throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Length, Dest.Length);
+			}
+			const int MinFilesPerThread = 10;
+			if (MaxThreads > 1 && Source.Length > MinFilesPerThread)
+			{
+				// Split evenly across the threads
+				int FilesPerThread = Math.Max(Source.Length / MaxThreads, MinFilesPerThread);
+				int ThreadCount = Math.Min(Source.Length / FilesPerThread + 1, MaxThreads);
+				FilesPerThread = Source.Length / ThreadCount + 1;
+
+				// Divide and copy
+				var WorkerThreads = new List<CopyRequest>(ThreadCount);
+				var FilesToCopy = Source.Length;
+				var FirstFileIndex = 0;
+				while (FilesToCopy > 0)
+				{
+					var Request = new CopyRequest();
+					WorkerThreads.Add(Request);
+
+					Request.Source = new string[Math.Min(FilesToCopy, FilesPerThread)];
+					Request.Dest = new string[Request.Source.Length];
+					Array.Copy(Source, FirstFileIndex, Request.Source, 0, Request.Source.Length);
+					Array.Copy(Dest, FirstFileIndex, Request.Dest, 0, Request.Dest.Length);
+
+					Request.Worker = new Thread(new ParameterizedThreadStart(CopyThreadProc));
+					Request.Worker.Start(Request);
+
+					FirstFileIndex += Request.Source.Length;
+					FilesToCopy -= Request.Source.Length;
+				}
+
+				// Wait for completion
+				foreach (var Request in WorkerThreads)
+				{
+					if (Request.Worker.IsAlive)
+					{
+						Request.Worker.Join();
+					}
+					if (Request.Result != null)
+					{
+						throw new AutomationException(String.Format("Failed to thread-copy files: {0}", Request.Result.Message), Request.Result);
+					}
+				}
+			}
+			else
+			{
+				const bool bQuiet = true;
+				for (int Index = 0; Index < Source.Length; ++Index)
+				{
+					CopyFile(Source[Index], Dest[Index], bQuiet);
+				}
+			}
 		}
 
 		#endregion
@@ -1829,6 +1966,34 @@ namespace AutomationTool
             return StorageDirectory;
         }
 
+        static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
+        {
+            try
+            {
+                if (!DirectoryExists_NoExceptions(Dir))
+                {
+                    return false;
+                }
+                var TestGUID = Guid.NewGuid();
+                var Filename = CombinePaths(Dir, TestGUID.ToString() + ".Temp.txt");
+                WriteAllText_NoExceptions(Filename, "Test");
+                if (FileExists_NoExceptions(true, Filename))
+                {
+                    DeleteFile_NoExceptions(Filename, true);
+                    //Log(System.Diagnostics.TraceEventType.Information, "Resolved shared dir {0}", Dir);
+                    return true;
+                }
+                Log(System.Diagnostics.TraceEventType.Warning, "Shared dir {0} is not writable", Dir);
+
+            }
+            catch (Exception Ex)
+            {
+                Log(System.Diagnostics.TraceEventType.Warning, "Failed to resolve shared dir {0}", Dir);
+                Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+            }
+            return false;
+        }
+
         static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
         public static string ResolveSharedBuildDirectory(string GameFolder)
         {
@@ -1838,7 +2003,7 @@ namespace AutomationTool
             }
             string Root = RootSharedTempStorageDirectory();
             string Result = CombinePaths(Root, GameFolder);
-            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
+            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExistsAndIsWritable_NoExceptions(Result))
             {
                 string GameStr = "Game";
                 bool HadGame = false;
@@ -1848,10 +2013,10 @@ namespace AutomationTool
                     Result = CombinePaths(Root, ShortFolder);
                     HadGame = true;
                 }
-                if (!HadGame || !DirectoryExists_NoExceptions(Result))
+                if (!HadGame || !DirectoryExistsAndIsWritable_NoExceptions(Result))
                 {
                     Result = CombinePaths(Root, "UE4");
-                    if (!DirectoryExists_NoExceptions(Result))
+                    if (!DirectoryExistsAndIsWritable_NoExceptions(Result))
                     {
                         throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
                     }
@@ -1861,7 +2026,7 @@ namespace AutomationTool
             return Result;
         }
 
-        public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "")
+        public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "", int MaximumDaysToKeepTempStorage = 4)
         {
             if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))
             {
@@ -1873,7 +2038,6 @@ namespace AutomationTool
                 {
                     CLString = P4Env.ChangelistString;
                 }
-                const int MaximumDaysToKeepTempStorage = 4;
                 string ParentDir = Path.GetDirectoryName(CombinePaths(DirectoryForThisBuild));
                 if (!DirectoryExists_NoExceptions(ParentDir))
                 {
@@ -2190,9 +2354,12 @@ namespace AutomationTool
 				}
 				else
 				{
-					foreach (var File in Files)
+					foreach (string File in Files)
 					{
-						SignSingleExecutableIfEXEOrDLL(File);
+						if (!(Path.GetDirectoryName(File).Replace("\\", "/")).Contains("Binaries/XboxOne"))
+						{
+							SignSingleExecutableIfEXEOrDLL(File);
+						}
 					}
 				}
 			}

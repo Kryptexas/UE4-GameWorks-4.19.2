@@ -46,7 +46,7 @@ public:
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
@@ -63,7 +63,7 @@ class FRCPassPostProcessTonemapES2 : public TRenderingCompositePassBase<3, 1>
 public:
 	FRCPassPostProcessTonemapES2(bool bInUsedFramebufferFetch) : bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
@@ -90,6 +90,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
+	FShaderParameter FringeUVParams;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -98,19 +99,20 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
+		FringeUVParams.Bind(Initializer.ParameterMap, TEXT("FringeUVParams"));
 	}
 
 	void SetVS(const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
 		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
-		SetShaderValue(ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 
 		if(EyeAdaptation.IsBound())
 		{
@@ -118,13 +120,22 @@ public:
 
 			if(EyeAdaptationRT)
 			{
-				SetTextureParameter(ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
 			}
 			else
 			{
 				// some views don't have a state, thumbnail rendering?
-				SetTextureParameter(ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
 			}
+		}
+
+		{
+			// for scene color fringe
+			// from percent to fraction
+			float Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
+			// we only get bigger to not leak in content from outside
+			FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, FringeUVParams, Value);
 		}
 	}
 	
@@ -132,7 +143,7 @@ public:
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation;
+		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << FringeUVParams;
 		return bShaderHasOutdatedParameters;
 	}
 };

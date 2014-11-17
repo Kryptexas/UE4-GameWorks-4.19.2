@@ -29,7 +29,6 @@
 #include "SceneOutlinerTreeItems.h"
 
 static const FName LevelEditorName("LevelEditor");
-#pragma optimize("", off)
 
 #define LOCTEXT_NAMESPACE "LevelViewport"
 
@@ -77,9 +76,9 @@ SLevelViewport::~SLevelViewport()
 
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
+	LevelEditor.OnTakeHighResScreenShots().RemoveAll( this );
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
-	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
 	GEngine->OnLevelActorDeleted().RemoveAll( this );
 
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
@@ -108,7 +107,7 @@ bool SLevelViewport::IsVisible() const
 
 void SLevelViewport::Construct(const FArguments& InArgs)
 {
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddSP(this, &SLevelViewport::HandleViewportSettingChanged);
+	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &SLevelViewport::HandleViewportSettingChanged);
 
 	ParentLayout = InArgs._ParentLayout;
 	ParentLevelEditor = InArgs._ParentLevelEditor;
@@ -135,17 +134,20 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 	// If a map has already been loaded, this will test for it and copy the correct camera location out
 	OnMapChanged( GWorld, EMapChangeType::LoadMap );
 
+	// Important: We use raw bindings here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
+
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnRedrawLevelEditingViewports().AddSP( this, &SLevelViewport::RedrawViewport );
-	LevelEditor.OnTakeHighResScreenShots().AddSP( this, &SLevelViewport::TakeHighResScreenShot );
+	LevelEditor.OnRedrawLevelEditingViewports().AddRaw( this, &SLevelViewport::RedrawViewport );
+	LevelEditor.OnTakeHighResScreenShots().AddRaw( this, &SLevelViewport::TakeHighResScreenShot );
 
 	// Tell the level editor we want to be notified when selection changes
-	LevelEditor.OnActorSelectionChanged().AddSP( this, &SLevelViewport::OnActorSelectionChanged );
+	LevelEditor.OnActorSelectionChanged().AddRaw( this, &SLevelViewport::OnActorSelectionChanged );
 
 	// Tell the level editor we want to be notified when selection changes
-	LevelEditor.OnMapChanged().AddSP( this, &SLevelViewport::OnMapChanged );
+	LevelEditor.OnMapChanged().AddRaw( this, &SLevelViewport::OnMapChanged );
 
-	GEngine->OnLevelActorDeleted().AddSP( this, &SLevelViewport::OnLevelActorsRemoved );
+	GEngine->OnLevelActorDeleted().AddRaw( this, &SLevelViewport::OnLevelActorsRemoved );
 }
 
 void SLevelViewport::ConstructViewportOverlayContent()
@@ -713,7 +715,19 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 
 FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	return HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
+	ULevel* CurrentLevel = (GetWorld()) ? GetWorld()->GetCurrentLevel() : NULL;
+
+	if (CurrentLevel && !FLevelUtils::IsLevelLocked(CurrentLevel))
+	{
+		return HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
+	}
+	else
+	{
+		FNotificationInfo Info(LOCTEXT("Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked."));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return FReply::Handled();
+	}
 }
 
 
@@ -750,17 +764,6 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 		bPIEHasFocus = ActiveViewport->HasMouseCapture();
 		PIEOverlayAnim = FCurveSequence(0.0f, SLevelViewportPIEAnimation::MouseControlLabelFadeout, ECurveEaseFunction::CubicInOut);
 		PIEOverlayAnim.Play();
-	}
-
-	// Check to see if the locked actor wants to override the camera settings
-	if( LevelViewportClient->GetActiveActorLock().IsValid() )
-	{
-		AActor* LockedActor = LevelViewportClient->GetActiveActorLock().Get();
-		FMinimalViewInfo CameraInfo;
-		if( GetCameraInformationFromActor(LockedActor, /*out*/ CameraInfo) )
-		{
-			LevelViewportClient->ViewFOV = CameraInfo.FOV;
-		}
 	}
 
 	// Update actor preview viewports, if we have any
@@ -978,7 +981,8 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 
 	CommandList.MapAction( 
 		ViewportActions.ToggleMaximize,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleMaximizeMode ) );
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleMaximizeMode ),
+		FCanExecuteAction::CreateSP( this, &SLevelViewport::CanToggleMaximizeMode ) );
 
 	
 	CommandList.MapAction(
@@ -1013,6 +1017,13 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 		ViewportActions.HighResScreenshot,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnTakeHighResScreenshot ),
 		FCanExecuteAction()
+		);
+
+	CommandList.MapAction(
+		ViewportActions.ToggleLockedCameraView,
+		FExecuteAction::CreateSP(this, &SLevelViewport::ToggleLockedCameraView),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SLevelViewport::IsLockedCameraViewEnabled )
 		);
 
 	// Map each bookmark action
@@ -1348,20 +1359,22 @@ EVisibility SLevelViewport::OnGetViewportContentVisibility() const
 EVisibility SLevelViewport::GetToolBarVisibility() const
 {
 	// Do not show the toolbar if this viewport has a play in editor session
-	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : EVisibility::Visible;
+	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : OnGetViewportContentVisibility();
 }
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
 {
 	bool bIsMaximizeSupported = false;
+	bool bShowMaximizeToggle = false;
 	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
 	if (LayoutPinned.IsValid())
 	{
 		bIsMaximizeSupported = LayoutPinned->IsMaximizeSupported();
+		bShowMaximizeToggle = !LayoutPinned->IsTransitioning();
 	}
 
 	// Do not show the maximize/minimize toggle when in immersive mode
-	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : EVisibility::Visible;
+	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : (bShowMaximizeToggle ? EVisibility::Visible : EVisibility::Hidden);
 }
 
 EVisibility SLevelViewport::GetCloseImmersiveButtonVisibility() const
@@ -1870,23 +1883,23 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 
 void SLevelViewport::OnSetBookmark( int32 BookmarkIndex )
 {
-	GEditorModeTools().SetBookmark( BookmarkIndex, LevelViewportClient.Get() );
+	GLevelEditorModeTools().SetBookmark( BookmarkIndex, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnJumpToBookmark( int32 BookmarkIndex )
 {
 	const bool bShouldRestoreLevelVisibility = true;
-	GEditorModeTools().JumpToBookmark( BookmarkIndex, bShouldRestoreLevelVisibility, LevelViewportClient.Get() );
+	GLevelEditorModeTools().JumpToBookmark( BookmarkIndex, bShouldRestoreLevelVisibility, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnClearBookMark( int32 BookmarkIndex )
 {
-	GEditorModeTools().ClearBookmark( BookmarkIndex, LevelViewportClient.Get() );
+	GLevelEditorModeTools().ClearBookmark( BookmarkIndex, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnClearAllBookMarks()
 {
-	GEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
+	GLevelEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnToggleAllowMatineePreview()
@@ -1955,6 +1968,16 @@ bool SLevelViewport::IsActorLocked(const TWeakObjectPtr<AActor> Actor) const
 bool SLevelViewport::IsAnyActorLocked() const
 {
 	return LevelViewportClient->IsAnyActorLocked();
+}
+
+void SLevelViewport::ToggleLockedCameraView()
+{
+	LevelViewportClient->bLockedCameraView = !LevelViewportClient->bLockedCameraView;
+}
+
+bool SLevelViewport::IsLockedCameraViewEnabled() const
+{
+	return LevelViewportClient->bLockedCameraView;
 }
 
 void SLevelViewport::FindSelectedInLevelScript()
@@ -2052,12 +2075,12 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 		//////////////////////////////////////////////////////////////////////////
 		// Begin ISceneOutlinerColumn Implementation
 
-		virtual FName GetColumnID() OVERRIDE
+		virtual FName GetColumnID() override
 		{
 			return FName( "LockedToViewport" );
 		}
 
-		virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() OVERRIDE
+		virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override
 		{
 			return SHeaderRow::Column( GetColumnID() )
 				[
@@ -2065,7 +2088,7 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 				];
 		}
 
-		virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) OVERRIDE
+		virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override
 		{
 			if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
 			{
@@ -2088,11 +2111,11 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 
 		virtual bool ProvidesSearchStrings() { return false; }
 
-		virtual void PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const OVERRIDE {}
+		virtual void PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const override {}
 	
-		virtual bool SupportsSorting() const OVERRIDE { return false; }
+		virtual bool SupportsSorting() const override { return false; }
 
-		virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const OVERRIDE {}
+		virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override {}
 
 		// End ISceneOutlinerColumn Implementation
 		//////////////////////////////////////////////////////////////////////////
@@ -2132,6 +2155,12 @@ void SLevelViewport::RedrawViewport( bool bInvalidateHitProxies )
 			CurActorPreview.LevelViewportClient->Viewport->InvalidateDisplay();
 		}
 	}
+}
+
+bool SLevelViewport::CanToggleMaximizeMode() const
+{
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	return (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported() && !ParentLayoutPinned->IsTransitioning());
 }
 
 void  SLevelViewport::OnToggleMaximizeMode()
@@ -2253,6 +2282,8 @@ class SActorPreview : public SCompoundWidget
 
 public:
 
+	~SActorPreview();
+
 	SLATE_BEGIN_ARGS( SActorPreview )
 		: _ViewportWidth( 240 ),
 		  _ViewportHeight( 180 ) {}
@@ -2283,11 +2314,16 @@ public:
 
 
 	/** SWidget overrides */
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
+	/** Highlight this preview window by flashing the border. Will replay the curve sequence if it is already in the middle of a highlight. */
+	void Highlight();
 
 private:
+
+	/** Called when an actor in the world is selected */
+	void OnActorSelected(UObject* InActor);
 
 	/** @return Returns the color and opacity to use for this widget */
 	FLinearColor GetColorAndOpacity() const;
@@ -2328,17 +2364,43 @@ private:
 	/** Curve sequence for fading in and out */
 	FCurveSequence FadeSequence;
 
+	/** Curve sequence for flashing the border (highlighting) when a pinned preview is re-selected */
+	FCurveSequence HighlightSequence;
+
 	/** Padding around the preview actor name */
 	static const float PreviewTextPadding;
 };
 
 const float SActorPreview::PreviewTextPadding = 3.0f;
 
+SActorPreview::~SActorPreview()
+{
+	USelection::SelectObjectEvent.RemoveAll(this);
+}
+
 void SActorPreview::Construct( const FArguments& InArgs )
 {
+	const int32 HorizSpacingBetweenViewports = 18;
+	const int32 PaddingBeforeBorder = 6;
+
+	USelection::SelectObjectEvent.AddRaw(this, &SActorPreview::OnActorSelected);
+
+	// We don't want the border to be hit testable, since it would just get in the way of other
+	// widgets that are added to the viewport overlay.
+	this->SetVisibility(EVisibility::SelfHitTestInvisible);
+
 	this->ChildSlot.Widget =
-		SNew( SOverlay )
-			.Visibility( EVisibility::SelfHitTestInvisible )
+		SNew(SBorder)
+		.Padding(0)
+
+		.Visibility(EVisibility::SelfHitTestInvisible)
+
+		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Bottom)
+		.Padding(FMargin(0, 0, PaddingBeforeBorder, PaddingBeforeBorder))
+		[
+			SNew( SOverlay )
 			+SOverlay::Slot()
 			[
 				SNew( SBorder )
@@ -2346,7 +2408,7 @@ void SActorPreview::Construct( const FArguments& InArgs )
 					.Visibility( EVisibility::HitTestInvisible )
 
 					.Padding( 16.0f )
-					.BorderImage( FEditorStyle::GetBrush( "UniformShadow" ) )
+					.BorderImage( FEditorStyle::GetBrush( "UniformShadow_Tint" ) )
 
 					.BorderBackgroundColor( this, &SActorPreview::GetBorderColorAndOpacity )
 					.ColorAndOpacity( this, &SActorPreview::GetColorAndOpacity )
@@ -2357,7 +2419,6 @@ void SActorPreview::Construct( const FArguments& InArgs )
 							.HeightOverride(this, &SActorPreview::OnReadHeight )
 							[
 								SNew( SOverlay )
-								.Visibility( EVisibility::SelfHitTestInvisible )
 									+SOverlay::Slot()
 									[
 										SAssignNew( ViewportWidget, SViewport )
@@ -2365,7 +2426,6 @@ void SActorPreview::Construct( const FArguments& InArgs )
 											.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 											.EnableGammaCorrection( false )		// Scene rendering handles gamma correction
 											.EnableBlending( true )
-											.Visibility( EVisibility::SelfHitTestInvisible )
 									]
 									
 									+SOverlay::Slot()
@@ -2377,7 +2437,6 @@ void SActorPreview::Construct( const FArguments& InArgs )
 											.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10 ) )
 											.ShadowOffset( FVector2D::UnitVector )
 											.WrapTextAt( this, &SActorPreview::OnReadTextWidth )
-											.Visibility( EVisibility::HitTestInvisible )
 									]
 							]
 					]
@@ -2408,7 +2467,7 @@ void SActorPreview::Construct( const FArguments& InArgs )
 					// Pass along the block's tool-tip string
 					.ToolTipText( this, &SActorPreview::GetPinButtonToolTipText )
 			]
-		;
+		];
 
 	// Setup animation curve for fading in and out.  Note that we add a bit of lead-in time on the fade-in
 	// to avoid hysteresis as the user moves the mouse over the view
@@ -2424,6 +2483,8 @@ void SActorPreview::Construct( const FArguments& InArgs )
 		// Start fading in!
 		FadeSequence.Play( TimeBeforeFadingIn );	// Skip the initial time delay and just fade straight in
 	}
+
+	HighlightSequence = FCurveSequence(0.f, 0.5f, ECurveEaseFunction::Linear);
 
 	PreviewActorPtr = InArgs._PreviewActor;
 	ParentViewport = InArgs._ParentViewport;
@@ -2548,11 +2609,38 @@ FLinearColor SActorPreview::GetColorAndOpacity() const
 	return Color;
 }
 
+void SActorPreview::OnActorSelected(UObject* InActor)
+{
+	if (InActor && InActor == PreviewActorPtr && InActor->IsSelected())
+	{
+		TSharedPtr<SLevelViewport> ParentViewportPtr = ParentViewport.Pin();
+		const bool bIsPreviewPinned = ParentViewportPtr.IsValid() && ParentViewportPtr->IsActorPreviewPinned(PreviewActorPtr);
+
+		if (bIsPreviewPinned)
+		{
+			Highlight();
+		}
+	}
+}
+
+void SActorPreview::Highlight()
+{
+	HighlightSequence.JumpToStart();
+	HighlightSequence.Play();
+}
 
 FSlateColor SActorPreview::GetBorderColorAndOpacity() const
 {
-	FLinearColor Color = GetColorAndOpacity();
-	Color.A *= 0.6f;		// Make the border more transparent
+	FLinearColor Color(0.f, 0.f, 0.f, 0.5f);
+
+	if (HighlightSequence.IsPlaying())
+	{
+		const FLinearColor SelectionColor = FEditorStyle::Get().GetSlateColor("SelectionColor").GetSpecifiedColor().CopyWithNewOpacity(0.5f);
+		
+		const float Interp = FMath::Sin(HighlightSequence.GetLerp()*6*PI) / 2 + 1;
+		Color = FMath::Lerp(SelectionColor, Color, Interp);
+	}
+	
 	return Color;
 }
 
@@ -2743,37 +2831,13 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 				// Push actor transform to view.  From here on out, this will happen automatically in FLevelEditorViewportClient::Tick.
 				// The reason we allow the viewport client to update this is to avoid off-by-one-frame issues when dragging actors around.
-				ActorPreviewLevelViewportClient->SetControllingActor( CurActor );
-				ActorPreviewLevelViewportClient->PushControllingActorDataToViewportClient();
+				ActorPreviewLevelViewportClient->SetActorLock( CurActor );
+				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();
 			}
-			
-			const int32 HorizSpacingBetweenViewports = 18;
-			const int32 PaddingBeforeBorder = 6;
 
-			// Use the size of our array of preview viewports as the viewport index.  We haven't yet added this new
-			// viewport to the array.
-			const int32 ViewportIndex = ActorPreviews.Num();
-
-			TSharedPtr< SActorPreview > ActorPreviewWidget;
-			TSharedRef< SWidget > RootWidget =
-				SNew( SBorder )
-					.Padding(0)
-
-					// We don't want the border to be hit testable, since it would just get in the way of other
-					// widgets that are added to the viewport overlay.
-					.Visibility( EVisibility::SelfHitTestInvisible )
-
-					.BorderImage( FEditorStyle::GetBrush( "NoBorder" ) )
-					.HAlign( HAlign_Right )
-					.VAlign( VAlign_Bottom )
-					.Padding( FMargin( 0, 0, PaddingBeforeBorder, PaddingBeforeBorder ) )
-
-					[
-						SAssignNew( ActorPreviewWidget, SActorPreview )
-							.PreviewActor( CurActor )
-							.ParentViewport( SharedThis( this ) )
-					]
-			;
+			TSharedPtr< SActorPreview > ActorPreviewWidget = SNew(SActorPreview)
+				.PreviewActor(CurActor)
+				.ParentViewport(SharedThis(this));
 
 			auto ActorPreviewViewportWidget = ActorPreviewWidget->GetViewportWidget();
 
@@ -2787,13 +2851,13 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 			NewActorPreview.Actor = CurActor;
 			NewActorPreview.LevelViewportClient = ActorPreviewLevelViewportClient;
 			NewActorPreview.SceneViewport = ActorPreviewSceneViewport;
-			NewActorPreview.PreviewWidget = RootWidget;
+			NewActorPreview.PreviewWidget = ActorPreviewWidget;
 			NewActorPreview.bIsPinned = false;
 
 			// Add our new widget to our viewport's overlay
 			// @todo camerapip: Consider using a canvas instead of an overlay widget -- our viewports get SQUASHED when the view shrinks!
 			auto& HorizontalBoxSlot = ActorPreviewHorizontalBox->AddSlot().AutoWidth();
-			HorizontalBoxSlot.Widget = RootWidget;
+			HorizontalBoxSlot.Widget = ActorPreviewWidget.ToSharedRef();
 		}
 
 		// OK, at least one new preview viewport was added, so update settings for all views immediately.
@@ -2930,7 +2994,12 @@ FText SLevelViewport::GetCurrentLevelText( bool bDrawOnlyLabel ) const
 
 EVisibility SLevelViewport::GetCurrentLevelTextVisibility() const
 {
-	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	EVisibility ContentVisibility = OnGetViewportContentVisibility();
+	if (ContentVisibility == EVisibility::Visible)
+	{
+		ContentVisibility = EVisibility::SelfHitTestInvisible;
+	}
+	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) ? ContentVisibility : EVisibility::Collapsed;
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
@@ -2942,6 +3011,8 @@ void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
 		if (ViewportTabPinned.IsValid())
 		{
 			ViewportTabPinned->SetViewportConfiguration(ConfigurationName);
+			// Viewport clients are going away.  Any current one is invalid.
+			GCurrentLevelEditingViewportClient = nullptr;
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -3075,17 +3146,17 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 
 void SLevelViewport::ShowMouseCaptureLabel(ELabelAnchorMode AnchorMode)
 {
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopLeft/3)+1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopLeft%3)+1) == EHorizontalAlignment::HAlign_Left, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopCenter/3)+1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopCenter%3)+1) == EHorizontalAlignment::HAlign_Center, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopRight/3)+1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopRight%3)+1) == EHorizontalAlignment::HAlign_Right, Alignment_From_ELabelAnchorMode_Error);
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopLeft / 3) + 1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopLeft % 3) + 1) == EHorizontalAlignment::HAlign_Left, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopCenter / 3) + 1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopCenter % 3) + 1) == EHorizontalAlignment::HAlign_Center, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopRight / 3) + 1) == EVerticalAlignment::VAlign_Top && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_TopRight % 3) + 1) == EHorizontalAlignment::HAlign_Right, "Alignment from ELabelAnchorMode error.");
 	
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterLeft/3)+1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterLeft%3)+1) == EHorizontalAlignment::HAlign_Left, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_Centered/3)+1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_Centered%3)+1) == EHorizontalAlignment::HAlign_Center, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterRight/3)+1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterRight%3)+1) == EHorizontalAlignment::HAlign_Right, Alignment_From_ELabelAnchorMode_Error);
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterLeft / 3) + 1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterLeft % 3) + 1) == EHorizontalAlignment::HAlign_Left, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_Centered / 3) + 1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_Centered % 3) + 1) == EHorizontalAlignment::HAlign_Center, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterRight / 3) + 1) == EVerticalAlignment::VAlign_Center && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_CenterRight % 3) + 1) == EHorizontalAlignment::HAlign_Right, "Alignment from ELabelAnchorMode error.");
 	
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomLeft/3)+1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomLeft%3)+1) == EHorizontalAlignment::HAlign_Left, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomCenter/3)+1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomCenter%3)+1) == EHorizontalAlignment::HAlign_Center, Alignment_From_ELabelAnchorMode_Error);
-	checkAtCompileTime((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomRight/3)+1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomRight%3)+1) == EHorizontalAlignment::HAlign_Right, Alignment_From_ELabelAnchorMode_Error);
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomLeft / 3) + 1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomLeft % 3) + 1) == EHorizontalAlignment::HAlign_Left, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomCenter / 3) + 1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomCenter % 3) + 1) == EHorizontalAlignment::HAlign_Center, "Alignment from ELabelAnchorMode error.");
+	static_assert((EVerticalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomRight / 3) + 1) == EVerticalAlignment::VAlign_Bottom && (EHorizontalAlignment)((ELabelAnchorMode::LabelAnchorMode_BottomRight % 3) + 1) == EHorizontalAlignment::HAlign_Right, "Alignment from ELabelAnchorMode error.");
 	
 	EVerticalAlignment VAlign = (EVerticalAlignment)((AnchorMode/3)+1);
 	EHorizontalAlignment HAlign = (EHorizontalAlignment)((AnchorMode%3)+1);

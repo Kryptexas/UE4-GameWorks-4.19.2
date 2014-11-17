@@ -8,9 +8,9 @@
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
 */
-class CORE_API FThreadIdleStats : public FThreadSingleton<FThreadIdleStats>
+class CORE_API FThreadIdleStats : public TThreadSingleton<FThreadIdleStats>
 {
-	friend class FThreadSingleton<FThreadIdleStats>;
+	friend class TThreadSingleton<FThreadIdleStats>;
 
 	FThreadIdleStats()
 		: Waits(0)
@@ -23,14 +23,24 @@ public:
 
 	struct FScopeIdle
 	{
-		uint32 Start;
-		FScopeIdle()
+		/** Starting cycle counter. */
+		const uint32 Start;
+
+		/** If true, we ignore this thread idle stats. */
+		const bool bIgnore;
+
+		FScopeIdle( bool bInIgnore = false )
 			: Start(FPlatformTime::Cycles())
+			, bIgnore( bInIgnore )
 		{
 		}
+
 		~FScopeIdle()
 		{
-			FThreadIdleStats::Get().Waits += FPlatformTime::Cycles() - Start;
+			if( !bIgnore )
+			{
+				FThreadIdleStats::Get().Waits += FPlatformTime::Cycles() - Start;
+			}
 		}
 	};
 };
@@ -38,10 +48,35 @@ public:
 // Pass a console command directly to the stats system, return true if it is known command, false means it might be a stats command
 CORE_API bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion = false, FOutputDevice* Ar = nullptr);
 
+/** Helper struct that contains method available even when the stats are disabled. */
+struct CORE_API FStats
+{
+	/** Delegate to fire every time we need to advance the stats for the rendering thread. */
+	DECLARE_DELEGATE_ThreeParams( FOnAdvanceRenderingThreadStats, bool /*bDiscardCallstack*/, int64 /*StatsFrame*/, int32 /*MasterDisableChangeTagStartFrame*/ );
+
+	/** Advances stats for the current frame. */
+	static void AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate = FOnAdvanceRenderingThreadStats() );
+};
+
 #if STATS
 
 struct TStatId
 {
+	enum
+	{
+		/**
+		 *	Index of the long name.
+		 *	@see FStatGroupEnableManager
+		 */
+		INDEX_FNAME = 0,
+
+		/** Index of the stat desc as an ansi string. */
+		INDEX_ANSI_STRING = 1,
+
+		/** Index of the stat desc as a wide string. */
+		INDEX_WIDE_STRING = 2,
+	};
+
 	FORCEINLINE TStatId()
 		: StatIdPtr(&TStatId_NAME_None)
 	{
@@ -64,10 +99,41 @@ struct TStatId
 	}
 	FORCEINLINE FName const* GetRawPointer() const
 	{
-		return StatIdPtr;
+		return &StatIdPtr[INDEX_FNAME];
+	}
+
+	/**
+	 * @return a stat description as an ansi string.
+	 * StatIdPtr must point to a valid FName pointer.
+	 * @see FStatGroupEnableManager::GetHighPerformanceEnableForStat
+	 */
+	FORCEINLINE const ANSICHAR* GetStatDescriptionANSI() const
+	{
+		return (ANSICHAR*)*(uint64*)(&StatIdPtr[INDEX_ANSI_STRING]);
+	}
+
+	/**
+	 * @return a stat description as a wide string.
+	 * StatIdPtr must point to a valid FName pointer.
+	 * @see FStatGroupEnableManager::GetHighPerformanceEnableForStat
+	 */
+	FORCEINLINE const WIDECHAR* GetStatDescriptionWIDE() const
+	{
+		return (WIDECHAR*)*(uint64*)(&StatIdPtr[INDEX_WIDE_STRING]);
 	}
 private:
+	/** NAME_None. */
 	CORE_API static FName TStatId_NAME_None;
+
+	/**
+	 *	Holds a pointer to the stat long name if enabled, or to the NAME_None if disabled.
+	 *	@see FStatGroupEnableManager::EnableStat
+	 *	@see FStatGroupEnableManager::DisableStat
+	 *	
+	 *	Next pointer points to the ansi string with a stat description
+	 *	Next pointer points to the wide string with a stat description
+	 *	@see FStatGroupEnableManager::GetHighPerformanceEnableForStat 
+	 */
 	FName const* StatIdPtr;
 };
 
@@ -177,7 +243,7 @@ struct EMemoryRegion
 		Shift = EStatMetaFlags::Shift + EStatMetaFlags::NumBits,
 		NumBits = 4
 	};
-	checkAtCompileTime(FPlatformMemory::MCR_MAX < (1 << NumBits), need_to_expand_memoryregion_field);
+	static_assert(FPlatformMemory::MCR_MAX < (1 << NumBits), "Need to expand memory region field.");
 };
 
 
@@ -193,7 +259,7 @@ namespace EStatAllFields
 	};
 }
 
-checkAtCompileTime(EStatAllFields::StartShift > 0, too_many_stat_fields);
+static_assert(EStatAllFields::StartShift > 0, "Too many stat fields.");
 
 FORCEINLINE int64 ToPackedCallCountDuration(uint32 CallCount, uint32 Duration)
 {
@@ -230,7 +296,7 @@ public:
 	FORCEINLINE_STATS FStatNameAndInfo(FStatNameAndInfo const& Other)
 		: NameAndInfo(Other.NameAndInfo)
 	{
-		checkAtCompileTime(EStatAllFields::StartShift >= 0, too_many__fields);
+		static_assert(EStatAllFields::StartShift >= 0, "Too many fields.");
 		CheckInvariants();
 	}
 
@@ -582,7 +648,7 @@ struct FStatMessage
 	*/
 	FORCEINLINE_STATS void Clear()
 	{
-		checkAtCompileTime(sizeof(uint64) == DATA_SIZE, bad_clear);
+		static_assert(sizeof(uint64) == DATA_SIZE, "Bad clear.");
 		*(int64*)&StatData = 0;
 	}
 
@@ -591,7 +657,7 @@ struct FStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64()
 	{
-		checkAtCompileTime(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		return *(int64*)&StatData;
 	}
@@ -619,7 +685,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double()
 	{
-		checkAtCompileTime(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		return *(double*)&StatData;
 	}
@@ -632,7 +698,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS FName& GetValue_FName()
 	{
-		checkAtCompileTime(sizeof(FName) <= DATA_SIZE && ALIGNOF(FName) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(FName) <= DATA_SIZE && ALIGNOF(FName) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
 		return *(FName*)&StatData;
 	}
@@ -762,7 +828,7 @@ struct TStatMessage
 	*/
 	FORCEINLINE_STATS void Clear()
 	{
-		checkAtCompileTime(sizeof(uint64) == DATA_SIZE/EnumCount, bad_clear);
+		static_assert(sizeof(uint64) == DATA_SIZE / EnumCount, "Bad clear.");
 
 		for( int32 FieldIndex = 0; FieldIndex < EnumCount; ++FieldIndex )
 		{
@@ -775,7 +841,7 @@ struct TStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64( typename TEnum::Type Index )
 	{
-		checkAtCompileTime(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		checkStats(Index<EnumCount);
 		int64& Value = *((int64*)&StatData+(uint32)Index);
@@ -812,7 +878,7 @@ struct TStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double( typename TEnum::Type Index )
 	{
-		checkAtCompileTime(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(Index<EnumCount);
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		double& Value = *((double*)&StatData+(uint32)Index);
@@ -989,13 +1055,7 @@ public:
 		if (InStatOperation == EStatOperation::CycleScopeStart)
 		{
 			ThreadStats->ScopeCount++;
-			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);
-
-			// Emit named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents )
-			{
-				FPlatformMisc::BeginNamedEvent(FColor(0), InStatName.GetPlainANSIString());
-			}
+			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);	
 		}
 		else if (InStatOperation == EStatOperation::CycleScopeEnd)
 		{
@@ -1009,12 +1069,6 @@ public:
 				}
 			}
 			// else we dumped this frame without closing scope, so we just drop the closes on the floor
-
-			// End named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents )
-			{
-				FPlatformMisc::EndNamedEvent();
-			}
 		}
 	}
 
@@ -1143,10 +1197,23 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS void Start(FName InStatId)
+	FORCEINLINE_STATS void Start( TStatId InStatId )
 	{
-		StatId = InStatId;
-		FThreadStats::AddMessage(InStatId, EStatOperation::CycleScopeStart);
+		if( FThreadStats::IsCollectingData( InStatId ) )
+		{
+			StatId = *InStatId;
+			FThreadStats::AddMessage( *InStatId, EStatOperation::CycleScopeStart );
+
+			// Emit named event for active cycle stat.
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
+			{
+#if	PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+				FPlatformMisc::BeginNamedEvent( FColor( 0 ), InStatId.GetStatDescriptionANSI() );
+#else
+				FPlatformMisc::BeginNamedEvent( FColor( 0 ), InStatId.GetStatDescriptionWIDE() );
+#endif // PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+			}
+		}
 	}
 
 	/**
@@ -1154,9 +1221,15 @@ public:
 	 */
 	FORCEINLINE_STATS void Stop()
 	{
-		if (!StatId.IsNone())
+		if( !StatId.IsNone() )
 		{
 			FThreadStats::AddMessage(StatId, EStatOperation::CycleScopeEnd);
+
+			// End named event for active cycle stat.
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
+			{
+				FPlatformMisc::EndNamedEvent();
+			}
 		}
 	}
 };
@@ -1219,7 +1292,7 @@ public:
 	virtual void SetHighPerformanceEnableForAllGroups(bool Enable)=0;
 
 	/**
-	 * Resets all stats to their default collection state, which was set when they were looked up intially
+	 * Resets all stats to their default collection state, which was set when they were looked up initially
 	 */
 	virtual void ResetHighPerformanceEnableForAllGroups()=0;
 
@@ -1228,6 +1301,9 @@ public:
 	 * @param Cmd, Command to run
 	 */
 	virtual void StatGroupEnableManagerCommand(FString const& Cmd)=0;
+
+	/** Updates memory usage. */
+	virtual void UpdateMemoryUsage() = 0;
 };
 
 
@@ -1246,7 +1322,7 @@ struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 {
 	FORCEINLINE TStatId GetStatId() const
 	{
-		checkAtCompileTime(sizeof(HighPerformanceEnable) == sizeof(TStatId), unsafe_cast_requires_these_to_be_the_same_thing);
+		static_assert(sizeof(HighPerformanceEnable) == sizeof(TStatId), "Unsafe cast requires these to be the same thing.");
 		if (!HighPerformanceEnable)
 		{
 			DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetGroupCategory(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );
@@ -1339,6 +1415,7 @@ struct FStat_##StatName\
 
 #define GET_STATID(Stat) (StatPtr_##Stat.GetStatId())
 #define GET_STATFNAME(Stat) (StatPtr_##Stat.GetStatFName())
+#define GET_STATDESCRIPTION(Stat) (FStat_##Stat::GetDescription())
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 
@@ -1406,19 +1483,28 @@ struct FStat_##StatName\
 #define DECLARE_STATS_GROUP_MAYBE_COMPILED_OUT(GroupDesc, GroupId, GroupCat, CompileIn) \
 	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, CompileIn);
 
+#ifdef UE_BUILD_DEBUG
+	#define SCOPE_CYCLE_COUNTER_GUARD {const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope.";}
+#else
+	#define SCOPE_CYCLE_COUNTER_GUARD
+#endif // UE_BUILD_DEBUG
 
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId) \
+	SCOPE_CYCLE_COUNTER_GUARD \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(StatId) \
 	FScopeCycleCounter CycleCount_##StatId(GET_STATID(StatId));
 
 #define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
+	SCOPE_CYCLE_COUNTER_GUARD \
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Stat),Stat,STATGROUP_Quick)
 
 #define SCOPE_CYCLE_COUNTER(Stat) \
+	SCOPE_CYCLE_COUNTER_GUARD \
 	FScopeCycleCounter CycleCount_##Stat(GET_STATID(Stat));
 
 #define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition) \
+	SCOPE_CYCLE_COUNTER_GUARD \
 	FScopeCycleCounter CycleCount_##Stat(bCondition ? GET_STATID(Stat) : TStatId());
 
 
@@ -1564,6 +1650,7 @@ DECLARE_STATS_GROUP(TEXT("Memory Allocator"),STATGROUP_MemoryAllocator, STATCAT_
 DECLARE_STATS_GROUP(TEXT("Memory Platform"),STATGROUP_MemoryPlatform, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Memory StaticMesh"),STATGROUP_MemoryStaticMesh, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Mesh Particles"),STATGROUP_MeshParticles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Metal"),STATGROUP_MetalRHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Morph"),STATGROUP_MorphTarget, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net, STATCAT_Advanced);

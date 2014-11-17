@@ -101,8 +101,17 @@ bool FOpenGLES2::bSupportsShaderTextureCubeLod = true;
 /** GL_APPLE_copy_texture_levels */
 bool FOpenGLES2::bSupportsCopyTextureLevels = false;
 
+/** GL_OES_texture_npot */
+bool FOpenGLES2::bSupportsTextureNPOT = true;
+
 /** GL_EXT_texture_storage */
 bool FOpenGLES2::bSupportsTextureStorageEXT = false;
+
+/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */
+bool FOpenGLES2::bRequiresDontEmitPrecisionForTextureSamplers = false;
+
+/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
+bool FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 
 
 bool FOpenGLES2::SupportsDisjointTimeQueries()
@@ -168,6 +177,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsShaderTextureLod = ExtensionsString.Contains(TEXT("GL_EXT_shader_texture_lod"));
 	bSupportsTextureStorageEXT = ExtensionsString.Contains(TEXT("GL_EXT_texture_storage"));
 	bSupportsCopyTextureLevels = bSupportsTextureStorageEXT && ExtensionsString.Contains(TEXT("GL_APPLE_copy_texture_levels"));
+	bSupportsTextureNPOT = ExtensionsString.Contains(TEXT("GL_OES_texture_npot")) || ExtensionsString.Contains(TEXT("GL_ARB_texture_non_power_of_two"));
 
 	// Report shader precision
 	int Range[2];

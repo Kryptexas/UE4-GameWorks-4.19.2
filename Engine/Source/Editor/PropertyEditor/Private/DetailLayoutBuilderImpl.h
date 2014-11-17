@@ -6,19 +6,21 @@ class FDetailCategoryImpl;
 class FDetailLayoutBuilderImpl : public IDetailLayoutBuilder, public TSharedFromThis<FDetailLayoutBuilderImpl>
 {
 public:
-	FDetailLayoutBuilderImpl( FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< SDetailsView >& InDetailsView );
+	FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView);
 
 	/** IDetailLayoutBuilder Interface */
-	virtual const IDetailsView& GetDetailsView() const OVERRIDE;
-	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const OVERRIDE;
+	virtual const IDetailsView& GetDetailsView() const override;
+	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const override;
 	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FString& NewLocalizedDisplayName = TEXT(""), ECategoryPriority::Type CategoryType = ECategoryPriority::Default );
-	virtual TSharedRef<IPropertyHandle> GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName ) OVERRIDE;
-	virtual void HideProperty( const TSharedPtr<IPropertyHandle> Property ) OVERRIDE;
-	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) OVERRIDE;
-	virtual void ForceRefreshDetails() OVERRIDE;
-	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
-	
-	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const OVERRIDE; 
+	virtual TSharedRef<IPropertyHandle> GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName ) override;
+	virtual void HideProperty( const TSharedPtr<IPropertyHandle> Property ) override;
+	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) override;
+	virtual void ForceRefreshDetails() override;
+	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const override;
+	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const override;
+	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
+
+	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const override; 
 
 	/**
 	 * Creates a default category. The SDetails view will generate widgets in default categories 
@@ -139,7 +141,7 @@ public:
 	void AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode );
 
 	/** @return The details view that owns this layout */
-	SDetailsView& GetDetailsView() { return DetailsView; }
+	IDetailsViewPrivate& GetDetailsView() { return DetailsView; }
 private:
 	/**
 	 * Finds a property node for the current property by searching in a fast lookup map or a path search if required
@@ -176,7 +178,7 @@ private:
 	/** The global property settings */
 	const TSharedRef< class IPropertyUtilities > PropertyDetailsUtilities;
 	/** The view where this detail customizer resides */
-	class SDetailsView& DetailsView;
+	class IDetailsViewPrivate& DetailsView;
 	/** The current class being customized */
 	UClass* CurrentCustomizationClass;
 };

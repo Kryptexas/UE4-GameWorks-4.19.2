@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightmassSwarm.cpp: Lightmass interface to swarm implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightmassSwarm.h"
 #include "CPUSolver.h"
+
 
 namespace Lightmass
 {

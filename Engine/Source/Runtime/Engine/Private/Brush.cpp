@@ -6,6 +6,8 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "Model.h"
+#include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
 
 #if WITH_EDITOR
@@ -27,11 +29,22 @@ ABrush::ABrush(const class FPostConstructInitializeProperties& PCIP)
 	
 	bHidden = true;
 	bNotForClientOrServer = false;
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 }
 
 #if WITH_EDITOR
+void ABrush::PostEditMove(bool bFinished)
+{
+	bInManipulation = !bFinished;
+
+	if( BrushComponent.IsValid() )
+	{
+		BrushComponent->ReregisterComponent();
+	}
+
+	Super::PostEditMove(bFinished);
+}
+
 void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(Brush)

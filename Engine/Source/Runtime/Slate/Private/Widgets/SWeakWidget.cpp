@@ -24,7 +24,7 @@ FVector2D SWeakWidget::ComputeDesiredSize() const
 	return FVector2D::ZeroVector;
 }
 
-void SWeakWidget::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SWeakWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// We just want to show the child that we are presenting. Always stretch it to occupy all of the space.
 	TSharedPtr<SWidget> MyContent = WeakChild.Widget.Pin();
@@ -56,7 +56,7 @@ int32 SWeakWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 		check( ArrangedChildren.Num() == 1 );
 		FArrangedWidget& TheChild = ArrangedChildren(0);
 
-		return TheChild.Widget->OnPaint( TheChild.Geometry, 
+		return TheChild.Widget->Paint( TheChild.Geometry, 
 			MyClippingRect, 
 			OutDrawElements, 
 			LayerId + 1,

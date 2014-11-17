@@ -15,11 +15,11 @@ uint ComputeAdvice(FGBufferData BufferData, float3 OriginalSceneColor)
 	float SubsurfaceLum = 0;
 	const float OneThird = 1.0f / 3.0f;
 
-	FLATTEN if(BufferData.LightingModelId != LIGHTINGMODELID_UNLIT)
+	FLATTEN if(BufferData.ShadingModelID != SHADINGMODELID_UNLIT)
 	{
-		FLATTEN if(BufferData.LightingModelId == LIGHTINGMODELID_SUBSURFACE)
+		FLATTEN if(BufferData.ShadingModelID == SHADINGMODELID_SUBSURFACE)
 		{
-			SubsurfaceLum = dot(OneThird.xxx, BufferData.SubsurfaceColor);
+			SubsurfaceLum = dot(OneThird.xxx, DecodeSubsurfaceColor(BufferData.CustomData));
 		}
 
 		float DiffuseLum = dot(OneThird.xxx, BufferData.DiffuseColor);

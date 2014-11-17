@@ -4,6 +4,7 @@
 
 #include "InterpTrackHelper.generated.h"
 
+
 UCLASS()
 class MATINEE_API UInterpTrackHelper : public UObject
 {
@@ -35,26 +36,26 @@ class MATINEE_API UInterpTrackHelper : public UObject
 	virtual void  PostCreateTrack( UInterpTrack *Track, bool bDuplicatingTrack, int32 TrackIndex ) const { }
 
 	/** Checks track-dependent criteria prior to adding a new keyframe.
-	* Responsible for any message-boxes or dialogs for selecting key-specific parameters.
-	* Optionally creates/references a key-specific data object to be used in PostCreateKeyframe.
-	*
-	* @param Track		Pointer to the currently selected track.
-	* @param KeyTime	The time that this Key becomes active.
-	* @return	Returns true if this key can be created and false if some criteria is not met (i.e. No related item selected in browser).
-	*/
+	 * Responsible for any message-boxes or dialogs for selecting key-specific parameters.
+	 * Optionally creates/references a key-specific data object to be used in PostCreateKeyframe.
+	 *
+	 * @param Track		Pointer to the currently selected track.
+	 * @param KeyTime	The time that this Key becomes active.
+	 * @return	Returns true if this key can be created and false if some criteria is not met (i.e. No related item selected in browser).
+	 */
 	virtual	bool PreCreateKeyframe( UInterpTrack *Track, float KeyTime ) const { return true; }
 
 	/** Uses the key-specific data object from PreCreateKeyframe to initialize the newly added key.
-	*
-	* @param Track		Pointer to the currently selected track.
-	* @param KeyIndex	The index of the keyframe that as just added.  This is the index returned by AddKeyframe.
-	*/
+	 *
+	 * @param Track		Pointer to the currently selected track.
+	 * @param KeyIndex	The index of the keyframe that as just added.  This is the index returned by AddKeyframe.
+	 */
 	virtual void  PostCreateKeyframe( UInterpTrack *Track, int32 KeyIndex ) const { }
 
 	/** Returns the name of the new keyframe that has been added, valid while in the process of a rename operation */
 	FName GetKeyframeAddDataName() const { return KeyframeAddDataName; }
 
 protected:
-	static FName	KeyframeAddDataName;
-};
 
+	static FName KeyframeAddDataName;
+};

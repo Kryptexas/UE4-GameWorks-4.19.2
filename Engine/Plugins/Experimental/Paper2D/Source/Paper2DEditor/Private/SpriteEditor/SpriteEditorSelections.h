@@ -12,6 +12,7 @@ public:
 	static const FName Edge;
 	static const FName Pivot;
 	static const FName Socket;
+	static const FName SourceRegion;
 private:
 	FSelectionTypes() {}
 };
@@ -78,6 +79,179 @@ inline bool operator==(const FSelectedItem& V1, const FSelectedItem& V2)
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FSpriteSelectedSourceRegion
+
+class FSpriteSelectedSourceRegion : public FSelectedItem
+{
+public:
+	int32 VertexIndex;
+	TWeakObjectPtr<UPaperSprite> SpritePtr;
+
+public:
+	FSpriteSelectedSourceRegion()
+		: FSelectedItem(FSelectionTypes::SourceRegion)
+		, VertexIndex(0)
+	{
+	}
+
+	virtual uint32 GetTypeHash() const override
+	{
+		return VertexIndex;
+	}
+
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
+	{
+		if (OtherItem.IsA(FSelectionTypes::SourceRegion))
+		{
+			const FSpriteSelectedSourceRegion& V1 = *this;
+			const FSpriteSelectedSourceRegion& V2 = *(FSpriteSelectedSourceRegion*)(&OtherItem);
+
+			return (V1.VertexIndex == V2.VertexIndex) && (V1.SpritePtr == V2.SpritePtr);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	virtual void ApplyDeltaIndexed(const FVector2D& Delta, int32 TargetVertexIndex)
+	{
+		if (UPaperSprite* Sprite = SpritePtr.Get())
+		{
+			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
+			const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+            int XAxis = 0; // -1 = min, 0 = none, 1 = max
+            int YAxis = 0; // ditto
+            
+			switch (VertexIndex)
+			{
+            case 0: // Top left
+                XAxis = -1;
+                YAxis = -1;
+                break;
+            case 1: // Top right
+                XAxis = 1;
+                YAxis = -1;
+                break;
+            case 2: // Bottom right
+                XAxis = 1;
+                YAxis = 1;
+                break;
+            case 3: // Bottom left
+                XAxis = -1;
+                YAxis = 1;
+                break;
+            case 4: // Top
+                YAxis = -1;
+                break;
+            case 5: // Right
+                XAxis = 1;
+                break;
+            case 6: // Bottom
+                YAxis = 1;
+                break;
+            case 7: // Left
+                XAxis = -1;
+                break;
+			default:
+				break;
+			}
+            
+            if (XAxis == -1)
+            {
+                float AllowedDelta = FMath::Clamp(Delta.X, -Sprite->SourceUV.X, Sprite->SourceDimension.X - 1);
+                Sprite->SourceUV.X += AllowedDelta;
+                Sprite->SourceDimension.X -= AllowedDelta;
+            }
+            else if (XAxis == 1)
+            {
+				Sprite->SourceDimension.X = FMath::Clamp(Sprite->SourceDimension.X + Delta.X, 1.0f, SourceDims.X - Sprite->SourceUV.X);
+            }
+            
+            if (YAxis == -1)
+            {
+				float AllowedDelta = FMath::Clamp(Delta.Y, -Sprite->SourceUV.Y, Sprite->SourceDimension.Y - 1);
+				Sprite->SourceUV.Y += AllowedDelta;
+				Sprite->SourceDimension.Y -= AllowedDelta;
+            }
+            else if (YAxis == 1)
+            {
+				Sprite->SourceDimension.Y = FMath::Clamp(Sprite->SourceDimension.Y + Delta.Y, 1.0f, SourceDims.Y - Sprite->SourceUV.Y);
+            }
+		}
+	}
+
+	FVector GetWorldPosIndexed(int32 TargetVertexIndex) const
+	{
+		FVector Result = FVector::ZeroVector;
+
+		if (UPaperSprite* Sprite = SpritePtr.Get())
+		{
+			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
+			const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+			FVector2D BoundsVertex = Sprite->SourceUV;
+			switch (VertexIndex)
+			{
+            case 0:
+                break;
+            case 1:
+                BoundsVertex.X += Sprite->SourceDimension.X;
+                break;
+            case 2:
+                BoundsVertex.X += Sprite->SourceDimension.X;
+                BoundsVertex.Y += Sprite->SourceDimension.Y;
+                break;
+            case 3:
+                BoundsVertex.Y += Sprite->SourceDimension.Y;
+                break;
+			case 4:
+				BoundsVertex.X += Sprite->SourceDimension.X * 0.5f;
+				break;
+			case 5:
+				BoundsVertex.X += Sprite->SourceDimension.X;
+				BoundsVertex.Y += Sprite->SourceDimension.Y * 0.5f;
+				break;
+			case 6:
+				BoundsVertex.X += Sprite->SourceDimension.X * 0.5f;
+				BoundsVertex.Y += Sprite->SourceDimension.Y;
+				break;
+			case 7:
+				BoundsVertex.Y += Sprite->SourceDimension.Y * 0.5f;
+				break;
+			default:
+				break;
+			}
+
+			const FVector PixelSpaceResult = BoundsVertex.X * PaperAxisX + (SourceDims.Y - BoundsVertex.Y) * PaperAxisY;
+			Result = PixelSpaceResult * Sprite->GetUnrealUnitsPerPixel();
+		}
+
+		return Result;
+	}
+
+	virtual void ApplyDelta(const FVector2D& Delta) override
+	{
+		ApplyDeltaIndexed(Delta, VertexIndex);
+	}
+
+	FVector GetWorldPos() const override
+	{
+		return GetWorldPosIndexed(VertexIndex);
+	}
+
+	virtual void Delete() override
+	{
+		// Cant delete anything on a bounds object
+	}
+
+		virtual void SplitEdge() override
+	{
+		// Nonsense operation on a vertex, do nothing
+	}
+};
+
+
+//////////////////////////////////////////////////////////////////////////
 // FSpriteSelectedVertex
 
 class FSpriteSelectedVertex : public FSelectedItem
@@ -99,12 +273,12 @@ public:
 	{
 	}
 
-	virtual uint32 GetTypeHash() const OVERRIDE
+	virtual uint32 GetTypeHash() const override
 	{
 		return VertexIndex + (PolygonIndex * 311) + (bRenderData ? 1063 : 0);
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Vertex))
 		{
@@ -156,7 +330,8 @@ public:
 					const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 
 					const FVector2D Result2D = Vertices[TargetVertexIndex];
-					Result = (Result2D.X * PaperAxisX) + ((SourceDims.Y - Result2D.Y) * PaperAxisY);
+					const FVector PixelSpaceResult = (Result2D.X * PaperAxisX) + ((SourceDims.Y - Result2D.Y) * PaperAxisY);
+					Result = PixelSpaceResult * Sprite->GetUnrealUnitsPerPixel();
 				}
 			}
 		}
@@ -164,17 +339,17 @@ public:
 		return Result;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		return GetWorldPosIndexed(VertexIndex);
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -197,7 +372,7 @@ public:
 		}
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a vertex, do nothing
 	}
@@ -218,7 +393,7 @@ public:
 		TypeName = FSelectionTypes::Edge;
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Edge))
 		{
@@ -233,13 +408,13 @@ public:
 		}
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 		ApplyDeltaIndexed(Delta, VertexIndex+1);
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		const FVector Pos1 = GetWorldPosIndexed(VertexIndex);
 		const FVector Pos2 = GetWorldPosIndexed(VertexIndex+1);
@@ -247,12 +422,12 @@ public:
 		return (Pos1 + Pos2) * 0.5f;
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		//@TODO: Support deleting edges
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -292,7 +467,7 @@ public:
 	{
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Socket))
 		{
@@ -308,7 +483,7 @@ public:
 	}
 
 	//@TODO: Currently sockets are in unflipped pivot space,
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -320,7 +495,7 @@ public:
 		}
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -334,12 +509,12 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		//@TODO: Support deleting edges
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a socket, do nothing
 	}

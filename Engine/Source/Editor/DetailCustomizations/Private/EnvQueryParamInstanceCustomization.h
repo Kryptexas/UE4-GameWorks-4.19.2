@@ -2,16 +2,20 @@
 
 #pragma once
 
-class FEnvQueryParamInstanceCustomization : public IStructCustomization
+#include "EnvironmentQuery/EnvQueryTypes.h"
+
+class FEnvQueryParamInstanceCustomization : public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IStructCustomization interface
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	// End IStructCustomization interface
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 
-	static TSharedRef<IStructCustomization> MakeInstance( );
+public:
+
+	// IPropertyTypeCustomization interface
+
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 protected:
 

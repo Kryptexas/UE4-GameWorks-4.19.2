@@ -117,6 +117,7 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 			ObjectReachability += TEXT("(root) ");
 		}
 		
+		CA_SUPPRESS(6011)
 		if( RefInfo.ReferencedBy->HasAnyFlags(RF_Native) )
 		{
 			ObjectReachability += TEXT("(native) ");
@@ -641,6 +642,7 @@ FReferenceChainSearch::FReferenceChainSearch( UObject* InObjectToFind, uint32 Mo
 		{
 			UObject* Obj = Referencers[i].RefChain[0].ReferencedBy;
 
+			CA_SUPPRESS(6011)
 			if (Obj->IsIn(ObjectToFind) || Obj == ObjectToFind)
 			{
 				if (bIsFirst)

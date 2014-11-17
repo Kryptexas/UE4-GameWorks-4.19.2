@@ -93,12 +93,29 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			continue;
 		}
 
-		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
-
 		if(!TargetPropertyHandle->GetProperty())
 		{
 			continue;
 		}
+
+		// if customized, do not do anything
+		if(TargetPropertyHandle->IsCustomized())
+		{
+			continue;
+		}
+		
+		// sometimes because of order of customization
+		// this gets called first for the node you'd like to customize
+		// then the above statement won't work
+		// so you can mark certain property to have meta data "CustomizeProperty"
+		// which will trigger below statement
+		if (OptionalPin.bPropertyIsCustomized)
+		{
+			continue;
+		}
+
+		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
+
 		TSharedPtr<SWidget> NameWidget; 
 		TSharedPtr<SWidget> ValueWidget;
 		FDetailWidgetRow Row;
@@ -241,13 +258,13 @@ void FAnimGraphNodeDetails::AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObjec
 }
 
 
-TSharedRef<IStructCustomization> FInputScaleBiasCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FInputScaleBiasCustomization::MakeInstance() 
 {
 	return MakeShareable(new FInputScaleBiasCustomization());
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FInputScaleBiasCustomization::CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
+void FInputScaleBiasCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	HeaderRow.NameContent()
 	[
@@ -317,7 +334,8 @@ void FInputScaleBiasCustomization::CustomizeStructHeader(TSharedRef<class IPrope
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FInputScaleBiasCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+/////////////////////////////////////////////////////
+void FInputScaleBiasCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// nothing here
 }
@@ -383,13 +401,13 @@ void FInputScaleBiasCustomization::OnMaxValueCommitted(const FText& NewText, ETe
 
 /////////////////////////////////////////////////////
 
-TSharedRef<IStructCustomization> FBoneReferenceCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FBoneReferenceCustomization::MakeInstance()
 {
 	return MakeShareable(new FBoneReferenceCustomization());
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FBoneReferenceCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
@@ -446,7 +464,7 @@ void FBoneReferenceCustomization::CustomizeStructHeader( TSharedRef<IPropertyHan
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FBoneReferenceCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// No child customisations as the properties are shown in the header
 }

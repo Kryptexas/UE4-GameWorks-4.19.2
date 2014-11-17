@@ -1,7 +1,115 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+// @todo AIModule circular dependency
+#include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 
+//----------------------------------------------------------------------//
+// FNavigationQueryFilter
+//----------------------------------------------------------------------//
+FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter& Source)
+{
+	Assign(Source);
+}
+
+FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter* Source)
+: MaxSearchNodes(DefaultMaxSearchNodes)
+{
+	if (Source != NULL)
+	{
+		Assign(*Source);
+	}
+}
+
+FNavigationQueryFilter::FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source)
+: MaxSearchNodes(DefaultMaxSearchNodes)
+{
+	if (Source.IsValid())
+	{
+		SetFilterImplementation(Source->GetImplementation());
+	}
+}
+
+FNavigationQueryFilter& FNavigationQueryFilter::operator=(const FNavigationQueryFilter& Source)
+{
+	Assign(Source);
+	return *this;
+}
+
+void FNavigationQueryFilter::Assign(const FNavigationQueryFilter& Source)
+{
+	if (Source.GetImplementation() != NULL)
+	{
+		QueryFilterImpl = Source.QueryFilterImpl;
+	}
+	MaxSearchNodes = Source.GetMaxSearchNodes();
+}
+
+TSharedPtr<FNavigationQueryFilter> FNavigationQueryFilter::GetCopy() const
+{
+	TSharedPtr<FNavigationQueryFilter> Copy = MakeShareable(new FNavigationQueryFilter());
+	Copy->QueryFilterImpl = MakeShareable(QueryFilterImpl->CreateCopy());
+	Copy->MaxSearchNodes = MaxSearchNodes;
+
+	return Copy;
+}
+
+void FNavigationQueryFilter::SetAreaCost(uint8 AreaType, float Cost)
+{
+	check(QueryFilterImpl.IsValid());
+	QueryFilterImpl->SetAreaCost(AreaType, Cost);
+}
+
+void FNavigationQueryFilter::SetFixedAreaEnteringCost(uint8 AreaType, float Cost)
+{
+	check(QueryFilterImpl.IsValid());
+	QueryFilterImpl->SetFixedAreaEnteringCost(AreaType, Cost);
+}
+
+void FNavigationQueryFilter::SetExcludedArea(uint8 AreaType)
+{
+	QueryFilterImpl->SetExcludedArea(AreaType);
+}
+
+void FNavigationQueryFilter::SetAllAreaCosts(const TArray<float>& CostArray)
+{
+	SetAllAreaCosts(CostArray.GetTypedData(), CostArray.Num());
+}
+
+void FNavigationQueryFilter::SetAllAreaCosts(const float* CostArray, const int32 Count)
+{
+	QueryFilterImpl->SetAllAreaCosts(CostArray, Count);
+}
+
+void FNavigationQueryFilter::GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const
+{
+	QueryFilterImpl->GetAllAreaCosts(CostArray, FixedCostArray, Count);
+}
+
+void FNavigationQueryFilter::SetIncludeFlags(uint16 Flags)
+{
+	QueryFilterImpl->SetIncludeFlags(Flags);
+}
+
+uint16 FNavigationQueryFilter::GetIncludeFlags() const
+{
+	return QueryFilterImpl->GetIncludeFlags();
+}
+
+void FNavigationQueryFilter::SetExcludeFlags(uint16 Flags)
+{
+	QueryFilterImpl->SetExcludeFlags(Flags);
+}
+
+uint16 FNavigationQueryFilter::GetExcludeFlags() const
+{
+	return QueryFilterImpl->GetExcludeFlags();
+}
+
+//----------------------------------------------------------------------//
+// UNavigationQueryFilter
+//----------------------------------------------------------------------//
 UNavigationQueryFilter::UNavigationQueryFilter(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	IncludeFlags.Packed = 0xffff;
@@ -64,12 +172,6 @@ void UNavigationQueryFilter::InitializeFilter(const ANavigationData* NavData, FN
 	Filter->SetExcludeFlags(ExcludeFlags.Packed);
 }
 
-TSharedPtr<const struct FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const AAIController* AI, UClass* FilterClass)
-{
-	const ANavigationData* NavData = AI && AI->NavComponent ? AI->NavComponent->GetNavData() : NULL;
-	return GetQueryFilter(NavData, FilterClass);
-}
-
 TSharedPtr<const struct FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass)
 {
 	UNavigationQueryFilter* DefFilterOb = FilterClass ? FilterClass->GetDefaultObject<UNavigationQueryFilter>() : NULL;
@@ -106,7 +208,7 @@ void UNavigationQueryFilter::AddEnteringCostOverride(TSubclassOf<class UNavArea>
 	Areas[Idx].EnteringCostOverride = EnteringCost;
 }
 
-void UNavigationQueryFilter::AdExcludedArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavigationQueryFilter::AddExcludedArea(TSubclassOf<class UNavArea> AreaClass)
 {
 	int32 Idx = FindAreaOverride(AreaClass);
 	if (Idx == INDEX_NONE)
@@ -139,10 +241,9 @@ void UNavigationQueryFilter::PostEditChangeProperty(struct FPropertyChangedEvent
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	// remove cached filter settings from existing NavigationSystems
-	const TArray<FWorldContext>& Worlds = GEngine->GetWorldContexts();
-	for (int32 i = 0; i < Worlds.Num(); i++)
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Worlds[i].World());
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 		if (NavSys)
 		{
 			NavSys->ResetCachedFilter(GetClass());

@@ -43,11 +43,11 @@
 {
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
-		return [self frame];
+		return (!bDeferSetFrame ? [self frame] : DeferFrame);
 	}
 	else
 	{
-		return [[self contentView] frame];
+		return (!bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:DeferFrame]);
 	}
 }
 
@@ -103,7 +103,7 @@
 				DeferFrame.size = [self frame].size;
 			}
 			
-			[super setFrame:DeferFrame display:NO];
+			[super setFrame:DeferFrame display:YES];
 		};
 		
 		if([NSThread isMainThread])
@@ -337,6 +337,10 @@
 	{
 		bDeferSetFrame = true;
 		DeferFrame = FrameRect;
+		if(self.bForwardEvents)
+		{
+			MacApplication->OnWindowDidResize( self );
+		}
 	}
 }
 
@@ -544,22 +548,22 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	if(self.bForwardEvents)
-	{
-		MacApplication->AddPendingEvent( Event );
-	}
-	
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
 	if([self canBecomeKeyWindow])
 	{
 		[self makeKeyWindow];
+	}
+
+	if(self.bForwardEvents)
+	{
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -567,7 +571,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -575,7 +579,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -583,7 +587,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -591,7 +595,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -675,32 +679,32 @@
 
 - (void)mouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)otherMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)mouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)rightMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)otherMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 @end
@@ -1043,8 +1047,7 @@ void FMacWindow::Show()
 			bool isMainAndKey = false;
 			do
 			{
-				OwningApplication->PumpMessages(0.f);
-				OwningApplication->ProcessDeferredEvents(0.f);
+				FPlatformMisc::PumpMessages(true);
 				bIsVisible = [WindowHandle isVisible];
 				isMainAndKey = [WindowHandle isKeyWindow];
 			} while(!bIsVisible && isMainAndKey != bMakeMainAndKey);
@@ -1090,8 +1093,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		// and OpenGL contexts due to bad event ordering.
 		do
 		{
-			OwningApplication->PumpMessages(0.f);
-			OwningApplication->ProcessDeferredEvents(0.f);
+			FPlatformMisc::PumpMessages(true);
 			WindowIsFullScreen = [WindowHandle windowMode] != EWindowMode::Windowed;
 		} while(WindowIsFullScreen != bMakeFullscreen);
 		
@@ -1110,9 +1112,14 @@ bool FMacWindow::IsMaximized() const
 	return WindowHandle->bZoomed;
 }
 
+bool FMacWindow::IsMinimized() const
+{
+	return [WindowHandle isMiniaturized];
+}
+
 bool FMacWindow::IsVisible() const
 {
-	return bIsVisible;
+	return bIsVisible && [NSApp isHidden] == false;
 }
 
 bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& Height)

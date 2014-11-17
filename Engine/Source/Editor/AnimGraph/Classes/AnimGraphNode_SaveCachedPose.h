@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_SaveCachedPose.h"
 #include "AnimGraphNode_SaveCachedPose.generated.h"
 
 UCLASS(MinimalAPI)
@@ -16,16 +17,15 @@ class UAnimGraphNode_SaveCachedPose : public UAnimGraphNode_Base
 	FString CacheName;
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void OnRenameNode(const FString& NewName) override;
+	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	virtual bool IsSinkNode() const OVERRIDE { return true; }
+	virtual FString GetNodeCategory() const override;
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual bool IsSinkNode() const override { return true; }
 	// End of UAnimGraphNode_Base interface
 };

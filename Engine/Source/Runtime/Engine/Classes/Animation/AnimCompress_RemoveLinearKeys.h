@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_RemoveLinearKeys.generated.h"
 
 UCLASS(MinimalAPI)
@@ -72,7 +73,7 @@ class UAnimCompress_RemoveLinearKeys : public UAnimCompress
 
 protected:
 	// Begin UAnimCompress Interface
-	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) OVERRIDE;
+	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	// Begin UAnimCompress Interface
 
 	/**

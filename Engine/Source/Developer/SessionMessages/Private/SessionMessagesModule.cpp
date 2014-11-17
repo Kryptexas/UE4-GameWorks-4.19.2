@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionMessagesModule.cpp: Implements the FSessionMessagesModule class.
-=============================================================================*/
-
 #include "SessionMessagesPrivatePCH.h"
-
 
 
 /**
@@ -16,18 +11,15 @@ class FSessionMessagesModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
+	virtual void ShutdownModule( ) override { }
 
-	virtual void ShutdownModule( ) OVERRIDE { }
-
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 };
 
 

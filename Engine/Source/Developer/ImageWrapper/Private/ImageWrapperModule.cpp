@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImageWrapperModule.cpp: Implements the FImageWrapperModule class.
-=============================================================================*/
-
 #include "ImageWrapperPrivatePCH.h"
 
 
@@ -18,9 +14,9 @@ class FImageWrapperModule
 {
 public:
 
-	// Begin IImageWrapperModule interface
+	// IImageWrapperModule interface
 
-	virtual IImageWrapperPtr CreateImageWrapper( const EImageFormat::Type InFormat )
+	virtual IImageWrapperPtr CreateImageWrapper( const EImageFormat::Type InFormat ) override
 	{
 		FImageWrapperBase* ImageWrapper = NULL;
 
@@ -35,6 +31,9 @@ public:
 #if WITH_UNREALJPEG
 		case EImageFormat::JPEG:
 			ImageWrapper = new FJpegImageWrapper();
+			break;
+		case EImageFormat::GrayscaleJPEG:
+			ImageWrapper = new FJpegImageWrapper(1);
 			break;
 #endif	//WITH_UNREALJPEG
 
@@ -53,18 +52,12 @@ public:
 		return MakeShareable(ImageWrapper);
 	}
 
-	// End IImageWrapperModule interface
-
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE { }
-
-	virtual void ShutdownModule( ) OVERRIDE { }
-
-	// End IModuleInterface interface
+	virtual void StartupModule( ) override { }
+	virtual void ShutdownModule( ) override { }
 };
 
 

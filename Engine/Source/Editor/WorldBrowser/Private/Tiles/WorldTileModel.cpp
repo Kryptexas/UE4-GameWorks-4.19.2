@@ -8,6 +8,9 @@
 #include "WorldTileCollectionModel.h"
 #include "WorldTileModel.h"
 
+#include "Engine/WorldComposition.h"
+#include "Landscape/Landscape.h"
+
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 DEFINE_LOG_CATEGORY_STATIC(WorldBrowser, Log, All);
 
@@ -31,7 +34,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	// Subscribe to tile properties changes
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
 	TileDetails->ParentPackageNameChangedEvent.AddRaw(this, &FWorldTileModel::OnParentPackageNamePropertyChanged);
-	TileDetails->StreamingLevelsChangedEvent.AddRaw(this, &FWorldTileModel::OnStreamingLevelsPropertyChanged);
 	TileDetails->LODSettingsChangedEvent.AddRaw(this, &FWorldTileModel::OnLODSettingsPropertyChanged);
 	TileDetails->ZOrderChangedEvent.AddRaw(this, &FWorldTileModel::OnZOrderPropertyChanged);
 			
@@ -41,7 +43,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 		FWorldCompositionTile& Tile = WorldComposition->GetTilesList()[TileIdx];
 		
 		TileDetails->SetInfo(Tile.Info);
-		TileDetails->SyncStreamingLevels(*this);
 		TileDetails->PackageName = Tile.PackageName;
 		TileDetails->bPersistentLevel = false;
 				
@@ -82,7 +83,6 @@ FWorldTileModel::~FWorldTileModel()
 	{
 		TileDetails->PositionChangedEvent.RemoveAll(this);
 		TileDetails->ParentPackageNameChangedEvent.RemoveAll(this);
-		TileDetails->StreamingLevelsChangedEvent.RemoveAll(this);
 		
 		TileDetails->RemoveFromRoot();
 		TileDetails->MarkPendingKill();
@@ -193,35 +193,6 @@ bool FWorldTileModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 	return true;
 }
 
-void FWorldTileModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const
-{
-	typedef TPair<TAttribute<FText>, TAttribute<FText>>	FTooltipField;
-
-	// Position
-	FTooltipField PositionField;
-	PositionField.Key				= LOCTEXT("Item_OriginOffset", "Position:");
-	PositionField.Value				= TAttribute<FText>(this, &FWorldTileModel::GetPositionText);
-	CustomFields.Add(PositionField);
-
-	// Bounds extent
-	FTooltipField BoundsExtentField;
-	BoundsExtentField.Key			= LOCTEXT("Item_BoundsExtent", "Extent:");
-	BoundsExtentField.Value			= TAttribute<FText>(this, &FWorldTileModel::GetBoundsExtentText);
-	CustomFields.Add(BoundsExtentField);
-
-	// Layer name
-	FTooltipField LayerNameField;
-	LayerNameField.Key				= LOCTEXT("Item_Name", "Layer Name:");
-	LayerNameField.Value			= TAttribute<FText>(this, &FWorldTileModel::GetLevelLayerNameText);
-	CustomFields.Add(LayerNameField);
-	
-	// Streaming distance
-	FTooltipField StreamingDistanceField;
-	StreamingDistanceField.Key		= LOCTEXT("Item_Distance", "Streaming Distance:");
-	StreamingDistanceField.Value	= TAttribute<FText>(this, &FWorldTileModel::GetLevelLayerDistanceText);
-	CustomFields.Add(StreamingDistanceField);
-}
-
 bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 {
 	if (IsRootTile())
@@ -229,6 +200,18 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 		return true;
 	}
 
+	// Visibility does not depend on level positions when world origin rebasing is disabled
+	if (!LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	{
+		return true;
+	}
+
+	// When this hack is activated level should be visible regardless of current world origin
+	if (LevelCollectionModel.GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
+	{
+		return true;
+	}
+	
 	FBox LevelBBox = GetLevelBounds();
 
 	// Visible if level has no valid bounds
@@ -303,7 +286,7 @@ bool FWorldTileModel::IsShelved() const
 
 void FWorldTileModel::Shelve()
 {
-	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile())
+	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile() || !LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		return;
 	}
@@ -330,6 +313,26 @@ bool FWorldTileModel::IsLandscapeBased() const
 	return Landscape.IsValid();
 }
 
+bool FWorldTileModel::IsTiledLandscapeBased() const
+{
+	if (IsLandscapeBased() && !GetLandscape()->ReimportHeightmapFilePath.IsEmpty())
+	{
+		// Check if single landscape actor resolution matches heightmap file size
+		IFileManager& FileManager = IFileManager::Get();
+		const int64 ImportFileSize = FileManager.FileSize(*GetLandscape()->ReimportHeightmapFilePath);
+		
+		FIntRect ComponentsRect = GetLandscape()->GetBoundingRect();
+		int64 LandscapeSamples	= (int64)(ComponentsRect.Width()+1)*(ComponentsRect.Height()+1);
+		// Height samples are 2 bytes wide
+		if (LandscapeSamples*2 == ImportFileSize)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FWorldTileModel::IsLandscapeProxy() const
 {
 	return (Landscape.IsValid() && !Landscape.Get()->IsA(ALandscape::StaticClass()));
@@ -345,36 +348,9 @@ bool FWorldTileModel::IsInLayersList(const TArray<FWorldTileLayer>& InLayerList)
 	return true;
 }
 
-ALandscapeProxy* FWorldTileModel::GetLandcape() const
+ALandscapeProxy* FWorldTileModel::GetLandscape() const
 {
 	return Landscape.Get();
-}
-
-void FWorldTileModel::AddStreamingLevel(UClass* InStreamingClass, const FName& InPackageName)
-{
-	if (LevelCollectionModel.IsReadOnly() || !IsEditable() || IsRootTile())
-	{
-		return;
-	}
-
-	UWorld* LevelWorld = CastChecked<UWorld>(GetLevelObject()->GetOuter());
-	// check uniqueness 
-	if (LevelWorld->StreamingLevels.FindMatch(ULevelStreaming::FPackageNameMatcher(InPackageName)) != INDEX_NONE)
-	{
-		return;
-	}
-		
-	ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>(StaticConstructObject(InStreamingClass, LevelWorld, NAME_None, RF_NoFlags, NULL));
-	// Associate a package name.
-	StreamingLevel->PackageName			= InPackageName;
-	// Seed the level's draw color.
-	StreamingLevel->DrawColor			= FColor::MakeRandomColor();
-	StreamingLevel->LevelTransform		= FTransform::Identity;
-	StreamingLevel->PackageNameToLoad	= InPackageName;
-
-	// Add the streaming level to level's world
-	LevelWorld->StreamingLevels.Add(StreamingLevel);
-	LevelWorld->GetOutermost()->MarkPackageDirty();
 }
 
 void FWorldTileModel::AssignToLayer(const FWorldTileLayer& InLayer)
@@ -517,36 +493,28 @@ void FWorldTileModel::Update()
 		// Receive tile info from world composition
 		FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
 		TileDetails->SetInfo(Info);
-		TileDetails->SyncStreamingLevels(*this);
-	
+			
 		ULevel* Level = GetLevelObject();
-		if (Level == NULL)
-		{
-
-		}
-		else 
+		if (Level != nullptr && Level->bIsVisible)
 		{
 			if (Level->LevelBoundsActor.IsValid())
 			{
 				TileDetails->Bounds = Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
 			}
-
-			if (Level->bIsVisible)
+								
+			// True level bounds without offsets applied
+			if (TileDetails->Bounds.IsValid)
 			{
-				// True level bounds without offsets applied
-				if (TileDetails->Bounds.IsValid)
-				{
-					FBox LevelWorldBounds = TileDetails->Bounds;
-					FIntPoint GlobalOriginOffset = LevelCollectionModel.GetWorld()->GlobalOriginOffset;
-					FIntPoint LevelAbolutePosition = GetAbsoluteLevelPosition();
-					FIntPoint LevelOffset = LevelAbolutePosition - GlobalOriginOffset;
+				FBox LevelWorldBounds = TileDetails->Bounds;
+				FIntPoint GlobalOriginOffset = LevelCollectionModel.GetWorld()->GlobalOriginOffset;
+				FIntPoint LevelAbolutePosition = GetAbsoluteLevelPosition();
+				FIntPoint LevelOffset = LevelAbolutePosition - GlobalOriginOffset;
 
-					TileDetails->Bounds = LevelWorldBounds.ShiftBy(-FVector(LevelOffset, 0.f));
-				}
-
-				OnLevelInfoUpdated();
+				TileDetails->Bounds = LevelWorldBounds.ShiftBy(-FVector(LevelOffset, 0.f));
 			}
-		
+
+			OnLevelInfoUpdated();
+
 			// Cache landscape information
 			for (int32 ActorIndex = 0; ActorIndex < Level->Actors.Num() ; ++ActorIndex)
 			{
@@ -685,26 +653,6 @@ void FWorldTileModel::EnsureLevelHasBoundsActor()
 	}
 }
 
-void FWorldTileModel::FixupStreamingObjects()
-{
-	check(LoadedLevel != NULL);
-
-	// Remove streaming levels that is not part of our world
-	UWorld* LevelWorld = CastChecked<UWorld>(LoadedLevel->GetOuter());
-	for(int32 LevelIndex = LevelWorld->StreamingLevels.Num() - 1; LevelIndex >= 0; --LevelIndex)
-	{
-		FName StreamingPackageName = LevelWorld->StreamingLevels[LevelIndex]->PackageName;
-		TSharedPtr<FLevelModel> LevelModel = LevelCollectionModel.FindLevelModel(StreamingPackageName);
-		if (!LevelModel.IsValid())
-		{
-			LevelWorld->StreamingLevels.RemoveAt(LevelIndex);
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("LevelName"), FText::FromName(StreamingPackageName));
-			FMessageLog("MapCheck").Warning(FText::Format( LOCTEXT("MapCheck_Message_InvalidStreamingLevel", "Streaming level '{LevelName}' is not under the current world root. Fixed by removing from streaming list."), Arguments ) );
-		}
-	}
-}
-
 void FWorldTileModel::SortRecursive()
 {
 	AllChildren.Sort(FCompareByLongPackageName());
@@ -767,31 +715,6 @@ void FWorldTileModel::OnParentPackageNamePropertyChanged()
 	TileDetails->ParentPackageName = FName(*Info.ParentTilePackageName);
 }
 
-void FWorldTileModel::OnStreamingLevelsPropertyChanged()
-{
-	ULevel* Level = GetLevelObject();
-	if (Level == NULL)
-	{
-		TileDetails->StreamingLevels.Empty();
-		return;
-	}
-	
-	// Delete all streaming levels from the world objects
-	CastChecked<UWorld>(Level->GetOuter())->StreamingLevels.Empty();
-
-	// Recreate streaming levels using settings stored in the tile details
-	for (auto It = TileDetails->StreamingLevels.CreateIterator(); It; ++It)
-	{
-		FTileStreamingLevelDetails& StreamingLevelDetails = (*It);
-		FName PackageName = StreamingLevelDetails.PackageName;
-		if (PackageName != NAME_None && FPackageName::DoesPackageExist(PackageName.ToString()))
-		{
-			UClass* StreamingClass = FTileStreamingLevelDetails::StreamingMode2Class(StreamingLevelDetails.StreamingMode);
-			AddStreamingLevel(StreamingClass, PackageName);
-		}
-	}
-}
-
 void FWorldTileModel::OnLODSettingsPropertyChanged()
 {
 	OnLevelInfoUpdated();
@@ -800,28 +723,6 @@ void FWorldTileModel::OnLODSettingsPropertyChanged()
 void FWorldTileModel::OnZOrderPropertyChanged()
 {
 	OnLevelInfoUpdated();
-}
-
-FText FWorldTileModel::GetPositionText() const
-{
-	FIntPoint Position = GetRelativeLevelPosition();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), Position.X, Position.Y));
-}
-
-FText FWorldTileModel::GetBoundsExtentText() const
-{
-	FVector2D Size = GetLevelSize2D();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(Size.X*0.5f), FMath::RoundToInt(Size.Y*0.5f)));
-}
-
-FText FWorldTileModel::GetLevelLayerNameText() const
-{
-	return FText::FromString(TileDetails->Layer.Name);
-}
-
-FText FWorldTileModel::GetLevelLayerDistanceText() const
-{
-	return FText::AsNumber(TileDetails->Layer.StreamingDistance);
 }
 
 bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere)
@@ -905,28 +806,28 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		return nullptr;
 	}
 	
-	ALandscapeProxy*	Landscape;
+	ALandscapeProxy*	LandscapeProxy;
 	FGuid				LandscapeGuid = Settings.LandscapeGuid;
 	
 	if (LandscapeGuid.IsValid())
 	{
-		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
+		LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
 	}
 	else
 	{
-		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
+		LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
 		LandscapeGuid = FGuid::NewGuid();
 	}
 	
-	Landscape->SetActorTransform(Settings.LandscapeTransform);
+	LandscapeProxy->SetActorTransform(Settings.LandscapeTransform);
 	
 	if (Settings.LandscapeMaterial)
 	{
-		Landscape->LandscapeMaterial = Settings.LandscapeMaterial;
+		LandscapeProxy->LandscapeMaterial = Settings.LandscapeMaterial;
 	}
 	
 	// Create landscape components	
-	Landscape->Import(
+	LandscapeProxy->Import(
 		LandscapeGuid, 
 		Settings.SizeX, 
 		Settings.SizeY, 
@@ -937,7 +838,7 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		*Settings.HeightmapFilename, 
 		Settings.ImportLayers);
 
-	return Landscape;
+	return LandscapeProxy;
 }
 
 #undef LOCTEXT_NAMESPACE

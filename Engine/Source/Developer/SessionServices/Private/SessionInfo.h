@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionInfo.h: Declares the FSessionInfo class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -19,8 +15,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSessionId - The session's identifier.
-	 * @param InMessageBus - The message bus to use.
+	 * @param InSessionId The session's identifier.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FSessionInfo( const FGuid& InSessionId, const IMessageBusRef& InMessageBus )
 		: MessageBusPtr(InMessageBus)
@@ -32,8 +28,8 @@ public:
 	/**
 	 * Updates this session info with the data in the specified message.
 	 *
-	 * @param Message - The message containing engine information.
-	 * @param Context - The message context.
+	 * @param Message The message containing engine information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FEngineServicePong& Message, const IMessageContextRef& Context )
 	{
@@ -63,8 +59,8 @@ public:
 	/**
 	 * Updates this session info with the data in the specified message.
 	 *
-	 * @param Message - The message containing session information.
-	 * @param Context - The message context.
+	 * @param Message The message containing session information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FSessionServicePong& Message, const IMessageContextRef& Context )
 	{
@@ -108,9 +104,9 @@ public:
 
 public:	
 
-	// Begin SessionInfo interface
+	// SessionInfo interface
 
-	virtual void GetInstances( TArray<ISessionInstanceInfoPtr>& OutInstances ) const OVERRIDE
+	virtual void GetInstances( TArray<ISessionInstanceInfoPtr>& OutInstances ) const override
 	{
 		OutInstances.Empty();
 
@@ -120,55 +116,53 @@ public:
 		}
 	}
 
-	virtual FDateTime GetLastUpdateTime( ) OVERRIDE
+	virtual FDateTime GetLastUpdateTime( ) override
 	{
 		return LastUpdateTime;
 	}
 
-	virtual const int32 GetNumInstances( ) const OVERRIDE
+	virtual const int32 GetNumInstances( ) const override
 	{
 		return Instances.Num();
 	}
 
-	virtual const FGuid& GetSessionId( ) const OVERRIDE
+	virtual const FGuid& GetSessionId( ) const override
 	{
 		return SessionId;
 	}
 
-	virtual const FString& GetSessionName( ) const OVERRIDE
+	virtual const FString& GetSessionName( ) const override
 	{
 		return SessionName;
 	}
 
-	virtual const FString& GetSessionOwner( ) const OVERRIDE
+	virtual const FString& GetSessionOwner( ) const override
 	{
 		return SessionOwner;
 	}
 
-	virtual const bool IsStandalone( ) const OVERRIDE
+	virtual const bool IsStandalone( ) const override
 	{
 		return Standalone;
 	}
 
-	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered( ) OVERRIDE
+	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered( ) override
 	{
 		return InstanceDiscoveredDelegate;
 	}
 
-	virtual FOnSessionLogReceived& OnLogReceived( ) OVERRIDE
+	virtual FOnSessionLogReceived& OnLogReceived( ) override
 	{
 		return LogReceivedDelegate;
 	}
 
-	virtual void Terminate( ) OVERRIDE
+	virtual void Terminate( ) override
 	{
 		for (TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo> >::TIterator It(Instances); It; ++It)
 		{
 			It.Value()->Terminate();
 		}
 	}
-
-	// End SessionInfo interface
 
 private:
 
@@ -181,7 +175,7 @@ private:
 private:
 
 	// Holds the list of engine instances that belong to this session.
-	TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo> > Instances;
+	TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo>> Instances;
 
 	// Holds the time at which the last pong was received.
 	FDateTime LastUpdateTime;

@@ -17,7 +17,6 @@ public class EditorStyle : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"SlateCore",
-				"TargetPlatform",
 			}
 		);
 
@@ -26,6 +25,20 @@ public class EditorStyle : ModuleRules
 				"Settings",
 			}
 		);
+
+		// DesktopPlatform is only available for Editor and Program targets (running on a desktop platform)
+		bool IsDesktopPlatformType = Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Win32
+			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64
+			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac
+			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Linux;
+		if (Target.Type == TargetRules.TargetType.Editor || (Target.Type == TargetRules.TargetType.Program && IsDesktopPlatformType))
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"DesktopPlatform",
+				}
+			);
+		}
 
 		OptimizeCode = CodeOptimization.Never;
 	}

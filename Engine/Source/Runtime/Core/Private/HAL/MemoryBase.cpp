@@ -67,9 +67,9 @@ void FMalloc::UpdateStats()
 void FMalloc::GetAllocatorStats( FGenericMemoryStats& out_Stats )
 {
 #if	STATS
-	out_Stats.Add( GET_STATFNAME( STAT_MallocCalls ), GetCurrentFrameCalls().MallocCalls );
-	out_Stats.Add( GET_STATFNAME( STAT_ReallocCalls ), GetCurrentFrameCalls().ReallocCalls );
-	out_Stats.Add( GET_STATFNAME( STAT_FreeCalls ), GetCurrentFrameCalls().FreeCalls );
-	out_Stats.Add( GET_STATFNAME( STAT_TotalAllocatorCalls ), GetCurrentFrameCalls().AllocatorCalls );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_MallocCalls ), GetCurrentFrameCalls().MallocCalls );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_ReallocCalls ), GetCurrentFrameCalls().ReallocCalls );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_FreeCalls ), GetCurrentFrameCalls().FreeCalls );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_TotalAllocatorCalls ), GetCurrentFrameCalls().AllocatorCalls );
 #endif // STATS
 }

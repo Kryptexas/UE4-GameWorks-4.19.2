@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
@@ -18,13 +14,14 @@
 #include "UProjectInfo.h"
 
 #if UE_ENABLE_ICU
-#include <unicode/locid.h>
+	#include <unicode/locid.h>
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);
 
 /** Holds an override path if a program has special needs */
 FString OverrideGameDir;
+
 
 /* EBuildConfigurations interface
  *****************************************************************************/
@@ -56,7 +53,6 @@ namespace EBuildConfigurations
 
 		return Unknown;
 	}
-
 
 	const TCHAR* ToString( EBuildConfigurations::Type Configuration )
 	{
@@ -131,7 +127,6 @@ namespace EBuildTargets
 		return Unknown;
 	}
 
-
 	const TCHAR* ToString( EBuildTargets::Type Target )
 	{
 		switch (Target)
@@ -154,10 +149,12 @@ namespace EBuildTargets
 
 /* FGenericPlatformMisc interface
  *****************************************************************************/
+
 #if !UE_BUILD_SHIPPING
 	bool FGenericPlatformMisc::bShouldPromptForRemoteDebugging = false;
 	bool FGenericPlatformMisc::bPromptForRemoteDebugOnEnsure = false;
 #endif	//#if !UE_BUILD_SHIPPING
+
 
 GenericApplication* FGenericPlatformMisc::CreateApplication()
 {
@@ -195,6 +192,43 @@ void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 	UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
 }
 
+
+FString FGenericPlatformMisc::GetCPUVendor()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericCPUVendor" ) );
+}
+
+FString FGenericPlatformMisc::GetCPUBrand()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericCPUBrand" ) );
+}
+
+
+FString FGenericPlatformMisc::GetPrimaryGPUBrand()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericGPUBrand" ) );
+}
+
+void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	out_OSVersionLabel = FString( TEXT( "GenericOSVersionLabel" ) );
+	out_OSSubVersionLabel = FString( TEXT( "GenericOSSubVersionLabel" ) );
+}
+
+
+bool FGenericPlatformMisc::GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes )
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	TotalNumberOfBytes = 0;
+	NumberOfFreeBytes = 0;
+	return false;
+}
+
+
 void FGenericPlatformMisc::MemoryBarrier()
 {
 }
@@ -204,9 +238,52 @@ void FGenericPlatformMisc::HandleIOFailure( const TCHAR* Filename )
 	UE_LOG(LogGenericPlatformMisc, Fatal,TEXT("I/O failure operating on '%s'"), Filename ? Filename : TEXT("Unknown file"));
 }
 
-bool FGenericPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
+bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
 {
-	// By default, fail.
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	// This assumes that FPlatformProcess::ApplicationSettingsDir() returns a user-specific directory; it doesn't on Windows, but Windows overrides this behavior to use the registry
+	const FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / FString(TEXT("KeyValueStore.ini"));
+		
+	FConfigFile ConfigFile;
+	ConfigFile.Read(ConfigPath);
+
+	FConfigSection& Section = ConfigFile.FindOrAdd(InSectionName);
+
+	FString& KeyValue = Section.FindOrAdd(*InKeyName);
+	KeyValue = InValue;
+
+	ConfigFile.Dirty = true;
+	ConfigFile.Write(ConfigPath);
+
+	return true;
+}
+
+bool FGenericPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	// This assumes that FPlatformProcess::ApplicationSettingsDir() returns a user-specific directory; it doesn't on Windows, but Windows overrides this behavior to use the registry
+	const FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / FString(TEXT("KeyValueStore.ini"));
+		
+	FConfigFile ConfigFile;
+	ConfigFile.Read(ConfigPath);
+
+	const FConfigSection* const Section = ConfigFile.Find(InSectionName);
+	if(Section)
+	{
+		const FString* const KeyValue = Section->Find(*InKeyName);
+		if(KeyValue)
+		{
+			OutValue = *KeyValue;
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -678,4 +755,9 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 FText FGenericPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
+}
+
+bool FGenericPlatformMisc::IsRunningOnBattery()
+{
+	return false;
 }

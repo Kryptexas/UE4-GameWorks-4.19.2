@@ -4,6 +4,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "EngineUtils.h"
+#include "Engine/Console.h"
 
 #include "DiagnosticTable.h"
 #include "TargetPlatform.h"
@@ -14,7 +15,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngineUtils, Log, All);
 IMPLEMENT_HIT_PROXY(HActor,HHitProxy)
 IMPLEMENT_HIT_PROXY(HBSPBrushVert,HHitProxy);
 IMPLEMENT_HIT_PROXY(HStaticMeshVert,HHitProxy);
-IMPLEMENT_HIT_PROXY(HSplineProxy,HHitProxy);
 IMPLEMENT_HIT_PROXY(HTranslucentActor,HActor)
 
 
@@ -248,7 +248,7 @@ void FContentComparisonHelper::RecursiveObjectCollection(UObject* InStartObject,
 }
 #endif
 
-bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets)
+bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets, EAssetToLoad Type)
 {
 	if ( !FPackageName::IsValidLongPackageName(Path, true) )
 	{
@@ -273,7 +273,6 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 	}
 
 	// Load packages or find existing ones and fully load them
-	TSet<UPackage*> Packages;
 	for (int32 FileIdx = 0; FileIdx < Filenames.Num(); ++FileIdx)
 	{
 		const FString& Filename = Filenames[FileIdx];
@@ -291,33 +290,41 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 
 		if (Package)
 		{
-			Packages.Add(Package);
-		}
-	}
-
-	// If any packages were successfully loaded, find all assets that were in the packages and add them to OutAssets
-	if ( Packages.Num() > 0 )
-	{
-		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
-		{
-			if ( Packages.Contains(ObjIt->GetOutermost()) && ObjIt->IsAsset() )
+			TArray<UObject*> ObjectsInPackage;
+			GetObjectsWithOuter(Package, ObjectsInPackage);
+			for (UObject* Object : ObjectsInPackage)
 			{
-				OutAssets.Add(*ObjIt);
+				const bool bWantedType = 
+					((EAssetToLoad::ATL_Regular == Type) && Object->IsAsset()) ||
+					((EAssetToLoad::ATL_Class == Type) && Object->IsA<UClass>());
+				if (bWantedType)
+				{
+					OutAssets.Add(Object);
+				}
 			}
 		}
 	}
-
 	return true;
 }
 
-
-/** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
-void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName )
+TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* World )
 {
+	TArray<FSubLevelStatus> Result;
 	FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(World);
 
+	Result.Reserve(World->StreamingLevels.Num() + 1);
+	
+	// Add persistent level
+	{
+		FSubLevelStatus LevelStatus = {};
+		LevelStatus.PackageName = World->GetOutermost()->GetFName();
+		LevelStatus.StreamingStatus = LEVEL_Visible;
+		LevelStatus.LODIndex	= INDEX_NONE;
+		Result.Add(LevelStatus);
+	}
+	
 	// Iterate over the world info's level streaming objects to find and see whether levels are loaded, visible or neither.
-	for( int32 LevelIndex=0; LevelIndex<World->StreamingLevels.Num(); LevelIndex++ )
+	for( int32 LevelIndex=0; LevelIndex < World->StreamingLevels.Num(); LevelIndex++ )
 	{
 		ULevelStreaming* LevelStreaming = World->StreamingLevels[LevelIndex];
 
@@ -326,28 +333,32 @@ void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels,
 			&&	LevelStreaming->PackageName != World->GetOutermost()->GetFName() )
 		{
 			ULevel* Level = LevelStreaming->GetLoadedLevel();
+			FSubLevelStatus LevelStatus = {};
+			LevelStatus.PackageName = LevelStreaming->PackageName;
+			LevelStatus.LODIndex	= LevelStreaming->LevelLODIndex;
+
 			if( Level != NULL )
 			{
 				if( World->ContainsLevel( Level ) == true )
 				{
 					if( World->CurrentLevelPendingVisibility == Level )
 					{
-						StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_MakingVisible );
+						LevelStatus.StreamingStatus = LEVEL_MakingVisible;
 					}
 					else
 					{
-						StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_Visible );
+						LevelStatus.StreamingStatus = LEVEL_Visible;
 					}
 				}
 				else
 				{
-					StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_Loaded );
+					LevelStatus.StreamingStatus = LEVEL_Loaded;
 				}
 			}
 			else
 			{
 				// See whether the level's world object is still around.
-				UPackage* LevelPackage	= Cast<UPackage>(StaticFindObjectFast( UPackage::StaticClass(), NULL, LevelStreaming->PackageName ));
+				UPackage* LevelPackage	= FindObjectFast<UPackage>(NULL, LevelStatus.PackageName);
 				UWorld*	  LevelWorld	= NULL;
 				if( LevelPackage )
 				{
@@ -356,17 +367,19 @@ void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels,
 
 				if( LevelWorld )
 				{
-					StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_UnloadedButStillAround );
+					LevelStatus.StreamingStatus = LEVEL_UnloadedButStillAround;
 				}
-				else if( GetAsyncLoadPercentage( *LevelStreaming->PackageName.ToString() ) >= 0 )
+				else if( GetAsyncLoadPercentage( LevelStatus.PackageName.ToString() ) >= 0 )
 				{
-					StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_Loading );
+					LevelStatus.StreamingStatus = LEVEL_Loading;
 				}
 				else
 				{
-					StreamingLevels.Add( LevelStreaming->PackageName, LEVEL_Unloaded );
+					LevelStatus.StreamingStatus = LEVEL_Unloaded;
 				}
 			}
+
+			Result.Add(LevelStatus);
 		}
 	}
 
@@ -375,11 +388,14 @@ void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels,
 	for( int32 LevelIndex=0; LevelIndex < Context.LevelsToLoadForPendingMapChange.Num(); LevelIndex++ )
 	{
 		const FName LevelName = Context.LevelsToLoadForPendingMapChange[LevelIndex];
-		StreamingLevels.Add(LevelName, LEVEL_Preloading);
+		
+		FSubLevelStatus LevelStatus = {};
+		LevelStatus.PackageName = LevelName;
+		LevelStatus.StreamingStatus = LEVEL_Preloading;
+		LevelStatus.LODIndex = INDEX_NONE;
+		Result.Add(LevelStatus);
 	}
 
-
-	ULevel* LevelPlayerIsIn = NULL;
 
 	for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
@@ -395,35 +411,34 @@ void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels,
 			static FName NAME_FindLevel = FName(TEXT("FindLevel"), true);			
 			PlayerController->GetWorld()->LineTraceSingle(Hit,PlayerController->GetPawn()->GetActorLocation(), (PlayerController->GetPawn()->GetActorLocation()-FVector(0.f, 0.f, 256.f)), FCollisionQueryParams(NAME_FindLevel, true, PlayerController->GetPawn()), FCollisionObjectQueryParams(ECC_WorldStatic));
 
-			/** @todo UE4 FIXME
-			if( Hit.Level != NULL )
-			{
-				LevelPlayerIsIn = Hit.Level;
-			}
-			else 
-			*/
+			ULevel* LevelPlayerIsIn = NULL;
+
 			if( Hit.GetActor() != NULL )
 			{
 				LevelPlayerIsIn = Hit.GetActor()->GetLevel();
 			}
-			else if( Hit.Component != NULL && Hit.Component->GetOwner() != NULL )
+			else if( Hit.Component != NULL )
 			{
-				AActor* Owner = Hit.Component->GetOwner();
-				if (Owner)
+				LevelPlayerIsIn = Hit.Component->GetComponentLevel();
+			}
+
+			if (LevelPlayerIsIn)
+			{
+				FName LevelName = LevelPlayerIsIn->GetOutermost()->GetFName();
+				FSubLevelStatus* LevelStatusPlayerIn = Result.FindByPredicate([LevelName](const FSubLevelStatus& InLevelStatus)
 				{
-					LevelPlayerIsIn = Owner->GetLevel();
-				}
-				else
+					return InLevelStatus.PackageName == LevelName;
+				});
+
+				if (LevelStatusPlayerIn)
 				{
-					// This happens for BSP where the ModelComponent's outer is the level
-					LevelPlayerIsIn = Hit.Component->GetTypedOuter<ULevel>();
+					LevelStatusPlayerIn->bPlayerInside = true;
 				}
 			}
 		}
 	}
 
-	// this no longer seems to be getting the correct level name :-(
-	LevelPlayerIsInName = LevelPlayerIsIn != NULL ? LevelPlayerIsIn->GetOutermost()->GetName() : TEXT("None");
+	return Result;
 }
 
 //////////////////////////////////////////////////////////////////////////

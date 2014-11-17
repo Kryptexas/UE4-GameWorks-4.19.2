@@ -14,11 +14,11 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	// IDetailCustomization interface
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) OVERRIDE;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 	// End of IDetailCustomization interface
 
 private:
-	TWeakObjectPtr<class UPaperTileMapRenderComponent> TileMapPtr;
+	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
 private:
 	FReply AddLayerClicked();
 	FReply AddCollisionLayerClicked();

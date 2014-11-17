@@ -73,15 +73,10 @@ typedef FHTML5Types FPlatformTypes;
 #pragma warning(disable : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
 #pragma warning( disable : 4530 ) // warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc. for HTML5Win32 code, which uses stl. 
 #endif
-#define OVERRIDE			override //__attribute__((override))
 #if PLATFORM_HTML5_WIN32
 // Backwater of the spec. All compilers support this except microsoft, and they will soon
 #define TYPENAME_OUTSIDE_TEMPLATE
 #define EXCEPTION_EXECUTE_HANDLER       1
-
-#define FINAL				sealed
-#else
-#define FINAL				final
 #endif
 #define ABSTRACT			abstract
 

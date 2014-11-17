@@ -10,6 +10,16 @@
 #include "PostProcessBusyWait.h"
 #include "PostProcessing.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarSetGPUBusyWait(
+	TEXT("r.GPUBusyWait"),
+	0.0f,
+	TEXT("<=0:off, >0: keep the GPU busy with n units of some fixed amount of work, independent on the resolution\n")
+	TEXT("This can be useful to make GPU timing experiments. The value should roughly represent milliseconds.\n")
+	TEXT("Clamped at 500."),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
+
 /** Encapsulates the post processing busy wait pixel shader. */
 class FPostProcessBusyWaitPS : public FGlobalShader
 {
@@ -39,24 +49,22 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.GPUBusyWait"));
-
 			uint32 PixelCount = Context.View.ViewRect.Size().X * Context.View.ViewRect.Size().Y;
 
-			float CVarValue = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 500.0f);
+			float CVarValue = FMath::Clamp(CVarSetGPUBusyWait.GetValueOnRenderThread(), 0.0f, 500.0f);
 
 			// multiply with large number to get more human friendly number range
 			// calibrated on a NV580 to be roughly a millisecond
 			// divide by viewport pixel count
 			uint32 Value = (uint32)(CVarValue * 1000000000.0 / 6.12 / PixelCount);
 
-			SetShaderValue(ShaderRHI, GPUBusyWait, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, GPUBusyWait, Value);
 		}
 #endif
 	}
@@ -80,31 +88,32 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.UnscaledViewRect;
-
-	GSceneRenderTargets.BeginRenderingLightAttenuation();
+	
+	GSceneRenderTargets.BeginRenderingLightAttenuation(Context.RHICmdList);
 	
 	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetLightAttenuation()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBusyWaitPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetPS(Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
@@ -114,7 +123,7 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	GSceneRenderTargets.SetLightAttenuation(0);
 }

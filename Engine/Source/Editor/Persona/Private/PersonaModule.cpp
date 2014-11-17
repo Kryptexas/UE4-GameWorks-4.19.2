@@ -55,19 +55,32 @@ void FPersonaModule::StartupModule()
 	}
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout( "SkeletalMeshSocket", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshSocketDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomPropertyLayout( "AnimNotify", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimNotifyDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomPropertyLayout( "AnimNotifyState", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomClassLayout( "SkeletalMeshSocket", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshSocketDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomClassLayout( "AnimNotify", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimNotifyDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomClassLayout( "AnimNotifyState", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
 
-		PropertyModule.RegisterStructPropertyLayout( "InputScaleBias", FOnGetStructCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
-		PropertyModule.RegisterStructPropertyLayout( "BoneReference", FOnGetStructCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyTypeLayout( "InputScaleBias", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyTypeLayout( "BoneReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );
 	}
 }
 
 void FPersonaModule::ShutdownModule()
 {
 	MenuExtensibilityManager.Reset();
+
+	// unregsiter when shut down
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout("SkeletalMeshSocket");
+		PropertyModule.UnregisterCustomClassLayout("AnimNotify");
+		PropertyModule.UnregisterCustomClassLayout("AnimNotifyState");
+		PropertyModule.UnregisterCustomClassLayout("AnimGraphNode_Base");
+
+		PropertyModule.UnregisterCustomPropertyTypeLayout("InputScaleBias");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("BoneReference");
+	}
 }
 
 

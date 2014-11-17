@@ -135,7 +135,7 @@ public:
 
 public:
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	/**

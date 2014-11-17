@@ -2,6 +2,11 @@
 
 #pragma once
 
+class AMatineeActor;
+class UInterpData;
+class UInterpGroup;
+class UInterpTrack;
+
 #include "MatineeGroupData.h"
 #include "MatineeTrackData.h"
 
@@ -30,7 +35,7 @@ public:
 	virtual void ClearKeySelection() = 0;
 
 	virtual void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI) = 0;
-	virtual void DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) = 0;
+	virtual void DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) = 0;
 
 	virtual void BeginDrag3DHandle(UInterpGroup* Group, int32 TrackIndex) = 0;
 	virtual void Move3DHandle(UInterpGroup* Group, int32 TrackIndex, int32 KeyIndex, bool bArriving, const FVector& Delta) = 0;
@@ -83,7 +88,7 @@ class IMatinee : public IMatineeBase, public FAssetEditorToolkit
 {
 public:
 
-	bool Show(bool bShow) OVERRIDE {return false; }
-	void Close(bool bForce) OVERRIDE { CloseWindow(); }
+	bool Show(bool bShow) override {return false; }
+	void Close(bool bForce) override { CloseWindow(); }
 };
 	

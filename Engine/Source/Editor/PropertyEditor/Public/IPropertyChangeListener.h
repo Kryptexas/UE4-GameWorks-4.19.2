@@ -24,7 +24,7 @@ class IPropertyChangeListener
 {
 public:
 	/** Delegate called when a property changes */
-	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnPropertyChanged, const TArray<UObject*>&, const TSharedRef< const class IPropertyHandle>  );
+	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnPropertyChanged, const TArray<UObject*>&, TSharedRef< const class IPropertyHandle>  );
 
 	/**
 	 * Sets the object that should be listened to for changes

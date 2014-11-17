@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "EngineModule.h"
 
 #define D3DERR(x) case x: ErrorCodeText = TEXT(#x); break;
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"
@@ -172,10 +173,7 @@ void VerifyD3D11Result(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Fi
 	// this is to track down a rarely happening crash
 	if(D3DResult == E_OUTOFMEMORY)
 	{
-		if (IsInGameThread())
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("D3D11RHI", "OutOfMemory", "Out of video memory trying to allocate a rendering resource."));
-		}
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("D3D11RHI", "OutOfMemory", "Out of video memory trying to allocate a rendering resource.").ToString(), TEXT("Error"));
 #if STATS
 		GetRendererModule().DebugLogOnCrash();
 #endif
@@ -384,5 +382,12 @@ DEFINE_STAT(STAT_D3D11UpdateUniformBufferTime);
 DEFINE_STAT(STAT_D3D11TexturePoolMemory);
 DEFINE_STAT(STAT_D3D11FreeUniformBufferMemory);
 DEFINE_STAT(STAT_D3D11NumFreeUniformBuffers);
+
+DEFINE_STAT(STAT_D3D11CommitResourceTables);
+DEFINE_STAT(STAT_D3D11CacheResourceTables);
+DEFINE_STAT(STAT_D3D11CacheResourceTableCalls);
+DEFINE_STAT(STAT_D3D11SetShaderTextureTime);
+DEFINE_STAT(STAT_D3D11SetShaderTextureCalls);
+DEFINE_STAT(STAT_D3D11SetTextureInTableCalls);
 
 #undef LOCTEXT_NAMESPACE

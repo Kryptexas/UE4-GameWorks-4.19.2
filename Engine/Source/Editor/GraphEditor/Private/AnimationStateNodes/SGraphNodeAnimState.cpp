@@ -9,6 +9,7 @@
 #include "AnimStateConduitNode.h"
 #include "AnimationStateMachineGraph.h"
 #include "AnimGraphNode_StateMachineBase.h"
+#include "Animation/AnimNode_StateMachine.h"
 
 /////////////////////////////////////////////////////
 // SStateMachineOutputPin
@@ -22,7 +23,7 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 protected:
 	// Begin SGraphPin interface
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	// End SGraphPin interface
 
 	const FSlateBrush* GetPinBorder() const;
@@ -293,8 +294,11 @@ TSharedPtr<SToolTip> SGraphNodeAnimState::GetComplexTooltip()
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
+				// Create the tooltip preview, ensure to disable state overlays to stop
+				// PIE and read-only borders obscuring the graph
 				SNew(SGraphPreviewer, StateNode->GetBoundGraph())
 				.CornerOverlayText(this, &SGraphNodeAnimState::GetPreviewCornerText)
+				.ShowGraphStateOverlay(false)
 			]
 	
 			+SVerticalBox::Slot()

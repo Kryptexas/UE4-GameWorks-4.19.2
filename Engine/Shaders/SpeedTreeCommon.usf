@@ -6,11 +6,43 @@
 
  #include "UniformBuffers/SpeedTreeData.usf"
 
+ float3 SpeedTreeLODInfo;
+
 ///////////////////////////////////////////////////////////////////////  
-//  SpeedTree v6 Wind
+//  SpeedTree v7 Wind
 //
 
 #define SPEEDTREE_Z_UP
+
+#define SPEEDTREE_WIND_TYPE_NONE 0
+#define SPEEDTREE_WIND_TYPE_FASTEST 1
+#define SPEEDTREE_WIND_TYPE_FAST 2
+#define SPEEDTREE_WIND_TYPE_BETTER 3
+#define SPEEDTREE_WIND_TYPE_BEST 4
+#define SPEEDTREE_WIND_TYPE_PALM 5
+
+#define SPEEDTREE_GEOMETRY_TYPE_BRANCH 0
+#define SPEEDTREE_GEOMETRY_TYPE_FROND 1
+#define SPEEDTREE_GEOMETRY_TYPE_LEAF 2
+#define SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF 3
+#define SPEEDTREE_GEOMETRY_TYPE_BILLBOARD 4
+
+#define SPEEDTREE_LOD_TYPE_POP 0
+#define SPEEDTREE_LOD_TYPE_SMOOTH 1
+
+
+// SpeedTree texture coordinate setup
+//
+//		Branches			Fronds				Leaves				Billboards
+//
+// 0	Diffuse				Diffuse				Diffuse				Diffuse			
+// 1	Lightmap UV			Lightmap UV			Lightmap UV			Lightmap UV	(same as diffuse)		
+// 2	Branch Wind XY		Branch Wind XY		Branch Wind XY			
+// 3	LOD XY				LOD XY				LOD XY				
+// 4	LOD Z, Seam Amount	LOD Z, 0			LOD Z, Anchor X		
+// 5	Detail UV			Frond Wind XY		Anchor YZ	
+// 6	Seam UV				Frond Wind Z, 0		Leaf Wind XY
+// 7	0					0					Leaf Wind Z, Leaf Group
 
 
 ///////////////////////////////////////////////////////////////////////  
@@ -202,10 +234,10 @@ float Oscillate(float3 vPos,
 			fOscillation *= 1.0 + (vOscillations.w * fWhip);
 	}
 
-	if (bRoll)
-	{
-	 	fOscillation = Roll(fOscillation, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
-	}
+	//if (bRoll)
+	//{
+	// 	fOscillation = Roll(fOscillation, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
+	//}
 
 	return fOscillation;
 }
@@ -254,7 +286,10 @@ float3 GlobalWind(float3 vPos, float3 vInstancePos, bool bPreserveShape)
 	float fMoveAmount = SpeedTreeData.WindGlobal.y * fOsc;
 
 	// move a minimum amount based on direction adherence
-	fMoveAmount += SpeedTreeData.WindBranchAdherences.x / SpeedTreeData.WindGlobal.z;
+	float fMinMove = SpeedTreeData.WindBranchAdherences.x;
+	if (SpeedTreeData.WindGlobal.z != 0.0) // not sure why I need this check
+		fMinMove /= SpeedTreeData.WindGlobal.z;
+	fMoveAmount += fMinMove;
 
 	// adjust based on how high up the tree this vertex is
 	fMoveAmount *= fAdjust;
@@ -347,8 +382,8 @@ float3 DirectionalBranchWind(float3 vPos,
 	if (bWhip)
 		fAdherenceScale += vOscillations.w * SpeedTreeData.WindVector.w * fWhip;
 
-	if (bRoll)
-		fAdherenceScale = Roll(fAdherenceScale, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
+	//if (bRoll)
+	//	fAdherenceScale = Roll(fAdherenceScale, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
 
 	vPos.xyz += SpeedTreeData.WindVector.xyz * fAdherence * fAdherenceScale * fWeight;
 
@@ -393,8 +428,8 @@ float3 DirectionalBranchWindFrondStyle(float3 vPos,
 	if (bTurbulence)
 		fAdherenceScale = Turbulence(fTime, fOffset, SpeedTreeData.WindAnimation.x, fTurbulence);
 
-	if (bRoll)
-		fAdherenceScale = Roll(fAdherenceScale, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
+	//if (bRoll)
+	//	fAdherenceScale = Roll(fAdherenceScale, SpeedTreeData.WindRollingBranches.x, SpeedTreeData.WindRollingBranches.y, SpeedTreeData.WindRollingBranches.z, SpeedTreeData.WindRollingBranches.w, vPos.xyz, fTime + fOffset);
 
 	if (bWhip)
 		fAdherenceScale += vOscillations.w * SpeedTreeData.WindVector.w * fWhip;
@@ -411,16 +446,13 @@ float3 DirectionalBranchWindFrondStyle(float3 vPos,
 
 float3 BranchWind(float3 vPos, float3 vInstancePos, float4 vWindData, int WindType)
 {
-	if (WindType == 1 || WindType == 3)
+	if (WindType == SPEEDTREE_WIND_TYPE_PALM)
 	{
-		// standard and hero
-		vPos = SimpleBranchWind(vPos, vInstancePos, vWindData.x, vWindData.y, SpeedTreeData.WindBranch.x, SpeedTreeData.WindBranch.y, SpeedTreeData.WindBranchTwitch.x, SpeedTreeData.WindBranchTwitch.y, SpeedTreeData.WindBranchWhip.x, false, false, true);
-	}
-
-	if (WindType == 2)
-	{
-		// palm
 		vPos = DirectionalBranchWindFrondStyle(vPos, vInstancePos, vWindData.x, vWindData.y, SpeedTreeData.WindBranch.x, SpeedTreeData.WindBranch.y, SpeedTreeData.WindTurbulences.x, SpeedTreeData.WindBranchAdherences.y, SpeedTreeData.WindBranchTwitch.x, SpeedTreeData.WindBranchTwitch.y, SpeedTreeData.WindBranchWhip.x, true, false, true, true);
+	}
+	else
+	{
+		vPos = SimpleBranchWind(vPos, vInstancePos, vWindData.x, vWindData.y, SpeedTreeData.WindBranch.x, SpeedTreeData.WindBranch.y, SpeedTreeData.WindBranchTwitch.x, SpeedTreeData.WindBranchTwitch.y, SpeedTreeData.WindBranchWhip.x, false, false, true);
 	}
 
 	return vPos;
@@ -501,8 +533,8 @@ float3 LeafTumble(float3 vPos,
 	float fAngle = acos(fDot);
 
 	float fAdherenceScale = 1.0;
-	if (bRoll)
-		fAdherenceScale = Roll(fAdherenceScale, vRoll.x, vRoll.y, vRoll.z, vRoll.w, vAnchor.xyz, fTime/* + fOffset*/);
+	//if (bRoll)
+	//	fAdherenceScale = Roll(fAdherenceScale, vRoll.x, vRoll.y, vRoll.z, vRoll.w, vAnchor.xyz, fTime/* + fOffset*/);
 
 	fOsc = vOscillations.y - vOscillations.x * vOscillations.x;
 
@@ -519,104 +551,6 @@ float3 LeafTumble(float3 vPos,
 	vOriginPos = normalize(vOriginPos) * fLength;
 
 	return (vOriginPos + vAnchor);
-}
-
-
-///////////////////////////////////////////////////////////////////////  
-//  LeafWind1
-
-float3 LeafWind1(float3 vPos, 
-				 inout float3 vDirection, 
-				 float fScale, 
-				 float3 vAnchor, 
-				 float fPackedGrowthDir, 
-				 float fPackedRippleDir,
-				 float fRippleTrigOffset)
-{
-	#ifdef WIND_EFFECT_LEAF_OCCLUSION_1
-		#ifdef SPEEDTREE_Z_UP
-			float2 vDir = -normalize(vAnchor.xy);
-		#else
-			float2 vDir = -normalize(vAnchor.xz);
-		#endif
-		float fDot = dot(vDir.xy, SpeedTreeData.WindVector.xy);
-		float fDirContribution = (fDot + 1.0) * 0.5;
-		fDirContribution = lerp(SpeedTreeData.WindLeaf1Ripple.z, 1.0, fDirContribution);
-		fScale *= fDirContribution;
-	#endif
-
-	#ifdef WIND_EFFECT_LEAF_RIPPLE_VERTEX_NORMAL_1
-		vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir, SpeedTreeData.WindLeaf1Ripple.x, SpeedTreeData.WindLeaf1Ripple.y, true, fRippleTrigOffset);
-	#elif defined(WIND_EFFECT_LEAF_RIPPLE_COMPUTED_1)
-		vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir, SpeedTreeData.WindLeaf1Ripple.x, SpeedTreeData.WindLeaf1Ripple.y, false, fRippleTrigOffset);
-	#endif
-
-	#ifndef WIND_EFFECT_LEAF_TWITCH_1
-		#define WIND_EFFECT_LEAF_TWITCH_1 false
-	#endif
-
-	#ifndef WIND_EFFECT_LEAF_ROLL_1
-		#define WIND_EFFECT_LEAF_ROLL_1 false
-	#endif
-
-	#ifdef WIND_EFFECT_LEAF_TUMBLE_1
-		float3 vGrowthDir = UnpackNormalFromFloat(fPackedGrowthDir);
-		
-		vPos = LeafTumble(vPos, vDirection, fScale, vAnchor, vGrowthDir, fPackedGrowthDir,
-						  SpeedTreeData.WindLeaf1Tumble.x, SpeedTreeData.WindLeaf1Tumble.y, SpeedTreeData.WindLeaf1Tumble.z, SpeedTreeData.WindLeaf1Tumble.w,
-						  SpeedTreeData.WindLeaf1Twitch.xyz, SpeedTreeData.WindLeaf1Roll, WIND_EFFECT_LEAF_TWITCH_1, WIND_EFFECT_LEAF_ROLL_1);
-	#endif
-
-	return vPos;
-}
-
-
-///////////////////////////////////////////////////////////////////////  
-//  LeafWind2
-
-float3 LeafWind2(float3 vPos, 
-				 inout float3 vDirection, 
-				 float fScale, 
-				 float3 vAnchor, 
-				 float fPackedGrowthDir, 
-				 float fPackedRippleDir,
-				 float fRippleTrigOffset)
-{
-	#ifdef WIND_EFFECT_LEAF_OCCLUSION_2
-		#ifdef SPEEDTREE_Z_UP
-			float2 vDir = -normalize(vAnchor.xy);
-		#else
-			float2 vDir = -normalize(vAnchor.xz);
-		#endif
-		float fDot = dot(vDir.xy, SpeedTreeData.WindVector.xy);
-		float fDirContribution = (fDot + 1.0) * 0.5;
-		fDirContribution = lerp(SpeedTreeData.WindLeaf2Ripple.z, 1.0, fDirContribution);
-		fScale *= fDirContribution;
-	#endif
-
-	#ifdef WIND_EFFECT_LEAF_RIPPLE_VERTEX_NORMAL_2
-		vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir, SpeedTreeData.WindLeaf2Ripple.x, SpeedTreeData.WindLeaf2Ripple.y, true, fRippleTrigOffset);
-	#elif defined(WIND_EFFECT_LEAF_RIPPLE_COMPUTED_2)
-		vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir, SpeedTreeData.WindLeaf2Ripple.x, SpeedTreeData.WindLeaf2Ripple.y, false, fRippleTrigOffset);
-	#endif
-
-	#ifndef WIND_EFFECT_LEAF_TWITCH_2
-		#define WIND_EFFECT_LEAF_TWITCH_2 false
-	#endif
-		
-	#ifndef WIND_EFFECT_LEAF_ROLL_2
-		#define WIND_EFFECT_LEAF_ROLL_2 false
-	#endif
-
-	#ifdef WIND_EFFECT_LEAF_TUMBLE_2
-		float3 vGrowthDir = UnpackNormalFromFloat(fPackedGrowthDir);
-		
-		vPos = LeafTumble(vPos, vDirection, fScale, vAnchor, vGrowthDir, fPackedGrowthDir,
-						  SpeedTreeData.WindLeaf2Tumble.x, SpeedTreeData.WindLeaf2Tumble.y, SpeedTreeData.WindLeaf2Tumble.z, SpeedTreeData.WindLeaf2Tumble.w,
-						  SpeedTreeData.WindLeaf2Twitch.xyz, SpeedTreeData.WindLeaf2Roll, WIND_EFFECT_LEAF_TWITCH_2, WIND_EFFECT_LEAF_ROLL_2);
-	#endif
-
-	return vPos;
 }
 
 
@@ -742,7 +676,7 @@ float3 LeafWind(bool bLeaf2,
 							(bLeaf2 ? SpeedTreeData.WindLeaf2Ripple.y : SpeedTreeData.WindLeaf1Ripple.y),
 							false, fRippleTrigOffset);
 
-	if (WindType == 3)
+	if (WindType == SPEEDTREE_WIND_TYPE_BEST)
 	{
 		float3 vGrowthDir = UnpackNormalFromFloat(fPackedGrowthDir);
 		vPos = LeafTumble(vPos, vDirection, fScale, vAnchor, vGrowthDir, fPackedGrowthDir,
@@ -751,7 +685,7 @@ float3 LeafWind(bool bLeaf2,
 						  (bLeaf2 ? SpeedTreeData.WindLeaf2Tumble.z : SpeedTreeData.WindLeaf1Tumble.z), 
 						  (bLeaf2 ? SpeedTreeData.WindLeaf2Tumble.w : SpeedTreeData.WindLeaf1Tumble.w),
 						  (bLeaf2 ? SpeedTreeData.WindLeaf2Twitch.xyz : SpeedTreeData.WindLeaf1Twitch.xyz), 
-						  (bLeaf2 ? SpeedTreeData.WindLeaf2Roll : SpeedTreeData.WindLeaf1Roll), 
+						  0.0f,
 						  (bLeaf2 ? true : true), 
 						  (bLeaf2 ? true : true));
 	}

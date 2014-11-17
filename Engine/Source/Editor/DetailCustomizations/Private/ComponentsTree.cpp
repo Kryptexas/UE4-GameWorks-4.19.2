@@ -79,9 +79,10 @@ void SComponentRowWidget::Construct( const FArguments& InArgs, FComponentTreeNod
 //////////////////////////////////////////////////////////////////////////
 
 // Don't show any 'disable on instance' properties, these are instances of components we are seeing
-static bool IsPropertyVisible( const UProperty* InProperty )
+static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 {
-	if ((InProperty != NULL) && InProperty->HasAllPropertyFlags(CPF_DisableEditOnInstance))
+
+	if ( PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance) )
 	{
 		return false;
 	}

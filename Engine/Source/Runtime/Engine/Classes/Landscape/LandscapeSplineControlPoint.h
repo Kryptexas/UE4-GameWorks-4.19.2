@@ -154,19 +154,19 @@ public:
 	virtual void AutoSetConnections(bool bIncludingValid);
 
 	/** Update spline points */
-	virtual void UpdateSplinePoints(bool bUpdateCollision = true);
+	virtual void UpdateSplinePoints(bool bUpdateCollision = true, bool bUpdateAttachedSegments = true);
 
 	/** Delete spline points */
 	virtual void DeleteSplinePoints();
 #endif // WITH_EDITOR
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostEditImport() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 #endif // WITH_EDITOR
 

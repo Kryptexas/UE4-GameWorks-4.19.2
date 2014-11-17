@@ -14,29 +14,19 @@ namespace ETargetDeviceFeatures
 	 */
 	enum Type
 	{
-		/**
-		 * Multiple instances of a game can run at the same time.
-		 */
+		/** Multiple instances of a game can run at the same time. */
 		MultiLaunch,
 
-		/**
-		 * The device can be powered off remotely.
-		 */
+		/** The device can be powered off remotely. */
 		PowerOff,
 
-		/**
-		 * The device can be powered on remotely.
-		 */
+		/** The device can be powered on remotely. */	  
 		PowerOn,
 
-		/**
-		 * Snapshot of processes running on the device.
-		 */
+		/** Snapshot of processes running on the device. */
 		ProcessSnapshot,
 
-		/**
-		 * The device can be rebooted remotely.
-		 */
+		/** The device can be rebooted remotely. */
 		Reboot
 	};
 }
@@ -49,34 +39,22 @@ namespace ETargetDeviceTypes
 	 */
 	enum Type
 	{
-		/**
-		 * Indeterminate device type.
-		 */
+		/** Indeterminate device type. */
 		Indeterminate,
 
-		/**
-		 * The device is a web browser (i.e. Flash).
-		 */
+		/** The device is a web browser (i.e. Flash). */
 		Browser,
 
-		/**
-		 * The device is a game console.
-		 */
+		/** The device is a game console. */
 		Console,
 
-		/**
-		 * The device is a desktop computer.
-		 */
+		/** The device is a desktop computer. */
 		Desktop,
 
-		/**
-		 * The device is a smart phone.
-		 */
+		/** The device is a smart phone. */
 		Phone,
 
-		/**
-		 * The device is a tablet computer.
-		 */
+		/** The device is a tablet computer. */
 		Tablet
 	};
 
@@ -84,8 +62,7 @@ namespace ETargetDeviceTypes
 	/**
 	 * Returns the string representation of the specified ETargetDeviceTypes value.
 	 *
-	 * @param Configuration - The value to get the string for.
-	 *
+	 * @param Configuration The value to get the string for.
 	 * @return A string value.
 	 */
 	inline FString ToString(ETargetDeviceTypes::Type DeviceType)
@@ -121,31 +98,22 @@ namespace ETargetDeviceThreadStates
 	 */
 	enum Type
 	{
+		/** Unknown thread state. */
 		Unknown,
 
-		/**
-		 * The thread can run, but is not running right now.
-		 */
+		/** The thread can run, but is not running right now. */
 		CanRun,
 
-		/**
-		 * The thread is inactive, i.e. has just been created or exited.
-		 */
+		/** The thread is inactive, i.e. has just been created or exited. */
 		Inactive,
 
-		/**
-		 * The thread cannot run right now.
-		 */
+		/** The thread cannot run right now. */
 		Inhibited,
 
-		/**
-		 * The thread is in the run queue.
-		 */
+		/** The thread is in the run queue. */
 		RunQueue,
 
-		/**
-		 * The thread is running.
-		 */
+		/** The thread is running. */
 		Running
 	};
 }
@@ -155,31 +123,22 @@ namespace ETargetDeviceThreadWaitStates
 {
 	enum Type
 	{
+		/** Unknown wait state. */
 		Unknown,
 
-		/**
-		 * The thread is blocked by a lock.
-		 */
+		/** The thread is blocked by a lock. */
 		Locked,
 	
-		/**
-		 * The thread is sleeping.
-		 */
+		/** The thread is sleeping. */
 		Sleeping,
 
-		/**
-		 * The thread is suspended.
-		 */
+		/** The thread is suspended. */
 		Suspended,
 
-		/**
-		 * The thread is swapped.
-		 */
+		/** The thread is swapped. */
 		Swapped,
 
-		/**
-		 * The thread is waiting on an interrupt.
-		 */
+		/** The thread is waiting on an interrupt. */
 		Waiting
 	};
 }
@@ -190,34 +149,22 @@ namespace ETargetDeviceThreadWaitStates
  */
 struct FTargetDeviceThreadInfo
 {
-	/**
-	 * Holds the exit code.
-	 */
+	/** Holds the exit code. */
 	uint64 ExitCode;
 
-	/**
-	 * Holds the thread identifier.
-	 */
+	/** Holds the thread identifier. */
 	uint32 Id;
 
-	/**
-	 * Holds the name of the thread.
-	 */
+	/** Holds the name of the thread. */
 	FString Name;
 
-	/**
-	 * Holds the thread's stack size.
-	 */
+	/** Holds the thread's stack size. */
 	uint64 StackSize;
 
-	/**
-	 * Holds the thread's current state.
-	 */
+	/** Holds the thread's current state. */
 	ETargetDeviceThreadStates::Type State;
 
-	/**
-	 * Holds the thread's current wait state.
-	 */
+	/** Holds the thread's current wait state. */
 	ETargetDeviceThreadWaitStates::Type WaitState;
 };
 
@@ -227,46 +174,30 @@ struct FTargetDeviceThreadInfo
  */
 struct FTargetDeviceProcessInfo
 {
-	/**
-	 * Holds the process identifier.
-	 */
+	/** Holds the process identifier. */
 	int32 Id;
 
-	/**
-	 * Holds the process name.
-	 */
+	/** Holds the process name. */
 	FString Name;
 
-	/**
-	 * Holds the identifier of the parent process.
-	 */
+	/** Holds the identifier of the parent process. */
 	uint32 ParentId;
 
-	/**
-	 * Holds the collection of threads that belong to this process.
-	 */
+	/** Holds the collection of threads that belong to this process. */
 	TArray<FTargetDeviceThreadInfo> Threads;
 
-	/**
-	 * The name of the user that owns this process.
-	 */
+	/** The name of the user that owns this process. */
 	FString UserName;
 };
 
 
-/**
- * Type definition for shared pointers to instances of ITargetDevice.
- */
+/** Type definition for shared pointers to instances of ITargetDevice. */
 typedef TSharedPtr<class ITargetDevice, ESPMode::ThreadSafe> ITargetDevicePtr;
 
-/**
- * Type definition for shared references to instances of ITargetDevice.
- */
+/** Type definition for shared references to instances of ITargetDevice. */
 typedef TSharedRef<class ITargetDevice, ESPMode::ThreadSafe> ITargetDeviceRef;
 
-/**
- * Type definition for weak pointers to instances of ITargetDevice.
- */
+/** Type definition for weak pointers to instances of ITargetDevice. */
 typedef TWeakPtr<class ITargetDevice, ESPMode::ThreadSafe> ITargetDeviceWeakPtr;
 
 
@@ -287,9 +218,8 @@ public:
 	/**
 	 * Deploys an application in the specified folder to the device.
 	 *
-	 * @param SourceFolder - The path to the files and directories to be deployed.
-	 * @param OutAppId - Will hold the identifier of the deployed application (used for launching).
-	 *
+	 * @param SourceFolder The path to the files and directories to be deployed.
+	 * @param OutAppId Will hold the identifier of the deployed application (used for launching).
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) = 0;
@@ -310,7 +240,6 @@ public:
 	 * Gets the unique device identifier.
 	 *
 	 * @return Device identifier.
-	 *
 	 * @see GetName
 	 */
 	virtual FTargetDeviceId GetId( ) const = 0;
@@ -324,7 +253,6 @@ public:
 	 * other string identifying the device that does not need to be unique.
 	 *
 	 * @return Device name.
-	 *
 	 * @see GetId
 	 */
 	virtual FString GetName( ) const = 0;
@@ -339,8 +267,7 @@ public:
 	/**
 	 * Creates a snapshot of processes currently running on the device.
 	 *
-	 * @param OutProcessInfos - Will contain the information for running processes.
-	 *
+	 * @param OutProcessInfos Will contain the information for running processes.
 	 * @return The number of returned processes.
 	 */
 	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) = 0;
@@ -369,12 +296,11 @@ public:
 	/**
 	 * Launches a previously deployed build.
 	 *
-	 * @param AppId - The identifier of the application to launch (as returned by the Deploy() method).
-	 * @param BuildConfiguration - The build configuration to launch.
-	 * @param BuildTarget - The build target type to launch
-	 * @param Params - The command line parameters to launch with.
-	 * @param OutProcessId - Will hold the identifier of the created process (can be NULL).
-	 *
+	 * @param AppId The identifier of the application to launch (as returned by the Deploy() method).
+	 * @param BuildConfiguration The build configuration to launch.
+	 * @param BuildTarget The build target type to launch
+	 * @param Params The command line parameters to launch with.
+	 * @param OutProcessId Will hold the identifier of the created process (can be NULL).
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId ) = 0;
@@ -382,8 +308,7 @@ public:
 	/**
 	 * Powers off the device.
 	 *
-	 * @param Force - Whether to force powering off.
-	 *
+	 * @param Force Whether to force powering off.
 	 * @return true if the device will be powered off, false otherwise.
 	 */
 	virtual bool PowerOff( bool Force ) = 0;
@@ -398,8 +323,7 @@ public:
 	/** 
 	 * Reboot the device.
 	 *
-	 * @param bReconnect - If true, wait and reconnect when done.
-	 *
+	 * @param bReconnect If true, wait and reconnect when done.
 	 * @return true if the reboot was successful from the perspective of the PC .
 	 */
 	virtual bool Reboot( bool bReconnect = false ) = 0;
@@ -407,10 +331,9 @@ public:
 	/**
 	 * Runs an executable on the device.
 	 *
-	 * @param ExecutablePath - The path to the executable to run.
-	 * @param Params - The command line parameters.
-	 * @param OutProcessId - Will hold the identifier of the created process (can be NULL).
-	 *
+	 * @param ExecutablePath The path to the executable to run.
+	 * @param Params The command line parameters.
+	 * @param OutProcessId Will hold the identifier of the created process (can be NULL).
 	 * @return true if the executable was started, false otherwise.
 	 */
 	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) = 0;
@@ -418,8 +341,7 @@ public:
 	/**
 	 * Checks whether the target device supports the specified feature.
 	 *
-	 * @param Feature - The feature to check.
-	 *
+	 * @param Feature The feature to check.
 	 * @return true if the feature is supported, false otherwise.
 	 */
 	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const = 0;
@@ -427,8 +349,7 @@ public:
 	/**
 	 * Checks whether this device supports the specified SDK version.
 	 *
-	 * @param VersionString - The SDK version string.
-	 *
+	 * @param VersionString The SDK version string.
 	 * @return true if the SDK version is supported, false otherwise.
 	 */
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const = 0;
@@ -436,8 +357,7 @@ public:
 	/**
 	 * Terminates a process that was launched on the device using the Launch() or Run() methods.
 	 *
-	 * @param ProcessId - The identifier of the process to terminate.
-	 *
+	 * @param ProcessId The identifier of the process to terminate.
 	 * @return true if the process was terminated, false otherwise.
 	 */
 	virtual bool TerminateProcess( const int32 ProcessId ) = 0;
@@ -445,25 +365,24 @@ public:
 	/**
 	 * Set credentials for the user account to use on the device
 	 * 
-	 * @param UserName - The user account on the device we will run under
-	 * @param UserPassword - The password for the user account on the device we will run under
+	 * @param UserName The user account on the device we will run under
+	 * @param UserPassword The password for the user account on the device we will run under.
 	 */
 	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) = 0;
 
 	/**
 	 * Get credentials for the user account to use on the device
 	 * 
-	 * @param OutUserName - The user account on the device we will run under
-	 * @param OutUserPassword - The password for the user account on the device we will run under
-	 *
-	 * @return false if not supported
+	 * @param OutUserName The user account on the device we will run under
+	 * @param OutUserPassword The password for the user account on the device we will run under
+	 * @return true on success, false if not supported.
 	 */
 	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) = 0;
 
 public:
 	
 	/**
-	 * Destructor.
+	 * Virtual destructor.
 	 */
 	virtual ~ITargetDevice( ) { }
 };

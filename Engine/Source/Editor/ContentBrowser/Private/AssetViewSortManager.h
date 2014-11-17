@@ -8,23 +8,26 @@ public:
 	/** Constructor */
 	FAssetViewSortManager();
 
-	/** Sorts a list using the current ColumnId and Mode. Supply a MajorityAssetType to help discover sorting type (numerical vs alphabetical) */
-	void SortList(TArray<TSharedPtr<struct FAssetViewItem>>& AssetItems, FName MajorityAssetType) const;
+	/** Reset the sort mode back to default */
+	void ResetSort();
 
-	/** Sets the sort mode based on the column that was clicked */
-	void SetOrToggleSortColumn(FName ColumnId);
+	/** Sorts a list using the current ColumnId and Mode. Supply a MajorityAssetType to help discover sorting type (numerical vs alphabetical) */
+	void SortList(TArray<TSharedPtr<struct FAssetViewItem>>& AssetItems, const FName& MajorityAssetType) const;
+
+	/** Sets the sort mode based on the column that was clicked, returns true if newly assigned */
+	bool SetOrToggleSortColumn(const EColumnSortPriority::Type InSortPriority, const FName& InColumnId);
 
 	/**	Sets the column to sort */
-	void SetSortColumnId( const FName& ColumnId );
+	void SetSortColumnId(const EColumnSortPriority::Type InSortPriority, const FName& InColumnId);
 
 	/**	Sets the current sort mode */
-	void SetSortMode( const EColumnSortMode::Type InSortMode );
+	void SetSortMode(const EColumnSortPriority::Type InSortPriority, const EColumnSortMode::Type InSortMode);
 
 	/** Gets the current sort mode */
-	EColumnSortMode::Type GetSortMode() const { return SortMode; }
+	EColumnSortMode::Type GetSortMode(const EColumnSortPriority::Type InSortPriority) const { check(InSortPriority < EColumnSortPriority::Max); return SortMode[InSortPriority]; }
 
 	/** Gets the current sort column id */
-	FName GetSortColumnId() const { return SortColumnId; }
+	FName GetSortColumnId(const EColumnSortPriority::Type InSortPriority) const { check(InSortPriority < EColumnSortPriority::Max); return SortColumnId[InSortPriority]; }
 
 public:
 	/** The names of non-type specific columns in the columns view. */
@@ -34,8 +37,8 @@ public:
 
 private:
 	/** The name of the column that is currently used for sorting. */
-	FName SortColumnId;
+	FName SortColumnId[EColumnSortPriority::Max];
 
 	/** Whether the sort is ascending or descending. */
-	EColumnSortMode::Type SortMode;
+	EColumnSortMode::Type SortMode[EColumnSortPriority::Max];
 };

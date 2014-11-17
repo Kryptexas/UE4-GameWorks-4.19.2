@@ -5,10 +5,10 @@
 /**
  * Base class for math struct customization (e.g, vector, rotator, color)                                                              
  */
-class FMathStructCustomization : public IStructCustomization
+class FMathStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 	FMathStructCustomization()
 		: bIsUsingSlider(false)
@@ -17,9 +17,9 @@ public:
 
 	virtual ~FMathStructCustomization() {}
 
-	/** IStructCustomization instance */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization instance */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	
 protected:
 	/**
@@ -129,10 +129,10 @@ class FRotatorStructCustomization : public FMathStructCustomization
 {
 public:
 	/** @return A new instance of this class */
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 private:
 	/** FMathStructCustomization interface */
-	virtual void GetSortedChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren ) OVERRIDE;
+	virtual void GetSortedChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren ) override;
 };
 
 /**
@@ -141,19 +141,20 @@ private:
 class FColorStructCustomization : public FMathStructCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 	
 private:
 	FColorStructCustomization()
 		: bIgnoreAlpha( false )
 		, bIsInlineColorPickerVisible(false)
 		, bIsInteractive(false)
+		, bDontUpdateWhileEditing(false)
 	{}
 
 	/** FMathStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
-	virtual void GetSortedChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren ) OVERRIDE;
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) override;
+	virtual void GetSortedChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren ) override;
 
 	/**
 	 * Get the color used by this struct as a linear color value
@@ -235,5 +236,7 @@ private:
 	bool bIsInteractive;
 	/** Cached widget for the color picker to use as a parent */
 	TSharedPtr<SWidget> ColorPickerParentWidget;
+	/** The value won;t be updated while editing */
+	bool bDontUpdateWhileEditing;
 };
 

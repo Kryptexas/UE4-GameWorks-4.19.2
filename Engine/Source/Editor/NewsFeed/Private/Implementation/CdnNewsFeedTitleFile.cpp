@@ -70,7 +70,7 @@ bool FCdnNewsFeedTitleFile::ClearFile(const FString& FileName)
 	return false;
 }
 
-bool FCdnNewsFeedTitleFile::EnumerateFiles()
+bool FCdnNewsFeedTitleFile::EnumerateFiles(const FPagedQuery& Page)
 {
 	// Make sure an enumeration request  is not currently pending
 	if(!EnumerateFilesRequests.IsEmpty())
@@ -91,11 +91,6 @@ bool FCdnNewsFeedTitleFile::EnumerateFiles()
 	return true;
 	
 }	
-
-bool FCdnNewsFeedTitleFile::EnumerateFiles(int32 Start, int32 Count)
-{
-	return EnumerateFiles();
-}
 
 void FCdnNewsFeedTitleFile::GetFileList(TArray<FCloudFileHeader>& OutFiles) 
 {

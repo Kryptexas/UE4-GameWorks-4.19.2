@@ -18,7 +18,8 @@ public class BehaviorTreeEditor : ModuleRules
             new string[] {
 				"AssetRegistry",
 				"AssetTools",
-                "PropertyEditor"
+                "PropertyEditor",
+				"ContentBrowser"
 			}
 		);
 
@@ -38,7 +39,10 @@ public class BehaviorTreeEditor : ModuleRules
                 "Kismet",
                 "PropertyEditor",
 				"AnimGraph",
-				"BlueprintGraph"
+				"BlueprintGraph",
+                "AIModule",
+                "GameplayDebugger",
+				"ClassViewer"
 			}
 		);
 
@@ -47,7 +51,10 @@ public class BehaviorTreeEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
             new string[] { 
                 "WorkspaceMenuStructure",
-                "PropertyEditor"
+                "PropertyEditor",
+				"AssetTools",
+				"AssetRegistry",
+				"ContentBrowser"
             }
 		);
 	}

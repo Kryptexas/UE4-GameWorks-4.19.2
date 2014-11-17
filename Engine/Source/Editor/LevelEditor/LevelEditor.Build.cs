@@ -11,7 +11,8 @@ public class LevelEditor : ModuleRules
 				"AssetTools",
 				"Kismet",
 				"MainFrame",
-                "PlacementMode"
+                "PlacementMode",
+				"ReferenceViewer",
 			}
 		);
 
@@ -44,7 +45,9 @@ public class LevelEditor : ModuleRules
 				"ContentBrowser",
                 "SceneOutliner",
                 "ActorPickerMode",
-                "RHI"
+                "RHI",
+				"Projects",
+				"TargetPlatform",
 			}
 		);
 
@@ -69,7 +72,8 @@ public class LevelEditor : ModuleRules
 				"DeviceProfileEditor",
 				"DeviceProfileServices",
                 "PlacementMode",
-				"UserFeedback"
+				"UserFeedback",
+				"ReferenceViewer",
 			}
 		);
 	}

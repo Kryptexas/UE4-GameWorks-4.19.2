@@ -6,9 +6,14 @@
  */
 
 #pragma once
+
+#include "SoundNodeAttenuation.h"
+#include "Distributions/DistributionFloat.h"
+#include "SoundNodeAmbient.h"
+
 #include "SoundNodeAmbientNonLoop.generated.h"
 
-UCLASS(dependson=(USoundNodeAttenuation, UDistributionFloat), editinlinenew)
+UCLASS(editinlinenew)
 class UDEPRECATED_SoundNodeAmbientNonLoop : public UDEPRECATED_SoundNodeAmbient
 {
 	GENERATED_UCLASS_BODY()

@@ -25,7 +25,7 @@ class USteamMessagingNetDriver : public UIpNetDriver
 	 *
 	 * @return true if successful, false otherwise (check Error parameter)
 	 */
-	virtual bool InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error) OVERRIDE;
+	virtual bool InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error) override;
 	/**
 	 * Initialize the net driver in client mode
 	 *
@@ -35,7 +35,7 @@ class USteamMessagingNetDriver : public UIpNetDriver
 	 * 
 	 * @return true if successful, false otherwise (check Error parameter)
 	 */
-	virtual bool InitConnect(FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error) OVERRIDE;	
+	virtual bool InitConnect(FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error) override;	
 	/**
 	 * Initialize the network driver in server mode (listener)
 	 *
@@ -46,10 +46,10 @@ class USteamMessagingNetDriver : public UIpNetDriver
 	 *
 	 * @return true if successful, false otherwise (check Error parameter)
 	 */
-	virtual bool InitListen(FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error) OVERRIDE;
+	virtual bool InitListen(FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error) override;
 
 	/** @return true if the net resource is valid or false if it should not be used */
-	virtual bool IsNetResourceValid() OVERRIDE;
+	virtual bool IsNetResourceValid() override;
 
 	/**
 	 * Process a remote function call on some actor destined for a remote location
@@ -59,7 +59,7 @@ class USteamMessagingNetDriver : public UIpNetDriver
 	 * @param Params parameters in a UObject memory layout
 	 * @param Stack stack frame the UFunction is called in
 	 */
-	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, UObject * SubObject = NULL) OVERRIDE;
+	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, UObject * SubObject = NULL) override;
 
 	// End UIpNetDriver Interface
 

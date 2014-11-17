@@ -1,12 +1,8 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UndoHistoryPrivatePCH.h: Pre-compiled header file for the UndoHistory module.
-=============================================================================*/
-
 #pragma once
 
-#include "../Public/UndoHistory.h"
+#include "UndoHistory.h"
 
 
 /* Dependencies

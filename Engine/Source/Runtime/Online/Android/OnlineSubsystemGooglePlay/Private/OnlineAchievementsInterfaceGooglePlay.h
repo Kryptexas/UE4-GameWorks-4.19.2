@@ -5,6 +5,10 @@
 #include "OnlineAchievementsInterface.h"
 #include "OnlineSubsystemTypes.h"
 #include "AndroidRuntimeSettings.h"
+#include <jni.h>
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
 
 /**
  *	IOnlineAchievements - Interface class for Achievements
@@ -25,17 +29,43 @@ private:
 	/** Cached achievement descriptions for an Id */
 	TMap< FString, FOnlineAchievementDesc > AchievementDescriptions;
 
+	/**
+	 * Hack to store context needed by the QueryAchievement callback to avoid round-tripping
+	 * this data through JNI and back.
+	 */
+	struct FPendingAchievementQuery
+	{
+		FOnlineAchievementsGooglePlay* AchievementsInterface;
+		FOnQueryAchievementsCompleteDelegate Delegate;
+		FUniqueNetIdString PlayerID;
+		bool IsQueryPending;
+	};
+
+	/** Instance of the query context data */
+	static FPendingAchievementQuery PendingAchievementQuery;
+
+	/**
+	 * Native function called from Java when we get the achievement load result callback.
+	 * Converts the Google Play achievement IDs to the names specified by the game's mapping.
+	 *
+	 * @param LocalJNIEnv the current JNI environment
+	 * @param LocalThiz instance of the Java GameActivity class
+	 * @param Achievements an array of JavaAchievement objects holding the data just queried from the backend
+	 */
+	friend void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
+	friend void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
+
 public:
 
 	// Begin IOnlineAchievements interface
-	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) OVERRIDE;
-	virtual void QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) OVERRIDE;
-	virtual void QueryAchievementDescriptions(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) OVERRIDE ;
-	virtual EOnlineCachedResult::Type GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) OVERRIDE;
-	virtual EOnlineCachedResult::Type GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements) OVERRIDE;
-	virtual EOnlineCachedResult::Type GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc) OVERRIDE;
+	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) override;
+	virtual void QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) override;
+	virtual void QueryAchievementDescriptions(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) override ;
+	virtual EOnlineCachedResult::Type GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) override;
+	virtual EOnlineCachedResult::Type GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements) override;
+	virtual EOnlineCachedResult::Type GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc) override;
 #if !UE_BUILD_SHIPPING
-	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) OVERRIDE;
+	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) override;
 #endif // !UE_BUILD_SHIPPING
 	// End IOnlineAchievements interface
 

@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 
 #include "CustomMeshComponentPluginPrivatePCH.h"
-
 #include "CustomMeshComponent.h"
+#include "DynamicMeshBuilder.h"
 
 /** Vertex Buffer */
 class FCustomMeshVertexBuffer : public FVertexBuffer 
@@ -10,9 +10,10 @@ class FCustomMeshVertexBuffer : public FVertexBuffer
 public:
 	TArray<FDynamicMeshVertex> Vertices;
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo);
 
 		// Copy the vertex data into the vertex buffer.
 		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
@@ -28,9 +29,10 @@ class FCustomMeshIndexBuffer : public FIndexBuffer
 public:
 	TArray<int32> Indices;
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),BUF_Static, CreateInfo);
 
 		// Write the indices to the index buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
@@ -66,6 +68,7 @@ public:
 				);
 			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
 			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
+			NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
 			VertexFactory->SetData(NewData);
 		});
 	}
@@ -188,7 +191,7 @@ public:
 		return Result;
 	}
 
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return !MaterialRelevance.bDisableDepthTest;
 	}

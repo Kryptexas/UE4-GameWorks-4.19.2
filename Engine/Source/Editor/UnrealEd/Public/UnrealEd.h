@@ -3,11 +3,9 @@
 #ifndef __UnrealEd_h__
 #define __UnrealEd_h__
 
-#if WITH_EDITOR
+#ifdef __cplusplus // Xcode needs that to use this file as a precompiled header for indexing
 
-#ifndef WITH_SPEEDTREE
-#error WITH_SPEEDTREE must have been defined to either 0 or 1 by UnrealBuildTool to be able to include this header file
-#endif
+#if WITH_EDITOR
 
 #include "Engine.h"
 
@@ -27,6 +25,7 @@
 #include "EditorViewportClient.h"
 #include "LevelEditorViewport.h"
 
+#include "EditorModeRegistry.h"
 #include "EditorModes.h"
 
 #include "MRUList.h"
@@ -56,5 +55,7 @@ UNREALED_API int32 EditorInit( class IEngineLoop& EngineLoop );
 UNREALED_API void EditorExit();
 
 #include "UnrealEdMessages.h"
+
+#endif // __cplusplus
 
 #endif	// __UnrealEd_h__

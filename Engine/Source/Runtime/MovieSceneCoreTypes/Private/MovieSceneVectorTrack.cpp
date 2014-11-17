@@ -9,6 +9,7 @@
 UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FPostConstructInitializeProperties& PCIP )
 	: Super( PCIP )
 {
+	NumChannelsUsed = 0;
 }
 
 UMovieSceneSection* UMovieSceneVectorTrack::CreateNewSection()
@@ -31,6 +32,9 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 		NewSection->SetChannelsUsed(InChannelsUsed);
 
 		NewSection->AddKey( Time, Value );
+
+		// We dont support one track containing multiple sections of differing channel amounts
+		NumChannelsUsed = InChannelsUsed;
 
 		return true;
 	}

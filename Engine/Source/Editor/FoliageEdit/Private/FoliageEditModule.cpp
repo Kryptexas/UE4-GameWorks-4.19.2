@@ -14,33 +14,27 @@ const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
  */
 class FFoliageEditModule : public IFoliageEditModule
 {
-private:
-	TSharedPtr<FEdModeFoliage> EdModeFoliage;
 public:
-	/** Constructor, set up console commands and variables **/
-	FFoliageEditModule()
-	{
-	}
 
 	/**
 	 * Called right after the module DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
-		TSharedRef<FEdModeFoliage> NewEditorMode = MakeShareable(new FEdModeFoliage);
-		GEditorModeTools().RegisterMode(NewEditorMode);
-		EdModeFoliage = NewEditorMode;
-		FEditorDelegates::MapChange.AddSP( NewEditorMode, &FEdModeFoliage::NotifyMapRebuild );
+		FEditorModeRegistry::Get().RegisterMode<FEdModeFoliage>(
+			FBuiltinEditorModes::EM_Foliage,
+			NSLOCTEXT("EditorModes", "FoliageMode", "Foliage"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.FoliageMode", "LevelEditor.FoliageMode.Small"),
+			true, 400
+			);
 	}
 
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
-		GEditorModeTools().UnregisterMode(EdModeFoliage.ToSharedRef());
-		EdModeFoliage = NULL;
-		FEditorDelegates::MapChange.RemoveAll(this);
+		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Foliage);
 	}
 };
 

@@ -27,10 +27,10 @@ public:
 	FAnimNode_RotateRootBone();
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) OVERRIDE;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
-	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
-	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
-	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones(const FAnimationCacheBonesContext & Context) override;
+	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 };

@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
+#include "EngineModule.h"
 
 /** 
  * Size of all reflection captures.
@@ -65,8 +66,6 @@ AReflectionCapture::AReflectionCapture(const class FPostConstructInitializePrope
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
-	
-	bWantsInitialize = false;
 }
 
 #if WITH_EDITOR
@@ -620,9 +619,10 @@ public:
 		SourceData = InSourceData;
 	}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
-		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);
 		TextureRHI = TextureCubeRHI;
 
 		if (SourceData)
@@ -1162,7 +1162,7 @@ void UReflectionCaptureComponent::SetCaptureIsDirty()
 	}
 }
 
-void ReadbackFromSM4Cubemap_RenderingThread(FReflectionTextureCubeResource* SM4FullHDRCubemapTexture, FReflectionCaptureFullHDRDerivedData* OutDerivedData)
+void ReadbackFromSM4Cubemap_RenderingThread(FRHICommandListImmediate& RHICmdList, FReflectionTextureCubeResource* SM4FullHDRCubemapTexture, FReflectionCaptureFullHDRDerivedData* OutDerivedData)
 {
 	const int32 EffectiveTopMipSize = GReflectionCaptureSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
@@ -1184,6 +1184,8 @@ void ReadbackFromSM4Cubemap_RenderingThread(FReflectionTextureCubeResource* SM4F
 	CaptureData.AddZeroed(CaptureDataSize);
 	int32 MipBaseIndex = 0;
 
+
+
 	for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 	{
 		check(SM4FullHDRCubemapTexture->GetTextureRHI()->GetFormat() == PF_FloatRGBA);
@@ -1196,7 +1198,7 @@ void ReadbackFromSM4Cubemap_RenderingThread(FReflectionTextureCubeResource* SM4F
 			// Read each mip face
 			//@todo - do this without blocking the GPU so many times
 			//@todo - pool the temporary textures in RHIReadSurfaceFloatData instead of always creating new ones
-			RHIReadSurfaceFloatData(SM4FullHDRCubemapTexture->GetTextureRHI(), FIntRect(0, 0, MipSize, MipSize), SurfaceData, (ECubeFace)CubeFace, 0, MipIndex);
+			RHICmdList.ReadSurfaceFloatData(SM4FullHDRCubemapTexture->GetTextureRHI(), FIntRect(0, 0, MipSize, MipSize), SurfaceData, (ECubeFace)CubeFace, 0, MipIndex);
 			const int32 DestIndex = MipBaseIndex + CubeFace * CubeFaceBytes;
 			uint8* FaceData = &CaptureData[DestIndex];
 			check(SurfaceData.Num() * SurfaceData.GetTypeSize() == CubeFaceBytes);
@@ -1216,7 +1218,7 @@ void ReadbackFromSM4Cubemap(FReflectionTextureCubeResource* SM4FullHDRCubemapTex
 		FReflectionTextureCubeResource*, SM4FullHDRCubemapTexture, SM4FullHDRCubemapTexture,
 		FReflectionCaptureFullHDRDerivedData*, OutDerivedData, OutDerivedData,
 	{
-		ReadbackFromSM4Cubemap_RenderingThread(SM4FullHDRCubemapTexture, OutDerivedData);
+		ReadbackFromSM4Cubemap_RenderingThread(RHICmdList, SM4FullHDRCubemapTexture, OutDerivedData);
 	});
 
 	FlushRenderingCommands();

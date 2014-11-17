@@ -2,7 +2,12 @@
 
 
 #pragma once
+#include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "ParticleHelper.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSystem.h"
 #include "ParticleSystemComponent.generated.h"
 
 //
@@ -244,7 +249,7 @@ struct FParticleEventKismetData : public FParticleEventData
 /** 
  * A particle emmitter.
  */
-UCLASS(ClassGroup=Rendering, hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, dependson=(AEmitter, UParticleSystem), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Rendering, hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UParticleSystemComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -391,7 +396,7 @@ public:
 
 	/** The view relevance flags for each LODLevel. */
 	UPROPERTY(transient)
-	TArray<struct FMaterialRelevance> CachedViewRelevanceFlags;
+	TArray<FMaterialRelevance> CachedViewRelevanceFlags;
 
 	/** If true, the ViewRelevanceFlags are dirty and should be recached */
 	uint32 bIsViewRelevanceDirty:1;
@@ -620,14 +625,42 @@ public:
 	/** Get the current number of active particles in this system */
 	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem")
 	int32 GetNumActiveParticles() const;
+
+	/**
+	* Fills the passed array with all trail emitters associated with a particular object.
+	* @param OutTrailEmitters	The array to fill with pointers to the trail emitters.
+	* @param InOwner			The object that triggered this trail. Can be NULL if no assosiation was set by the owner. Not to be confused with the result of GetOwner().
+	* @param bSetOwner			If true, all trail emitters will be set as owned by InOwner.
+	*/
+	virtual void GetOwnedTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, const void* InOwner, bool bSetOwner = false);
 	
 	/**
-	* Fills the passed array with all trail emitters associated with a particular AnimNotifyState.
-	* @param InAnimNotifyState	The AnimNotifyState collecting the trails.
-	* @param OutTrailEmitters	The array to fill with pointers to
-	* @param bIncludeUnassociated If true, trails that have not yet been associated with an AnimNotifyState are included in OutTrailEmitters.
+	* Begins all trail emitters in this component.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
 	*/
-	virtual void GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated = false);
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void BeginTrails(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
+
+	/**
+	* Ends all trail emitters in this component.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void EndTrails();
+
+	/**
+	* Sets the defining data for all trails in this component.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
 
 public:
 	TArray<struct FParticleEmitterInstance*> EmitterInstances;
@@ -650,20 +683,20 @@ public:
 
 	// Begin UActorComponent interface.
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual UObject const* AdditionalStatObject() const OVERRIDE
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual UObject const* AdditionalStatObject() const override
 	{
 		return Template;
 	}
 protected:
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister()  OVERRIDE;
-	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
+	virtual void OnRegister() override;
+	virtual void OnUnregister()  override;
+	virtual void SendRenderDynamicData_Concurrent() override;
 public:
 	// End UActorComponent interface.
 
@@ -703,35 +736,35 @@ private:
 public:
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual FString GetDetailedInfoInternal() const override;
 	// End UObject interface.
 
 	//Begin UPrimitiveComponent Interface
-	virtual int32 GetNumMaterials() const OVERRIDE; 
-	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const OVERRIDE;
-	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const OVERRIDE;
+	virtual int32 GetNumMaterials() const override; 
+	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
+	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
 	//End UPrimitiveComponent Interface
 
 	// Begin USceneComonent Interface
 protected:
-	virtual bool ShouldActivate() const OVERRIDE;
+	virtual bool ShouldActivate() const override;
 
 public:
-	virtual void Activate(bool bReset=false) OVERRIDE;
-	virtual void Deactivate() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void Activate(bool bReset=false) override;
+	virtual void Deactivate() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End USceneComponent Interface
 
 	/** Activate the system */

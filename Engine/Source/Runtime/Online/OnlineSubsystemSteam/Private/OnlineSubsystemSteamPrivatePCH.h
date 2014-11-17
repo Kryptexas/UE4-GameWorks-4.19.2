@@ -16,7 +16,7 @@
 #define INVALID_INDEX -1
 
 /** Name of the current Steam SDK version in use (matches directory name) */
-#define STEAM_SDK_VER TEXT("Steamv129")
+#define STEAM_SDK_VER TEXT("Steamv129a")
 
 /** FName declaration of Steam subsystem */
 #define STEAM_SUBSYSTEM FName(TEXT("STEAM"))

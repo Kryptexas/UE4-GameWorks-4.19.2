@@ -6,6 +6,8 @@
 
 #include "EnginePrivate.h"
 #include "TargetPlatform.h"
+#include "StaticLighting.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 

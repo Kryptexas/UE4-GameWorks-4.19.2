@@ -5,7 +5,7 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneParticleTrack.h"
 #include "MovieSceneParticleSection.h"
-
+#include "Particles/Emitter.h"
 FMovieSceneParticleTrackInstance::~FMovieSceneParticleTrackInstance()
 {
 }

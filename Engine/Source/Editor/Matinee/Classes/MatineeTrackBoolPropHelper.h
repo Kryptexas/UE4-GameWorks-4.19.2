@@ -9,12 +9,13 @@ class UMatineeTrackBoolPropHelper : public UInterpTrackHelper
 {
 	GENERATED_UCLASS_BODY()
 
-
-	// Begin UInterpTrackHelper Interface
-	virtual	bool PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, bool bDuplicatingTrack, bool bAllowPrompts ) const OVERRIDE;
-	virtual void  PostCreateTrack( UInterpTrack *Track, bool bDuplicatingTrack, int32 TrackIndex ) const OVERRIDE;
-	// End UInterpTrackHelper Interface
-
 	void OnCreateTrackTextEntry(const FString& ChosenText, TWeakPtr<SWindow> Window, FString* OutputString);
+
+public:
+
+	// UInterpTrackHelper interface
+
+	virtual	bool PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, bool bDuplicatingTrack, bool bAllowPrompts ) const override;
+	virtual void  PostCreateTrack( UInterpTrack *Track, bool bDuplicatingTrack, int32 TrackIndex ) const override;
 };
 

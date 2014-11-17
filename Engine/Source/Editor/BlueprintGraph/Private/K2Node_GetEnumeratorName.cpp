@@ -3,8 +3,9 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "K2Node_GetEnumeratorName.h"
 
 FString UK2Node_GetEnumeratorName::EnumeratorPinName = TEXT("Enumerator");
 

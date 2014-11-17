@@ -2,8 +2,18 @@
 
 #pragma once
 
-#include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
-#include "Runtime/Engine/Classes/Camera/CameraTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Components/ActorComponent.h"
+#include "Engine/EngineTypes.h"
+
+#include "Runtime/InputCore/Classes/InputCoreTypes.h"
+#include "Runtime/RenderCore/Public/RenderCommandFence.h"
+
+#include "Camera/CameraTypes.h"
+#include "Components/SceneComponent.h"
+#include "ComponentInstanceDataCache.h"
+
+class FTimerManager; 
 
 UENUM(BlueprintType)
 namespace EEndPlayReason
@@ -132,12 +142,12 @@ public:
 * The functions of interest to initialization order for an Actor is roughly as follows:
 * PostLoad/PostActorCreated - Do any setup of the actor required for construction. PostLoad for serialized actors, PostActorCreated for spawned.  
 * AActor::OnConstruction - The construction of the actor, this is where Blueprint actors have their components created and blueprint variables are initialized
-* AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components (if bWantsInitialize is true)
+* AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components
 * UActorComponent::InitializeComponent - Each component in the actor's components array gets an initialize call (if bWantsInitializeComponent is true for that component)
-* AActor::PostInitializeComponents - Called after the actor's components have been initialized (if bWantsInitialize is true)
+* AActor::PostInitializeComponents - Called after the actor's components have been initialized
 * AActor::BeginPlay - Called when the level is started
 */
-UCLASS(abstract, dependson=(UEngineBaseTypes, UActorComponent, UEngineTypes), BlueprintType, Blueprintable, config=Engine)
+UCLASS(abstract, BlueprintType, Blueprintable, config=Engine)
 class ENGINE_API AActor : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -170,10 +180,6 @@ public:
 	/** Allows us to only see this Actor in the Editor, and not in the actual game. */
 	UPROPERTY(EditAnywhere, Category=Rendering, BlueprintReadOnly, replicated, meta=(DisplayName = "Actor Hidden In Game"))
 	uint32 bHidden:1;
-
-	/** Whether to route PreInitializeComponents/PostInitializeComponents to this Actor. */
-	UPROPERTY()
-	uint32 bWantsInitialize:1;
 
 	/** Used for replication of our RootComponent's position and velocity */
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedMovement)
@@ -251,6 +257,13 @@ protected:
 	// This function should only be used in the constructor of classes that need to set the RemoteRole
 	// to for backwards compatibility purposes
 	void SetRemoteRoleForBackwardsCompat(const ENetRole InRemoteRole) { RemoteRole = InRemoteRole; }
+
+	/**
+	 * Does this actor have an owner responsible for replication (APlayerController typically)
+	 *
+	 * @return true if this actor can call RPCs or false if no such owner chain exists
+	 */
+	virtual bool HasNetOwner() const;
 
 private:
 	// Describes how much control the remote machine has over the actor
@@ -401,9 +414,13 @@ public:
 	/** Return the value of bAllowReceiveTickEventOnDedicatedServer, indicating whether the Blueprint ReceiveTick event will occur on dedicated servers */
 	FORCEINLINE bool AllowReceiveTickEventOnDedicatedServer() const { return bAllowReceiveTickEventOnDedicatedServer; }
 
-protected:
+	/** Layer's the actor belongs to.  This is outside of the editoronly data to allow hiding of LD-specified layers at runtime for profiling. */
+	UPROPERTY()
+	TArray< FName > Layers;
 
 #if WITH_EDITORONLY_DATA
+protected:
+
 	UPROPERTY()
 	uint32 bActorLabelEditable:1;    // Is the actor label editable by the user?
 
@@ -420,44 +437,40 @@ private:
 public:
 	/** Is hidden within the editor at its startup. */
 	UPROPERTY()
-	uint32 bHiddenEd:1;    
+	uint32 bHiddenEd:1;
 
 protected:
 	/** Whether the actor can be manipulated by editor operations. */
 	UPROPERTY()
-	uint32 bEditable:1;    
+	uint32 bEditable:1;
 
 	/** True if this actor should be listed in the scene outliner */
 	UPROPERTY()
-	uint32 bListedInSceneOutliner:1;    
+	uint32 bListedInSceneOutliner:1;
 
 public:
 	/** Is hidden by the layer browser. */
 	UPROPERTY()
-	uint32 bHiddenEdLayer:1;    
+	uint32 bHiddenEdLayer:1;
 
 private:
 	/** Is temporarily hidden within the editor; used for show/hide/etc. functionality w/o dirtying the actor */
 	UPROPERTY(transient)
-	uint32 bHiddenEdTemporary:1;    
+	uint32 bHiddenEdTemporary:1;
 
 public:
 
 	/** Is hidden by the level browser. */
 	UPROPERTY(transient)
-	uint32 bHiddenEdLevel:1;    
+	uint32 bHiddenEdLevel:1;
 
 	/** Prevent the actor from being moved in the editor. */
 	UPROPERTY()
-	uint32 bLockLocation:1;    
+	uint32 bLockLocation:1;
 
 	// Actor's layer name.
 	UPROPERTY()
 	FName Layer_DEPRECATED;
-
-	/** Layer's the actor belongs to */
-	UPROPERTY()
-	TArray< FName > Layers;
 
 	UPROPERTY()
 	FName Group_DEPRECATED;
@@ -466,10 +479,6 @@ public:
 	UPROPERTY(transient)
 	class AActor* GroupActor;
 
-	/** The Actor that owns the ChildActorComponent that owns this Actor */
-	UPROPERTY()
-	TWeakObjectPtr<class AActor> ParentComponentActor;	
-
 	/** The scale to apply to any billboard components in editor builds (happens in any WITH_EDITOR build, including non-cooked games) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Billboard Scale"))
 	float SpriteScale;
@@ -477,6 +486,10 @@ public:
 	/** Returns how many lights are uncached for this actor */
 	int32 GetNumUncachedLights();
 #endif // WITH_EDITORONLY_DATA
+
+	/** The Actor that owns the ChildActorComponent that owns this Actor */
+	UPROPERTY()
+	TWeakObjectPtr<class AActor> ParentComponentActor;	
 
 #if ENABLE_VISUAL_LOG
 	/** indicates where given actor will be writing its visual log data. Defaults to 'this' */
@@ -695,6 +708,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorScale3D(const FVector& NewScale3D);
 
+	/** Returns the Actor's world-space scale. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	FVector GetActorScale3D() const;
+
 	/** Returns the distance from this Actor to OtherActor. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetDistanceTo(AActor* OtherActor);
@@ -764,6 +781,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeScale3D(FVector NewRelativeScale);
+
+	/**
+	 * Return the actor's relative scale 3d
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	FVector GetActorRelativeScale3D() const;
 
 	/**
 	 *	Sets the actor to be hidden in the game
@@ -1027,21 +1050,62 @@ public:
 	FActorEndPlaySignature OnEndPlay;
 	
 	// Begin UObject Interface
-	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
-	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
-	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
-	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) OVERRIDE;
+	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) override;
+	virtual void PostInitProperties() override;
+	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
+	virtual void ProcessEvent( UFunction* Function, void* Parameters ) override;
+	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) override;
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
+
+	struct FActorRootComponentReconstructionData
+	{
+		// Struct to store info about attached actors
+		struct FAttachedActorInfo
+		{
+			TWeakObjectPtr<AActor> Actor;
+			FName SocketName;
+			FTransform RelativeTransform;
+		};
+
+		// The RootComponent's transform
+		FTransform Transform;
+
+		// The Actor the RootComponent is attached to
+		FAttachedActorInfo AttachedParentInfo;
+
+		// Actors that are attached to this RootComponent
+		TArray<FAttachedActorInfo> AttachedToInfo;
+	};
+
+	class FActorTransactionAnnotation : public ITransactionObjectAnnotation
+	{
+	public:
+		FActorTransactionAnnotation(const AActor* Actor);
+
+		bool HasInstanceData() const;
+
+		FComponentInstanceDataCache ComponentInstanceData;
+
+		// Root component reconstruction data
+		bool bRootComponentDataCached;
+		FActorRootComponentReconstructionData RootComponentData;
+	};
+
+	/* Cached pointer to the transaction annotation data from PostEditUndo to be used in the next RerunConstructionScript */
+	TSharedPtr<FActorTransactionAnnotation> CurrentTransactionAnnotation;
+
+	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const override;
+	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -1247,6 +1311,9 @@ public:
 	/** @return	Returns true if this actor should be shown in the scene outliner */
 	bool IsListedInSceneOutliner() const;
 
+	/** @return	Returns true if this actor is allowed to be attached to the given actor */
+	virtual bool EditorCanAttachTo(const AActor* InParent, FText& OutReason) const;
+
 	// Called before editor copy, true allow export
 	virtual bool ShouldExport() { return true; }
 
@@ -1391,10 +1458,19 @@ public:
 	virtual void LifeSpanExpired();
 
 	// Always called immediately before properties are received from the remote.
-	virtual void PreNetReceive() OVERRIDE;
+	virtual void PreNetReceive() override;
 	
 	// Always called immediately after properties are received from the remote.
-	virtual void PostNetReceive() OVERRIDE;
+	virtual void PostNetReceive() override;
+
+	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
+	virtual bool IsNameStableForNetworking() const override;
+
+	/** IsSupportedForNetworking means an object can be referenced over the network */
+	virtual bool IsSupportedForNetworking() const override;
+
+	/** Returns a list of sub-objects that have stable names for networking */
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) override;
 
 	// Always called immediately after spawning and reading in replicated properties
 	virtual void PostNetInit();
@@ -1694,10 +1770,17 @@ public:
 	void DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& NestLevel, bool bShowPosition );
 
 	/**
-	 * Called when an instance of this class is placed (in editor) or spawned.
-	 * @param	Transform	The transform to construct the actor at.
+	 * Run any construction script for this Actor. Will call OnConstruction.
+	 * @param	Transform			The transform to construct the actor at.
+	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 */
-	virtual void OnConstruction(const FTransform& Transform);
+	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache);
+
+	/**
+	 * Called when an instance of this class is placed (in editor) or spawned.
+	 * @param	Transform			The transform the actor was constructed at.
+	 */
+	virtual void OnConstruction(const FTransform& Transform) {}
 
 	/**
 	 * Helper function to regoster tje specified component, and add it to the serialized components array
@@ -1714,7 +1797,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	private:
 	// this is the old name of the tick function. We just want to avoid mistakes with an attempt to override this
-	virtual void Tick( float DeltaTime, enum ELevelTick TickType ) FINAL
+	virtual void Tick( float DeltaTime, enum ELevelTick TickType ) final
 	{
 		check(0);
 	}
@@ -1821,11 +1904,10 @@ public:
 	class AWorldSettings* GetWorldSettings() const;
 
 	/**
-	 * Called from the Component's CanBeBaseForCharacter().
-	 * @param APawn - The pawn that wants to be based on this actor
-	 * @return bool - True if we don't want the pawn to bounce off
+	 * Return true if the given Pawn can be "based" on this actor (ie walk on it).
+	 * @param Pawn - The pawn that wants to be based on this actor
 	 */
-	virtual bool CanBeBaseForCharacter(class APawn* APawn) const;
+	virtual bool CanBeBaseForCharacter(class APawn* Pawn) const;
 
 	/** Apply damage to this actor.
 	 * @param DamageAmount		How much damage to apply
@@ -1913,7 +1995,7 @@ public:
 	bool IsInPersistentLevel(bool bIncludeLevelStreamingPersistent = false) const;
 
 	/** Getter for the cached world pointer */
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 
 	/** Get the timer instance from the actors world */
 	class FTimerManager& GetWorldTimerManager() const;
@@ -1921,12 +2003,17 @@ public:
 	/** Returns true if this is a replicated actor that was placed in the map */
 	bool IsNetStartupActor() const;
 
-	/** Searches components array and returns first encountered array by type. */
+	/** Searches components array and returns first encountered component of the specified class. */
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
 	/** Script exposed version of FindComponentByClass */
 	UFUNCTION()
 	virtual UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+
+	/* Gets all the components that inherit from the given class.
+		Currently returns an array of UActorComponent which must be cast to the correct type. */
+	UFUNCTION(BlueprintCallable, Category="Actor", meta=(ComponentClass="ActorComponent"))
+	TArray<UActorComponent*> GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/** Templatized version for syntactic nicety. */
 	template<class T>
@@ -1977,13 +2064,12 @@ public:
 #if DO_CHECK
 	bool OwnsComponent(UActorComponent* Component) const;
 #endif
+	void ResetOwnedComponents();
 
 private:
 	UPROPERTY(transient, duplicatetransient)
 	TArray<UActorComponent*> OwnedComponents;
-
-	void ResetOwnedComponents();
-
+	
 public:
 	//=============================================================================
 	// Navigation related functions
@@ -2076,7 +2162,7 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false) { return Super::SetActorLocation(NewLocation, bSweep); } \
 	bool SetActorRotation(FRotator NewRotation) { return Super::SetActorRotation(NewRotation); } \
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep); } \
-	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) OVERRIDE { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
-	virtual FVector GetVelocity() const OVERRIDE { return Super::GetVelocity(); } \
+	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) override { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
+	virtual FVector GetVelocity() const override { return Super::GetVelocity(); } \
 	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); }
 

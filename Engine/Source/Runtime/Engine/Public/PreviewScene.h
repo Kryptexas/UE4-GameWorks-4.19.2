@@ -61,7 +61,7 @@ public:
 	void RemoveComponent(class UActorComponent* Component);
 
 	// Serializer.
-	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	// Accessors.
 	UWorld* GetWorld() const { return PreviewWorld; }

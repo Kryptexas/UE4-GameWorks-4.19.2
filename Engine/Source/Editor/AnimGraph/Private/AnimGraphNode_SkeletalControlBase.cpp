@@ -52,7 +52,6 @@ void UAnimGraphNode_SkeletalControlBase::GetMenuEntries(FGraphContextMenuBuilder
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = TemplateNode;
-	NodeAction->SearchTitle = NodeAction->NodeTemplate->GetNodeSearchTitle();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -20,7 +20,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_DelegateSet* DelegateNode = Cast<UK2Node_DelegateSet>(Node);
 		if( DelegateNode )
@@ -83,7 +83,7 @@ public:
 		}
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		const UK2Node_DelegateSet* DelegateNode = Cast<UK2Node_DelegateSet>(Node);
 		check(DelegateNode);
@@ -167,12 +167,6 @@ FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
 	return FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
-}
-
-FString UK2Node_DelegateSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("Assign %s"), *DelegatePropertyName.ToString());
 }
 
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const

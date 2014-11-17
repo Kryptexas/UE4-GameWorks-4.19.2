@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "EditorViewportClient.h"
+
 // Forward declarations.
 
 class IMatineeBase;
@@ -100,20 +102,6 @@ private:
 };
 
 
-struct FDropQuery
-{
-	FDropQuery()
-		: bCanDrop(false)
-	{}
-
-	/** True if it's valid to drop the object at the location queried */
-	bool bCanDrop;
-
-	/** Optional hint text that may be returned to the user. */
-	FText HintText;
-};
-
-
 /** */
 class UNREALED_API FLevelEditorViewportClient : public FEditorViewportClient
 {
@@ -139,44 +127,43 @@ public:
 
 	////////////////////////////
 	// FViewElementDrawer interface
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	// End of FViewElementDrawer interface
 	
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) OVERRIDE;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
 
 	////////////////////////////
 	// FEditorViewportClient interface
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) OVERRIDE;
-	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
-	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) OVERRIDE;
-	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) OVERRIDE;
+	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) override;
+	virtual void MouseLeave( FViewport* Viewport ) override;
+	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
+	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
+	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
+	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) override;
 	virtual bool IsLevelEditorClient() const { return ParentLevelEditor.IsValid(); }
-	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) OVERRIDE;
-	virtual void TrackingStopped() OVERRIDE;
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) OVERRIDE;
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const OVERRIDE;
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) OVERRIDE;
-	virtual FWidget::EWidgetMode GetWidgetMode() const OVERRIDE;
-	virtual FVector GetWidgetLocation() const OVERRIDE;
+	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
+	virtual void TrackingStopped() override;
+	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) override;
+	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const override;
+	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
-	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) OVERRIDE;
-	virtual FSceneInterface* GetScene() const OVERRIDE;
-	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
-	virtual bool IsAspectRatioConstrained() const OVERRIDE;
-	virtual int32 GetCameraSpeedSetting() const OVERRIDE;
-	virtual void SetCameraSpeedSetting(int32 SpeedSetting) OVERRIDE;
-	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
-	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
+	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
+	virtual FSceneInterface* GetScene() const override;
+	virtual FLinearColor GetBackgroundColor() const override;
+	virtual int32 GetCameraSpeedSetting() const override;
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
+	virtual void LostFocus(FViewport* Viewport) override;
 
-	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
+	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
 
@@ -199,13 +186,6 @@ public:
 	 * Restores camera settings that may be adversely affected by PIE
 	 */
 	void RestoreCameraFromPIE();
-
-
-	/** true to force realtime audio to be true, false to stop forcing it true */
-	void SetForcedAudioRealtime( bool bShouldForceAudioRealtime )
-	{
-		bForceAudioRealtime = bShouldForceAudioRealtime;
-	}
 
 	/**
 	 * Updates the audio listener for this viewport 
@@ -237,25 +217,9 @@ public:
 	bool IsVolumeVisibleInViewport( const AActor& VolumeActor ) const;
 
 	/**
-	 * Sets the actor that should "drive" this view's location and other settings
-	 *
-	 * @param	Actor	The actor that will push view settings to this view
+	 * Updates or resets view properties such as aspect ratio, FOV, location etc to match that of any actor we are locked to
 	 */
-	void SetControllingActor( const AActor* Actor )
-	{
-		ControllingActor = Actor;
-	}
-
-	/** Called every time the viewport is ticked to update the view based on an actor that is
-		driving the location, FOV and other settings for this view.  This is used for live camera PIP
-		preview within editor viewports */
-	void PushControllingActorDataToViewportClient();
-
-
-	/**
-	 * Allows to set the postprocess camera actor to unset it (0)
-	 */
-	void SetPostprocessCameraActor(ACameraActor* InPostprocessCameraActor);
+	void UpdateViewForLockedActor();
 
 	/**
 	 * Returns the horizontal axis for this viewport.
@@ -266,15 +230,6 @@ public:
 	 * Returns the vertical axis for this viewport.
 	 */
 	EAxisList::Type GetVertAxis() const;
-
-	/** Returns true if the viewport is allowed to be possessed by Matinee for previewing sequences */
-	bool AllowMatineePreview() const { return bAllowMatineePreview; }
-
-	/** Sets whether or not this viewport is allowed to be possessed by Matinee */
-	void SetAllowMatineePreview( const bool bInAllowMatineePreview )
-	{
-		bAllowMatineePreview = bInAllowMatineePreview;
-	}
 
 	void NudgeSelectedObjects( const struct FInputEventState& InputState );
 
@@ -299,20 +254,7 @@ public:
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
-	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) OVERRIDE;
-
-	/**
-	 * Draws a screen space bounding box around the specified actor
-	 *
-	 * @param	InCanvas		Canvas to draw on
-	 * @param	InView			View to render
-	 * @param	InViewport		Viewport we're rendering into
-	 * @param	InActor			Actor to draw a bounding box for
-	 * @param	InColor			Color of bounding box
-	 * @param	bInDrawBracket	True to draw a bracket, otherwise a box will be rendered
-	 * @param	bInLabelText	Optional label text to draw
-	 */
-	void DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText = TEXT( "" ) );
+	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) override;
 
 	/**
 	 *	Draw the texture streaming bounds.
@@ -371,17 +313,17 @@ public:
 	void SetAllSpriteCategoryVisibility( bool bVisible );
 
 	/** FEditorViewportClient Interface*/
-	virtual void UpdateMouseDelta() OVERRIDE;
+	virtual void UpdateMouseDelta() override;
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
-	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) override;
+	virtual UWorld* GetWorld() const override;
 
 	void SetReferenceToWorldContext(FWorldContext& WorldContext);
 
 	void RemoveReferenceToWorldContext(FWorldContext& WorldContext);
 
 	/** Returns true if a placement dragging actor exists */
-	bool HasDropPreviewActors() const;
+	virtual bool HasDropPreviewActors() const override;
 
 	/**
 	 * If dragging an actor for placement, this function updates its position.
@@ -393,12 +335,12 @@ public:
 	 *
 	 * Returns true if preview actors were updated
 	 */
-	bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL);
+	virtual bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL) override;
 
 	/**
 	 * If dragging an actor for placement, this function destroys the actor.
 	 */
-	void DestroyDropPreviewActors();
+	virtual void DestroyDropPreviewActors() override;
 
 	/**
 	 * Checks the viewport to see if the given object can be dropped using the given mouse coordinates local to this viewport
@@ -407,7 +349,7 @@ public:
 	 * @param MouseY			The position of the mouse's Y coordinate
 	 * @param AssetInfo			Asset in question to be dropped
 	 */
-	FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
+	virtual FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo) override;
 
 	/**
 	 * Attempts to intelligently drop the given objects in the viewport, using the given mouse coordinates local to this viewport
@@ -421,21 +363,21 @@ public:
 	 * @param bSelectActors		 If true, select the newly dropped actors (defaults: true)
 	 * @param FactoryToUse		 The preferred actor factory to use (optional)
 	 */
-	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
+	virtual bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL ) override;
 
 	/**
 	 * Sets GWorld to the appropriate world for this client
 	 * 
 	 * @return the previous GWorld
 	 */
-	virtual UWorld* ConditionalSetWorld() OVERRIDE;
+	virtual UWorld* ConditionalSetWorld() override;
 
 	/**
 	 * Restores GWorld to InWorld
 	 *
 	 * @param InWorld	The world to restore
 	 */
-	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) OVERRIDE;
+	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) override;
 
 	/**
 	 *	Called to check if a material can be applied to an object, given the hit proxy
@@ -468,8 +410,6 @@ public:
 	 */
 	void ModifyScale( USceneComponent* InComponent, FVector& ScaleDelta ) const;
 
-	void RenderDragTool( const FSceneView* View,FCanvas* Canvas );
-
 	/** Set the global ptr to the current viewport */
 	void SetCurrentViewport();
 
@@ -497,6 +437,25 @@ public:
 			return TWeakObjectPtr<AActor>();
 		}
 		return ActorLockedToCamera;
+	}
+	
+	/** 
+	 * Find the camera component that is driving this viewport, in the following order of preference:
+	 *		1. Matinee locked actor
+	 *		2. User actor lock (if (bLockedCameraView is true)
+	 * 
+	 * @return  Pointer to a camera component to use for this viewport's view
+	 */
+	UCameraComponent* GetCameraComponentForView() const
+	{
+		const AActor* LockedActor = ActorLockedByMatinee.Get();
+
+		if (!LockedActor && bLockedCameraView)
+		{
+			LockedActor = ActorLockedToCamera.Get();
+		}
+
+		return LockedActor ? LockedActor->FindComponentByClass<UCameraComponent>() : nullptr;
 	}
 
 	/** 
@@ -534,7 +493,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	virtual FStatUnitData* GetStatUnitData() const override
 	{
 		return StatUnitData;
 	}
@@ -542,7 +501,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	virtual FStatHitchesData* GetStatHitchesData() const override
 	{
 		return StatHitchesData;
 	}
@@ -550,7 +509,7 @@ public:
 	/**
 	 * Get a ptr to the enabled stats list
 	 */
-	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	virtual const TArray<FString>* GetEnabledStats() const override
 	{
 		return &EnabledStats;
 	}
@@ -558,7 +517,7 @@ public:
 	/**
 	 * Sets all the stats that should be enabled for the viewport
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
 	{
 		EnabledStats = InEnabledStats;
 	}
@@ -566,7 +525,7 @@ public:
 	/**
 	 * Check whether a specific stat is enabled for this viewport
 	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	virtual bool IsStatEnabled(const TCHAR* InName) const override
 	{
 		return EnabledStats.Contains(InName);
 	}
@@ -574,7 +533,7 @@ public:
 	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
-	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
 	{ 
 		return SoundShowFlags;
 	}
@@ -582,7 +541,7 @@ public:
 	/**
 	 * Set the sound stat flags enabled for this viewport
 	 */
-	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
 	}
@@ -631,13 +590,13 @@ protected:
 	void OnActorMoved(AActor* InActor);
 
 	/** FEditorViewportClient Interface*/
-	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) OVERRIDE;
-	virtual ELevelViewportType GetViewportType() const OVERRIDE;
-	virtual void OverridePostProcessSettings( FSceneView& View ) OVERRIDE;
-	virtual void PerspectiveCameraMoved() OVERRIDE;
-	virtual bool ShouldLockPitch() const OVERRIDE;
-	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) OVERRIDE;
-	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const OVERRIDE;
+	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
+	virtual ELevelViewportType GetViewportType() const override;
+	virtual void OverridePostProcessSettings( FSceneView& View ) override;
+	virtual void PerspectiveCameraMoved() override;
+	virtual bool ShouldLockPitch() const override;
+	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) override;
+	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const override;
 
 private:
 	/**
@@ -796,9 +755,6 @@ public:
 	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
 	bool					bEditorCameraCut;
 
-	/** If true, draw vertices for selected BSP brushes and static meshes if the large vertices show flag is set. */
-	bool					bDrawVertices;
-
 	/** Indicates whether, of not, the base attachment volume should be drawn for this viewport. */
 	bool bDrawBaseInfo;
 
@@ -819,20 +775,15 @@ public:
 	 */
 	bool					bIsTrackingBrushModification;
 
+	/** True if this viewport is to change its view (aspect ratio, post processing, FOV etc) to match that of the currently locked camera, if applicable */
+	bool					bLockedCameraView;
+
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
 
-	/** Optional actor that is 'controlling' this view.  That is, the view's location, rotation, FOV and other settings
-		should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
-	TWeakObjectPtr< AActor > ControllingActor;
-
 	/** Bit array representing the visibility of every sprite category in the current viewport */
 	TBitArray<>	SpriteCategoryVisibility;
-
-
-	/** Valid if there is a camera available that can override the post process setting */
-	TWeakObjectPtr<class ACameraActor> PostprocessCameraActor;
 
 	UWorld* World;
 
@@ -842,17 +793,16 @@ private:
 	int32 DropPreviewMouseX;
 	int32 DropPreviewMouseY;
 
-	/** true if this window is allowed to be possessed by Matinee for previewing sequences in real-time */
-	bool bAllowMatineePreview;
-
 	/** If this view was controlled by another view this/last frame, don't update itself */
 	bool bWasControlledByOtherViewport;
 
-	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
-	TWeakObjectPtr<AActor>	ActorLockedToCamera;
-
-	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
+	/**
+	 * When locked to an actor this view will be positioned in the same location and rotation as the actor.
+	 * If the actor has a camera component the view will also inherit camera settings such as aspect ratio, FOV, post processing settings, and the like.
+	 * A viewport locked to an actor by Matinee will always take precedent over any other.
+	 */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
+	TWeakObjectPtr<AActor>	ActorLockedToCamera;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData*			StatUnitData;

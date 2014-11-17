@@ -7,6 +7,7 @@
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
 #include "UniformBuffer.h"
+#include "ShaderParameterUtils.h"
 
 extern uint32 GSlateShaderColorVisionDeficiencyType;
 
@@ -21,10 +22,10 @@ public:
 	virtual ~FSlateVertexDeclaration() {}
 
 	/** Initializes the vertex declaration RHI resource */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/** Releases the vertex declaration RHI resource */
-	virtual void ReleaseRHI();
+	virtual void ReleaseRHI() override;
 };
 
 /** The slate Vertex shader representation */
@@ -45,14 +46,14 @@ public:
 	 *
 	 * @param InViewProjection	The ViewProjection matrix to use when this shader is bound 
 	 */
-	void SetViewProjection( const FMatrix& InViewProjection );
+	void SetViewProjection(FRHICommandList& RHICmdList, const FMatrix& InViewProjection );
 
 	/** 
 	 * Sets shader parameters for use in this shader
 	 *
 	 * @param ShaderParams	The shader params to be used
 	 */
-	void SetShaderParameters( const FVector4& ShaderParams );
+	void SetShaderParameters(FRHICommandList& RHICmdList, const FVector4& ShaderParams );
 
 	/** Serializes the shader data */
 	virtual bool Serialize( FArchive& Ar );
@@ -86,10 +87,8 @@ public:
 	{
 		TextureParameter.Bind( Initializer.ParameterMap, TEXT("ElementTexture"));
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("ElementTextureSampler"));
-		DrawEffectsParameter.Bind( Initializer.ParameterMap, TEXT("DrawEffects"));
 		ShaderParams.Bind( Initializer.ParameterMap, TEXT("ShaderParams"));
-		ViewportSize.Bind(Initializer.ParameterMap, TEXT("ViewportSize"));
-		DisplayGamma.Bind( Initializer.ParameterMap,TEXT("DisplayGamma"));
+		DisplayGamma.Bind( Initializer.ParameterMap,TEXT("InvDisplayGamma"));
 	}
 
 
@@ -99,19 +98,9 @@ public:
 	 * @param Texture	Texture resource to use when this pixel shader is bound
 	 * @param SamplerState	Sampler state to use when sampling this texture
 	 */
-	void SetTexture( const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
+	void SetTexture(FRHICommandList& RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
 	{
-		SetTextureParameter( GetPixelShader(), TextureParameter, TextureParameterSampler, SamplerState, InTexture );
-	}
-
-	/**
-	 * Sets any draw effect flags used by the shader
-	 *
-	 * @param InDrawEffects		A mask of draw effects that the pixel shader should use.
-	 */
-	void SetDrawEffects( ESlateDrawEffect::Type InDrawEffects )
-	{
-		SetShaderValue( GetPixelShader(), DrawEffectsParameter, InDrawEffects );
+		SetTextureParameter(RHICmdList, GetPixelShader(), TextureParameter, TextureParameterSampler, SamplerState, InTexture );
 	}
 
 	/**
@@ -119,17 +108,9 @@ public:
 	 * 
 	 * @param InShaderParams Shader params to use
 	 */
-	void SetShaderParams( const FVector4& InShaderParams )
+	void SetShaderParams(FRHICommandList& RHICmdList, const FVector4& InShaderParams )
 	{
-		SetShaderValue( GetPixelShader(), ShaderParams, InShaderParams );
-	}
-
-	/**
-	 * Set the viewport size.
-	 */
-	void SetViewportSize(const FVector2D& InViewportSize)
-	{
-		SetShaderValue(GetPixelShader(), ViewportSize, InViewportSize);
+		SetShaderValue(RHICmdList, GetPixelShader(), ShaderParams, InShaderParams );
 	}
 
 	/**
@@ -137,9 +118,9 @@ public:
  	 *
 	 * @param DisplayGamma The display gamma to use
 	 */
-	void SetDisplayGamma(float InDisplayGamma)
+	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
 	{
-		SetShaderValue(GetPixelShader(),DisplayGamma,InDisplayGamma);
+		SetShaderValue(RHICmdList, GetPixelShader(),DisplayGamma,InDisplayGamma);
 	}
 
 	virtual bool Serialize( FArchive& Ar )
@@ -149,8 +130,6 @@ public:
 		Ar << TextureParameter;
 		Ar << TextureParameterSampler;
 		Ar << ShaderParams;
-		Ar << ViewportSize;
-		Ar << DrawEffectsParameter;
 		Ar << DisplayGamma;
 
 		return bShaderHasOutdatedParameters;
@@ -160,8 +139,6 @@ private:
 	FShaderResourceParameter TextureParameter;
 	FShaderResourceParameter TextureParameterSampler;
 	FShaderParameter ShaderParams;
-	FShaderParameter ViewportSize;
-	FShaderParameter DrawEffectsParameter;
 	FShaderParameter DisplayGamma;
 };
 
@@ -195,6 +172,7 @@ public:
 		OutEnvironment.SetDefine( TEXT("DRAW_DISABLED_EFFECT"), (uint32)(bDrawDisabledEffect ? 1 : 0) );
 		OutEnvironment.SetDefine( TEXT("USE_TEXTURE_ALPHA"), (uint32)(bUseTextureAlpha ? 1 : 0) );
 		OutEnvironment.SetDefine( TEXT("COLOR_VISION_DEFICIENCY_TYPE"), GSlateShaderColorVisionDeficiencyType );
+		OutEnvironment.SetDefine( TEXT("USE_MATERIALS"), (uint32)0 );
 
 		FSlateElementPS::ModifyCompilationEnvironment( Platform, OutEnvironment );
 	}
@@ -206,6 +184,37 @@ public:
 	}
 private:
 
+};
+
+/** 
+ * Pixel shader for debugging Slate overdraw
+ */
+class FSlateDebugOverdrawPS : public FSlateElementPS
+{	
+	DECLARE_SHADER_TYPE( FSlateDebugOverdrawPS, Global );
+public:
+	/** Indicates that this shader should be cached */
+	static bool ShouldCache( EShaderPlatform Platform ) 
+	{ 
+		return true; 
+	}
+
+	FSlateDebugOverdrawPS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlateDebugOverdrawPS( const ShaderMetaType::CompiledShaderInitializerType& Initializer )
+		: FSlateElementPS( Initializer )
+	{
+	}
+
+
+	virtual bool Serialize( FArchive& Ar )
+	{
+		return FSlateElementPS::Serialize( Ar );
+	}
+private:
 };
 
 /** The simple element vertex declaration. */

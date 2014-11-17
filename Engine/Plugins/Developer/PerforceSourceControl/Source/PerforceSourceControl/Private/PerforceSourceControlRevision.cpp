@@ -236,6 +236,11 @@ const FString& FPerforceSourceControlRevision::GetAction() const
 	return Action;
 }
 
+TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> FPerforceSourceControlRevision::GetBranchSource() const
+{
+	return BranchSource;
+}
+
 const FDateTime& FPerforceSourceControlRevision::GetDate() const
 {
 	return Date;

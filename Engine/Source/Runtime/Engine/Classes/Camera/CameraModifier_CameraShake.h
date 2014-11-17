@@ -7,6 +7,8 @@
 #pragma once
 
 #include "CameraTypes.h"
+#include "CameraShake.h"
+
 #include "CameraModifier_CameraShake.generated.h"
 
 USTRUCT()
@@ -83,7 +85,7 @@ struct ENGINE_API FCameraShakeInstance
 
 };
 
-UCLASS(dependson=UCameraShake, config=Camera)
+UCLASS(config=Camera)
 class ENGINE_API UCameraModifier_CameraShake : public UCameraModifier
 {
 	GENERATED_UCLASS_BODY()
@@ -117,7 +119,7 @@ public:
 	virtual void UpdateCameraShake(float DeltaTime, FCameraShakeInstance& Shake, struct FMinimalViewInfo& InOutPOV);
 	
 	// Begin UCameraModifer Interface
-	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV) OVERRIDE;
+	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV) override;
 	// End UCameraModifer Interface
 };
 

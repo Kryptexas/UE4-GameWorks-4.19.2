@@ -12,6 +12,6 @@ public:
 
 protected:
 	// SGraphNode interface
-	virtual TSharedRef<SWidget> CreateNodeContentArea() OVERRIDE;
+	virtual TSharedRef<SWidget> CreateNodeContentArea() override;
 	// End of SGraphNode interface
 };

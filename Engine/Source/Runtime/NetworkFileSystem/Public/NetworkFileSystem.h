@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileSystem.h: NetworkFileSystem module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -15,13 +11,8 @@
 #include "Sockets.h"
 
 
-/* Interfaces
+/* Public Includes
  *****************************************************************************/
 
-#include "INetworkFileServerConnection.h"
 #include "INetworkFileServer.h"
 #include "INetworkFileSystemModule.h"
-
-
-/* Common
- *****************************************************************************/

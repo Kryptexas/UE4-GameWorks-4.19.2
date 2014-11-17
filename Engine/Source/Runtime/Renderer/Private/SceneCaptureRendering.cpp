@@ -13,7 +13,7 @@
 #include "PostProcessAmbient.h"
 #include "PostProcessing.h"
 
-void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
+void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
 {
 	FMemMark MemStackMark(FMemStack::Get());
 
@@ -31,33 +31,34 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 		const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
 		FIntRect ViewRect = SceneRenderer->Views[0].ViewRect;
 		FIntRect UnconstrainedViewRect = SceneRenderer->Views[0].UnconstrainedViewRect;
-		RHISetRenderTarget(Target->GetRenderTargetTexture(), NULL);
-		RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
-		SceneRenderer->Render();
+		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
+		SceneRenderer->Render(RHICmdList);
 
 		// Copy the captured scene into the destination texture
 		if (bUseSceneColorTexture)
 		{
 			// Copy the captured scene into the destination texture
-			RHISetRenderTarget(Target->GetRenderTargetTexture(), NULL);
+			SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
 
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
 			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			FRenderingCompositePassContext Context(SceneRenderer->Views[0]);
+			FRenderingCompositePassContext Context(RHICmdList, SceneRenderer->Views[0]);
 
-			VertexShader->SetParameters(SceneRenderer->Views[0]);
-			PixelShader->SetParameters(TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
+			VertexShader->SetParameters(RHICmdList, SceneRenderer->Views[0]);
+			PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
 
 			FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());
 
 			DrawRectangle(
+				RHICmdList,
 				ViewRect.Min.X, ViewRect.Min.Y,
 				ViewRect.Width(), ViewRect.Height(),
 				ViewRect.Min.X, ViewRect.Min.Y,
@@ -68,14 +69,14 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 				EDRF_UseTriangleOptimization);
 		}
 
-		RHICopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
+		RHICmdList.CopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
 	}
 
 	delete SceneRenderer;
 }
 
 
-FSceneRenderer* FScene::CreateSceneRenderer( UTextureRenderTarget* TextureTarget, const FMatrix& ViewMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour, FPostProcessSettings* PostProcessSettings, float PostProcessBlendWeight )
+FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptureComponent, UTextureRenderTarget* TextureTarget, const FMatrix& ViewMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour, FPostProcessSettings* PostProcessSettings, float PostProcessBlendWeight )
 {
 	FIntPoint CaptureSize(TextureTarget->GetSurfaceWidth(), TextureTarget->GetSurfaceHeight());
 
@@ -135,6 +136,17 @@ FSceneRenderer* FScene::CreateSceneRenderer( UTextureRenderTarget* TextureTarget
 
 	View->bIsSceneCapture = true;
 
+	check(SceneCaptureComponent);
+	for (auto It = SceneCaptureComponent->HiddenComponents.CreateConstIterator(); It; ++It)
+	{
+		// If the primitive component was destroyed, the weak pointer will return NULL.
+		UPrimitiveComponent* PrimitiveComponent = It->Get();
+		if (PrimitiveComponent)
+		{
+			View->HiddenPrimitives.Add(PrimitiveComponent->ComponentId);
+		}
+	}
+
 	ViewFamily.Views.Add(View);
 
 	View->StartFinalPostprocessSettings(ViewLocation);
@@ -164,7 +176,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 			FPlane(0,	0,	0,	1));
 		const float FOV = CaptureComponent->FOVAngle * (float)PI / 360.0f;
 		const bool bUseSceneColorTexture = CaptureComponent->CaptureSource == SCS_SceneColorHDR;
-		FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent->TextureTarget, ViewMatrix , ViewLocation, FOV, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
+		FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent, CaptureComponent->TextureTarget, ViewMatrix , ViewLocation, FOV, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
 
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
@@ -176,7 +188,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 			FName, OwnerName, OwnerName,
 			bool, bUseSceneColorTexture, bUseSceneColorTexture,
 		{
-			UpdateSceneCaptureContent_RenderThread(SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
+			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
 		});
 	}
 }
@@ -235,7 +247,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			const ECubeFace TargetFace = (ECubeFace)faceidx;
 			const FVector Location = CaptureComponent->GetComponentToWorld().GetTranslation();
 			const FMatrix ViewMatrix = FLocal::CalcCubeFaceTransform(TargetFace, Location);
-			FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent->TextureTarget, ViewMatrix, Location, FOV, CaptureComponent->MaxViewDistanceOverride);
+			FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent, CaptureComponent->TextureTarget, ViewMatrix, Location, FOV, CaptureComponent->MaxViewDistanceOverride);
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());
 			const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
@@ -247,7 +259,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 				FName, OwnerName, OwnerName,
 				ECubeFace, TargetFace, TargetFace,
 			{
-				UpdateSceneCaptureContent_RenderThread(SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
+				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
 			});
 		}
 	}

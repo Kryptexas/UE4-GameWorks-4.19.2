@@ -7,6 +7,6 @@ class SGraphNodeSpawnActorFromClass : public SGraphNodeK2Default
 public:
 
 	// SGraphNode interface
-	virtual void CreatePinWidgets() OVERRIDE;
+	virtual void CreatePinWidgets() override;
 	// End of SGraphNode interface
 };

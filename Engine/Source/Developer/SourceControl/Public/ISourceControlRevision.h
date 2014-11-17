@@ -70,6 +70,9 @@ public:
 	/** Action taken to the file this revision (branch/integrate/edit/etc.) */
 	virtual const FString& GetAction() const = 0;
 
+	/** Source of branch, if any */
+	virtual TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> GetBranchSource() const = 0;
+
 	/** Date of the revision */
 	virtual const FDateTime& GetDate() const = 0;
 

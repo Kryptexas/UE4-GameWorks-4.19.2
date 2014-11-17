@@ -12,7 +12,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 private:
 	void UpdateAnimationCategory( IDetailLayoutBuilder& DetailBuilder );
@@ -47,6 +47,12 @@ private:
 
 	/** Callback from the class picker when the user selects a class */
 	void OnClassPicked(UClass* PickedClass);
+
+	/** Callback from the detail panel to browse to the selected anim asset */
+	void OnBrowseToAnimBlueprint();
+
+	/** Callback from the details panel to use the currently selected asset in the content browser */
+	void UseSelectedAnimBlueprint();
 
 	/** Cached layout builder for use after customization */
 	IDetailLayoutBuilder* CurrentDetailBuilder;

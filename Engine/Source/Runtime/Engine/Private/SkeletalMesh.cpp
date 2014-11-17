@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "EditorSupportDelegates.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalMeshSorting.h"
 #include "MeshBuild.h"
@@ -16,6 +18,13 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "SkeletalRenderGPUSkin.h"
+#include "RawIndexBuffer.h"
+#include "PhysicsPublic.h"
+#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -189,7 +198,8 @@ void FSkeletalMeshVertexBuffer::InitRHI()
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
 		// Create the vertex buffer.
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static|BUF_ShaderResource);
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static|BUF_ShaderResource, CreateInfo);
 	}
 }
 
@@ -255,9 +265,12 @@ void FSkeletalMeshVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 	
 	VertexData->ResizeBuffer(InVertices.Num());
 	
-	Data = VertexData->GetDataPointer();
-	Stride = VertexData->GetStride();
-	NumVertices = VertexData->GetNumVertices();
+	if (InVertices.Num() > 0)
+	{
+		Data = VertexData->GetDataPointer();
+		Stride = VertexData->GetStride();
+		NumVertices = VertexData->GetNumVertices();
+	}
 	
 	if (bExtraBoneInfluences)
 	{
@@ -465,7 +478,8 @@ void FSkeletalMeshVertexColorBuffer::InitRHI()
 	FResourceArrayInterface* ResourceArray = VertexData->GetResourceArray();
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static );
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 }
 
@@ -618,7 +632,8 @@ void FSkeletalMeshVertexAPEXClothBuffer::InitRHI()
 	FResourceArrayInterface* ResourceArray = VertexData->GetResourceArray();
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static );
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 }
 
@@ -661,6 +676,20 @@ FArchive &operator<<( FArchive& Ar, FMeshBoneInfo& F)
 		FColor DummyColor = FColor::White;
 		Ar << DummyColor;
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (Ar.UE4Ver() >= VER_UE4_STORE_BONE_EXPORT_NAMES)
+	{
+		if(!Ar.IsCooking())
+		{
+			Ar << F.ExportName;
+		}
+	}
+	else
+	{
+		F.ExportName = F.Name.ToString();
+	}
+#endif
 
 	return Ar;
 }
@@ -1117,7 +1146,7 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 		
 		Ar << S.TriangleSorting;
 
-	//for clothing info
+	// for clothing info
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH )
 	{
 		Ar << S.bDisabled;
@@ -1126,7 +1155,7 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH_LOD )
 	{
-		Ar << S.bEnableClothLOD;
+		Ar << S.bEnableClothLOD_DEPRECATED;
 	}
 
 	return Ar;
@@ -2139,6 +2168,14 @@ void USkeletalMesh::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	Super::PreEditChange(PropertyAboutToChange);
 
+	if (GIsEditor &&
+		PropertyAboutToChange &&
+		PropertyAboutToChange->GetOuterUField() &&
+		PropertyAboutToChange->GetOuterUField()->GetFName() == FName(TEXT("ClothPhysicsProperties")))
+	{
+		// if this is a member property of ClothPhysicsProperties, don't release render resources to drag sliders smoothly 
+		return;
+	}
 	FlushRenderState();
 }
 
@@ -2147,6 +2184,13 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	bool bFullPrecisionUVsReallyChanged = false;
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	
+	// if this is a member property of ClothPhysicsProperties, skip RestartRenderState to drag ClothPhysicsProperties sliders smoothly
+	bool bSkipRestartRenderState = 
+		GIsEditor &&
+		PropertyThatChanged &&
+		PropertyThatChanged->GetOuterUField() &&
+		PropertyThatChanged->GetOuterUField()->GetFName() == FName(TEXT("ClothPhysicsProperties"));	
 
 	if( GIsEditor &&
 		PropertyThatChanged &&
@@ -2176,7 +2220,10 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		}
 	}
 	
-	RestartRenderState();
+	if (!bSkipRestartRenderState)
+	{
+		RestartRenderState();
+	}
 
 	if ( GIsEditor && PropertyThatChanged && PropertyThatChanged->GetName() == TEXT("StreamingDistanceMultiplier") )
 	{
@@ -2802,7 +2849,7 @@ void USkeletalMesh::InitMorphTargets()
 }
 
 
-UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName )
+UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName ) const
 {
 	if( MorphTargetName != NAME_None )
 	{
@@ -4458,7 +4505,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const class FPostConstructInitializ
 	StreamingDistanceMultiplier = 1.0f;
 	ProgressiveDrawingFraction = 1.0f;
 	bCanHighlightSelectedSections = false;
-	CanBeCharacterBase = ECB_Owner;
+	CanCharacterStepUpOn = ECB_Owner;
 #if WITH_EDITORONLY_DATA
 	ChunkIndexPreview = -1;
 	SectionIndexPreview = -1;
@@ -4539,6 +4586,11 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		{
 			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 		}
+	}
+
+	if (bEnablePerPolyCollision)
+	{
+		Ar << BodySetup;
 	}
 
 	// Since we separated simulation vs blending

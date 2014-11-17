@@ -14,9 +14,9 @@ public:
 
 	void Construct( const FArguments& InArgs );
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
 
 	/**
 	 * @return True if the viewport is being updated in realtime
@@ -32,6 +32,11 @@ public:
 	const TSharedPtr<FUICommandList> GetCommandList() const { return CommandList; }
 
 	TSharedPtr<FEditorViewportClient> GetViewportClient() const { return Client; }
+
+	/*
+	 * Controls the visibility of the widget transform toolbar, if there is an associated toolbar
+	 */
+	virtual EVisibility GetTransformToolbarVisibility() const;
 
 protected:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() = 0;

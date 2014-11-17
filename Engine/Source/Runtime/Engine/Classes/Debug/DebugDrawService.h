@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "ShowFlags.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "DebugDrawService.generated.h"
+
+class FSceneView;
 
 /** 
  * 

@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
+#include "Materials/MaterialExpressionConstant.h"
 #include "SoundDefinitions.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Kismet2/DebuggerCommands.h"
@@ -15,6 +17,11 @@
 #include "RawMesh.h"
 #include "MaterialExportUtils.h"
 #include "ImageUtils.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Landscape/Landscape.h"
+#include "Foliage/FoliageType.h"
+#include "UnrealExporter.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -497,8 +504,8 @@ void ULevelExporterT3D::ExportComponentExtra(const FExportObjectInnerContext* Co
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ComponentLevel);
 				if (IFA)
 				{
-					TMap<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>> FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
-					for (const TPair<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>>& MapEntry : FoliageInstanceMap)
+					auto FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
+					for (const auto& MapEntry : FoliageInstanceMap)
 					{
 						Ar.Logf(TEXT("%sBegin Foliage StaticMesh=%s Component=%s%s"), FCString::Spc(TextIndent), *MapEntry.Key->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
 						for (const FFoliageInstancePlacementInfo* Inst : MapEntry.Value)
@@ -693,25 +700,61 @@ class FExportMaterialProxy : public FMaterial, public FMaterialRenderProxy
 {
 public:
 	FExportMaterialProxy()
-	: FMaterial()
+		: FMaterial()
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	FExportMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialProperty InPropertyToCompile)
-	: FMaterial()
-	, MaterialInterface(InMaterialInterface)
-	, PropertyToCompile(InPropertyToCompile)
+		: FMaterial()
+		, MaterialInterface(InMaterialInterface)
+		, PropertyToCompile(InPropertyToCompile)
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
 		Material->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);
-		CacheShaders(GRHIShaderPlatform, true);
+		
+		// Have to properly handle compilation of static switches in MaterialInstance* cases...
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(InMaterialInterface);
+
+		// Walk up the parent chain until we find the first MI with static parameters
+		while (MaterialInstance 
+			&& !MaterialInstance->bHasStaticPermutationResource
+			&& MaterialInstance->Parent 
+			&& MaterialInstance->Parent->IsA<UMaterialInstance>())
+		{
+			MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
+		}
+
+		// Special path for a MI with static parameters
+		if (MaterialInstance && MaterialInstance->bHasStaticPermutationResource && MaterialInstance->Parent)
+		{
+			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GRHIFeatureLevel);
+
+			// Use the shader map Id from the static permutation
+			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
+			FMaterialShaderMapId ResourceId;
+			//@todo - always use highest quality level for static lighting
+			MaterialInstance->GetMaterialResourceId(GRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
+
+			// Override with a special usage so we won't re-use the shader map used by the MI for rendering
+			ResourceId.Usage = GetShaderMapUsage();
+
+			CacheShaders(ResourceId, GRHIShaderPlatform, true);
+		}
+		else
+		{
+			FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+			
+			// Copy the material resource Id
+			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
+			CacheShaders(GRHIShaderPlatform, true);
+		}
 	}
 
 	/** This override is required otherwise the shaders aren't ready for use when the surface is rendered resulting in a blank image */
-	virtual bool RequiresSynchronousCompilation() const OVERRIDE { return true; };
+	virtual bool RequiresSynchronousCompilation() const override { return true; };
 
 	/**
 	* Should the shader for this material with the given platform, shader type and vertex 
@@ -729,7 +772,7 @@ public:
 		return true;
 	}
 
-	virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE
+	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
 		return ReferencedTextures;
 	}
@@ -748,17 +791,17 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
 	}
@@ -784,7 +827,7 @@ public:
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
 			EBlendMode BlendMode = MaterialInterface->GetBlendMode();
-			EMaterialLightingModel LightingModel = MaterialInterface->GetLightingModel();
+			EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 			check(ProxyMaterial);
 			switch (PropertyToCompile)
 			{
@@ -831,7 +874,7 @@ public:
 				}
 				else if (BlendMode == BLEND_Modulate)
 				{
-					if (LightingModel == MLM_Unlit)
+					if (ShadingModel == MSM_Unlit)
 					{
 						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
 					}
@@ -843,7 +886,7 @@ public:
 				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
 				{
 					int32 ColoredOpacity = -1;
-					if (LightingModel == MLM_Unlit)
+					if (ShadingModel == MSM_Unlit)
 					{
 						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
 					}
@@ -877,7 +920,7 @@ public:
 	}
 
 	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
-	virtual int32 GetMaterialDomain() const OVERRIDE
+	virtual int32 GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -924,14 +967,14 @@ public:
 	}
 	virtual bool IsMasked() const									{ return false; }
 	virtual enum EBlendMode GetBlendMode() const					{ return BLEND_Opaque; }
-	virtual enum EMaterialLightingModel GetLightingModel() const	{ return MLM_Unlit; }
+	virtual enum EMaterialShadingModel GetShadingModel() const		{ return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const					{ return 0.5f; }
 	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	/**
 	* Should shaders compiled for this material be saved to disk?
 	*/
 	virtual bool IsPersistent() const { return false; }
-	virtual FGuid GetMaterialId() const OVERRIDE { return Id; }
+	virtual FGuid GetMaterialId() const override { return Id; }
 
 	const UMaterialInterface* GetMaterialInterface() const
 	{
@@ -996,7 +1039,7 @@ public:
 		OutUniformValue.A = 0;
 
 		EBlendMode BlendMode = MaterialInterface->GetBlendMode();
-		EMaterialLightingModel LightingModel = MaterialInterface->GetLightingModel();
+		EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 		
 		check(Material);
 		bool bExpressionIsNULL = false;
@@ -1044,7 +1087,7 @@ public:
 				(BlendMode == BLEND_Additive))
 			{
 				bool bColorInputIsNULL = false;
-				if (LightingModel == MLM_Unlit)
+				if (ShadingModel == MSM_Unlit)
 				{
 					bColorInputIsNULL = !IsMaterialInputConnected(Material, MP_EmissiveColor);
 				}
@@ -2552,7 +2595,6 @@ namespace MaterialExportUtils
 		check(InRenderTarget);
 		FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 
-		RHIBeginScene();
 		{
 			// Create a canvas for the render target and clear it to black
 			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
@@ -2565,7 +2607,6 @@ namespace MaterialExportUtils
 			Canvas.SetRenderTarget(NULL);
 			FlushRenderingCommands();
 		}
-		RHIEndScene();
 				
 		bool bNormalmap = (InMaterialProperty == MP_Normal);
 		FReadSurfaceDataFlags ReadPixelFlags(bNormalmap ? RCM_SNorm : RCM_UNorm);
@@ -2577,14 +2618,9 @@ namespace MaterialExportUtils
 	bool ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 	{
 		// Render diffuse property
+		if (OutFlattenMaterial.DiffuseSize.X > 0 && 
+			OutFlattenMaterial.DiffuseSize.Y > 0)
 		{
-			// Reset to default in case user specified invalid diffuse texture size
-			if (OutFlattenMaterial.DiffuseSize.X <= 0 || 
-				OutFlattenMaterial.DiffuseSize.Y <= 0)
-			{
-				OutFlattenMaterial.DiffuseSize = FFlattenMaterial().DiffuseSize;
-			}
-			
 			// Create temporary render target
 			UTextureRenderTarget2D* RenderTargetDiffuse = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
 			check(RenderTargetDiffuse);
@@ -2614,15 +2650,10 @@ namespace MaterialExportUtils
 		}
 
 		// Render normal property
-		if (InMaterial->GetMaterial()->HasNormalConnected())
+		if (OutFlattenMaterial.NormalSize.X > 0 && 
+			OutFlattenMaterial.NormalSize.Y > 0 &&
+			InMaterial->GetMaterial()->HasNormalConnected())
 		{
-			// Reset to default in case user specified invalid normal texture size
-			if (OutFlattenMaterial.NormalSize.X <= 0 || 
-				OutFlattenMaterial.NormalSize.Y <= 0)
-			{
-				OutFlattenMaterial.NormalSize = FFlattenMaterial().NormalSize;
-			}
-			
 			// Create temporary render target
 			UTextureRenderTarget2D* RenderTargetNormal = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
 			check(RenderTargetNormal);
@@ -2658,47 +2689,43 @@ namespace MaterialExportUtils
 	bool ExportMaterial(ALandscapeProxy* InLandscape, FFlattenMaterial& OutFlattenMaterial)
 	{
 		check(InLandscape);
-		TArray<ULandscapeComponent*> ComponentsToRender;
-		InLandscape->GetComponents<ULandscapeComponent>(ComponentsToRender);
-		if (ComponentsToRender.Num() == 0)
-		{
-			return false;
-		}
-
-		// Reset to default in case user specified invalid diffuse texture size
-		if (OutFlattenMaterial.DiffuseSize.X <= 0 || 
-			OutFlattenMaterial.DiffuseSize.Y <= 0)
-		{
-			OutFlattenMaterial.DiffuseSize = FFlattenMaterial().DiffuseSize;
-		}
-
-		// Normal map will not be used 
-		OutFlattenMaterial.NormalSamples.Empty();
-		OutFlattenMaterial.NormalSize = FIntPoint::ZeroValue;
 
 		FIntRect LandscapeRect = InLandscape->GetBoundingRect();
 		FVector MidPoint = FVector(LandscapeRect.Min, 0.f) + FVector(LandscapeRect.Size(), 0.f)*0.5f;
 		
 		FVector LandscapeCenter = InLandscape->GetTransform().TransformPosition(MidPoint);
 		FVector LandscapeExtent = FVector(LandscapeRect.Size(), 0.f)*InLandscape->GetActorScale()*0.5f; 
-		{
-			UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
-			check(RenderTargetTexture);
-			RenderTargetTexture->AddToRoot();
-			RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
-			RenderTargetTexture->InitCustomFormat(
-				OutFlattenMaterial.DiffuseSize.X, 
-				OutFlattenMaterial.DiffuseSize.Y, PF_B8G8R8A8, true);
-			FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
-			FSceneInterface* Scene = InLandscape->GetWorld()->Scene;
-			{
-				// Manually call RHIBeginScene since we are issuing draw calls outside of the main rendering function
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					BeginCommand,
-				{
-					RHIBeginScene();
-				});
 
+		// We need to hide all primitives except target landscape
+		TSet<FPrimitiveComponentId> PrimitivesToHide;
+		for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+		{
+			UPrimitiveComponent* PrimitiveComp = *It;
+
+			const bool bTargetPrim = PrimitiveComp->GetOuter() == InLandscape && 
+										PrimitiveComp->IsA<ULandscapeComponent>();
+					
+			if (!bTargetPrim && PrimitiveComp->IsRegistered() && PrimitiveComp->SceneProxy)
+			{
+				PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
+			}
+		}
+		
+		FSceneInterface* Scene = InLandscape->GetWorld()->Scene;
+		{
+			// Render diffuse texture
+			if (OutFlattenMaterial.DiffuseSize.X > 0 && 
+				OutFlattenMaterial.DiffuseSize.Y > 0)
+			{
+				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+				check(RenderTargetTexture);
+				RenderTargetTexture->AddToRoot();
+				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				RenderTargetTexture->InitCustomFormat(
+					OutFlattenMaterial.DiffuseSize.X, 
+					OutFlattenMaterial.DiffuseSize.Y, PF_B8G8R8A8, true);
+				FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
+			
 				FSceneViewFamilyContext ViewFamily(
 					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
 						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
@@ -2715,6 +2742,7 @@ namespace MaterialExportUtils
 				FSceneViewInitOptions ViewInitOptions;
 				ViewInitOptions.SetViewRectangle(FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y));
 				ViewInitOptions.ViewFamily = &ViewFamily;
+				ViewInitOptions.HiddenPrimitives = PrimitivesToHide;
 
 				ViewInitOptions.ViewMatrix = FTranslationMatrix(-LandscapeCenter);
 				ViewInitOptions.ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
@@ -2730,27 +2758,8 @@ namespace MaterialExportUtils
 					0.5f / ZOffset,
 					ZOffset);
 
-				FSceneView* NewView = new FSceneView(ViewInitOptions);
-				ViewFamily.Views.Add(NewView);
-
-				// We need to hide all primitives except target landscape
-				for (TActorIterator<AActor> It(InLandscape->GetWorld()); It; ++It)
-				{
-					AActor* Actor = *It;
-					if (Actor && Actor != InLandscape)
-					{
-						TArray<UPrimitiveComponent*> PrimitiveComponents;
-						Actor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
-						for (UPrimitiveComponent* Component : PrimitiveComponents)
-						{
-							if (Component->IsRegistered() && Component->SceneProxy)
-							{
-								NewView->HiddenPrimitives.Add(Component->SceneProxy->GetPrimitiveComponentId());
-							}
-						}
-					}
-				}
-			
+				ViewFamily.Views.Add(new FSceneView(ViewInitOptions));
+					
 				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
@@ -2760,7 +2769,7 @@ namespace MaterialExportUtils
 					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 				{
 					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICopyToResolveTarget(
+					RHICmdList.CopyToResolveTarget(
 						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 						RenderTargetResource->TextureRHI,					// Dest texture
 						false,												// Do we need the source image content again?
@@ -2778,30 +2787,120 @@ namespace MaterialExportUtils
 					FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y)
 					);
 			
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					EndCommand,
-				{
-					RHIEndScene();
-				});
-
 				FlushRenderingCommands();
+					
+				RenderTargetTexture->RemoveFromRoot();
+				RenderTargetTexture = nullptr;
 			}
 
-			RenderTargetTexture->RemoveFromRoot();
-			RenderTargetTexture = nullptr;
+			// Render normal map using BufferVisualizationMode=WorldNormal
+			// Final material should use world space instead of tangent space for normals
+			if (OutFlattenMaterial.NormalSize.X > 0 && 
+				OutFlattenMaterial.NormalSize.Y > 0)
+			{
+				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+				check(RenderTargetTexture);
+				RenderTargetTexture->AddToRoot();
+				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				RenderTargetTexture->InitCustomFormat(
+					OutFlattenMaterial.NormalSize.X, 
+					OutFlattenMaterial.NormalSize.Y, PF_B8G8R8A8, true);
+				FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
+
+				FSceneViewFamilyContext ViewFamily(
+					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
+						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
+					);
+
+				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
+				ViewFamily.EngineShowFlags.MotionBlur = 0;
+				ViewFamily.EngineShowFlags.Lighting = 0;
+				ViewFamily.EngineShowFlags.PostProcessing = 1;
+				ViewFamily.EngineShowFlags.VisualizeBuffer = 1;
+				ViewFamily.EngineShowFlags.LightFunctions = 0;
+				ViewFamily.EngineShowFlags.DynamicShadows = 0;
+				ViewFamily.EngineShowFlags.Atmosphere = 0;
+
+				FSceneViewInitOptions ViewInitOptions;
+				ViewInitOptions.SetViewRectangle(FIntRect(0, 0, OutFlattenMaterial.NormalSize.X, OutFlattenMaterial.NormalSize.Y));
+				ViewInitOptions.ViewFamily = &ViewFamily;
+				ViewInitOptions.HiddenPrimitives = PrimitivesToHide;
+
+				ViewInitOptions.ViewMatrix = FTranslationMatrix(-LandscapeCenter);
+				ViewInitOptions.ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
+				ViewInitOptions.ViewMatrix*= FMatrix(	FPlane(1,	0,	0,	0),
+														FPlane(0,	-1,	0,	0),
+														FPlane(0,	0,	-1,	0),
+														FPlane(0,	0,	0,	1));
+				
+				const float ZOffset = WORLD_MAX;
+				ViewInitOptions.ProjectionMatrix =  FReversedZOrthoMatrix(
+					LandscapeExtent.X,
+					LandscapeExtent.Y,
+					0.5f / ZOffset,
+					ZOffset);
+
+				FSceneView* NewView = new FSceneView(ViewInitOptions);
+				NewView->CurrentBufferVisualizationMode = FName("WorldNormal");
+				ViewFamily.Views.Add(NewView);
+										
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+				Canvas.Clear(FLinearColor::Black);
+				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
+
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+					UpdateThumbnailRTCommand,
+					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
+				{
+					// Copy (resolve) the rendered thumbnail from the render target to its texture
+					RHICmdList.CopyToResolveTarget(
+						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
+						RenderTargetResource->TextureRHI,					// Dest texture
+						false,												// Do we need the source image content again?
+						FResolveParams() );									// Resolve parameters
+				});
+
+				OutFlattenMaterial.NormalSamples.Empty();
+				OutFlattenMaterial.NormalSamples.AddUninitialized(OutFlattenMaterial.NormalSize.X*OutFlattenMaterial.NormalSize.Y);
+
+				// Copy the contents of the remote texture to system memory
+				// NOTE: OutRawImageData must be a preallocated buffer!
+				RenderTargetResource->ReadPixelsPtr(
+					(FColor*)OutFlattenMaterial.NormalSamples.GetTypedData(), 
+					FReadSurfaceDataFlags(), 
+					FIntRect(0, 0, OutFlattenMaterial.NormalSize.X, OutFlattenMaterial.NormalSize.Y)
+					);
+			
+				FlushRenderingCommands();
+
+				RenderTargetTexture->RemoveFromRoot();
+				RenderTargetTexture = nullptr;
+			}
 		}
 
 		OutFlattenMaterial.MaterialId = InLandscape->GetLandscapeGuid();
 		return true;
 	}
 
-	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UObject* Outer, const FString& BaseName, EObjectFlags Flags)
+	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags)
 	{
-		FName MaterialName = MakeUniqueObjectName(Outer, UMaterial::StaticClass(), *(BaseName + TEXT("_Material")));
-		
-		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), Outer, MaterialName, Flags);
+		const FString AssetBaseName = FPackageName::GetShortName(BaseName);
+		const FString AssetBasePath = FPackageName::IsShortPackageName(BaseName) ? 
+			FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) : (FPackageName::GetLongPackagePath(BaseName) + TEXT("/"));
+				
+		// Create material
+		const FString MaterialAssetName = TEXT("M_") + AssetBaseName;
+		UPackage* MaterialOuter = Outer;
+		if (MaterialOuter == NULL)
+		{
+			MaterialOuter = CreatePackage(NULL, *(AssetBasePath + MaterialAssetName));
+			MaterialOuter->FullyLoad();
+			MaterialOuter->Modify();
+		}
+
+		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), MaterialOuter, FName(*MaterialAssetName), Flags);
 		Material->TwoSided = false;
-		Material->SetLightingModel(MLM_DefaultLit);
+		Material->SetShadingModel(MSM_DefaultLit);
 
 		//Set Metallic as a default constant
 		{
@@ -2810,7 +2909,7 @@ namespace MaterialExportUtils
 			Material->Expressions.Add(MetallicExpression);
 			Material->Metallic.Expression = MetallicExpression;
 
-			MetallicExpression->MaterialExpressionEditorX = 250;
+			MetallicExpression->MaterialExpressionEditorX = -250;
 			MetallicExpression->MaterialExpressionEditorY = 0;
 		}
 		
@@ -2821,26 +2920,34 @@ namespace MaterialExportUtils
 			Material->Expressions.Add(RoughnessExpression);
 			Material->Roughness.Expression = RoughnessExpression;
 
-			RoughnessExpression->MaterialExpressionEditorX = 250;
+			RoughnessExpression->MaterialExpressionEditorX = -250;
 			RoughnessExpression->MaterialExpressionEditorY = 150;
 		}
 
 		//Build the Diffuse UTexture
 		if (InFlattenMaterial.DiffuseSamples.Num() > 1)
 		{
-			FString DiffuseTextureName = MakeUniqueObjectName(Outer, UTexture2D::StaticClass(), *(BaseName + TEXT("_Diffuse"))).ToString();
 			FCreateTexture2DParameters TexParams;
 			TexParams.bUseAlpha = false;
 			TexParams.CompressionSettings = TC_Default;
 			TexParams.bDeferCompression = true;
 			TexParams.bSRGB = false;
 
+			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
+			UPackage* TextureOuter = Outer;
+			if (TextureOuter == NULL)
+			{
+				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
+				TextureOuter->FullyLoad();
+				TextureOuter->Modify();
+			}
+
 			UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
 				InFlattenMaterial.DiffuseSize.X, 
 				InFlattenMaterial.DiffuseSize.Y,
 				InFlattenMaterial.DiffuseSamples,
-				Outer,
-				DiffuseTextureName,
+				TextureOuter,
+				TextureAssetName,
 				Flags, 
 				TexParams);
 
@@ -2848,7 +2955,7 @@ namespace MaterialExportUtils
 			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			BasecolorExpression->Texture = DiffuseTexture;
 			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
-			BasecolorExpression->MaterialExpressionEditorX = 400;
+			BasecolorExpression->MaterialExpressionEditorX = -400;
 			BasecolorExpression->MaterialExpressionEditorY = -150;
 			Material->Expressions.Add(BasecolorExpression);
 			Material->BaseColor.Expression = BasecolorExpression;
@@ -2857,19 +2964,27 @@ namespace MaterialExportUtils
 		//Build the Normal UTexture
 		if (InFlattenMaterial.NormalSamples.Num() > 1)
 		{
-			FString NormalTextureName = MakeUniqueObjectName(Outer, UTexture2D::StaticClass(), *(BaseName + TEXT("_Normal"))).ToString();
 			FCreateTexture2DParameters TexParams;
 			TexParams.bUseAlpha = false;
 			TexParams.CompressionSettings = TC_Normalmap;
 			TexParams.bDeferCompression = true;
 			TexParams.bSRGB = false;
 
+			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
+			UPackage* TextureOuter = Outer;
+			if (TextureOuter == NULL)
+			{
+				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
+				TextureOuter->FullyLoad();
+				TextureOuter->Modify();
+			}
+
 			UTexture2D* NormalTexture = FImageUtils::CreateTexture2D(
 				InFlattenMaterial.NormalSize.X, 
 				InFlattenMaterial.NormalSize.Y,
 				InFlattenMaterial.NormalSamples,
-				Outer,
-				NormalTextureName,
+				TextureOuter,
+				TextureAssetName,
 				Flags, 
 				TexParams);
 
@@ -2880,7 +2995,7 @@ namespace MaterialExportUtils
 			UMaterialExpressionTextureSample* NormalExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			NormalExpression->Texture = NormalTexture;
 			NormalExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
-			NormalExpression->MaterialExpressionEditorX = 400;
+			NormalExpression->MaterialExpressionEditorX = -400;
 			NormalExpression->MaterialExpressionEditorY = 300;
 			Material->Expressions.Add(NormalExpression);
 			Material->Normal.Expression = NormalExpression;

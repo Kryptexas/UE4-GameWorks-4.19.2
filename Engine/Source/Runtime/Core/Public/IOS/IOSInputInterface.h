@@ -22,7 +22,7 @@ struct TouchInput
 /**
  * Interface class for IOS input devices
  */
-class FIOSInputInterface : public FExec
+class FIOSInputInterface : private FSelfRegisteringExec
 {
 public:
 
@@ -45,7 +45,7 @@ public:
 	static void QueueTouchInput(TArray<TouchInput> InTouchEvents);
 
 	// Begin Exec Interface
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End Exec Interface
 
 private:

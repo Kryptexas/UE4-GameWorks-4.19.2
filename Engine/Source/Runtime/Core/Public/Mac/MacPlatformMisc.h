@@ -11,7 +11,9 @@
 **/
 struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
+	static void PlatformPreInit();
 	static void PlatformInit();
+	static void PlatformPostInit(bool IsMoviePlaying = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static TArray<uint8> GetMacAddress();
@@ -57,6 +59,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();
+	static void NormalizePath(FString& InPath);
 
 
 	/** 
@@ -119,6 +122,13 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	/** @return Get the name of the platform specific file manager (Finder) */
 	static FText GetFileManagerName();
+
+	static void UpdateWindowMenu();
+
+	/**
+	 * Returns whether the platform is running on battery power or not.
+	 */
+	static bool IsRunningOnBattery();
 };
 
 #ifdef __OBJC__

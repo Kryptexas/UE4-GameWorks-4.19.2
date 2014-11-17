@@ -254,7 +254,14 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	// Local variables do not exist until much later in the compilation than this function can provide
 	if (VariableProperty == NULL && !VariableReference.IsLocalScope())
 	{
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
+		if (!VariableReference.IsDeprecated())
+		{
+			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
+		}
+		else
+		{
+			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableDeprecated", "Variable '%s' for @@ was deprecated.  Please update it.").ToString(), *VariableReference.GetMemberName().ToString()), this);
+		}
 	}
 }
 
@@ -274,7 +281,7 @@ FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
 	return ReturnIconName;
 }
 
-FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
+FName UK2Node_Variable::GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
 {
 	FName IconBrush = TEXT("Kismet.AllClasses.VariableIcon");
 
@@ -287,10 +294,9 @@ FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinea
 	}
 	else if(InPinType.PinSubCategoryObject.IsValid())
 	{
-		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *InPinType.PinSubCategoryObject->GetName());
-		if( VarClass )
+		if(UClass* Class = Cast<UClass>(InPinType.PinSubCategoryObject.Get()))
 		{
-			IconBrush = FClassIconFinder::FindIconNameForClass( VarClass );
+			IconBrush = FClassIconFinder::FindIconNameForClass( Class );
 		}
 	}
 
@@ -316,6 +322,15 @@ FText UK2Node_Variable::GetToolTipHeading() const
 	}
 
 	return Heading;
+}
+
+void UK2Node_Variable::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	UProperty* VariableProperty = GetPropertyForVariable();
+	const FString VariableName = VariableProperty ? VariableProperty->GetName() : TEXT( "InvalidVariable" );
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Variable" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), VariableName ));
 }
 
 FName UK2Node_Variable::GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut)

@@ -18,7 +18,7 @@ public:
 	{
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// Check to make sure that the object the event is bound to is valid
 		const UK2Node_ActorBoundEvent* BoundEventNode = Cast<UK2Node_ActorBoundEvent>(Node);
@@ -90,18 +90,6 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	Args.Add(TEXT("TargetName"), TargetName);
 
 	return FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} ({TargetName})"), Args);
-}
-
-FString UK2Node_ActorBoundEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString TargetName = TEXT("None");
-	if( EventOwner )
-	{
-		TargetName = EventOwner->GetActorLabel();		
-	}
-
-	return FString::Printf(TEXT("%s (%s)"), *DelegatePropertyName.ToString(), *TargetName);
 }
 
 FString UK2Node_ActorBoundEvent::GetTooltip() const

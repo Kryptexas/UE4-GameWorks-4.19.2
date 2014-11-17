@@ -6,10 +6,15 @@
 //=============================================================================
 
 #pragma once
+
+#include "Scene.h"
+#include "GameFramework/Volume.h"
+#include "Interfaces/Interface_PostProcessVolume.h"
+
 #include "PostProcessVolume.generated.h"
 
 	// for FPostprocessSettings
-UCLASS(dependson=UScene, autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
+UCLASS(autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
 class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 {
 	GENERATED_UCLASS_BODY()
@@ -42,8 +47,8 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 	uint32 bUnbound:1;
 
 	// Begin IInterface_PostProcessVolume Interface
-	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) OVERRIDE;
-	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const OVERRIDE
+	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) override;
+	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const override
 	{
 		FPostProcessVolumeProperties Ret;
 		Ret.bIsEnabled = bEnabled != 0;
@@ -58,16 +63,16 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 
 
 	// Begin AActor Interface
-	virtual void PostUnregisterAllComponents( void ) OVERRIDE;
+	virtual void PostUnregisterAllComponents( void ) override;
 
 protected:
-	virtual void PostRegisterAllComponents() OVERRIDE;
+	virtual void PostRegisterAllComponents() override;
 	// End AActor Interface
 public:
 	
 	// Begin UObject interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface
 };

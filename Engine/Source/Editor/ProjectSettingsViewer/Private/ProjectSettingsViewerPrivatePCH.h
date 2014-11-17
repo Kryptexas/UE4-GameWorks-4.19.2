@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectSettingsViewerPrivatePCH.h: Pre-compiled header file for the ProjectSettingsViewer module.
-=============================================================================*/
-
 #pragma  once
 
 
@@ -16,7 +12,3 @@
 #include "SettingsEditor.h"
 #include "UnrealEd.h"
 #include "MoviePlayerSettings.h"
-
-
-/* Private includes
- *****************************************************************************/

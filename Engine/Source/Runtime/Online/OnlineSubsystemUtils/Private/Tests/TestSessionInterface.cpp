@@ -6,6 +6,7 @@
 #include "OnlineFriendsInterface.h"
 #include "OnlineExternalUIInterface.h"
 #include "ModuleManager.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Engine.h"
 

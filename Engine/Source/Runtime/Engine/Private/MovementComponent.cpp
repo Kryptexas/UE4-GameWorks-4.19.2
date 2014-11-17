@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "MovementComponent"
@@ -292,6 +293,11 @@ bool UMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, const FR
 	return bMoveResult;
 }
 
+static TAutoConsoleVariable<float> CVarPenetrationPullbackDistance(TEXT("p.PenetrationPullbackDistance"),
+	0.125f,
+	TEXT("Pull out from penetration of an object by this extra distance.\n")
+	TEXT("Distance added to penetration fix-ups."),
+	ECVF_Default);
 
 FVector UMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) const
 {
@@ -301,15 +307,13 @@ FVector UMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) cons
 	}
 
 	FVector Result;
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.PenetrationPullbackDistance"));
-	const float PullBackDistance = (CVar ? FMath::Abs(CVar->GetValueOnGameThread()) : 0.125f);
+	const float PullBackDistance = FMath::Abs(CVarPenetrationPullbackDistance.GetValueOnGameThread());
 	const float PenetrationDepth = (Hit.PenetrationDepth > 0.f ? Hit.PenetrationDepth : 0.125f);
 
 	Result = Hit.Normal * (PenetrationDepth + PullBackDistance);
 
 	return ConstrainDirectionToPlane(Result);
 }
-
 
 bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, const FHitResult& Hit, const FRotator& NewRotation)
 {
@@ -343,7 +347,7 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 			if (!bMoved)
 			{
 				// Try moving the proposed adjustment plus the attempted move direction. This can sometimes get out of penetrations with multiple objects
-				const FVector MoveDelta = (Hit.TraceEnd - Hit.TraceStart);
+				const FVector MoveDelta = ConstrainDirectionToPlane(Hit.TraceEnd - Hit.TraceStart);
 				if (!MoveDelta.IsZero())
 				{
 					bMoved = MoveUpdatedComponent(Adjustment + MoveDelta, NewRotation, true);
@@ -461,6 +465,62 @@ void UMovementComponent::AddRadialForce(const FVector& Origin, float Radius, flo
 void UMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 	// Default implementation does nothing
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::GetMaxSpeedModifier() const
+{
+	return 1.0f;
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::K2_GetMaxSpeedModifier() const
+{
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#ifdef __clang__
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
+	#pragma warning(push)
+	#pragma warning(disable:4995)
+	#pragma warning(disable:4996)
+#endif
+
+	return GetMaxSpeedModifier();
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#else
+	#pragma warning(pop)
+#endif
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::GetModifiedMaxSpeed() const
+{
+	return GetMaxSpeed();
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::K2_GetModifiedMaxSpeed() const
+{
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#ifdef __clang__
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
+	#pragma warning(push)
+	#pragma warning(disable:4995)
+	#pragma warning(disable:4996)
+#endif
+
+	return GetModifiedMaxSpeed();
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#else
+	#pragma warning(pop)
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

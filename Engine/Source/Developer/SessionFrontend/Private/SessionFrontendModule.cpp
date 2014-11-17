@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionFrontendModule.cpp: Implements the FSessionFrontendModule class.
-=============================================================================*/
-
 #include "SessionFrontendPrivatePCH.h"
 
 
@@ -18,25 +14,23 @@ class FSessionFrontendModule
 {
 public:
 
-	// Begin ISessionFrontendModule interface
+	// ISessionFrontendModule interface
 	
-	virtual TSharedRef<class SWidget> CreateSessionBrowser( const ISessionManagerRef& SessionManager ) OVERRIDE
+	virtual TSharedRef<class SWidget> CreateSessionBrowser( const ISessionManagerRef& SessionManager ) override
 	{
 		return SNew(SSessionBrowser, SessionManager);
 	}
 	
-	virtual TSharedRef<class SWidget> CreateSessionConsole( const ISessionManagerRef& SessionManager ) OVERRIDE
+	virtual TSharedRef<class SWidget> CreateSessionConsole( const ISessionManagerRef& SessionManager ) override
 	{
 		return SNew(SSessionConsole, SessionManager);
 	}
 	
-	// End ISessionFrontendModule interface
-	
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 	
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		FGlobalTabmanager::Get()->RegisterTabSpawner(SessionFrontendTabName, FOnSpawnTab::CreateRaw(this, &FSessionFrontendModule::SpawnSessionFrontendTab))
 			.SetDisplayName(NSLOCTEXT("FSessionFrontendModule", "FrontendTabTitle", "Session Frontend"))
@@ -44,12 +38,10 @@ public:
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SessionFrontEnd.TabIcon"));
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(SessionFrontendTabName);
 	}
-	
-	// End IModuleInterface interface
 
 private:
 
@@ -57,7 +49,6 @@ private:
 	 * Creates a new session front-end tab.
 	 *
 	 * @param SpawnTabArgs - The arguments for the tab to spawn.
-	 *
 	 * @return The spawned tab.
 	 */
 	TSharedRef<SDockTab> SpawnSessionFrontendTab( const FSpawnTabArgs& SpawnTabArgs )

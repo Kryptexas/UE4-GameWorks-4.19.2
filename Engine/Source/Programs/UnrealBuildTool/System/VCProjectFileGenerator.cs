@@ -181,11 +181,11 @@ namespace UnrealBuildTool
 			// version of Visual Studio.  This is their chance to override that.
 			foreach( var SupportedPlatform in SupportedPlatforms )
 			{
-				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( SupportedPlatform, true );				
+				var BuildPlatform = UEBuildPlatform.GetBuildPlatform( SupportedPlatform, true );				
 				if( BuildPlatform != null )
 				{
 					// Don't worry about platforms that we're missing SDKs for
-					if (BuildPlatform.HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid)
+					if (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid)
 					{						
 						// Make sure Visual Studio 2013 project files will work...
 						if( ProjectFileFormat == VCProjectFileFormat.VisualStudio2013 )
@@ -193,15 +193,8 @@ namespace UnrealBuildTool
 							// ...but only if the user didn't override this via the command-line.
 							if( !UnrealBuildTool.CommandLineContains( "-2013" ) )
 							{ 
-								// Visual Studio 2013 is not supported by PS4 debugger add-in yet
-								if( SupportedPlatform == UnrealTargetPlatform.PS4 )		
-								{
-									Log.TraceInformation( "Forcing Visual Studio 2012 projects for PS4 compatibility (use '-2013' to override.)");
-									ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-								}
-
 								// Visual Studio 2013 is not supported by Xbox One debugger add-in yet
-								else if( SupportedPlatform == UnrealTargetPlatform.XboxOne )		
+								if( SupportedPlatform == UnrealTargetPlatform.XboxOne )
 								{
 									Log.TraceInformation( "Forcing Visual Studio 2012 projects for Xbox One compatibility (use '-2013' to override.)");
 									ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;

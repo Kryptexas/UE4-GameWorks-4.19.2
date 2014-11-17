@@ -14,12 +14,12 @@ public:
 	/**
 	 * Saves viewport layout information between editor sessions
 	 */
-	virtual void SaveLayoutString(const FString& LayoutString) const OVERRIDE;
+	virtual void SaveLayoutString(const FString& LayoutString) const override;
 protected:
 	/**
 	 * Creates the viewports and splitter for the four-pane layout              
 	 */
-	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) OVERRIDE;
+	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) override;
 
 	virtual TSharedRef<SWidget> MakeFourPanelWidget(
 		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
@@ -27,7 +27,7 @@ protected:
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage0, float SecondarySplitterPercentage1) = 0;
 
 	/** Overridden from FLevelViewportLayout */
-	virtual void ReplaceWidget( TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement ) OVERRIDE;
+	virtual void ReplaceWidget( TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement ) override;
 
 
 protected:
@@ -42,7 +42,7 @@ protected:
 class FLevelViewportLayoutFourPanesLeft : public FLevelViewportLayoutFourPanes
 {
 public:
-	virtual const FName& GetLayoutTypeName() const OVERRIDE { return LevelViewportConfigurationNames::FourPanesLeft; }
+	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::FourPanesLeft; }
 
 	virtual TSharedRef<SWidget> MakeFourPanelWidget(
 		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
@@ -56,7 +56,7 @@ public:
 class FLevelViewportLayoutFourPanesRight : public FLevelViewportLayoutFourPanes
 {
 public:
-	virtual const FName& GetLayoutTypeName() const OVERRIDE { return LevelViewportConfigurationNames::FourPanesRight; }
+	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::FourPanesRight; }
 
 	virtual TSharedRef<SWidget> MakeFourPanelWidget(
 		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
@@ -70,7 +70,7 @@ public:
 class FLevelViewportLayoutFourPanesTop : public FLevelViewportLayoutFourPanes
 {
 public:
-	virtual const FName& GetLayoutTypeName() const OVERRIDE { return LevelViewportConfigurationNames::FourPanesTop; }
+	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::FourPanesTop; }
 
 	virtual TSharedRef<SWidget> MakeFourPanelWidget(
 		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
@@ -84,7 +84,7 @@ public:
 class FLevelViewportLayoutFourPanesBottom : public FLevelViewportLayoutFourPanes
 {
 public:
-	virtual const FName& GetLayoutTypeName() const OVERRIDE { return LevelViewportConfigurationNames::FourPanesBottom; }
+	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::FourPanesBottom; }
 
 	virtual TSharedRef<SWidget> MakeFourPanelWidget(
 		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,

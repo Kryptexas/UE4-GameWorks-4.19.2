@@ -36,6 +36,7 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
 
 			PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+				.IsEnabled(TAttribute<bool>(this, &FBodySetupDetails::IsBodyMassReadOnly))
 				.NameContent()
 				[
 					SNew (STextBlock)

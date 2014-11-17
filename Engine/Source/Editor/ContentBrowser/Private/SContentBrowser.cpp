@@ -11,11 +11,6 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
-void AssetDataToString( AssetFilterType Asset, OUT TArray< FString >& Array )
-{
-	Array.Add( Asset.GetExportTextName() );
-}
-
 const FString SContentBrowser::SettingsIniSection = TEXT("ContentBrowser");
 
 SContentBrowser::~SContentBrowser()
@@ -27,8 +22,6 @@ SContentBrowser::~SContentBrowser()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstanceName )
 {
-	TextFilter = MakeShareable( new TTextFilter< AssetFilterType >( TTextFilter< AssetFilterType >::FItemToStringArray::CreateStatic( &AssetDataToString ) ) );
-
 	if ( InArgs._ContainingTab.IsValid() )
 	{
 		// For content browsers that are placed in tabs, save settings when the tab is closing.
@@ -49,9 +42,8 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	PathContextMenu = MakeShareable(new FPathContextMenu( AsShared() ));
 	PathContextMenu->SetOnNewAssetRequested( FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested) );
 
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
-	TSharedPtr<AssetFilterCollectionType> ExtraFilters = MakeShareable(new AssetFilterCollectionType());
-	ExtraFilters->Add( TextFilter );
+	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
+	TextFilter = MakeShareable( new FFrontendFilter_Text() );
 
 	FContentBrowserCommands::Register();
 
@@ -544,7 +536,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnAssetRenameCommitted(this, &SContentBrowser::OnAssetRenameCommitted)
 							.AreRealTimeThumbnailsAllowed(this, &SContentBrowser::IsHovered)
 							.FrontendFilters(FrontendFilters)
-							.DynamicFilters(ExtraFilters)
 							.HighlightedText(this, &SContentBrowser::GetHighlightedText)
 							.AllowThumbnailEditMode(true)
 							.AllowThumbnailHintLabel(false)
@@ -650,25 +641,35 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 	const UContentBrowserSettings* tmp = GetDefault<UContentBrowserSettings>();
 	bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-	if ( !bDisplayDev || !bDisplayEngine )
+	bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
 	{
-		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine ); --AssetIdx)
+		bool bRepopulate = false;
+		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins ); --AssetIdx)
 		{
 			const FAssetData& Item = AssetDataList[AssetIdx];
 			if ( !bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( Item.PackagePath.ToString() ) )
 			{
 				bDisplayDev = true;
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayDevelopersFolder(true, true);
+				bRepopulate = true;
 			}
 			else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder( Item.PackagePath.ToString() ) )
 			{
 				bDisplayEngine = true;
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayEngineFolder(true, true);
+				bRepopulate = true;
+			}
+			else if ( !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( Item.PackagePath.ToString() ) )
+			{
+				bDisplayPlugins = true;
+				GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders(true, true);
+				bRepopulate = true;
 			}
 		}
 
 		// If we have auto-enabled any flags, force a refresh
-		if ( bDisplayDev || bDisplayEngine )
+		if ( bRepopulate )
 		{
 			PathViewPtr->Populate();
 		}
@@ -678,7 +679,6 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
-	SearchBoxPtr->SetText(FText::GetEmpty());
 	AssetViewPtr->SyncToAssets(AssetDataList);
 }
 
@@ -718,13 +718,13 @@ void SContentBrowser::LoadSelectedObjectsIfNeeded()
 	// Load every asset that isn't already in memory
 	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
-		if ( !(*AssetIt).IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset((*AssetIt).ObjectPath.ToString()) )
-		{
-			// Don't load assets in map packages
-			continue;
-		}
+		const FAssetData& AssetData = *AssetIt;
+		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
+		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
 
 		(*AssetIt).GetAsset();
+
+		GWarn->EndSlowTask();
 	}
 
 	// Sync the global selection set if we are the primary browser
@@ -1046,7 +1046,7 @@ void SContentBrowser::NewAssetRequested(const FString& SelectedPath, TWeakObject
 
 			static FName AssetToolsModuleName = FName("AssetTools");
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(AssetToolsModuleName);
-			AssetToolsModule.Get().CreateUniqueAssetName(SelectedPath + TEXT("/New") + NewFactory->GetSupportedClass()->GetName(), TEXT(""), PackageNameToUse, DefaultAssetName);
+			AssetToolsModule.Get().CreateUniqueAssetName(SelectedPath + TEXT("/") + NewFactory->GetDefaultNewAssetName(), TEXT(""), PackageNameToUse, DefaultAssetName);
 			CreateNewAsset(DefaultAssetName, SelectedPath, NewFactory->GetSupportedClass(), NewFactory);
 		}
 	}
@@ -1065,10 +1065,12 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
 	{
+		FrontendFilters->Remove(TextFilter);
 		AssetViewPtr->SetUserSearching(false);
 	}
 	else
 	{
+		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
 
@@ -1082,10 +1084,12 @@ void SContentBrowser::OnSearchBoxCommitted(const FText& InSearchText, ETextCommi
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
 	{
+		FrontendFilters->Remove(TextFilter);
 		AssetViewPtr->SetUserSearching(false);
 	}
 	else
 	{
+		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
 }
@@ -1235,12 +1239,19 @@ TSharedRef<SWidget> SContentBrowser::MakeCreateAssetContextMenu()
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL, MenuExtender);
-		
+
+	// Only add "New Folder" item if we do not have a collection selected
+	FNewAssetContextMenu::FOnNewFolderRequested OnNewFolderRequested;
+	if (CollectionViewPtr->GetSelectedCollections().Num() == 0)
+	{
+		OnNewFolderRequested = FNewAssetContextMenu::FOnNewFolderRequested::CreateSP(this, &SContentBrowser::NewFolderRequested);
+	}
+
 	FNewAssetContextMenu::MakeContextMenu(
 		MenuBuilder, 
 		CurrentPath, 
 		FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested),
-		FNewAssetContextMenu::FOnNewFolderRequested::CreateSP(this, &SContentBrowser::NewFolderRequested));
+		OnNewFolderRequested);
 
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
@@ -1316,13 +1327,13 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	// This way individual asset type actions will get a batched list of assets to operate on
 	for ( auto AssetIt = ActivatedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
-		if ( !(*AssetIt).IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset((*AssetIt).ObjectPath.ToString()) )
-		{
-			// Skip unloaded assets in map packages, it is illegal to load them now
-			continue;
-		}
+		const FAssetData& AssetData = *AssetIt;
+		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
+		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
 
 		UObject* Asset = (*AssetIt).GetAsset();
+
+		GWarn->EndSlowTask();
 
 		if ( Asset != NULL )
 		{
@@ -1719,39 +1730,41 @@ void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& Origin
 
 void SContentBrowser::OnAssetViewRefreshRequested()
 {
-	AssetViewPtr->RequestListRefresh();
+	AssetViewPtr->RequestSlowFullListRefresh();
 }
 
 void SContentBrowser::HandleSettingChanged(FName PropertyName)
 {
 	if ((PropertyName == "DisplayDevelopersFolder") ||
 		(PropertyName == "DisplayEngineFolder") ||
+		(PropertyName == "DisplayPluginFolders") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
 	{
 		// If the dev or engine folder is no longer visible but we're inside it...
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-		if ( !bDisplayDev || !bDisplayEngine )
+		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+		if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
 		{
-			const FString OldSelectedPath = PathViewPtr->GetSelectedPath();
-			if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( OldSelectedPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( OldSelectedPath )) )
-			{
-				// Set the folder back to the root, and refresh the contents
-				TArray<FString> SelectedPaths;
-				SelectedPaths.Add(TEXT("/Game"));
-				PathViewPtr->SetSelectedPaths(SelectedPaths);
-				SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
-			}
+		    const FString OldSelectedPath = PathViewPtr->GetSelectedPath();
+		    if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( OldSelectedPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( OldSelectedPath )) || (!bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( OldSelectedPath ) ) )
+		    {
+			    // Set the folder back to the root, and refresh the contents
+			    TArray<FString> SelectedPaths;
+			    SelectedPaths.Add(TEXT("/Game"));
+			    PathViewPtr->SetSelectedPaths(SelectedPaths);
+			    SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
+		    }
 		}
 
 		// Update our path view so that it can include/exclude the dev folder
 		PathViewPtr->Populate();
 
 		// If the dev or engine folder has become visible and we're inside it...
-		if ( bDisplayDev || bDisplayEngine )
+		if ( bDisplayDev || bDisplayEngine || bDisplayPlugins )
 		{
 			const FString NewSelectedPath = PathViewPtr->GetSelectedPath();
-			if ( (bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( NewSelectedPath )) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder( NewSelectedPath )) )
+			if ( (bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( NewSelectedPath )) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder( NewSelectedPath )) || (bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( NewSelectedPath ) ) )
 			{
 				// Refresh the contents
 				TArray<FString> SelectedPaths;

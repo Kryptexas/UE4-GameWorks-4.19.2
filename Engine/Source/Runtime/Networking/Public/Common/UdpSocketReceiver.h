@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpSocketReceiver.h: Declares the FUdpSocketReceiver class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -45,7 +41,7 @@ public:
 		check(Socket->GetSocketType() == SOCKTYPE_Datagram);
 
 		SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-		Thread = FRunnableThread::Create(this, ThreadDescription, false, false, 128 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, ThreadDescription, 128 * 1024, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
 	}
 
 	/**
@@ -76,12 +72,12 @@ public:
 
 public:
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		TSharedRef<FInternetAddr> Sender = SocketSubsystem->CreateInternetAddr();
 
@@ -109,12 +105,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit( ) OVERRIDE { }
+	virtual void Exit( ) override { }
 
 
 private:

@@ -457,7 +457,7 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 			TStatId StatId = Object->GetStatID();
 			if (FThreadStats::IsCollectingData(StatId))
 			{
-				Start(*StatId);
+				Start(StatId);
 			}
 		}
 	}
@@ -471,7 +471,7 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 			TStatId StatId = Object->GetStatID();
 			if (!StatId->IsNone())
 			{
-				Start(*StatId);
+				Start(StatId);
 			}
 		}
 	}
@@ -493,12 +493,4 @@ struct FScopeCycleCounterUObject
 	{
 	}
 };
-#endif
-
-#if STATS
-
-#define SCOPED_UOBJECT_CYCLE_COUNTER(Object)	\
-	FScopeCycleCounter CycleCount_##Stat(Stat);
-#else
-
 #endif

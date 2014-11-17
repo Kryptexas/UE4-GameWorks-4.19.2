@@ -10,7 +10,7 @@
 class FExternalImagePickerModule : public IExternalImagePickerModule
 {
 public:
-	virtual TSharedRef<SWidget> MakeEditorWidget(const FExternalImagePickerConfiguration& InConfiguration) OVERRIDE
+	virtual TSharedRef<SWidget> MakeEditorWidget(const FExternalImagePickerConfiguration& InConfiguration) override
 	{
 		return SNew(SExternalImagePicker)
 			.TargetImagePath(InConfiguration.TargetImagePath)

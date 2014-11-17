@@ -11,6 +11,7 @@
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
+#include "Landscape/Landscape.h"
 
 namespace
 {
@@ -57,7 +58,7 @@ public:
 		,	Cache(InTarget)
 	{}
 
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!LandscapeInfo) 
 		{
@@ -552,8 +553,8 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeRetopologize>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Retopologize"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }
+	virtual const TCHAR* GetToolName() override { return TEXT("Retopologize"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }
 
 	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target)
 	{

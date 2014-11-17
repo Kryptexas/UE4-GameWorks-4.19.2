@@ -7,7 +7,7 @@ public class DX9 : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartyDirectory + "Windows/DirectX";
+		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
 		PublicSystemIncludePaths.Add(DirectXSDKDir + "/include");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
