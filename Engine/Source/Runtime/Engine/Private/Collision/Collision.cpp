@@ -131,9 +131,14 @@ FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComp
 
 void FCollisionQueryParams::AddIgnoredActor(const AActor* InIgnoreActor)
 {
-	if (InIgnoreActor != NULL)
+	if (InIgnoreActor)
 	{
-		IgnoreActors.AddUnique(InIgnoreActor->GetUniqueID());
+		TArray<UPrimitiveComponent*> PrimComponents;
+		InIgnoreActor->GetComponents(PrimComponents);
+		for (UPrimitiveComponent* PrimComponent : PrimComponents)
+		{
+			IgnoreComponents.AddUnique(PrimComponent->GetUniqueID());
+		}
 	}
 }
 
@@ -141,10 +146,9 @@ void FCollisionQueryParams::AddIgnoredActors(const TArray<AActor*>& InIgnoreActo
 {
 	for (int32 Idx = 0; Idx < InIgnoreActors.Num(); ++Idx)
 	{
-		AActor const* const A = InIgnoreActors[Idx];
-		if (A)
+		if (AActor const* const A = InIgnoreActors[Idx])
 		{
-			IgnoreActors.Add(A->GetUniqueID());
+			AddIgnoredActor(A);
 		}
 	}
 }
@@ -153,10 +157,37 @@ void FCollisionQueryParams::AddIgnoredActors(const TArray<TWeakObjectPtr<AActor>
 {
 	for (int32 Idx = 0; Idx < InIgnoreActors.Num(); ++Idx)
 	{
-		AActor const* const A = InIgnoreActors[Idx].Get();
-		if (A)
+		if (AActor const* const A = InIgnoreActors[Idx].Get())
 		{
-			IgnoreActors.Add(A->GetUniqueID());
+			AddIgnoredActor(A);
+		}
+	}
+}
+
+
+void FCollisionQueryParams::AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent)
+{
+	if (InIgnoreComponent)
+	{
+		IgnoreComponents.AddUnique(InIgnoreComponent->GetUniqueID());
+	}
+}
+
+void FCollisionQueryParams::AddIgnoredComponents(const TArray<UPrimitiveComponent*>& InIgnoreComponents)
+{
+	for (const UPrimitiveComponent* IgnoreComponent : InIgnoreComponents)
+	{
+		AddIgnoredComponent(IgnoreComponent);
+	}
+}
+
+void FCollisionQueryParams::AddIgnoredComponents(const TArray<TWeakObjectPtr<UPrimitiveComponent> >& InIgnoreComponents)
+{
+	for (TWeakObjectPtr<UPrimitiveComponent> IgnoreComponent : InIgnoreComponents)
+	{
+		if (IgnoreComponent.IsValid())
+		{
+			AddIgnoredComponent(IgnoreComponent.Get());
 		}
 	}
 }

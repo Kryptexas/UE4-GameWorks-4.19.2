@@ -35,8 +35,8 @@ struct ENGINE_API FCollisionQueryParams
 	/** Only fill in the PhysMaterial field of  */
 	bool bReturnPhysicalMaterial;
 
-	/** Set of actors to ignore during the trace */
-	TArray<uint32, TInlineAllocator<1> > IgnoreActors;
+	/** Set of components to ignore during the trace */
+	TArray<uint32, TInlineAllocator<1> > IgnoreComponents;
 
 	// Constructors
 	FCollisionQueryParams(bool bInTraceComplex=false)
@@ -61,6 +61,15 @@ struct ENGINE_API FCollisionQueryParams
 
 	/** Variant that uses an array of TWeakObjectPtrs */
 	void AddIgnoredActors(const TArray<TWeakObjectPtr<AActor> >& InIgnoreActors);
+
+	/** Add a component for this trace to ignore */
+	void AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent);
+
+	/** Add a collection of componnets for this trace to ignore */
+	void AddIgnoredComponents(const TArray<UPrimitiveComponent*>& InIgnoreComponents);
+	
+	/** Varient that uses an array of TWeakObjectPtrs */
+	void AddIgnoredComponents(const TArray<TWeakObjectPtr<UPrimitiveComponent>>& InIgnoreComponents);
 
 	FString ToString() const
 	{

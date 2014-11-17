@@ -244,7 +244,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 		CollisionResponse.SetAllChannels( ECR_Ignore );
 
 		PxFilterData PWheelQueryFilterData, PDummySimData;
-		CreateShapeFilterData( ECC_Vehicle, GetOwner()->GetUniqueID(), CollisionResponse, 0, 0, PWheelQueryFilterData, PDummySimData, false, false, false );
+		CreateShapeFilterData(ECC_Vehicle, UpdatedComponent->GetUniqueID(), CollisionResponse, 0, 0, PWheelQueryFilterData, PDummySimData, false, false, false );
 
 		//// Give suspension raycasts the same group ID as the chassis so that they don't hit each other
 		PWheelShape->setQueryFilterData( PWheelQueryFilterData );
