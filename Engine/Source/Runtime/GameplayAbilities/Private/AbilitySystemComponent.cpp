@@ -426,18 +426,13 @@ void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Containe
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FPredictionKey PredictionKey)
 {
-	if (HasNetworkAuthorityToApplyGameplayEffect(PredictionKey))
-	{
-		// Apply outgoing Effects to the Spec.
-		// Outgoing immunity may stop the outgoing effect from being applied to the target
-		return Target->ApplyGameplayEffectSpecToSelf(Spec, PredictionKey);
-	}
-
-	return FActiveGameplayEffectHandle();
+	return Target->ApplyGameplayEffectSpecToSelf(Spec, PredictionKey);
 }
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
 {
+	//FScopedActiveGameplayEffectLock AGELock;
+
 	// Check Network Authority
 	if (!HasNetworkAuthorityToApplyGameplayEffect(PredictionKey))
 	{
@@ -449,7 +444,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		if(IsOwnerActorAuthoritative())
 		{
-			// Server continue with invliad prediction key
+			// Server continue with invalid prediction key
 			PredictionKey = FPredictionKey();
 		}
 		else
@@ -520,7 +515,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 		}
-		
+
 		if (!OurCopyOfSpec)
 		{
 			StackSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(Spec));
@@ -531,7 +526,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 		// if necessary add a modifier to OurCopyOfSpec to force it to have an infinite duration
 		if (bTreatAsInfiniteDuration)
-		{			
+		{
 			// This should just be a straight set of the duration float now
 			OurCopyOfSpec->SetDuration(UGameplayEffect::INFINITE_DURATION);
 		}

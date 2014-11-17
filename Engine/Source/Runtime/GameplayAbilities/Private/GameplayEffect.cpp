@@ -997,6 +997,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
+	FScopedActiveGameplayEffectLock AGELock;
 	FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
 	if (ActiveEffect)
 	{
@@ -1016,6 +1017,26 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::GetActiveGameplayEffect(
 		}
 	}
 	return nullptr;
+}
+
+int32 FScopedActiveGameplayEffectLock::AGELockCount = 0;
+FActiveGameplayEffectActionHandle FScopedActiveGameplayEffectLock::DeferredAGEActions;
+FScopedActiveGameplayEffectLock::FScopedActiveGameplayEffectLock()
+{
+	++AGELockCount;
+}
+
+FScopedActiveGameplayEffectLock::~FScopedActiveGameplayEffectLock()
+{
+	--AGELockCount;
+	if (!IsLockInEffect())
+	{
+		for (int32 i = 0; i < DeferredAGEActions.Num(); ++i)
+		{
+			DeferredAGEActions.Get(i)->PerformAction();
+		}
+		DeferredAGEActions.Clear();
+	}
 }
 
 FAggregatorRef& FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregator(FGameplayAttribute Attribute)
@@ -1189,7 +1210,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGamepla
 	return -1.f;
 }
 
-bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffectHandle Handle) const
+bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffectHandle Handle, bool IncludeEffectsBlockedByStackingRules) const
 {
 	// Could make this a map for quicker lookup
 	for (const FActiveGameplayEffect& Effect : GameplayEffects)
@@ -1200,7 +1221,7 @@ bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffe
 			if (Effect.Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited &&
 				Effect.Spec.bTopOfStack == false)
 			{
-				return false;
+				return IncludeEffectsBlockedByStackingRules;
 			}
 			return true;
 		}
@@ -1335,6 +1356,8 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
+
+	//TODO Add FScopedActiveGameplayEffectLock here once we can get a crash to happen
 
 	if (Owner && Owner->OwnerActor)
 	{
@@ -1512,6 +1535,12 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 	{
 		if(GameplayEffects[Idx].Handle == Handle)
 		{
+			//Block removal if we're scope-locked
+			if (FScopedActiveGameplayEffectLock::IsLockInEffect())
+			{
+				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(*this, Handle));
+				return true;		//We are assuming the "ensure(Idx < GameplayEffects.Num())" would be passed.
+			}
 			return InternalRemoveActiveGameplayEffect(Idx);
 		}
 	}
@@ -1528,6 +1557,8 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 	if (ensure(Idx < GameplayEffects.Num()))
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
+
+		check(!FScopedActiveGameplayEffectLock::IsLockInEffect());
 
 		bool ShouldInvokeGameplayCueEvent = true;
 		const bool bIsNetAuthority = IsNetAuthority();
@@ -1566,7 +1597,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		MarkArrayDirty();
 
 		// Hack: force netupdate on owner. This isn't really necessary in real gameplay but is nice
-		// during debugging where breakpoints or pausing can messup network update times. Open issue
+		// during debugging where breakpoints or pausing can mess up network update times. Open issue
 		// with network team.
 		Owner->GetOwner()->ForceNetUpdate();
 

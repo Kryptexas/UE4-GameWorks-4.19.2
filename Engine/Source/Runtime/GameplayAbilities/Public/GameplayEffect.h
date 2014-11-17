@@ -1056,6 +1056,7 @@ struct FActiveGameplayEffectQuery
 	FGameplayAttribute ModifyingAttribute;
 };
 
+
 /**
  * Active GameplayEffects Container
  *	-Bucket of ActiveGameplayEffects
@@ -1097,7 +1098,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
 	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
-	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle) const;
+	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle, bool IncludeEffectsBlockedByStackingRules = false) const;
 
 	/**
 	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
@@ -1230,6 +1231,106 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 	{
 		WithNetDeltaSerializer = true,
 	};
+};
+
+
+USTRUCT()
+struct FActiveGameplayEffectAction
+{
+	GENERATED_USTRUCT_BODY()
+	FActiveGameplayEffectAction()
+	{
+	}
+
+	virtual void PerformAction()
+	{
+	}
+};
+
+USTRUCT()
+struct FActiveGameplayEffectAction_Remove : public FActiveGameplayEffectAction
+{
+	GENERATED_USTRUCT_BODY()
+	FActiveGameplayEffectAction_Remove()
+	{
+	}
+
+	FActiveGameplayEffectAction_Remove(FActiveGameplayEffectsContainer& InContainer, FActiveGameplayEffectHandle& InHandle)
+		: Container(InContainer)
+		, Handle(InHandle)
+	{
+	}
+
+	virtual void PerformAction()
+	{
+		Container.RemoveActiveGameplayEffect(Handle);
+	}
+
+	UPROPERTY()
+	FActiveGameplayEffectsContainer Container;
+
+	UPROPERTY()
+	FActiveGameplayEffectHandle Handle;
+};
+
+USTRUCT()
+struct FActiveGameplayEffectActionHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectActionHandle()
+	{
+	}
+
+	FActiveGameplayEffectActionHandle(struct FActiveGameplayEffectAction* DataPtr)
+	{
+		Add(DataPtr);
+	}
+
+	void Add(struct FActiveGameplayEffectAction* DataPtr)
+	{
+		Data.Add(TSharedPtr<FActiveGameplayEffectAction>(DataPtr));
+	}
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	int32 Num()
+	{
+		return Data.Num();
+	}
+
+	FActiveGameplayEffectAction* Get(int32 Index)
+	{
+		check((Index >= 0) && (Index < Data.Num()));
+		return Data[Index].Get();
+	}
+
+	TArray<TSharedPtr<FActiveGameplayEffectAction>>	Data;
+};
+
+struct FScopedActiveGameplayEffectLock
+{
+	FScopedActiveGameplayEffectLock();
+	~FScopedActiveGameplayEffectLock();
+
+private:
+	static int32 AGELockCount;
+	static FActiveGameplayEffectActionHandle DeferredAGEActions;
+
+public:
+	static void AddAction(FActiveGameplayEffectAction* NewAction)
+	{
+		check(IsLockInEffect());
+		DeferredAGEActions.Add(NewAction);
+	}
+
+	static bool IsLockInEffect()
+	{
+		return (AGELockCount ? true : false);
+	}
 };
 
 
